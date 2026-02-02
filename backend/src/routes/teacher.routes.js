@@ -138,11 +138,12 @@ router.post('/classes/:classId/attendance', async (req, res) => {
     const { classId } = req.params;
     const { student_id, semester_id, date, present, dressing_grade, behavior_grade, notes } = req.body;
 
-    // Validate date is not in the future
-    const attendanceDate = new Date(date);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    if (attendanceDate > today) {
+    // Validate date is not too far in the future (allow 1 day buffer for timezone differences)
+    const attendanceDate = new Date(date + 'T00:00:00Z'); // Parse as UTC
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(23, 59, 59, 999);
+    if (attendanceDate > tomorrow) {
       return res.status(400).json({ error: 'Cannot record attendance for future dates' });
     }
 
@@ -204,11 +205,12 @@ router.post('/classes/:classId/attendance/bulk', async (req, res) => {
     const { classId } = req.params;
     const { semester_id, date, records } = req.body;
 
-    // Validate date is not in the future
-    const attendanceDate = new Date(date);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    if (attendanceDate > today) {
+    // Validate date is not too far in the future (allow 1 day buffer for timezone differences)
+    const attendanceDate = new Date(date + 'T00:00:00Z'); // Parse as UTC
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(23, 59, 59, 999);
+    if (attendanceDate > tomorrow) {
       return res.status(400).json({ error: 'Cannot record attendance for future dates' });
     }
 

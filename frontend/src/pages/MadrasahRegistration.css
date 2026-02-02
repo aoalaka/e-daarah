@@ -1,0 +1,267 @@
+/* Madrasah Registration - Wide Two-Column Layout */
+
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--lg);
+  background: var(--lighter);
+}
+
+.register-container {
+  width: 100%;
+  max-width: 720px;
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* Header */
+.register-header {
+  padding: var(--xl) var(--xl) var(--lg);
+  border-bottom: var(--border);
+  text-align: center;
+}
+
+.register-logo {
+  display: inline-block;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--black);
+  text-decoration: none;
+  margin-bottom: var(--sm);
+}
+
+.register-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: var(--xs);
+}
+
+.register-subtitle {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Form Container */
+.register-form {
+  padding: var(--xl);
+}
+
+/* Section */
+.register-section {
+  margin-bottom: var(--xl);
+}
+
+.register-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.register-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--md);
+  padding-bottom: var(--sm);
+  border-bottom: var(--border);
+}
+
+/* Grid Layout - 2 columns on desktop */
+.register-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--md) var(--lg);
+}
+
+/* Full width field */
+.register-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+/* Form Field */
+.register-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.register-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dark);
+  margin-bottom: var(--xs);
+}
+
+.register-field input,
+.register-field select {
+  padding: 10px 12px;
+  border: var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--dark);
+  background: var(--white);
+  transition: border-color 0.15s;
+}
+
+.register-field input:focus,
+.register-field select:focus {
+  outline: none;
+  border-color: var(--dark);
+}
+
+.register-field input::placeholder {
+  color: var(--muted);
+}
+
+/* URL Input with Prefix */
+.url-input-group {
+  display: flex;
+  align-items: stretch;
+  border: var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--white);
+}
+
+.url-prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sm);
+  background: var(--lighter);
+  color: var(--muted);
+  font-size: 13px;
+  border-right: var(--border);
+  white-space: nowrap;
+}
+
+.url-input-group input {
+  border: none;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.url-input-group input:focus {
+  outline: none;
+}
+
+/* Phone Input Group */
+.phone-input-group {
+  display: flex;
+  gap: var(--sm);
+}
+
+.phone-input-group select {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.phone-input-group input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Help Text */
+.register-help {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: var(--xs);
+}
+
+/* Submit Button */
+.register-submit {
+  width: 100%;
+  padding: 14px;
+  background: var(--black);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: var(--lg);
+}
+
+.register-submit:hover {
+  opacity: 0.9;
+}
+
+.register-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Footer */
+.register-footer {
+  padding: var(--md) var(--xl);
+  border-top: var(--border);
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--lighter);
+}
+
+.register-footer a {
+  color: var(--dark);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.register-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive - Tablet */
+@media (max-width: 768px) {
+  .register-container {
+    max-width: 540px;
+  }
+}
+
+/* Responsive - Mobile */
+@media (max-width: 540px) {
+  .register-page {
+    padding: 0;
+    background: var(--white);
+  }
+
+  .register-container {
+    max-width: 100%;
+    border: none;
+    border-radius: 0;
+  }
+
+  .register-header {
+    padding: var(--lg);
+  }
+
+  .register-form {
+    padding: var(--lg);
+  }
+
+  .register-grid {
+    grid-template-columns: 1fr;
+    gap: var(--md);
+  }
+
+  .register-title {
+    font-size: 20px;
+  }
+
+  .phone-input-group {
+    flex-direction: column;
+  }
+
+  .phone-input-group select {
+    width: 100%;
+  }
+
+  .register-footer {
+    padding: var(--md) var(--lg);
+  }
+}

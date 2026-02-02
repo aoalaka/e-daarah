@@ -1,0 +1,10 @@
+# Railway deployment configuration
+# This file configures Railway to deploy multiple services from a monorepo
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+healthcheckPath = "/"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

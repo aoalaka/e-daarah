@@ -1,0 +1,10 @@
+# Frontend service configuration for Railway
+
+[build]
+builder = "nixpacks"
+buildCommand = "npm install && npm run build"
+
+[deploy]
+healthcheckPath = "/"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

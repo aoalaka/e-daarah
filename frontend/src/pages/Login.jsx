@@ -1,0 +1,130 @@
+import { useState } from 'react';
+import { useNavigate, Link, useParams } from 'react-router-dom';
+import { authService } from '../services/auth.service';
+import { useMadrasah } from '../contexts/MadrasahContext';
+import './Login.css';
+
+function Login() {
+  const { madrasahSlug } = useParams();
+  const { madrasah } = useMadrasah();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('teacher');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await authService.login(madrasahSlug, email, password, role);
+      navigate(role === 'admin' ? `/${madrasahSlug}/admin` : `/${madrasahSlug}/teacher`);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Invalid email or password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-header">
+          <h1>{madrasah?.name || 'Madrasah Admin'}</h1>
+          <p>Sign in to your account</p>
+        </div>
+
+        <div className="role-toggle">
+          <button
+            type="button"
+            className={role === 'teacher' ? 'active' : ''}
+            onClick={() => setRole('teacher')}
+          >
+            Teacher
+          </button>
+          <button
+            type="button"
+            className={role === 'admin' ? 'active' : ''}
+            onClick={() => setRole('admin')}
+          >
+            Admin
+          </button>
+        </div>
+
+        {madrasahSlug === 'demo' && (
+          <div className="demo-hint">
+            <strong>Demo Credentials:</strong>
+            <div style={{ marginTop: '8px', fontSize: '0.9em' }}>
+              {role === 'admin' ? (
+                <div>
+                  <div>Email: <code>admin@demo.com</code></div>
+                  <div>Password: <code>demo123</code></div>
+                </div>
+              ) : (
+                <div>
+                  <div>Email: <code>teacher1@demo.com</code></div>
+                  <div>Password: <code>demo123</code></div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {error && <div className="error-message">{error}</div>}
+
+        <form className="login-form" onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              autoComplete="email"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              required
+              autoComplete="current-password"
+            />
+          </div>
+
+          <button type="submit" className="submit-btn" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign in'}
+          </button>
+        </form>
+
+        <div className="forgot-password-link">
+          <Link to={`/${madrasahSlug}/forgot-password`}>Forgot password?</Link>
+        </div>
+
+        {role === 'teacher' && (
+          <div className="login-footer">
+            New teacher? <Link to={`/${madrasahSlug}/register-teacher`}>Create account</Link>
+          </div>
+        )}
+
+        <div className="login-links">
+          <Link to={`/${madrasahSlug}/parent-login`}>Parent Login</Link>
+          <span className="divider">|</span>
+          <Link to="/">Back to Home</Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Login;

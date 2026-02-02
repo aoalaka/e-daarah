@@ -1,0 +1,10 @@
+# Backend service configuration for Railway
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

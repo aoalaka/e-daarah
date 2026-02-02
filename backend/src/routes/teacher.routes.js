@@ -57,7 +57,7 @@ router.get('/my-classes', async (req, res) => {
     const [classes] = await pool.query(
       `SELECT c.* FROM classes c
        INNER JOIN class_teachers ct ON c.id = ct.class_id
-       WHERE ct.user_id = ? AND c.madrasah_id = ?`,
+       WHERE ct.teacher_id = ? AND c.madrasah_id = ?`,
       [req.user.id, madrasahId]
     );
     res.json(classes);
@@ -76,7 +76,7 @@ router.get('/classes/:classId/students', async (req, res) => {
     const [access] = await pool.query(
       `SELECT ct.* FROM class_teachers ct
        INNER JOIN classes c ON ct.class_id = c.id
-       WHERE ct.class_id = ? AND ct.user_id = ? AND c.madrasah_id = ?`,
+       WHERE ct.class_id = ? AND ct.teacher_id = ? AND c.madrasah_id = ?`,
       [classId, req.user.id, madrasahId]
     );
 
@@ -109,7 +109,7 @@ router.get('/classes/:classId/attendance/:date', async (req, res) => {
     const [access] = await pool.query(
       `SELECT ct.* FROM class_teachers ct
        INNER JOIN classes c ON ct.class_id = c.id
-       WHERE ct.class_id = ? AND ct.user_id = ? AND c.madrasah_id = ?`,
+       WHERE ct.class_id = ? AND ct.teacher_id = ? AND c.madrasah_id = ?`,
       [classId, req.user.id, madrasahId]
     );
 
@@ -160,7 +160,7 @@ router.post('/classes/:classId/attendance', async (req, res) => {
     const [access] = await pool.query(
       `SELECT ct.* FROM class_teachers ct
        INNER JOIN classes c ON ct.class_id = c.id
-       WHERE ct.class_id = ? AND ct.user_id = ? AND c.madrasah_id = ?`,
+       WHERE ct.class_id = ? AND ct.teacher_id = ? AND c.madrasah_id = ?`,
       [classId, req.user.id, madrasahId]
     );
 
@@ -269,7 +269,7 @@ router.post('/classes/:classId/attendance/bulk', async (req, res) => {
     const [access] = await pool.query(
       `SELECT ct.* FROM class_teachers ct
        INNER JOIN classes c ON ct.class_id = c.id
-       WHERE ct.class_id = ? AND ct.user_id = ? AND c.madrasah_id = ?`,
+       WHERE ct.class_id = ? AND ct.teacher_id = ? AND c.madrasah_id = ?`,
       [classId, req.user.id, madrasahId]
     );
 
@@ -323,7 +323,7 @@ router.get('/classes/:classId/attendance-history', async (req, res) => {
     const [access] = await pool.query(
       `SELECT ct.* FROM class_teachers ct
        INNER JOIN classes c ON ct.class_id = c.id
-       WHERE ct.class_id = ? AND ct.user_id = ? AND c.madrasah_id = ?`,
+       WHERE ct.class_id = ? AND ct.teacher_id = ? AND c.madrasah_id = ?`,
       [classId, req.user.id, madrasahId]
     );
 
@@ -368,7 +368,7 @@ router.post('/classes/:classId/students', async (req, res) => {
     const [access] = await pool.query(
       `SELECT ct.* FROM class_teachers ct
        INNER JOIN classes c ON ct.class_id = c.id
-       WHERE ct.class_id = ? AND ct.user_id = ? AND c.madrasah_id = ?`,
+       WHERE ct.class_id = ? AND ct.teacher_id = ? AND c.madrasah_id = ?`,
       [classId, req.user.id, madrasahId]
     );
 
@@ -400,7 +400,7 @@ router.get('/classes/:classId/exam-performance', async (req, res) => {
     const [access] = await pool.query(
       `SELECT ct.* FROM class_teachers ct
        INNER JOIN classes c ON ct.class_id = c.id
-       WHERE ct.class_id = ? AND ct.user_id = ? AND c.madrasah_id = ?`,
+       WHERE ct.class_id = ? AND ct.teacher_id = ? AND c.madrasah_id = ?`,
       [classId, req.user.id, madrasahId]
     );
 
@@ -451,7 +451,7 @@ router.post('/classes/:classId/exam-performance/bulk', async (req, res) => {
     const [access] = await pool.query(
       `SELECT ct.* FROM class_teachers ct
        INNER JOIN classes c ON ct.class_id = c.id
-       WHERE ct.class_id = ? AND ct.user_id = ? AND c.madrasah_id = ?`,
+       WHERE ct.class_id = ? AND ct.teacher_id = ? AND c.madrasah_id = ?`,
       [classId, req.user.id, madrasahId]
     );
 

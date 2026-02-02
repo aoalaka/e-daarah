@@ -1,3 +1,0 @@
-# Railway should ignore Dockerfile and use Nixpacks instead
-# Dockerfile is for local Docker/docker-compose setup with nginx
-Dockerfile

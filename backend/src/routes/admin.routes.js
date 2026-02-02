@@ -304,7 +304,7 @@ router.get('/classes/:classId/teachers', async (req, res) => {
     const [teachers] = await pool.query(
       `SELECT u.id, u.first_name, u.last_name, u.staff_id, u.email, u.phone
        FROM users u
-       INNER JOIN class_teachers ct ON u.id = ct.teacher_id
+       INNER JOIN class_teachers ct ON u.id = ct.user_id
        WHERE ct.class_id = ? AND u.madrasah_id = ? AND u.role = 'teacher'
        ORDER BY u.last_name, u.first_name`,
       [classId, madrasahId]
@@ -342,7 +342,7 @@ router.post('/classes/:classId/teachers', async (req, res) => {
 
     // Check if already assigned
     const [existing] = await pool.query(
-      'SELECT * FROM class_teachers WHERE class_id = ? AND teacher_id = ?',
+      'SELECT * FROM class_teachers WHERE class_id = ? AND user_id = ?',
       [classId, teacher_id]
     );
 
@@ -351,7 +351,7 @@ router.post('/classes/:classId/teachers', async (req, res) => {
     }
 
     await pool.query(
-      'INSERT INTO class_teachers (class_id, teacher_id) VALUES (?, ?)',
+      'INSERT INTO class_teachers (class_id, user_id) VALUES (?, ?)',
       [classId, teacher_id]
     );
     res.status(201).json({ message: 'Teacher assigned successfully' });
@@ -376,7 +376,7 @@ router.delete('/classes/:classId/teachers/:teacherId', async (req, res) => {
     }
 
     await pool.query(
-      'DELETE FROM class_teachers WHERE class_id = ? AND teacher_id = ?',
+      'DELETE FROM class_teachers WHERE class_id = ? AND user_id = ?',
       [classId, teacherId]
     );
     res.json({ message: 'Teacher removed from class' });

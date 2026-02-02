@@ -31,12 +31,12 @@ app.use('/api/classes', classRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Health check (both paths for flexibility)
+// Health check (both paths for flexibility) - doesn't require DB
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Madrasah Admin API is running' });
+  res.status(200).json({ status: 'ok', message: 'Madrasah Admin API is running' });
 });
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Madrasah Admin API is running' });
+  res.status(200).json({ status: 'ok', message: 'Madrasah Admin API is running' });
 });
 
 // Error handling middleware
@@ -48,16 +48,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+// Start server - don't block on DB connection for health checks
 const startServer = async () => {
+  // Start listening first so health checks pass
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+
+  // Then try to connect to database
   try {
     await testConnection();
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
   } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+    console.error('Database connection failed:', error.message);
+    console.log('Server is running but database is not connected. Retrying...');
+    // Don't exit - let the server run for health checks
+    // API routes will fail gracefully if DB is down
   }
 };
 

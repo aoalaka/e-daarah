@@ -12,11 +12,12 @@ export const authService = {
     return response.data;
   },
 
-  // Parent login (scoped to madrasah)
+  // Parent login (scoped to madrasah with tenant isolation)
   parentLogin: async (madrasahSlug, studentId, surname) => {
     const response = await api.post('/auth/parent-login', {
       studentId,
-      surname
+      surname,
+      madrasahSlug
     });
     if (response.data.token) {
       localStorage.setItem('parentToken', response.data.token);

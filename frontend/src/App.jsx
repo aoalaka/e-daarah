@@ -17,6 +17,11 @@ import TeacherRegistration from './pages/TeacherRegistration';
 import AdminDashboard from './pages/admin/Dashboard';
 import TeacherDashboard from './pages/teacher/Dashboard';
 
+// Super Admin pages
+import SuperAdminLogin from './pages/superadmin/Login';
+import SuperAdminDashboard from './pages/superadmin/Dashboard';
+import MadrasahDetail from './pages/superadmin/MadrasahDetail';
+
 import './App.css';
 
 function MadrasahRoutes() {
@@ -63,6 +68,11 @@ function App() {
         {/* Global public routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/register" element={<MadrasahRegistration />} />
+
+        {/* Super Admin routes */}
+        <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+        <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
+        <Route path="/superadmin/madrasahs/:id" element={<MadrasahDetail />} />
 
         {/* Madrasah-scoped routes */}
         <Route path="/:madrasahSlug/*" element={<MadrasahRoutes />} />

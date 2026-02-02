@@ -1,0 +1,254 @@
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import api from '../../services/api';
+import './SuperAdmin.css';
+
+function SuperAdminDashboard() {
+  const navigate = useNavigate();
+  const [stats, setStats] = useState(null);
+  const [madrasahs, setMadrasahs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState({ status: '', plan: '', search: '' });
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
+
+  const superAdmin = JSON.parse(localStorage.getItem('superAdmin') || '{}');
+
+  useEffect(() => {
+    const token = localStorage.getItem('superAdminToken');
+    if (!token) {
+      navigate('/superadmin/login');
+      return;
+    }
+    fetchDashboard();
+    fetchMadrasahs();
+  }, []);
+
+  useEffect(() => {
+    fetchMadrasahs();
+  }, [filter, page]);
+
+  const getAuthHeader = () => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` }
+  });
+
+  const fetchDashboard = async () => {
+    try {
+      const response = await api.get('/superadmin/dashboard', getAuthHeader());
+      setStats(response.data);
+    } catch (error) {
+      if (error.response?.status === 401) {
+        handleLogout();
+      }
+    }
+  };
+
+  const fetchMadrasahs = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (filter.status) params.append('status', filter.status);
+      if (filter.plan) params.append('plan', filter.plan);
+      if (filter.search) params.append('search', filter.search);
+      params.append('page', page);
+
+      const response = await api.get(`/superadmin/madrasahs?${params}`, getAuthHeader());
+      setMadrasahs(response.data.madrasahs);
+      setPagination(response.data.pagination);
+    } catch (error) {
+      console.error('Failed to fetch madrasahs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSuspend = async (id, name) => {
+    if (!confirm(`Suspend ${name}? Users will not be able to log in.`)) return;
+
+    const reason = prompt('Reason for suspension:');
+    try {
+      await api.post(`/superadmin/madrasahs/${id}/suspend`, { reason }, getAuthHeader());
+      fetchMadrasahs();
+      fetchDashboard();
+    } catch (error) {
+      alert('Failed to suspend madrasah');
+    }
+  };
+
+  const handleReactivate = async (id) => {
+    try {
+      await api.post(`/superadmin/madrasahs/${id}/reactivate`, {}, getAuthHeader());
+      fetchMadrasahs();
+      fetchDashboard();
+    } catch (error) {
+      alert('Failed to reactivate madrasah');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('superAdminToken');
+    localStorage.removeItem('superAdmin');
+    navigate('/superadmin/login');
+  };
+
+  return (
+    <div className="superadmin">
+      <header className="superadmin-header">
+        <div className="header-left">
+          <h1>e-daarah Platform</h1>
+        </div>
+        <div className="header-right">
+          <span className="admin-name">{superAdmin.firstName} {superAdmin.lastName}</span>
+          <button onClick={handleLogout} className="btn-link">Logout</button>
+        </div>
+      </header>
+
+      <main className="superadmin-main">
+        {/* Stats Cards */}
+        {stats && (
+          <section className="stats-grid">
+            <div className="stat-card">
+              <div className="stat-value">{stats.totalMadrasahs}</div>
+              <div className="stat-label">Total Madrasahs</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{stats.activeMadrasahs}</div>
+              <div className="stat-label">Active</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{stats.totalStudents}</div>
+              <div className="stat-label">Total Students</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{stats.totalUsers}</div>
+              <div className="stat-label">Total Users</div>
+            </div>
+            <div className="stat-card highlight">
+              <div className="stat-value">{stats.recentRegistrations}</div>
+              <div className="stat-label">New (7 days)</div>
+            </div>
+          </section>
+        )}
+
+        {/* Filters */}
+        <section className="filters">
+          <input
+            type="text"
+            placeholder="Search madrasahs..."
+            value={filter.search}
+            onChange={(e) => setFilter({ ...filter, search: e.target.value })}
+            className="search-input"
+          />
+          <select
+            value={filter.status}
+            onChange={(e) => setFilter({ ...filter, status: e.target.value })}
+          >
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <select
+            value={filter.plan}
+            onChange={(e) => setFilter({ ...filter, plan: e.target.value })}
+          >
+            <option value="">All Plans</option>
+            <option value="starter">Starter</option>
+            <option value="professional">Professional</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </section>
+
+        {/* Madrasahs Table */}
+        <section className="table-section">
+          <h2>Madrasahs</h2>
+          {loading ? (
+            <p>Loading...</p>
+          ) : (
+            <>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Slug</th>
+                    <th>Plan</th>
+                    <th>Users</th>
+                    <th>Students</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {madrasahs.map((m) => (
+                    <tr key={m.id} className={m.suspended_at ? 'suspended' : ''}>
+                      <td>{m.name}</td>
+                      <td><code>{m.slug}</code></td>
+                      <td>
+                        <span className={`plan-badge ${m.subscription_plan}`}>
+                          {m.subscription_plan}
+                        </span>
+                      </td>
+                      <td>{m.user_count}</td>
+                      <td>{m.student_count}</td>
+                      <td>
+                        {m.suspended_at ? (
+                          <span className="status suspended">Suspended</span>
+                        ) : m.is_active ? (
+                          <span className="status active">Active</span>
+                        ) : (
+                          <span className="status inactive">Inactive</span>
+                        )}
+                      </td>
+                      <td>{new Date(m.created_at).toLocaleDateString()}</td>
+                      <td className="actions">
+                        <Link to={`/superadmin/madrasahs/${m.id}`} className="btn-small">
+                          View
+                        </Link>
+                        {m.suspended_at ? (
+                          <button
+                            onClick={() => handleReactivate(m.id)}
+                            className="btn-small success"
+                          >
+                            Reactivate
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSuspend(m.id, m.name)}
+                            className="btn-small danger"
+                          >
+                            Suspend
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {pagination && (
+                <div className="pagination">
+                  <button
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    Previous
+                  </button>
+                  <span>Page {page} of {pagination.pages}</span>
+                  <button
+                    disabled={page >= pagination.pages}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+export default SuperAdminDashboard;

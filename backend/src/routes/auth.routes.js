@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import pool from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
 import { isValidEmail, isValidPhone, isValidName, isValidStaffId, isValidStudentId, isRequired, isValidPassword } from '../utils/validation.js';
+import { sendEmailVerification, sendWelcomeEmail } from '../services/email.service.js';
+import crypto from 'crypto';
 
 const router = express.Router();
 
@@ -329,52 +331,65 @@ router.post('/register-teacher', async (req, res) => {
   }
 });
 
-// Parent login (using student_id and last_name)
+// Parent login (using student_id, last_name, and madrasah slug for tenant isolation)
 router.post('/parent-login', async (req, res) => {
   console.log('Parent login request');
-  
+
   try {
-    const { studentId, surname } = req.body;
-    
-    if (!studentId || !surname) {
-      return res.status(400).json({ error: 'Student ID and surname are required' });
+    const { studentId, surname, madrasahSlug } = req.body;
+
+    if (!studentId || !surname || !madrasahSlug) {
+      return res.status(400).json({ error: 'Student ID, surname, and madrasah are required' });
     }
-    
+
     // Validate student ID format
     if (!isValidStudentId(studentId)) {
       return res.status(400).json({ error: 'Student ID must be exactly 6 digits' });
     }
-    
+
     // Validate surname
     if (!isValidName(surname)) {
       return res.status(400).json({ error: 'Invalid surname format' });
     }
-    
-    // Find student by student_id and last_name
-    const [students] = await pool.query(
-      'SELECT id, first_name, last_name, student_id, class_id, madrasah_id FROM students WHERE student_id = ? AND LOWER(last_name) = LOWER(?)',
-      [studentId, surname]
+
+    // Get madrasah by slug first (tenant isolation)
+    const [madrasahs] = await pool.query(
+      'SELECT id, slug FROM madrasahs WHERE slug = ? AND is_active = TRUE',
+      [madrasahSlug]
     );
-    
+
+    if (madrasahs.length === 0) {
+      return res.status(404).json({ error: 'Madrasah not found' });
+    }
+
+    const madrasahId = madrasahs[0].id;
+
+    // Find student by student_id, last_name, AND madrasah_id (tenant isolated)
+    const [students] = await pool.query(
+      'SELECT id, first_name, last_name, student_id, class_id, madrasah_id FROM students WHERE student_id = ? AND LOWER(last_name) = LOWER(?) AND madrasah_id = ?',
+      [studentId, surname, madrasahId]
+    );
+
     if (students.length === 0) {
       return res.status(401).json({ error: 'Invalid student ID or surname' });
     }
-    
+
     const student = students[0];
-    
-    // Generate JWT for parent
+
+    // Generate JWT for parent with madrasah context
     const token = jwt.sign(
-      { 
+      {
         studentId: student.id,
         role: 'parent',
-        madrasahId: student.madrasah_id
+        madrasahId: student.madrasah_id,
+        madrasahSlug: madrasahSlug
       },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
-    
-    console.log('Parent login successful for student:', student.id);
-    
+
+    console.log('Parent login successful for student:', student.id, 'in madrasah:', madrasahId);
+
     res.json({
       token,
       student: {
@@ -383,6 +398,10 @@ router.post('/parent-login', async (req, res) => {
         lastName: student.last_name,
         studentId: student.student_id,
         classId: student.class_id
+      },
+      madrasah: {
+        id: madrasahId,
+        slug: madrasahSlug
       }
     });
   } catch (error) {
@@ -391,48 +410,49 @@ router.post('/parent-login', async (req, res) => {
   }
 });
 
-// Get parent report (authenticated)
+// Get parent report (authenticated with tenant isolation)
 router.get('/parent/report', authenticateToken, async (req, res) => {
   console.log('Parent report - Token user:', req.user);
-  
+
   try {
     // Verify parent role
     if (req.user.role !== 'parent') {
       console.log('Parent report - Invalid role:', req.user.role);
       return res.status(403).json({ error: 'Access denied' });
     }
-    
+
     const studentId = req.user.studentId;
-    
-    // Get student details
+    const madrasahId = req.user.madrasahId;
+
+    // Get student details WITH madrasah_id verification (tenant isolation)
     const [students] = await pool.query(
-      'SELECT s.*, c.name as class_name FROM students s LEFT JOIN classes c ON s.class_id = c.id WHERE s.id = ?',
-      [studentId]
+      'SELECT s.*, c.name as class_name FROM students s LEFT JOIN classes c ON s.class_id = c.id WHERE s.id = ? AND s.madrasah_id = ?',
+      [studentId, madrasahId]
     );
-    
+
     if (students.length === 0) {
       return res.status(404).json({ error: 'Student not found' });
     }
-    
+
     const student = students[0];
-    
-    // Get attendance records
+
+    // Get attendance records (tenant isolated)
     const [attendance] = await pool.query(
-      'SELECT * FROM attendance WHERE student_id = ? ORDER BY date DESC',
-      [studentId]
+      'SELECT * FROM attendance WHERE student_id = ? AND madrasah_id = ? ORDER BY date DESC',
+      [studentId, madrasahId]
     );
-    
-    // Get exam performance
+
+    // Get exam performance (tenant isolated)
     const [exams] = await pool.query(
-      'SELECT * FROM exam_performance WHERE student_id = ? ORDER BY exam_date DESC',
-      [studentId]
+      'SELECT * FROM exam_performance WHERE student_id = ? AND madrasah_id = ? ORDER BY exam_date DESC',
+      [studentId, madrasahId]
     );
-    
+
     // Calculate attendance statistics
     const totalDays = attendance.length;
     const presentDays = attendance.filter(a => a.present).length;
     const attendanceRate = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : '0.0';
-    
+
     // Calculate dressing and behavior averages
     const gradeToNumber = (grade) => {
       switch (grade) {
@@ -443,46 +463,46 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         default: return 0;
       }
     };
-    
+
     const dressingGrades = attendance.filter(a => a.dressing_grade).map(a => gradeToNumber(a.dressing_grade));
     const behaviorGrades = attendance.filter(a => a.behavior_grade).map(a => gradeToNumber(a.behavior_grade));
-    
+
     const avgDressing = dressingGrades.length > 0
       ? dressingGrades.reduce((a, b) => a + b, 0) / dressingGrades.length
       : null;
     const avgBehavior = behaviorGrades.length > 0
       ? behaviorGrades.reduce((a, b) => a + b, 0) / behaviorGrades.length
       : null;
-    
-    // Calculate class position based on average exam scores
+
+    // Calculate class position based on average exam scores (tenant isolated)
     let classPosition = null;
     let totalStudents = null;
-    
+
     if (student.class_id) {
-      // Get all students in the class with their average exam scores
+      // Get all students in the class with their average exam scores (tenant isolated)
       const [classRankings] = await pool.query(
-        `SELECT 
+        `SELECT
           s.id,
           s.student_id,
-          AVG(CASE WHEN ep.is_absent = 0 AND ep.score IS NOT NULL 
-              THEN (ep.score / ep.max_score * 100) 
+          AVG(CASE WHEN ep.is_absent = 0 AND ep.score IS NOT NULL
+              THEN (ep.score / ep.max_score * 100)
               ELSE NULL END) as avg_score
          FROM students s
-         LEFT JOIN exam_performance ep ON s.id = ep.student_id
-         WHERE s.class_id = ?
+         LEFT JOIN exam_performance ep ON s.id = ep.student_id AND ep.madrasah_id = ?
+         WHERE s.class_id = ? AND s.madrasah_id = ?
          GROUP BY s.id, s.student_id
          HAVING avg_score IS NOT NULL
          ORDER BY avg_score DESC`,
-        [student.class_id]
+        [madrasahId, student.class_id, madrasahId]
       );
-      
+
       totalStudents = classRankings.length;
       const studentRank = classRankings.findIndex(r => r.id === studentId);
       if (studentRank !== -1) {
         classPosition = studentRank + 1;
       }
     }
-    
+
     res.json({
       student,
       attendance: {
@@ -504,6 +524,105 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching parent report:', error);
     res.status(500).json({ error: 'Failed to fetch report' });
+  }
+});
+
+// Send email verification
+router.post('/send-verification', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const madrasahSlug = req.user.madrasahSlug;
+
+    // Get user email
+    const [users] = await pool.query(
+      'SELECT email, email_verified FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (users[0].email_verified) {
+      return res.status(400).json({ error: 'Email already verified' });
+    }
+
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Save token to database
+    await pool.query(
+      'UPDATE users SET email_verification_token = ?, email_verification_expires = ? WHERE id = ?',
+      [verificationToken, expires, userId]
+    );
+
+    // Send verification email
+    await sendEmailVerification(users[0].email, verificationToken, madrasahSlug);
+
+    res.json({ message: 'Verification email sent' });
+  } catch (error) {
+    console.error('Send verification error:', error);
+    res.status(500).json({ error: 'Failed to send verification email' });
+  }
+});
+
+// Verify email
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Verification token is required' });
+    }
+
+    // Find user with this token
+    const [users] = await pool.query(
+      `SELECT u.id, u.email, u.first_name, m.name as madrasah_name
+       FROM users u
+       JOIN madrasahs m ON u.madrasah_id = m.id
+       WHERE u.email_verification_token = ? AND u.email_verification_expires > NOW()`,
+      [token]
+    );
+
+    if (users.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired verification token' });
+    }
+
+    const user = users[0];
+
+    // Mark email as verified
+    await pool.query(
+      'UPDATE users SET email_verified = TRUE, email_verification_token = NULL, email_verification_expires = NULL WHERE id = ?',
+      [user.id]
+    );
+
+    // Send welcome email
+    await sendWelcomeEmail(user.email, user.first_name, user.madrasah_name);
+
+    res.json({ message: 'Email verified successfully' });
+  } catch (error) {
+    console.error('Verify email error:', error);
+    res.status(500).json({ error: 'Failed to verify email' });
+  }
+});
+
+// Check email verification status
+router.get('/verification-status', authenticateToken, async (req, res) => {
+  try {
+    const [users] = await pool.query(
+      'SELECT email_verified FROM users WHERE id = ?',
+      [req.user.id]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ emailVerified: users[0].email_verified });
+  } catch (error) {
+    console.error('Verification status error:', error);
+    res.status(500).json({ error: 'Failed to check verification status' });
   }
 });
 

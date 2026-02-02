@@ -37,7 +37,44 @@ export const sendPasswordChangeConfirmation = async (email, role) => {
   console.log(`Role: ${role}`);
   console.log('Password was successfully changed.');
   console.log('====================================\n');
-  
+
+  return { success: true };
+};
+
+/**
+ * Send email verification email
+ * @param {string} email - Recipient email
+ * @param {string} verificationToken - Email verification token
+ * @param {string} madrasahSlug - Madrasah slug for URL
+ * @returns {Promise}
+ */
+export const sendEmailVerification = async (email, verificationToken, madrasahSlug) => {
+  const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/${madrasahSlug}/verify-email?token=${verificationToken}`;
+
+  // Log to console (for development)
+  console.log('\n=== EMAIL VERIFICATION ===');
+  console.log(`To: ${email}`);
+  console.log(`Verify URL: ${verifyUrl}`);
+  console.log(`Token expires in: 24 hours`);
+  console.log('==========================\n');
+
+  return { success: true, messageId: 'console-log' };
+};
+
+/**
+ * Send welcome email after verification
+ * @param {string} email - Recipient email
+ * @param {string} firstName - User's first name
+ * @param {string} madrasahName - Madrasah name
+ * @returns {Promise}
+ */
+export const sendWelcomeEmail = async (email, firstName, madrasahName) => {
+  // Log to console (for development)
+  console.log('\n=== WELCOME EMAIL ===');
+  console.log(`To: ${email}`);
+  console.log(`Welcome ${firstName} to ${madrasahName}!`);
+  console.log('=====================\n');
+
   return { success: true };
 };
 

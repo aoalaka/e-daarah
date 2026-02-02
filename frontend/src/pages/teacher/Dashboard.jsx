@@ -453,7 +453,8 @@ function TeacherDashboard() {
       await api.post(`/teacher/classes/${selectedClass.id}/attendance/bulk`, {
         semester_id: selectedSemester.id,
         date: attendanceDate,
-        records
+        records,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
       });
 
       toast.success('Attendance saved successfully!');

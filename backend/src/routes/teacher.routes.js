@@ -136,14 +136,14 @@ router.post('/classes/:classId/attendance', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { student_id, semester_id, date, present, dressing_grade, behavior_grade, notes } = req.body;
+    const { student_id, semester_id, date, present, dressing_grade, behavior_grade, notes, timezone } = req.body;
 
-    // Validate date is not too far in the future (allow 1 day buffer for timezone differences)
-    const attendanceDate = new Date(date + 'T00:00:00Z'); // Parse as UTC
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(23, 59, 59, 999);
-    if (attendanceDate > tomorrow) {
+    // Validate date is not in the future using client's timezone
+    const clientTimezone = timezone || 'UTC';
+    const now = new Date();
+    const todayInClientTz = new Date(now.toLocaleString('en-US', { timeZone: clientTimezone }));
+    const todayStr = todayInClientTz.toISOString().split('T')[0]; // YYYY-MM-DD
+    if (date > todayStr) {
       return res.status(400).json({ error: 'Cannot record attendance for future dates' });
     }
 
@@ -203,14 +203,14 @@ router.post('/classes/:classId/attendance/bulk', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { semester_id, date, records } = req.body;
+    const { semester_id, date, records, timezone } = req.body;
 
-    // Validate date is not too far in the future (allow 1 day buffer for timezone differences)
-    const attendanceDate = new Date(date + 'T00:00:00Z'); // Parse as UTC
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(23, 59, 59, 999);
-    if (attendanceDate > tomorrow) {
+    // Validate date is not in the future using client's timezone
+    const clientTimezone = timezone || 'UTC';
+    const now = new Date();
+    const todayInClientTz = new Date(now.toLocaleString('en-US', { timeZone: clientTimezone }));
+    const todayStr = todayInClientTz.toISOString().split('T')[0]; // YYYY-MM-DD
+    if (date > todayStr) {
       return res.status(400).json({ error: 'Cannot record attendance for future dates' });
     }
 

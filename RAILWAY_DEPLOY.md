@@ -15,6 +15,7 @@ Deploy e-daarah (Madrasah Admin) to Railway with MySQL, Backend, and Frontend.
 2. Click **"New Project"**
 3. Select **"Deploy from GitHub repo"**
 4. Connect your GitHub account and select this repository
+5. **Set Region**: Go to Project **Settings** → **Environment** → Change to **Asia Southeast (Singapore)**
 
 ### 2. Add MySQL Database
 
@@ -48,7 +49,7 @@ Deploy e-daarah (Madrasah Admin) to Railway with MySQL, Backend, and Frontend.
 
 5. Link the MySQL database:
    - Click **"+ Variable Reference"**
-   - Select `DATABASE_URL` from MySQL service
+   - Select `MYSQL_PUBLIC_URL` from MySQL service (use public URL to avoid private network issues)
 
 ### 5. Deploy Frontend Service
 
@@ -113,8 +114,12 @@ Deploy e-daarah (Madrasah Admin) to Railway with MySQL, Backend, and Frontend.
 
 ### Database connection fails
 - Check MySQL service is running
-- Verify `DATABASE_URL` format in backend variables
+- Verify `MYSQL_PUBLIC_URL` is linked (not private `DATABASE_URL`)
 - Try adding `DB_SSL=true` if SSL is required
+
+### "Failed to get private network endpoint" error
+- Use `MYSQL_PUBLIC_URL` instead of `DATABASE_URL`
+- Or change project region to one that supports private networking
 
 ## Local Development
 

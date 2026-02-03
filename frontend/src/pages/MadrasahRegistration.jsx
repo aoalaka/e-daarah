@@ -10,6 +10,7 @@ function MadrasahRegistration() {
   const [formData, setFormData] = useState({
     madrasahName: '',
     slug: '',
+    institutionType: '',
     adminFirstName: '',
     adminLastName: '',
     adminEmail: '',
@@ -20,7 +21,8 @@ function MadrasahRegistration() {
     street: '',
     city: '',
     region: '',
-    country: ''
+    country: '',
+    agreeToTerms: false
   });
 
   const generateSlug = (name) => {
@@ -74,11 +76,22 @@ function MadrasahRegistration() {
       return;
     }
 
+    if (!formData.institutionType) {
+      toast.error('Please select an institution type');
+      return;
+    }
+
+    if (!formData.agreeToTerms) {
+      toast.error('You must agree to the Terms of Service');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await authService.registerMadrasah({
         madrasahName: formData.madrasahName,
         slug: formData.slug,
+        institutionType: formData.institutionType,
         adminFirstName: formData.adminFirstName,
         adminLastName: formData.adminLastName,
         adminEmail: formData.adminEmail,
@@ -142,6 +155,24 @@ function MadrasahRegistration() {
                   />
                 </div>
                 <p className="register-help">This will be your madrasah's unique URL</p>
+              </div>
+
+              <div className="register-field full-width">
+                <label htmlFor="institutionType">Institution Type</label>
+                <select
+                  id="institutionType"
+                  name="institutionType"
+                  value={formData.institutionType}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select institution type</option>
+                  <option value="mosque_based">Mosque-based Madrasah</option>
+                  <option value="independent">Independent Islamic School</option>
+                  <option value="school_affiliated">School-affiliated Program</option>
+                  <option value="online">Online Madrasah</option>
+                  <option value="other">Other</option>
+                </select>
               </div>
 
               <div className="register-field full-width">
@@ -458,7 +489,24 @@ function MadrasahRegistration() {
             </div>
           </div>
 
-          <button type="submit" className="register-submit" disabled={loading}>
+          {/* Terms and Conditions */}
+          <div className="register-section">
+            <div className="register-checkbox">
+              <input
+                type="checkbox"
+                id="agreeToTerms"
+                name="agreeToTerms"
+                checked={formData.agreeToTerms}
+                onChange={(e) => setFormData(prev => ({ ...prev, agreeToTerms: e.target.checked }))}
+                required
+              />
+              <label htmlFor="agreeToTerms">
+                I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" className="register-submit" disabled={loading || !formData.agreeToTerms}>
             {loading ? 'Creating...' : 'Create Madrasah'}
           </button>
         </form>

@@ -11,6 +11,7 @@ import MadrasahRegistration from './pages/MadrasahRegistration';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 import ParentLogin from './pages/ParentLogin';
 import ParentReport from './pages/ParentReport';
 import TeacherRegistration from './pages/TeacherRegistration';
@@ -31,6 +32,7 @@ function MadrasahRoutes() {
         <Route path="login" element={<Login />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
+        <Route path="verify-email" element={<VerifyEmail />} />
         <Route path="parent-login" element={<ParentLogin />} />
         <Route path="parent" element={<ParentReport />} />
         <Route path="register-teacher" element={<TeacherRegistration />} />

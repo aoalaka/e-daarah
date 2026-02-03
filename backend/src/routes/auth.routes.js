@@ -14,11 +14,17 @@ router.post('/register-madrasah', async (req, res) => {
   console.log('Madrasah registration request:', req.body);
   
   try {
-    const { madrasahName, slug, phoneCountryCode, phone, street, city, region, country, adminFirstName, adminLastName, adminEmail, adminPassword } = req.body;
-    
+    const { madrasahName, slug, institutionType, phoneCountryCode, phone, street, city, region, country, adminFirstName, adminLastName, adminEmail, adminPassword } = req.body;
+
     // Validate required fields
     if (!madrasahName || !slug || !adminEmail || !adminPassword || !adminFirstName || !phone || !street || !city || !region || !country) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Validate institution type if provided
+    const validInstitutionTypes = ['mosque_based', 'independent', 'school_affiliated', 'online', 'other'];
+    if (institutionType && !validInstitutionTypes.includes(institutionType)) {
+      return res.status(400).json({ error: 'Invalid institution type' });
     }
     
     // Validate admin name
@@ -87,8 +93,8 @@ router.post('/register-madrasah', async (req, res) => {
     
     // Create madrasah
     const [madrasahResult] = await pool.query(
-      'INSERT INTO madrasahs (name, slug, phone, street, city, region, country, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)',
-      [madrasahName, slug, fullPhone, street, city, region, country]
+      'INSERT INTO madrasahs (name, slug, institution_type, phone, street, city, region, country, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)',
+      [madrasahName, slug, institutionType || null, fullPhone, street, city, region, country]
     );
     
     const madrasahId = madrasahResult.insertId;

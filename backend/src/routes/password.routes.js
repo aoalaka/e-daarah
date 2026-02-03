@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import pool from '../config/database.js';
+import { authenticateToken } from '../middleware/auth.middleware.js';
 import { sendPasswordResetEmail, sendPasswordChangeConfirmation } from '../services/email.service.js';
 
 const router = express.Router();
@@ -182,6 +183,77 @@ router.get('/validate-token', async (req, res) => {
   } catch (error) {
     console.error('Validate token error:', error);
     res.status(500).json({ error: 'Failed to validate token' });
+  }
+});
+
+/**
+ * Change password (for authenticated users)
+ * POST /api/password/change-password
+ * Body: { currentPassword, newPassword }
+ */
+router.post('/change-password', authenticateToken, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const userId = req.user.id;
+
+  // Validate input
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current password and new password are required' });
+  }
+
+  // Validate new password strength
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: 'New password must be at least 8 characters long' });
+  }
+
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]/;
+  if (!passwordRegex.test(newPassword)) {
+    return res.status(400).json({
+      error: 'Password must contain uppercase, lowercase, number, and special character'
+    });
+  }
+
+  try {
+    // Get current user's password
+    const [users] = await pool.query(
+      'SELECT password, email, role FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = users[0];
+
+    // Verify current password
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    // Check that new password is different from current
+    const isSame = await bcrypt.compare(newPassword, user.password);
+    if (isSame) {
+      return res.status(400).json({ error: 'New password must be different from current password' });
+    }
+
+    // Hash and update password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      'UPDATE users SET password = ? WHERE id = ?',
+      [hashedPassword, userId]
+    );
+
+    // Send confirmation email (non-blocking)
+    sendPasswordChangeConfirmation(user.email, user.role).catch(err =>
+      console.error('Failed to send confirmation email:', err)
+    );
+
+    res.json({ message: 'Password changed successfully' });
+
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Failed to change password' });
   }
 });
 

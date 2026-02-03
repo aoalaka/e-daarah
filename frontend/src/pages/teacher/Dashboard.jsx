@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import api from '../../services/api';
 import { authService } from '../../services/auth.service';
 import SortableTable from '../../components/SortableTable';
+import EmailVerificationBanner from '../../components/EmailVerificationBanner';
 import '../admin/Dashboard.css';
 
 function TeacherDashboard() {
@@ -48,13 +49,17 @@ function TeacherDashboard() {
   const [examFilterSession, setExamFilterSession] = useState('');
   const [examFilterSemester, setExamFilterSemester] = useState('');
   const [examFilteredSemesters, setExamFilteredSemesters] = useState([]);
+  // Settings state
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [changingPassword, setChangingPassword] = useState(false);
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
   const navItems = [
     { id: 'overview', label: 'Overview' },
     { id: 'attendance', label: 'Attendance' },
-    { id: 'exams', label: 'Exam Performance' }
+    { id: 'exams', label: 'Exam Performance' },
+    { id: 'settings', label: 'Settings' }
   ];
 
   // Close mobile menu when tab changes
@@ -648,6 +653,9 @@ function TeacherDashboard() {
           <button onClick={handleLogout} className="logout-btn">Logout</button>
         </div>
       </header>
+
+      {/* Email Verification Banner */}
+      <EmailVerificationBanner />
 
       {/* Mobile Sidebar Overlay */}
       <div
@@ -1554,6 +1562,107 @@ function TeacherDashboard() {
                   </div>
                 </div>
               )}
+            </>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === 'settings' && (
+            <>
+              <div className="section-header">
+                <h2>Settings</h2>
+              </div>
+
+              {/* Change Password */}
+              <div className="card">
+                <h3>Change Password</h3>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+                    toast.error('New passwords do not match');
+                    return;
+                  }
+                  if (passwordForm.newPassword.length < 8) {
+                    toast.error('Password must be at least 8 characters');
+                    return;
+                  }
+                  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])/;
+                  if (!passwordRegex.test(passwordForm.newPassword)) {
+                    toast.error('Password must contain uppercase, lowercase, number, and special character');
+                    return;
+                  }
+                  setChangingPassword(true);
+                  try {
+                    await api.post('/password/change-password', {
+                      currentPassword: passwordForm.currentPassword,
+                      newPassword: passwordForm.newPassword
+                    });
+                    toast.success('Password changed successfully');
+                    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                  } catch (error) {
+                    toast.error(error.response?.data?.error || 'Failed to change password');
+                  } finally {
+                    setChangingPassword(false);
+                  }
+                }} style={{ maxWidth: '400px' }}>
+                  <div className="form-group">
+                    <label>Current Password</label>
+                    <input
+                      type="password"
+                      value={passwordForm.currentPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>New Password</label>
+                    <input
+                      type="password"
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      required
+                      minLength={8}
+                    />
+                    <small style={{ color: 'var(--muted)', fontSize: '12px' }}>
+                      Min 8 characters, uppercase, lowercase, number, and special character
+                    </small>
+                  </div>
+                  <div className="form-group">
+                    <label>Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn primary" disabled={changingPassword}>
+                    {changingPassword ? 'Changing...' : 'Change Password'}
+                  </button>
+                </form>
+              </div>
+
+              {/* Account Info */}
+              <div className="card" style={{ marginTop: '20px' }}>
+                <h3>Account Information</h3>
+                <div style={{ display: 'grid', gap: '12px', maxWidth: '400px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Name</label>
+                    <p style={{ margin: '4px 0 0 0' }}>{user?.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Email</label>
+                    <p style={{ margin: '4px 0 0 0' }}>{user?.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Staff ID</label>
+                    <p style={{ margin: '4px 0 0 0' }}>{user?.staffId || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Role</label>
+                    <p style={{ margin: '4px 0 0 0', textTransform: 'capitalize' }}>Teacher</p>
+                  </div>
+                </div>
+              </div>
             </>
           )}
         </main>

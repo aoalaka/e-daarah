@@ -69,6 +69,17 @@ ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE,
 ADD COLUMN IF NOT EXISTS email_verification_token VARCHAR(64),
 ADD COLUMN IF NOT EXISTS email_verification_expires TIMESTAMP NULL;
 
+-- 6b. Add institution type and verification columns to madrasahs table
+ALTER TABLE madrasahs
+ADD COLUMN IF NOT EXISTS institution_type ENUM('mosque_based', 'independent', 'school_affiliated', 'online', 'other'),
+ADD COLUMN IF NOT EXISTS verification_status ENUM('unverified', 'basic_verified', 'fully_verified', 'rejected') DEFAULT 'unverified',
+ADD COLUMN IF NOT EXISTS student_count_estimate INT,
+ADD COLUMN IF NOT EXISTS verification_document_url VARCHAR(500),
+ADD COLUMN IF NOT EXISTS verification_notes TEXT,
+ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP NULL,
+ADD COLUMN IF NOT EXISTS verified_by INT NULL,
+ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP NULL;
+
 -- 7. Create indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_users_madrasah_role ON users(madrasah_id, role);
 CREATE INDEX IF NOT EXISTS idx_students_madrasah ON students(madrasah_id);

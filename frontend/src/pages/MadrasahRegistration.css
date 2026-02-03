@@ -172,6 +172,38 @@
   margin-top: var(--xs);
 }
 
+/* Checkbox */
+.register-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sm);
+}
+
+.register-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.register-checkbox label {
+  font-size: 13px;
+  color: var(--dark);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.register-checkbox a {
+  color: var(--black);
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.register-checkbox a:hover {
+  text-decoration: none;
+}
+
 /* Submit Button */
 .register-submit {
   width: 100%;

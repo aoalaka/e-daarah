@@ -625,60 +625,18 @@ function TeacherDashboard() {
 
   return (
     <div className="dashboard">
-      {/* Header */}
-      <header className="header">
-        <div className="header-left">
-          <button
-            className={`menu-toggle ${mobileMenuOpen ? 'active' : ''}`}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            <span className="menu-toggle-icon">
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-          </button>
-          <h1 className="header-title">Teacher Portal</h1>
-        </div>
-        <div className="header-user">
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: 'var(--md)' }}>
-            <span className="header-name">{user?.name || 'Teacher'}</span>
-            {user?.staffId && (
-              <span style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
-                Staff ID: {user.staffId}
-              </span>
-            )}
-          </div>
-          <button onClick={handleLogout} className="logout-btn">Logout</button>
-        </div>
-      </header>
-
-      {/* Email Verification Banner */}
-      <EmailVerificationBanner />
-
       {/* Mobile Sidebar Overlay */}
       <div
         className={`sidebar-overlay ${mobileMenuOpen ? 'visible' : ''}`}
         onClick={() => setMobileMenuOpen(false)}
       />
 
-      {/* Mobile Sidebar */}
-      <aside className={`sidebar-mobile ${mobileMenuOpen ? 'open' : ''}`}>
-        {navItems.map(item => (
-          <button
-            key={item.id}
-            className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-            onClick={() => handleTabChange(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </aside>
-
-      <div className="layout">
-        {/* Desktop Sidebar */}
-        <aside className="sidebar">
+      {/* Sidebar - Dark Theme */}
+      <aside className={`sidebar ${mobileMenuOpen ? 'open' : ''}`}>
+        <div className="sidebar-header">
+          <span className="sidebar-logo">e-daarah</span>
+        </div>
+        <nav className="sidebar-nav">
           {navItems.map(item => (
             <button
               key={item.id}
@@ -688,7 +646,45 @@ function TeacherDashboard() {
               {item.label}
             </button>
           ))}
-        </aside>
+        </nav>
+        <div className="sidebar-footer">
+          <div className="sidebar-user">
+            <div className="user-avatar">
+              {user?.firstName?.charAt(0) || 'T'}
+            </div>
+            <div className="user-info">
+              <div className="user-name">{user?.firstName} {user?.lastName}</div>
+              <div className="user-role">Teacher {user?.staffId ? `• ${user.staffId}` : ''}</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Wrapper */}
+      <div className="main-wrapper">
+        {/* Header */}
+        <header className="header">
+          <div className="header-left">
+            <button
+              className={`menu-toggle ${mobileMenuOpen ? 'active' : ''}`}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              <span className="menu-toggle-icon">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </button>
+            <span className="header-title">Teacher Portal</span>
+          </div>
+          <div className="header-actions">
+            <button onClick={handleLogout} className="logout-btn">Logout</button>
+          </div>
+        </header>
+
+        {/* Email Verification Banner */}
+        <EmailVerificationBanner />
 
         {/* Main Content */}
         <main className="main">

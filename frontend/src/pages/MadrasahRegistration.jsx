@@ -7,6 +7,8 @@ import './MadrasahRegistration.css';
 function MadrasahRegistration() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     madrasahName: '',
     slug: '',
@@ -463,28 +465,48 @@ function MadrasahRegistration() {
 
               <div className="register-field">
                 <label htmlFor="adminPassword">Password</label>
-                <input
-                  id="adminPassword"
-                  name="adminPassword"
-                  type="password"
-                  value={formData.adminPassword}
-                  onChange={handleChange}
-                  placeholder="Minimum 8 characters"
-                  required
-                />
+                <div className="password-input-wrapper">
+                  <input
+                    id="adminPassword"
+                    name="adminPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.adminPassword}
+                    onChange={handleChange}
+                    placeholder="Minimum 8 characters"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? '◠' : '◡'}
+                  </button>
+                </div>
               </div>
 
               <div className="register-field">
                 <label htmlFor="confirmPassword">Confirm Password</label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm password"
-                  required
-                />
+                <div className="password-input-wrapper">
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Confirm password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? '◠' : '◡'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

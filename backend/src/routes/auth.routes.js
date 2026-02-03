@@ -91,11 +91,24 @@ router.post('/register-madrasah', async (req, res) => {
     // Combine phone with country code
     const fullPhone = `${phoneCountryCode || '+64'} ${phone}`;
     
-    // Create madrasah
-    const [madrasahResult] = await pool.query(
-      'INSERT INTO madrasahs (name, slug, institution_type, phone, street, city, region, country, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)',
-      [madrasahName, slug, institutionType || null, fullPhone, street, city, region, country]
-    );
+    // Create madrasah (institution_type is optional - column may not exist yet)
+    let madrasahResult;
+    try {
+      [madrasahResult] = await pool.query(
+        'INSERT INTO madrasahs (name, slug, institution_type, phone, street, city, region, country, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)',
+        [madrasahName, slug, institutionType || null, fullPhone, street, city, region, country]
+      );
+    } catch (dbError) {
+      // If institution_type column doesn't exist, try without it
+      if (dbError.code === 'ER_BAD_FIELD_ERROR') {
+        [madrasahResult] = await pool.query(
+          'INSERT INTO madrasahs (name, slug, phone, street, city, region, country, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)',
+          [madrasahName, slug, fullPhone, street, city, region, country]
+        );
+      } else {
+        throw dbError;
+      }
+    }
     
     const madrasahId = madrasahResult.insertId;
     

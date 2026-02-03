@@ -3,6 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import './SuperAdmin.css';
 
+// Check if we're on the admin subdomain
+const isAdminSubdomain = () => window.location.hostname.startsWith('admin.');
+const getBasePath = () => isAdminSubdomain() ? '' : '/superadmin';
+
 function SuperAdminDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
@@ -17,7 +21,7 @@ function SuperAdminDashboard() {
   useEffect(() => {
     const token = localStorage.getItem('superAdminToken');
     if (!token) {
-      navigate('/superadmin/login');
+      navigate(`${getBasePath()}/login`);
       return;
     }
     fetchDashboard();
@@ -88,7 +92,7 @@ function SuperAdminDashboard() {
   const handleLogout = () => {
     localStorage.removeItem('superAdminToken');
     localStorage.removeItem('superAdmin');
-    navigate('/superadmin/login');
+    navigate(`${getBasePath()}/login`);
   };
 
   return (
@@ -202,7 +206,7 @@ function SuperAdminDashboard() {
                       </td>
                       <td>{new Date(m.created_at).toLocaleDateString()}</td>
                       <td className="actions">
-                        <Link to={`/superadmin/madrasahs/${m.id}`} className="btn-small">
+                        <Link to={`${getBasePath()}/madrasahs/${m.id}`} className="btn-small">
                           View
                         </Link>
                         {m.suspended_at ? (

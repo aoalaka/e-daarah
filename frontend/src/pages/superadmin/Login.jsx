@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import './SuperAdmin.css';
 
+// Check if we're on the admin subdomain
+const isAdminSubdomain = () => window.location.hostname.startsWith('admin.');
+
 function SuperAdminLogin() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -19,7 +22,8 @@ function SuperAdminLogin() {
       const response = await api.post('/superadmin/login', { email, password });
       localStorage.setItem('superAdminToken', response.data.token);
       localStorage.setItem('superAdmin', JSON.stringify(response.data.user));
-      navigate('/superadmin/dashboard');
+      // Navigate based on subdomain
+      navigate(isAdminSubdomain() ? '/dashboard' : '/superadmin/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed');
     } finally {

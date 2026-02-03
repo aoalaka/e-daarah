@@ -3,6 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import './SuperAdmin.css';
 
+// Check if we're on the admin subdomain
+const isAdminSubdomain = () => window.location.hostname.startsWith('admin.');
+const getBasePath = () => isAdminSubdomain() ? '' : '/superadmin';
+
 function MadrasahDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -13,7 +17,7 @@ function MadrasahDetail() {
   useEffect(() => {
     const token = localStorage.getItem('superAdminToken');
     if (!token) {
-      navigate('/superadmin/login');
+      navigate(`${getBasePath()}/login`);
       return;
     }
     fetchMadrasah();
@@ -31,7 +35,7 @@ function MadrasahDetail() {
       setSelectedPlan(response.data.madrasah.subscription_plan);
     } catch (error) {
       if (error.response?.status === 401) {
-        navigate('/superadmin/login');
+        navigate(`${getBasePath()}/login`);
       }
     } finally {
       setLoading(false);
@@ -82,7 +86,7 @@ function MadrasahDetail() {
     <div className="superadmin">
       <header className="superadmin-header">
         <div className="header-left">
-          <Link to="/superadmin/dashboard" className="back-link">← Back</Link>
+          <Link to={`${getBasePath()}/dashboard`} className="back-link">← Back</Link>
           <h1>{madrasah.name}</h1>
         </div>
       </header>

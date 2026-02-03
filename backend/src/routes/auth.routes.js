@@ -88,8 +88,8 @@ router.post('/register-madrasah', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
     
-    // Combine phone with country code
-    const fullPhone = `${phoneCountryCode || '+64'} ${phone}`;
+    // Combine phone with country code (no space)
+    const fullPhone = `${phoneCountryCode || '+64'}${phone}`;
     
     // Create madrasah (institution_type is optional - column may not exist yet)
     let madrasahResult;

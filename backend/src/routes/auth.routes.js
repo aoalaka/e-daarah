@@ -115,19 +115,23 @@ router.post('/register-madrasah', async (req, res) => {
     
     const madrasahId = madrasahResult.insertId;
     
-    // Create admin user
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Create admin user with verification token
     const [userResult] = await pool.query(
-      'INSERT INTO users (madrasah_id, first_name, last_name, email, password, role) VALUES (?, ?, ?, ?, ?, ?)',
-      [madrasahId, adminFirstName, adminLastName || '', adminEmail, hashedPassword, 'admin']
+      'INSERT INTO users (madrasah_id, first_name, last_name, email, password, role, email_verification_token, email_verification_expires) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [madrasahId, adminFirstName, adminLastName || '', adminEmail, hashedPassword, 'admin', verificationToken, verificationExpires]
     );
-    
+
     const userId = userResult.insertId;
-    
+
     // Generate JWT token
     const token = jwt.sign(
-      { 
-        id: userId, 
-        email: adminEmail, 
+      {
+        id: userId,
+        email: adminEmail,
         role: 'admin',
         madrasahId: madrasahId,
         madrasahSlug: slug
@@ -135,9 +139,14 @@ router.post('/register-madrasah', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
-    
+
+    // Send verification email (async, don't block registration)
+    sendEmailVerification(adminEmail, verificationToken, slug).catch(err => {
+      console.error('Failed to send verification email:', err);
+    });
+
     console.log('Madrasah registered successfully:', { madrasahId, userId, slug });
-    
+
     res.status(201).json({
       token,
       user: {
@@ -145,7 +154,8 @@ router.post('/register-madrasah', async (req, res) => {
         firstName: adminFirstName,
         lastName: adminLastName || '',
         email: adminEmail,
-        role: 'admin'
+        role: 'admin',
+        emailVerified: false
       },
       madrasah: {
         id: madrasahId,
@@ -192,9 +202,9 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email, password, and role are required' });
     }
     
-    // Query users table with role check
+    // Query users table with role check (include email_verified status)
     const [users] = await pool.query(
-      'SELECT u.id, u.madrasah_id, u.first_name, u.last_name, u.email, u.password, u.role, u.staff_id, m.slug as madrasah_slug FROM users u JOIN madrasahs m ON u.madrasah_id = m.id WHERE u.email = ? AND u.role = ?',
+      'SELECT u.id, u.madrasah_id, u.first_name, u.last_name, u.email, u.password, u.role, u.staff_id, u.email_verified, m.slug as madrasah_slug FROM users u JOIN madrasahs m ON u.madrasah_id = m.id WHERE u.email = ? AND u.role = ?',
       [email, role]
     );
     
@@ -236,7 +246,8 @@ router.post('/login', async (req, res) => {
         lastName: user.last_name,
         email: user.email,
         role: user.role,
-        staffId: user.staff_id || null
+        staffId: user.staff_id || null,
+        emailVerified: Boolean(user.email_verified)
       },
       madrasah: {
         id: user.madrasah_id,
@@ -594,37 +605,72 @@ router.post('/verify-email', async (req, res) => {
   try {
     const { token } = req.body;
 
+    console.log('[Verify Email] Token received:', token ? `${token.substring(0, 10)}...` : 'none');
+
     if (!token) {
       return res.status(400).json({ error: 'Verification token is required' });
     }
 
     // Find user with this token
     const [users] = await pool.query(
-      `SELECT u.id, u.email, u.first_name, m.name as madrasah_name
+      `SELECT u.id, u.email, u.first_name, u.email_verified, u.email_verification_expires, m.name as madrasah_name
        FROM users u
        JOIN madrasahs m ON u.madrasah_id = m.id
-       WHERE u.email_verification_token = ? AND u.email_verification_expires > NOW()`,
+       WHERE u.email_verification_token = ?`,
       [token]
     );
 
+    console.log('[Verify Email] Users found:', users.length);
+
     if (users.length === 0) {
+      // Check if token exists but expired
+      const [expiredCheck] = await pool.query(
+        'SELECT id, email_verification_expires FROM users WHERE email_verification_token = ?',
+        [token]
+      );
+      if (expiredCheck.length > 0) {
+        console.log('[Verify Email] Token found but may be expired:', expiredCheck[0].email_verification_expires);
+      }
       return res.status(400).json({ error: 'Invalid or expired verification token' });
     }
 
     const user = users[0];
 
-    // Mark email as verified
-    await pool.query(
-      'UPDATE users SET email_verified = TRUE, email_verification_token = NULL, email_verification_expires = NULL WHERE id = ?',
+    // Check if already verified
+    if (user.email_verified) {
+      console.log('[Verify Email] Email already verified for user:', user.id);
+      return res.json({ message: 'Email already verified' });
+    }
+
+    // Check expiry
+    if (new Date(user.email_verification_expires) < new Date()) {
+      console.log('[Verify Email] Token expired:', user.email_verification_expires);
+      return res.status(400).json({ error: 'Verification token has expired. Please request a new one.' });
+    }
+
+    // Mark email as verified (use 1 instead of TRUE for MySQL compatibility)
+    const [updateResult] = await pool.query(
+      'UPDATE users SET email_verified = 1, email_verification_token = NULL, email_verification_expires = NULL WHERE id = ?',
       [user.id]
     );
 
-    // Send welcome email
-    await sendWelcomeEmail(user.email, user.first_name, user.madrasah_name);
+    console.log('[Verify Email] Update result:', updateResult.affectedRows, 'rows affected');
+
+    // Verify the update worked
+    const [verifyUpdate] = await pool.query(
+      'SELECT email_verified FROM users WHERE id = ?',
+      [user.id]
+    );
+    console.log('[Verify Email] Verification status after update:', verifyUpdate[0]?.email_verified);
+
+    // Send welcome email (don't block on failure)
+    sendWelcomeEmail(user.email, user.first_name, user.madrasah_name).catch(err => {
+      console.error('[Verify Email] Failed to send welcome email:', err);
+    });
 
     res.json({ message: 'Email verified successfully' });
   } catch (error) {
-    console.error('Verify email error:', error);
+    console.error('[Verify Email] Error:', error);
     res.status(500).json({ error: 'Failed to verify email' });
   }
 });

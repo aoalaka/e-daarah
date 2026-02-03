@@ -66,6 +66,7 @@ function AdminDashboard() {
   // Settings state
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
+  const [madrasahProfile, setMadrasahProfile] = useState(null);
   const user = authService.getCurrentUser();
   const navigate = useNavigate();
   const { madrasahSlug } = useParams();
@@ -123,18 +124,20 @@ function AdminDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [sessionsRes, semestersRes, classesRes, teachersRes, studentsRes] = await Promise.all([
+      const [sessionsRes, semestersRes, classesRes, teachersRes, studentsRes, profileRes] = await Promise.all([
         api.get('/admin/sessions').catch(() => ({ data: [] })),
         api.get('/admin/semesters').catch(() => ({ data: [] })),
         api.get('/classes').catch(() => ({ data: [] })),
         api.get('/admin/teachers').catch(() => ({ data: [] })),
-        api.get('/admin/students').catch(() => ({ data: [] }))
+        api.get('/admin/students').catch(() => ({ data: [] })),
+        api.get('/admin/profile').catch(() => ({ data: null }))
       ]);
       setSessions(sessionsRes.data || []);
       setSemesters(semestersRes.data || []);
       setClasses(classesRes.data || []);
       setTeachers(teachersRes.data || []);
       setStudents(studentsRes.data || []);
+      setMadrasahProfile(profileRes.data);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -2455,7 +2458,7 @@ function AdminDashboard() {
                 <div style={{ display: 'grid', gap: '12px', maxWidth: '400px' }}>
                   <div>
                     <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Name</label>
-                    <p style={{ margin: '4px 0 0 0' }}>{user?.name || 'N/A'}</p>
+                    <p style={{ margin: '4px 0 0 0' }}>{user?.firstName} {user?.lastName}</p>
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Email</label>
@@ -2467,6 +2470,87 @@ function AdminDashboard() {
                   </div>
                 </div>
               </div>
+
+              {/* Madrasah Profile */}
+              {madrasahProfile && (
+                <div className="card" style={{ marginTop: '20px' }}>
+                  <h3>Madrasah Profile</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '600px' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Name</label>
+                      <p style={{ margin: '4px 0 0 0', fontWeight: '500' }}>{madrasahProfile.name}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>URL Slug</label>
+                      <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace' }}>/{madrasahProfile.slug}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Institution Type</label>
+                      <p style={{ margin: '4px 0 0 0', textTransform: 'capitalize' }}>
+                        {madrasahProfile.institution_type?.replace(/_/g, ' ') || 'Not specified'}
+                      </p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Phone</label>
+                      <p style={{ margin: '4px 0 0 0' }}>{madrasahProfile.phone || 'Not specified'}</p>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Address</label>
+                      <p style={{ margin: '4px 0 0 0' }}>
+                        {[madrasahProfile.street, madrasahProfile.city, madrasahProfile.region, madrasahProfile.country]
+                          .filter(Boolean).join(', ') || 'Not specified'}
+                      </p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Verification Status</label>
+                      <p style={{ margin: '4px 0 0 0' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          backgroundColor: madrasahProfile.verification_status === 'fully_verified' ? '#dcfce7' :
+                            madrasahProfile.verification_status === 'basic_verified' ? '#dbeafe' : '#fef3c7',
+                          color: madrasahProfile.verification_status === 'fully_verified' ? '#166534' :
+                            madrasahProfile.verification_status === 'basic_verified' ? '#1e40af' : '#92400e'
+                        }}>
+                          {madrasahProfile.verification_status?.replace(/_/g, ' ') || 'Unverified'}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Trial Ends</label>
+                      <p style={{ margin: '4px 0 0 0' }}>
+                        {madrasahProfile.trial_ends_at
+                          ? new Date(madrasahProfile.trial_ends_at).toLocaleDateString()
+                          : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Usage Stats */}
+                  {madrasahProfile.usage && (
+                    <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>Current Usage</h4>
+                      <div style={{ display: 'flex', gap: '24px' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '24px', fontWeight: '600' }}>{madrasahProfile.usage.students}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Students</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '24px', fontWeight: '600' }}>{madrasahProfile.usage.teachers}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Teachers</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '24px', fontWeight: '600' }}>{madrasahProfile.usage.classes}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Classes</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </main>

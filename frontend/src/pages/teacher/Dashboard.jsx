@@ -1647,7 +1647,7 @@ function TeacherDashboard() {
                 <div style={{ display: 'grid', gap: '12px', maxWidth: '400px' }}>
                   <div>
                     <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Name</label>
-                    <p style={{ margin: '4px 0 0 0' }}>{user?.name || 'N/A'}</p>
+                    <p style={{ margin: '4px 0 0 0' }}>{user?.firstName} {user?.lastName}</p>
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Email</label>

@@ -928,4 +928,49 @@ router.put('/students/:id/comment', async (req, res) => {
   }
 });
 
+// Get madrasah profile (scoped to current madrasah)
+router.get('/profile', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [madrasahs] = await pool.query(
+      `SELECT id, name, slug, logo_url, street, city, region, country, phone, email,
+       institution_type, verification_status, trial_ends_at, created_at
+       FROM madrasahs WHERE id = ?`,
+      [madrasahId]
+    );
+
+    if (madrasahs.length === 0) {
+      return res.status(404).json({ error: 'Madrasah not found' });
+    }
+
+    // Get usage counts
+    const [studentCount] = await pool.query(
+      'SELECT COUNT(*) as count FROM students WHERE madrasah_id = ?',
+      [madrasahId]
+    );
+    const [teacherCount] = await pool.query(
+      'SELECT COUNT(*) as count FROM users WHERE madrasah_id = ? AND role = ?',
+      [madrasahId, 'teacher']
+    );
+    const [classCount] = await pool.query(
+      'SELECT COUNT(*) as count FROM classes WHERE madrasah_id = ?',
+      [madrasahId]
+    );
+
+    const profile = {
+      ...madrasahs[0],
+      usage: {
+        students: studentCount[0].count,
+        teachers: teacherCount[0].count,
+        classes: classCount[0].count
+      }
+    };
+
+    res.json(profile);
+  } catch (error) {
+    console.error('Failed to fetch madrasah profile:', error);
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
 export default router;

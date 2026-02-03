@@ -85,6 +85,24 @@
   margin-bottom: 32px;
 }
 
+.login-card .login-footer {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  text-align: center;
+}
+
+.login-card .home-link {
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.15s;
+}
+
+.login-card .home-link:hover {
+  color: #1a1a1a;
+}
+
 .form-group {
   margin-bottom: 20px;
 }

@@ -66,6 +66,12 @@ function SuperAdminLogin() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        <div className="login-footer">
+          <a href="https://www.e-daarah.com" className="home-link">
+            ← Back to e-daarah.com
+          </a>
+        </div>
       </div>
     </div>
   );

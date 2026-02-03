@@ -65,33 +65,36 @@
   color: var(--muted);
 }
 
-/* Role Toggle */
+/* Role Toggle - Tab Style */
 .role-toggle {
   display: flex;
-  border: var(--border);
-  border-radius: var(--radius);
   margin-bottom: var(--lg);
-  overflow: hidden;
+  border-bottom: 1px solid var(--light);
+  gap: 0;
 }
 
 .role-toggle button {
   flex: 1;
   padding: var(--sm) var(--md);
-  background: var(--white);
+  background: transparent;
   border: none;
+  border-bottom: 2px solid transparent;
   font-size: 14px;
   font-weight: 500;
-  color: var(--gray);
+  color: var(--muted);
+  cursor: pointer;
   transition: all 0.15s;
+  margin-bottom: -1px;
 }
 
-.role-toggle button:first-child {
-  border-right: var(--border);
+.role-toggle button:hover {
+  color: var(--dark);
 }
 
 .role-toggle button.active {
-  background: var(--black);
-  color: var(--white);
+  color: var(--black);
+  border-bottom-color: var(--black);
+  font-weight: 600;
 }
 
 /* Form */

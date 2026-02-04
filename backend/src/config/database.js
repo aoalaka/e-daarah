@@ -5,8 +5,10 @@ dotenv.config();
 
 // Support both DATABASE_URL (Railway) and individual env vars (Docker)
 const getPoolConfig = () => {
-  // Railway: prefer MYSQL_PUBLIC_URL, fallback to DATABASE_URL
-  const dbUrl = process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_URL;
+  // Railway: prefer private URL (free), fallback to public URL
+  // MYSQL_PRIVATE_URL uses internal networking (no egress fees)
+  // MYSQL_PUBLIC_URL uses external networking (incurs egress fees)
+  const dbUrl = process.env.MYSQL_PRIVATE_URL || process.env.DATABASE_URL || process.env.MYSQL_PUBLIC_URL;
 
   if (dbUrl) {
     // Railway provides a MySQL URL like: mysql://user:pass@host:port/database

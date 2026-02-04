@@ -2802,12 +2802,15 @@ function AdminDashboard() {
                           position: 'absolute',
                           top: '-10px',
                           right: '12px',
-                          background: 'var(--text)',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                           color: 'white',
-                          fontSize: '10px',
-                          fontWeight: '500',
-                          padding: '2px 8px',
-                          borderRadius: '4px'
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
                         }}>Popular</span>
                         <div style={{ fontWeight: '600', marginBottom: '4px' }}>Plus</div>
                         <div style={{ fontSize: '24px', fontWeight: '600' }}>

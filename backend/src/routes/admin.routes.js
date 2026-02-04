@@ -289,6 +289,60 @@ router.post('/classes', async (req, res) => {
   }
 });
 
+// Update class (scoped to madrasah)
+router.put('/classes/:id', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    const { name, grade_level, school_days, description } = req.body;
+
+    // Verify class belongs to this madrasah
+    const [check] = await pool.query(
+      'SELECT id FROM classes WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
+    if (check.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    await pool.query(
+      'UPDATE classes SET name = ?, grade_level = ?, school_days = ?, description = ? WHERE id = ? AND madrasah_id = ?',
+      [name, grade_level, JSON.stringify(school_days), description, id, madrasahId]
+    );
+    res.json({ id: parseInt(id), name, grade_level, school_days, description });
+  } catch (error) {
+    console.error('Failed to update class:', error);
+    res.status(500).json({ error: 'Failed to update class' });
+  }
+});
+
+// Delete class (soft delete, scoped to madrasah)
+router.delete('/classes/:id', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+
+    // Verify class belongs to this madrasah
+    const [check] = await pool.query(
+      'SELECT id FROM classes WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
+    if (check.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    // Soft delete
+    await pool.query(
+      'UPDATE classes SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ?',
+      [id, madrasahId]
+    );
+    res.json({ message: 'Class deleted successfully' });
+  } catch (error) {
+    console.error('Failed to delete class:', error);
+    res.status(500).json({ error: 'Failed to delete class' });
+  }
+});
+
 // Get teachers for a class (scoped to madrasah)
 router.get('/classes/:classId/teachers', async (req, res) => {
   try {

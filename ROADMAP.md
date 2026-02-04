@@ -14,6 +14,8 @@
 
 **Infrastructure:**
 - Hosted on Railway ($5-20/mo depending on usage)
+- Backend: https://api.e-daarah.com/
+- Frontend: https://e-daarah.com/
 - 2 madrasahs registered, 4 users, 12 students
 - 14-day trial system in place
 

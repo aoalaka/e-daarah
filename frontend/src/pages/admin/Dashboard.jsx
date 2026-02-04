@@ -43,6 +43,7 @@ function AdminDashboard() {
   });
   const [editingSession, setEditingSession] = useState(null);
   const [editingSemester, setEditingSemester] = useState(null);
+  const [editingClass, setEditingClass] = useState(null);
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [editingStudent, setEditingStudent] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
@@ -225,12 +226,53 @@ function AdminDashboard() {
   const handleCreateClass = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/admin/classes', newClass);
+      if (editingClass) {
+        await api.put(`/admin/classes/${editingClass.id}`, newClass);
+        setEditingClass(null);
+        toast.success('Class updated successfully');
+      } else {
+        await api.post('/admin/classes', newClass);
+        toast.success('Class created successfully');
+      }
       setShowClassForm(false);
       setNewClass({ name: '', grade_level: '', school_days: [], description: '' });
       loadData();
     } catch (error) {
-      toast.error('Failed to create class');
+      toast.error(editingClass ? 'Failed to update class' : 'Failed to create class');
+    }
+  };
+
+  const handleEditClass = (cls) => {
+    let schoolDays = [];
+    try {
+      if (cls.school_days) {
+        schoolDays = typeof cls.school_days === 'string'
+          ? JSON.parse(cls.school_days)
+          : cls.school_days;
+      }
+    } catch (e) {
+      schoolDays = [];
+    }
+    setNewClass({
+      name: cls.name,
+      grade_level: cls.grade_level || '',
+      school_days: Array.isArray(schoolDays) ? schoolDays : [],
+      description: cls.description || ''
+    });
+    setEditingClass(cls);
+    setShowClassForm(true);
+  };
+
+  const handleDeleteClass = async (cls) => {
+    if (!confirm(`Are you sure you want to delete "${cls.name}"? Students in this class will be unassigned.`)) {
+      return;
+    }
+    try {
+      await api.delete(`/admin/classes/${cls.id}`);
+      toast.success('Class deleted successfully');
+      loadData();
+    } catch (error) {
+      toast.error('Failed to delete class');
     }
   };
 
@@ -951,7 +993,7 @@ function AdminDashboard() {
 
               {showClassForm && (
                 <div className="card">
-                  <div className="card-header">Create New Class</div>
+                  <div className="card-header">{editingClass ? 'Edit Class' : 'Create New Class'}</div>
                   <div className="card-body">
                     <form onSubmit={handleCreateClass}>
                       <div className="form-grid">
@@ -1003,10 +1045,16 @@ function AdminDashboard() {
                         </div>
                       </div>
                       <div className="form-actions">
-                        <button type="button" onClick={() => setShowClassForm(false)} className="btn btn-secondary">
+                        <button type="button" onClick={() => {
+                          setShowClassForm(false);
+                          setEditingClass(null);
+                          setNewClass({ name: '', grade_level: '', school_days: [], description: '' });
+                        }} className="btn btn-secondary">
                           Cancel
                         </button>
-                        <button type="submit" className="btn btn-primary">Create Class</button>
+                        <button type="submit" className="btn btn-primary">
+                          {editingClass ? 'Update Class' : 'Create Class'}
+                        </button>
                       </div>
                     </form>
                   </div>
@@ -1044,9 +1092,17 @@ function AdminDashboard() {
                             <td>{cls.grade_level || 'N/A'}</td>
                             <td>{schoolDays}</td>
                             <td>
-                              <button onClick={() => handleManageTeachers(cls)} className="btn btn-sm btn-secondary">
-                                Manage Teachers
-                              </button>
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <button onClick={() => handleEditClass(cls)} className="btn btn-sm btn-secondary">
+                                  Edit
+                                </button>
+                                <button onClick={() => handleManageTeachers(cls)} className="btn btn-sm btn-secondary">
+                                  Teachers
+                                </button>
+                                <button onClick={() => handleDeleteClass(cls)} className="btn btn-sm btn-danger">
+                                  Delete
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );

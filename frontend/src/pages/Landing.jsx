@@ -57,6 +57,7 @@ function Landing() {
       <header className="landing-header">
         <Link to="/" className="logo">
           <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="logo-img" />
+          <span className="logo-text">e-daarah</span>
         </Link>
         <nav className="header-nav">
           <Link to="/pricing" className="nav-link">Pricing</Link>
@@ -184,7 +185,7 @@ function Landing() {
               <li>Dedicated support</li>
               <li>SLA guarantee</li>
             </ul>
-            <a href="mailto:support@e-daarah.com?subject=Enterprise%20Plan%20Inquiry" className="btn secondary">
+            <a href="mailto:support@e-daarah.com?subject=Enterprise%20Plan%20Inquiry" className="btn secondary enterprise-btn">
               Contact Us
             </a>
           </div>
@@ -199,7 +200,10 @@ function Landing() {
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-brand">
-            <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="footer-logo-img" />
+            <div className="footer-logo">
+              <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="footer-logo-img" />
+              <span className="footer-logo-text">e-daarah</span>
+            </div>
             <p>نظام إدارة المدارس الذكي</p>
           </div>
           <div className="footer-links">

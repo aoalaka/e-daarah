@@ -19,16 +19,36 @@
   text-decoration: none;
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .logo-img {
-  height: 32px;
+  height: 44px;
   width: auto;
 }
 
+.logo-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .footer-logo-img {
-  height: 28px;
+  height: 36px;
   width: auto;
+}
+
+.footer-logo-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
 }
 
 .header-nav {

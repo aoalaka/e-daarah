@@ -121,6 +121,7 @@ function MadrasahRegistration() {
         <div className="register-header">
           <Link to="/" className="register-logo">
             <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="register-logo-img" />
+            <span className="register-logo-text">e-daarah</span>
           </Link>
           <h1 className="register-title">Register Your Madrasah</h1>
           <p className="register-subtitle">Start managing your Islamic school today</p>

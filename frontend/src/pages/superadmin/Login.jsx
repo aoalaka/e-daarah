@@ -34,7 +34,10 @@ function SuperAdminLogin() {
   return (
     <div className="superadmin-login">
       <div className="login-card">
-        <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="login-logo-img" />
+        <div className="login-logo">
+          <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="login-logo-img" />
+          <span className="login-logo-text">e-daarah</span>
+        </div>
         <h1>Platform Admin</h1>
         <p className="subtitle">Management Console</p>
 

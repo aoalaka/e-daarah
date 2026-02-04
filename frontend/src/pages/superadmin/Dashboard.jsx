@@ -100,6 +100,7 @@ function SuperAdminDashboard() {
       <header className="superadmin-header">
         <div className="header-left">
           <img src="/e-daarah-blackbg-logo.png" alt="e-daarah" className="header-logo-img" />
+          <span className="header-logo-text">e-daarah</span>
           <span className="platform-label">Platform</span>
         </div>
         <div className="header-right">

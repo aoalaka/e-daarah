@@ -17,11 +17,18 @@
   text-decoration: none;
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .pricing-header .logo-img {
-  height: 32px;
+  height: 44px;
   width: auto;
+}
+
+.pricing-header .logo-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--black);
 }
 
 .pricing-header .header-nav {

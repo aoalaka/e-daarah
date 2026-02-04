@@ -20,8 +20,14 @@
 }
 
 .header-logo-img {
-  height: 26px;
+  height: 34px;
   width: auto;
+}
+
+.header-logo-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
 }
 
 .platform-label {
@@ -33,7 +39,7 @@
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
 }
 
 .header-right {
@@ -86,10 +92,23 @@
   max-width: 360px;
 }
 
-.login-logo-img {
-  height: 36px;
-  width: auto;
+.login-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   margin-bottom: 16px;
+}
+
+.login-logo-img {
+  height: 48px;
+  width: auto;
+}
+
+.login-logo-text {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
 }
 
 .login-card h1 {

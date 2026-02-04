@@ -621,6 +621,7 @@ function AdminDashboard() {
       <aside className={`sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <img src="/e-daarah-blackbg-logo.png" alt="e-daarah" className="sidebar-logo-img" />
+          <span className="sidebar-logo-text">e-daarah</span>
         </div>
         <nav className="sidebar-nav">
           {navItems.map(item => (

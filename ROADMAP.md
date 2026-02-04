@@ -435,17 +435,77 @@ TRIAL_DAYS=14
 - [x] Document recovery procedure (`/docs/BACKUP_RECOVERY.md`)
 - [x] Test data integrity after migrations
 
+### Phase 1: Stripe Payments - COMPLETE (Feb 5, 2026)
+- [x] Create Stripe products in Dashboard (Standard/Plus, Monthly/Annual)
+- [x] Set up webhook endpoint (`POST /api/billing/webhook`)
+- [x] Implement checkout session creation (`POST /api/billing/create-checkout`)
+- [x] Implement customer portal link (`POST /api/billing/customer-portal`)
+- [x] Get billing status endpoint (`GET /api/billing/status`)
+- [x] Get prices endpoint (`GET /api/billing/prices`)
+- [x] Handle webhook events (checkout.completed, invoice.paid, invoice.failed, subscription.updated/deleted)
+- [x] Frontend billing tab in admin dashboard
+- [x] Plan selector with monthly/annual toggle
+
+### Phase 2: Plan Enforcement - COMPLETE (Feb 5, 2026)
+- [x] Create plan-limits middleware (`requireActiveSubscription`, `enforceStudentLimit`, etc.)
+- [x] Apply limits to student/teacher/class creation routes
+- [x] Feature gating for Plus-only features (bulk upload, CSV export)
+- [x] Return helpful error codes (STUDENT_LIMIT_REACHED, TRIAL_EXPIRED, etc.)
+- [x] Frontend UsageIndicator component showing "X of Y students"
+- [x] Frontend error handler for plan limit errors with upgrade prompt
+- [x] TrialBanner component showing countdown to expiry
+
+### Phase 3: Trial Flow - COMPLETE (Feb 5, 2026)
+- [x] Trial banner in dashboard with days remaining
+- [x] Trial expiry email scheduler (reminders at 7, 3, 1 days)
+- [x] Migration for trial_reminder_sent tracking column
+- [x] Trial expired state blocks writes but allows viewing
+- [x] Scheduler runs on server startup and every 24 hours
+
+### Phase 4: Core Strengthening - IN PROGRESS (Feb 5, 2026)
+
+#### 4.1 Security Hardening - COMPLETE
+- [x] Password attempt lockout (5 failures = 15 min lockout)
+- [x] Session timeout implementation (30 min inactivity)
+- [x] Server-side session tracking (`active_sessions` table)
+- [x] Security audit logging (`security_events` table)
+- [x] Rate limiting review (already in place)
+- [x] Frontend SessionTimeout component with warning modal
+- [x] Login page shows lockout status and remaining attempts
+- [ ] SQL injection audit
+- [ ] XSS prevention check
+
+#### 4.2 Error Tracking - PENDING
+- [ ] Set up Sentry (free tier: 5K errors/month)
+- [ ] Add error boundaries in React
+- [ ] Backend error logging with context
+- [ ] Alert on error spikes
+
+#### 4.3 Uptime & Monitoring - PARTIAL
+- [x] Health check endpoint: GET /api/health
+- [ ] Set up BetterUptime or similar
+- [ ] Database connection monitoring
+- [ ] Alert on downtime (email/Slack)
+
+#### 4.4 Performance Baseline - PENDING
+- [ ] Add database indexes review
+- [ ] Query performance logging (slow queries > 1s)
+- [ ] API response time tracking
+- [ ] Document current performance baseline
+
+#### 4.5 Audit Logging - COMPLETE
+- [x] security_events table captures login attempts, lockouts, password changes
+- [ ] Super admin UI to view audit logs
+
+### Phase 5: Customer Operations - PENDING
+### Phase 6: Verification Light - PENDING
+
 **Migrations Applied:**
 1. `001_create_migrations_table` - Feb 4, 2026
 2. `002_add_soft_deletes` - Feb 4, 2026
 3. `003_add_stripe_columns` - Feb 4, 2026
-
-### Phase 1: Stripe Payments - READY TO START
-### Phase 2: Plan Enforcement - PENDING
-### Phase 3: Trial Flow - PENDING
-### Phase 4: Core Strengthening - PENDING
-### Phase 5: Customer Operations - PENDING
-### Phase 6: Verification Light - PENDING
+4. `004_add_trial_reminder_column` - Feb 5, 2026
+5. `005_add_login_security` - Feb 5, 2026
 
 ---
 

@@ -10,6 +10,7 @@ import EmailVerificationBanner from '../../components/EmailVerificationBanner';
 import TrialBanner from '../../components/TrialBanner';
 import UsageIndicator from '../../components/UsageIndicator';
 import { handleApiError } from '../../utils/errorHandler';
+import { downloadCSV, studentColumns, attendanceColumns, examColumns, getDateSuffix } from '../../utils/csvExport';
 import './Dashboard.css';
 
 function AdminDashboard() {
@@ -1412,7 +1413,16 @@ function AdminDashboard() {
             <>
               <div className="page-header">
                 <h2 className="page-title">Students</h2>
-                <div style={{ display: 'flex', gap: 'var(--sm)' }}>
+                <div style={{ display: 'flex', gap: 'var(--sm)', flexWrap: 'wrap' }}>
+                  {madrasahProfile?.pricing_plan === 'plus' && (
+                    <button
+                      onClick={() => downloadCSV(students, studentColumns, `students-${getDateSuffix()}`)}
+                      className="btn btn-secondary"
+                      disabled={students.length === 0}
+                    >
+                      Export CSV
+                    </button>
+                  )}
                   <button onClick={() => {
                     setShowBulkUpload(!showBulkUpload);
                     setShowStudentForm(false);
@@ -2011,7 +2021,21 @@ function AdminDashboard() {
 
                   {/* Attendance Records */}
                   <div className="card">
-                    <div className="card-header">Attendance Records</div>
+                    <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Attendance Records</span>
+                      {madrasahProfile?.pricing_plan === 'plus' && classAttendance.length > 0 && (
+                        <button
+                          onClick={() => downloadCSV(
+                            classAttendance.map(r => ({ ...r, class_name: classes.find(c => c.id === selectedClassForPerformance)?.name })),
+                            attendanceColumns,
+                            `attendance-${getDateSuffix()}`
+                          )}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Export CSV
+                        </button>
+                      )}
+                    </div>
                     <SortableTable
                       columns={[
                         {
@@ -2091,9 +2115,23 @@ function AdminDashboard() {
                     <>
                       {examKpis.map(kpi => (
                         <div key={kpi.subject} className="exam-subject-section">
-                          <h3 className="exam-subject-title">
-                            {kpi.subject}
-                          </h3>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--sm)' }}>
+                            <h3 className="exam-subject-title" style={{ margin: 0 }}>
+                              {kpi.subject}
+                            </h3>
+                            {madrasahProfile?.pricing_plan === 'plus' && kpi.records?.length > 0 && (
+                              <button
+                                onClick={() => downloadCSV(
+                                  kpi.records.map(r => ({ ...r, subject_name: kpi.subject })),
+                                  examColumns,
+                                  `exams-${kpi.subject.replace(/\s+/g, '-').toLowerCase()}-${getDateSuffix()}`
+                                )}
+                                className="btn btn-secondary btn-sm"
+                              >
+                                Export CSV
+                              </button>
+                            )}
+                          </div>
 
                           {/* Metrics Card */}
                           <div className="exam-metrics">

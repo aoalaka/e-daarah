@@ -67,6 +67,9 @@ function AdminDashboard() {
   // Settings state
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
+  // Billing state
+  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [selectedPlan, setSelectedPlan] = useState('plus');
   const [madrasahProfile, setMadrasahProfile] = useState(null);
   const user = authService.getCurrentUser();
   const navigate = useNavigate();
@@ -2642,13 +2645,118 @@ function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  {/* Plan Selection */}
+                  <div style={{ marginTop: '16px', padding: '16px', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>Choose a Plan</h4>
+
+                    {/* Billing Cycle Toggle */}
+                    <div style={{ display: 'flex', gap: '0', marginBottom: '16px', background: 'var(--lighter)', borderRadius: '6px', padding: '4px', width: 'fit-content' }}>
+                      <button
+                        type="button"
+                        onClick={() => setBillingCycle('monthly')}
+                        style={{
+                          padding: '8px 16px',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          background: billingCycle === 'monthly' ? 'white' : 'transparent',
+                          color: billingCycle === 'monthly' ? 'var(--text)' : 'var(--muted)',
+                          fontWeight: billingCycle === 'monthly' ? '500' : '400',
+                          boxShadow: billingCycle === 'monthly' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                        }}
+                      >
+                        Monthly
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBillingCycle('annual')}
+                        style={{
+                          padding: '8px 16px',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          background: billingCycle === 'annual' ? 'white' : 'transparent',
+                          color: billingCycle === 'annual' ? 'var(--text)' : 'var(--muted)',
+                          fontWeight: billingCycle === 'annual' ? '500' : '400',
+                          boxShadow: billingCycle === 'annual' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                        }}
+                      >
+                        Annual <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: '500' }}>Save 2 months</span>
+                      </button>
+                    </div>
+
+                    {/* Plan Options */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      {/* Standard Plan */}
+                      <div
+                        onClick={() => setSelectedPlan('standard')}
+                        style={{
+                          padding: '16px',
+                          border: selectedPlan === 'standard' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          background: selectedPlan === 'standard' ? 'var(--lighter)' : 'white'
+                        }}
+                      >
+                        <div style={{ fontWeight: '600', marginBottom: '4px' }}>Standard</div>
+                        <div style={{ fontSize: '24px', fontWeight: '600' }}>
+                          ${billingCycle === 'monthly' ? '12' : '120'}
+                          <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
+                            /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
+                          75 students, 5 teachers
+                        </div>
+                      </div>
+
+                      {/* Plus Plan */}
+                      <div
+                        onClick={() => setSelectedPlan('plus')}
+                        style={{
+                          padding: '16px',
+                          border: selectedPlan === 'plus' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          background: selectedPlan === 'plus' ? 'var(--lighter)' : 'white',
+                          position: 'relative'
+                        }}
+                      >
+                        <span style={{
+                          position: 'absolute',
+                          top: '-10px',
+                          right: '12px',
+                          background: 'var(--text)',
+                          color: 'white',
+                          fontSize: '10px',
+                          fontWeight: '500',
+                          padding: '2px 8px',
+                          borderRadius: '4px'
+                        }}>Popular</span>
+                        <div style={{ fontWeight: '600', marginBottom: '4px' }}>Plus</div>
+                        <div style={{ fontSize: '24px', fontWeight: '600' }}>
+                          ${billingCycle === 'monthly' ? '29' : '290'}
+                          <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
+                            /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
+                          300 students, 20 teachers
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Subscribe Button */}
                     <button
                       className="btn primary"
+                      style={{ width: '100%', marginTop: '16px' }}
                       onClick={async () => {
                         try {
+                          const priceKey = `${selectedPlan}_${billingCycle}`;
                           const response = await api.post('/billing/create-checkout', {
-                            priceKey: 'plus_monthly',
+                            priceKey,
                             successUrl: `${window.location.origin}/${madrasahSlug}/admin?billing=success`,
                             cancelUrl: `${window.location.origin}/${madrasahSlug}/admin?billing=canceled`
                           });
@@ -2658,30 +2766,32 @@ function AdminDashboard() {
                         }
                       }}
                     >
-                      {madrasahProfile?.subscription_status === 'active' ? 'Change Plan' : 'Upgrade Now'}
+                      {madrasahProfile?.subscription_status === 'active' ? 'Change Plan' : 'Subscribe Now'}
                     </button>
-
-                    {madrasahProfile?.stripe_customer_id && (
-                      <button
-                        className="btn secondary"
-                        onClick={async () => {
-                          try {
-                            const response = await api.post('/billing/customer-portal', {
-                              returnUrl: `${window.location.origin}/${madrasahSlug}/admin`
-                            });
-                            window.location.href = response.data.url;
-                          } catch (error) {
-                            toast.error(error.response?.data?.error || 'Failed to open billing portal');
-                          }
-                        }}
-                      >
-                        Manage Billing
-                      </button>
-                    )}
                   </div>
 
-                  <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>
-                    View our <a href="/pricing" target="_blank" style={{ color: 'var(--accent)' }}>pricing plans</a> to compare features.
+                  {/* Manage Billing */}
+                  {madrasahProfile?.stripe_customer_id && (
+                    <button
+                      className="btn secondary"
+                      style={{ marginTop: '12px' }}
+                      onClick={async () => {
+                        try {
+                          const response = await api.post('/billing/customer-portal', {
+                            returnUrl: `${window.location.origin}/${madrasahSlug}/admin`
+                          });
+                          window.location.href = response.data.url;
+                        } catch (error) {
+                          toast.error(error.response?.data?.error || 'Failed to open billing portal');
+                        }
+                      }}
+                    >
+                      Manage Billing
+                    </button>
+                  )}
+
+                  <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '12px 0 0 0' }}>
+                    View our <a href="/pricing" target="_blank" style={{ color: 'var(--accent)' }}>pricing page</a> for full feature comparison.
                   </p>
                 </div>
               </div>

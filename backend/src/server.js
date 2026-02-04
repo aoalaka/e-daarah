@@ -13,6 +13,7 @@ import classRoutes from './routes/class.routes.js';
 import attendanceRoutes from './routes/attendance.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import superadminRoutes from './routes/superadmin.routes.js';
+import billingRoutes from './routes/billing.routes.js';
 
 dotenv.config();
 
@@ -99,7 +100,11 @@ const passwordLimiter = rateLimit({
 // Apply general rate limiting to all API routes
 app.use('/api/', generalLimiter);
 
-// Body parsing with size limits
+// Stripe webhook needs raw body - must be before json parsing
+// The billing routes file handles its own body parsing for the webhook
+app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
+
+// Body parsing with size limits (for all other routes)
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
@@ -119,6 +124,7 @@ app.use('/api/classes', classRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/superadmin', superadminRoutes);
+app.use('/api/billing', billingRoutes);
 
 // Health check (both paths for flexibility) - doesn't require DB
 app.get('/health', (req, res) => {

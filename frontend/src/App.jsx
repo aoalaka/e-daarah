@@ -6,6 +6,7 @@ import { MadrasahProvider } from './contexts/MadrasahContext';
 // Public pages
 import Landing from './pages/Landing';
 import MadrasahRegistration from './pages/MadrasahRegistration';
+import Pricing from './pages/Pricing';
 
 // Check if we're on the admin subdomain
 const isAdminSubdomain = () => {
@@ -91,6 +92,7 @@ function App() {
       <Routes>
         {/* Global public routes */}
         <Route path="/" element={<Landing />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/register" element={<MadrasahRegistration />} />
 
         {/* Super Admin routes (also accessible via /superadmin on main domain) */}

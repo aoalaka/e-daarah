@@ -2554,6 +2554,81 @@ function AdminDashboard() {
                   )}
                 </div>
               )}
+
+              {/* Billing & Subscription */}
+              <div className="card" style={{ marginTop: '20px' }}>
+                <h3>Billing & Subscription</h3>
+                <div style={{ display: 'grid', gap: '16px', maxWidth: '500px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--lighter)', borderRadius: '4px' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Current Plan</div>
+                      <div style={{ fontSize: '18px', fontWeight: '600', textTransform: 'capitalize' }}>
+                        {madrasahProfile?.pricing_plan || 'Trial'}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Status</div>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        backgroundColor: madrasahProfile?.subscription_status === 'active' ? '#dcfce7' :
+                          madrasahProfile?.subscription_status === 'trialing' ? '#dbeafe' :
+                          madrasahProfile?.subscription_status === 'past_due' ? '#fef3c7' : '#fee2e2',
+                        color: madrasahProfile?.subscription_status === 'active' ? '#166534' :
+                          madrasahProfile?.subscription_status === 'trialing' ? '#1e40af' :
+                          madrasahProfile?.subscription_status === 'past_due' ? '#92400e' : '#991b1b'
+                      }}>
+                        {madrasahProfile?.subscription_status || 'trialing'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button
+                      className="btn primary"
+                      onClick={async () => {
+                        try {
+                          const response = await api.post('/billing/create-checkout', {
+                            priceKey: 'plus_monthly',
+                            successUrl: `${window.location.origin}/${madrasahSlug}/admin?billing=success`,
+                            cancelUrl: `${window.location.origin}/${madrasahSlug}/admin?billing=canceled`
+                          });
+                          window.location.href = response.data.url;
+                        } catch (error) {
+                          toast.error(error.response?.data?.error || 'Failed to start checkout');
+                        }
+                      }}
+                    >
+                      {madrasahProfile?.subscription_status === 'active' ? 'Change Plan' : 'Upgrade Now'}
+                    </button>
+
+                    {madrasahProfile?.stripe_customer_id && (
+                      <button
+                        className="btn secondary"
+                        onClick={async () => {
+                          try {
+                            const response = await api.post('/billing/customer-portal', {
+                              returnUrl: `${window.location.origin}/${madrasahSlug}/admin`
+                            });
+                            window.location.href = response.data.url;
+                          } catch (error) {
+                            toast.error(error.response?.data?.error || 'Failed to open billing portal');
+                          }
+                        }}
+                      >
+                        Manage Billing
+                      </button>
+                    )}
+                  </div>
+
+                  <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>
+                    View our <a href="/pricing" target="_blank" style={{ color: 'var(--accent)' }}>pricing plans</a> to compare features.
+                  </p>
+                </div>
+              </div>
             </>
           )}
         </main>

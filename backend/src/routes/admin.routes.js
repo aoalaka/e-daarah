@@ -940,7 +940,8 @@ router.get('/profile', async (req, res) => {
     const madrasahId = req.madrasahId;
     const [madrasahs] = await pool.query(
       `SELECT id, name, slug, logo_url, street, city, region, country, phone, email,
-       institution_type, verification_status, trial_ends_at, created_at
+       institution_type, verification_status, trial_ends_at, created_at,
+       pricing_plan, subscription_status, current_period_end, stripe_customer_id
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -949,17 +950,17 @@ router.get('/profile', async (req, res) => {
       return res.status(404).json({ error: 'Madrasah not found' });
     }
 
-    // Get usage counts
+    // Get usage counts (exclude soft-deleted)
     const [studentCount] = await pool.query(
-      'SELECT COUNT(*) as count FROM students WHERE madrasah_id = ?',
+      'SELECT COUNT(*) as count FROM students WHERE madrasah_id = ? AND deleted_at IS NULL',
       [madrasahId]
     );
     const [teacherCount] = await pool.query(
-      'SELECT COUNT(*) as count FROM users WHERE madrasah_id = ? AND role = ?',
+      'SELECT COUNT(*) as count FROM users WHERE madrasah_id = ? AND role = ? AND deleted_at IS NULL',
       [madrasahId, 'teacher']
     );
     const [classCount] = await pool.query(
-      'SELECT COUNT(*) as count FROM classes WHERE madrasah_id = ?',
+      'SELECT COUNT(*) as count FROM classes WHERE madrasah_id = ? AND deleted_at IS NULL',
       [madrasahId]
     );
 

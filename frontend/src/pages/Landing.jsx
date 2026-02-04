@@ -34,6 +34,7 @@ function Landing() {
       <header className="landing-header">
         <Link to="/" className="logo">e-daarah</Link>
         <nav className="header-nav">
+          <Link to="/pricing" className="nav-link">Pricing</Link>
           <Link to="/demo/login" className="nav-link">Demo</Link>
           <Link to="/register" className="nav-link primary">Get Started</Link>
         </nav>

@@ -19,6 +19,17 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  cursor: pointer;
+}
+
+.pricing-header .logo:hover {
+  text-decoration: none;
+}
+
+.pricing-header .logo:hover .logo-text,
+.pricing-header .logo:hover .logo-img {
+  text-decoration: none;
+  opacity: 1;
 }
 
 .pricing-header .logo-img {

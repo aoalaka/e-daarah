@@ -21,6 +21,11 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  cursor: pointer;
+}
+
+.logo:hover {
+  text-decoration: none;
 }
 
 .logo-img {
@@ -33,6 +38,13 @@
   font-weight: 600;
   color: #1a1a1a;
   white-space: nowrap;
+  text-decoration: none;
+}
+
+.logo:hover .logo-text,
+.logo:hover .logo-img {
+  text-decoration: none;
+  opacity: 1;
 }
 
 .footer-logo {

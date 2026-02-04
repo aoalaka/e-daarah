@@ -21,10 +21,35 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Endpoints that should NOT trigger auto-redirect on 401/403
+const AUTH_ENDPOINTS = [
+  '/auth/login',
+  '/auth/parent-login',
+  '/auth/register',
+  '/auth/register-madrasah',
+  '/auth/register-teacher',
+  '/auth/verify-email',
+  '/auth/madrasah/',
+  '/password/'
+];
+
+// Check if request URL is an auth endpoint
+const isAuthEndpoint = (url) => {
+  return AUTH_ENDPOINTS.some(endpoint => url?.includes(endpoint));
+};
+
 // Handle auth errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const requestUrl = error.config?.url;
+
+    // Don't auto-redirect for auth endpoints - let the component handle the error
+    if (isAuthEndpoint(requestUrl)) {
+      return Promise.reject(error);
+    }
+
+    // For other endpoints, redirect on 401/403 (session expired, unauthorized)
     if (error.response?.status === 401 || error.response?.status === 403) {
       const madrasah = JSON.parse(localStorage.getItem('madrasah') || '{}');
 

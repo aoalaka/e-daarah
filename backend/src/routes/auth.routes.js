@@ -23,7 +23,7 @@ router.post('/register-madrasah', async (req, res) => {
   console.log('Madrasah registration request:', req.body);
   
   try {
-    const { madrasahName, slug, institutionType, phoneCountryCode, phone, street, city, region, country, adminFirstName, adminLastName, adminEmail, adminPassword } = req.body;
+    const { madrasahName, slug, institutionType, website, phoneCountryCode, phone, street, city, region, country, adminFirstName, adminLastName, adminEmail, adminPassword } = req.body;
 
     // Validate required fields
     if (!madrasahName || !slug || !adminEmail || !adminPassword || !adminFirstName || !phone || !street || !city || !region || !country) {
@@ -107,8 +107,8 @@ router.post('/register-madrasah', async (req, res) => {
     let madrasahResult;
     try {
       [madrasahResult] = await pool.query(
-        'INSERT INTO madrasahs (name, slug, institution_type, phone, street, city, region, country, is_active, trial_ends_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)',
-        [madrasahName, slug, institutionType || null, fullPhone, street, city, region, country, trialEndsAt]
+        'INSERT INTO madrasahs (name, slug, institution_type, website, phone, street, city, region, country, is_active, trial_ends_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)',
+        [madrasahName, slug, institutionType || null, website || null, fullPhone, street, city, region, country, trialEndsAt]
       );
     } catch (dbError) {
       // If newer columns don't exist, try basic insert

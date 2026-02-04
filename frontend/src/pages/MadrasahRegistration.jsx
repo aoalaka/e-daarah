@@ -13,6 +13,7 @@ function MadrasahRegistration() {
     madrasahName: '',
     slug: '',
     institutionType: '',
+    website: '',
     adminFirstName: '',
     adminLastName: '',
     adminEmail: '',
@@ -94,6 +95,7 @@ function MadrasahRegistration() {
         madrasahName: formData.madrasahName,
         slug: formData.slug,
         institutionType: formData.institutionType,
+        website: formData.website || null,
         adminFirstName: formData.adminFirstName,
         adminLastName: formData.adminLastName,
         adminEmail: formData.adminEmail,
@@ -178,6 +180,19 @@ function MadrasahRegistration() {
                   <option value="online">Online Madrasah</option>
                   <option value="other">Other</option>
                 </select>
+              </div>
+
+              <div className="register-field full-width">
+                <label htmlFor="website">Website <span className="optional">(optional)</span></label>
+                <input
+                  id="website"
+                  name="website"
+                  type="url"
+                  value={formData.website}
+                  onChange={handleChange}
+                  placeholder="https://yourmosque.org"
+                />
+                <p className="register-help">Your mosque or school website, if you have one</p>
               </div>
 
               <div className="register-field full-width">

@@ -506,6 +506,167 @@
   font-style: italic;
 }
 
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0;
+}
+
+.tab {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  margin-bottom: -1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab:hover {
+  color: #1a1a1a;
+}
+
+.tab.active {
+  color: #1a1a1a;
+  border-bottom-color: #1a1a1a;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #c62828;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Section description */
+.section-desc {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.empty-state {
+  color: #999;
+  font-style: italic;
+  padding: 40px;
+  text-align: center;
+}
+
+/* Review Queue */
+.data-table tr.flagged {
+  background: #fff8e1;
+}
+
+.slug {
+  font-size: 12px;
+  color: #666;
+}
+
+.external-link {
+  color: #1976d2;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.external-link:hover {
+  text-decoration: underline;
+}
+
+.muted {
+  color: #999;
+  font-size: 13px;
+}
+
+.email {
+  font-size: 12px;
+  color: #666;
+}
+
+.btn-small.warning {
+  background: #fff8e1;
+  color: #f57c00;
+  border-color: #ffcc80;
+}
+
+/* Security Events */
+.warning-row {
+  background: #fff8e1;
+}
+
+.event-type {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.event-type.login_success {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.event-type.login_failed {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.event-type.account_locked {
+  background: #fff8e1;
+  color: #f57c00;
+}
+
+.event-type.password_changed {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.event-type.logout {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.details-preview {
+  font-size: 12px;
+  color: #666;
+  max-width: 200px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Plan badges - additional */
+.plan-badge.trial {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.plan-badge.standard {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.plan-badge.plus {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .superadmin-header {

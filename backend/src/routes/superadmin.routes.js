@@ -366,6 +366,139 @@ router.get('/audit-logs', authenticateSuperAdmin, async (req, res) => {
   }
 });
 
+// Get security events (login attempts, lockouts, etc.)
+router.get('/security-events', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { madrasahId, eventType, page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT se.*, u.email as user_email, u.first_name, u.last_name, m.name as madrasah_name
+      FROM security_events se
+      LEFT JOIN users u ON se.user_id = u.id
+      LEFT JOIN madrasahs m ON se.madrasah_id = m.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (madrasahId) {
+      query += ' AND se.madrasah_id = ?';
+      params.push(madrasahId);
+    }
+
+    if (eventType) {
+      query += ' AND se.event_type = ?';
+      params.push(eventType);
+    }
+
+    query += ' ORDER BY se.created_at DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(limit), parseInt(offset));
+
+    const [events] = await pool.query(query, params);
+
+    // Get total count
+    let countQuery = 'SELECT COUNT(*) as total FROM security_events WHERE 1=1';
+    const countParams = [];
+    if (madrasahId) {
+      countQuery += ' AND madrasah_id = ?';
+      countParams.push(madrasahId);
+    }
+    if (eventType) {
+      countQuery += ' AND event_type = ?';
+      countParams.push(eventType);
+    }
+    const [[{ total }]] = await pool.query(countQuery, countParams);
+
+    res.json({
+      events,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    // If security_events table doesn't exist yet, return empty
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      return res.json({ events: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } });
+    }
+    console.error('Get security events error:', error);
+    res.status(500).json({ error: 'Failed to fetch security events' });
+  }
+});
+
+// Get recent registrations for review
+router.get('/registrations/recent', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { days = 7, verified } = req.query;
+
+    let query = `
+      SELECT
+        m.id,
+        m.name,
+        m.slug,
+        m.institution_type,
+        m.website,
+        m.phone,
+        m.city,
+        m.region,
+        m.country,
+        m.verification_status,
+        m.created_at,
+        u.first_name as admin_first_name,
+        u.last_name as admin_last_name,
+        u.email as admin_email,
+        u.email_verified as admin_email_verified
+      FROM madrasahs m
+      LEFT JOIN users u ON u.madrasah_id = m.id AND u.role = 'admin'
+      WHERE m.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+      AND m.deleted_at IS NULL
+    `;
+    const params = [parseInt(days)];
+
+    if (verified === 'true') {
+      query += ' AND m.verification_status = "verified"';
+    } else if (verified === 'false') {
+      query += ' AND (m.verification_status IS NULL OR m.verification_status != "verified")';
+    }
+
+    query += ' ORDER BY m.created_at DESC';
+
+    const [registrations] = await pool.query(query, params);
+
+    res.json({ registrations });
+  } catch (error) {
+    console.error('Get recent registrations error:', error);
+    res.status(500).json({ error: 'Failed to fetch recent registrations' });
+  }
+});
+
+// Update madrasah verification status
+router.patch('/madrasahs/:id/verify', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+
+    const validStatuses = ['pending', 'verified', 'flagged', 'rejected'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid verification status' });
+    }
+
+    await pool.query(
+      'UPDATE madrasahs SET verification_status = ?, verification_notes = ?, verified_at = ?, verified_by = ? WHERE id = ?',
+      [status, notes || null, status === 'verified' ? new Date() : null, req.superAdmin.id, id]
+    );
+
+    await logAudit(req, 'VERIFY', 'madrasah', id, { status, notes });
+
+    res.json({ message: 'Verification status updated' });
+  } catch (error) {
+    console.error('Update verification error:', error);
+    res.status(500).json({ error: 'Failed to update verification status' });
+  }
+});
+
 // Get platform settings
 router.get('/settings', authenticateSuperAdmin, async (req, res) => {
   try {

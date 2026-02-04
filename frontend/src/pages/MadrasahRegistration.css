@@ -212,6 +212,13 @@
   margin-top: var(--xs);
 }
 
+/* Optional label */
+.optional {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 /* Checkbox */
 .register-checkbox {
   display: flex;

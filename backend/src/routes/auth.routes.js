@@ -260,94 +260,98 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Teacher self-registration
-router.post('/register-teacher', async (req, res) => {
+// Teacher self-registration (madrasah slug in URL path)
+router.post('/register-teacher/:madrasahSlug', async (req, res) => {
   console.log('Teacher registration request');
-  
+
   try {
-    const { firstName, lastName, staffId, email, password, phone, madrasahSlug } = req.body;
-    
+    const { madrasahSlug } = req.params;
+    const { first_name, last_name, email, password, phone } = req.body;
+
+    // Map frontend field names to backend names
+    const firstName = first_name;
+    const lastName = last_name;
+
     // Validate required fields
-    if (!firstName || !lastName || !staffId || !email || !password || !madrasahSlug) {
-      return res.status(400).json({ error: 'All fields are required' });
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({ error: 'First name, last name, email, and password are required' });
     }
-    
+
     // Validate names
     if (!isValidName(firstName)) {
       return res.status(400).json({ error: 'Invalid first name format' });
     }
-    
+
     if (!isValidName(lastName)) {
       return res.status(400).json({ error: 'Invalid last name format' });
     }
-    
+
     // Validate email
     if (!isValidEmail(email)) {
       return res.status(400).json({ error: 'Invalid email format' });
     }
-    
+
     // Validate password
     if (password.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
-    
+
     if (!isValidPassword(password)) {
       return res.status(400).json({ error: 'Password must contain uppercase, lowercase, number, and symbol' });
     }
-    
+
     // Validate phone if provided
     if (phone && !isValidPhone(phone)) {
       return res.status(400).json({ error: 'Invalid phone number format' });
     }
-    
-    // Validate staff_id format (5 digits)
-    if (!isValidStaffId(staffId)) {
-      return res.status(400).json({ error: 'Staff ID must be exactly 5 digits' });
-    }
-    
+
     // Get madrasah by slug
     const [madrasahs] = await pool.query(
-      'SELECT id FROM madrasahs WHERE slug = ? AND is_active = TRUE',
+      'SELECT id FROM madrasahs WHERE slug = ? AND is_active = TRUE AND deleted_at IS NULL',
       [madrasahSlug]
     );
-    
+
     if (madrasahs.length === 0) {
       return res.status(404).json({ error: 'Madrasah not found' });
     }
-    
+
     const madrasahId = madrasahs[0].id;
-    
-    // Check if staff_id already exists
-    const [existingStaff] = await pool.query(
-      'SELECT id FROM users WHERE staff_id = ?',
-      [staffId]
-    );
-    
-    if (existingStaff.length > 0) {
-      return res.status(409).json({ error: 'Staff ID already exists' });
-    }
-    
+
     // Check if email already exists
     const [existingEmail] = await pool.query(
-      'SELECT id FROM users WHERE email = ?',
+      'SELECT id FROM users WHERE email = ? AND deleted_at IS NULL',
       [email]
     );
-    
+
     if (existingEmail.length > 0) {
       return res.status(409).json({ error: 'Email already registered' });
     }
-    
+
+    // Auto-generate staff ID (5 digits, unique within the madrasah)
+    let staffId;
+    let isUnique = false;
+    while (!isUnique) {
+      staffId = String(Math.floor(10000 + Math.random() * 90000)); // 5-digit number
+      const [existing] = await pool.query(
+        'SELECT id FROM users WHERE staff_id = ? AND madrasah_id = ?',
+        [staffId, madrasahId]
+      );
+      if (existing.length === 0) {
+        isUnique = true;
+      }
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     // Create teacher
     const [result] = await pool.query(
       'INSERT INTO users (madrasah_id, first_name, last_name, staff_id, email, password, phone, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [madrasahId, firstName, lastName, staffId, email, hashedPassword, phone || '', 'teacher']
     );
-    
-    console.log('Teacher registered successfully:', result.insertId);
-    
+
+    console.log('Teacher registered successfully:', result.insertId, 'Staff ID:', staffId);
+
     res.status(201).json({
       message: 'Teacher registered successfully',
       teacher: {

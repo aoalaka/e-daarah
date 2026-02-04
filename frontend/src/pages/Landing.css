@@ -123,49 +123,98 @@
   margin-bottom: 12px;
 }
 
-.finder-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.finder-search {
+  position: relative;
   max-width: 400px;
   margin: 0 auto;
 }
 
-.finder-input-group {
-  display: flex;
-  align-items: stretch;
-  background: #fff;
+.finder-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
   border: 1px solid #ddd;
   border-radius: 8px;
-  overflow: hidden;
-}
-
-.finder-prefix {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  background: #f5f5f5;
-  color: #888;
-  font-size: 14px;
-  border-right: 1px solid #ddd;
-}
-
-.finder-input {
-  flex: 1;
-  min-height: 48px;
-  padding: 0 12px;
-  border: none;
   font-size: 16px;
+  background: #fff;
 }
 
 .finder-input:focus {
   outline: none;
+  border-color: #1a1a1a;
 }
 
-.finder-error {
-  color: #d32f2f;
+.finder-loading {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: #888;
+}
+
+.finder-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  text-align: left;
+}
+
+.finder-results li {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.finder-results li:last-child {
+  border-bottom: none;
+}
+
+.finder-results li:hover {
+  background: #f9f9f9;
+}
+
+.finder-results .result-name {
+  display: block;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 2px;
+}
+
+.finder-results .result-slug {
+  display: block;
+  font-size: 13px;
+  color: #888;
+}
+
+.finder-no-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 12px 16px;
   font-size: 14px;
-  margin-top: 8px;
+  color: #666;
+  text-align: left;
+}
+
+.finder-no-results a {
+  color: #1a1a1a;
+  font-weight: 500;
 }
 
 /* Features */

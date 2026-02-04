@@ -173,20 +173,42 @@ router.post('/register-madrasah', async (req, res) => {
 router.get('/madrasah/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
-    
+
     const [madrasahs] = await pool.query(
-      'SELECT id, name, slug, logo_url FROM madrasahs WHERE slug = ? AND is_active = TRUE',
+      'SELECT id, name, slug, logo_url FROM madrasahs WHERE slug = ? AND is_active = TRUE AND deleted_at IS NULL',
       [slug]
     );
-    
+
     if (madrasahs.length === 0) {
       return res.status(404).json({ error: 'Madrasah not found' });
     }
-    
+
     res.json(madrasahs[0]);
   } catch (error) {
     console.error('Error fetching madrasah:', error);
     res.status(500).json({ error: 'Failed to fetch madrasah' });
+  }
+});
+
+// Search madrasahs by name (for login finder)
+router.get('/madrasahs/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.trim().length < 2) {
+      return res.json([]);
+    }
+
+    const searchTerm = `%${q.trim()}%`;
+    const [madrasahs] = await pool.query(
+      'SELECT id, name, slug, logo_url FROM madrasahs WHERE (name LIKE ? OR slug LIKE ?) AND is_active = TRUE AND deleted_at IS NULL ORDER BY name LIMIT 5',
+      [searchTerm, searchTerm]
+    );
+
+    res.json(madrasahs);
+  } catch (error) {
+    console.error('Error searching madrasahs:', error);
+    res.status(500).json({ error: 'Failed to search madrasahs' });
   }
 });
 

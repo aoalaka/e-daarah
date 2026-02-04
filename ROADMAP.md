@@ -507,7 +507,26 @@ TRIAL_DAYS=14
 #### 5.4 Customer Feedback - DEFERRED
 - Will implement when customer base grows
 
-### Phase 6: Verification Light - PENDING
+### Phase 6: Verification Light - COMPLETE (Feb 5, 2026)
+
+#### 6.1 Lightweight Verification - PARTIAL
+- [ ] Phone number verification (OTP on registration) - deferred
+- [x] Email already verified
+- [x] Website field added to registration (optional, for manual review)
+
+#### 6.2 Super Admin Review - COMPLETE
+- [x] Review Queue tab showing recent registrations (last 14 days)
+- [x] Quick approve/flag actions with notes
+- [x] Verification status stored (pending, verified, flagged, rejected)
+- [x] Audit logging for verification actions
+
+#### 6.3 Security Events Viewer - COMPLETE
+- [x] Security Events tab in super admin dashboard
+- [x] Shows login attempts, lockouts, password changes
+- [x] Paginated view with event type, user, IP, timestamp
+
+#### 6.4 Trust Indicators - DEFERRED
+- Will add verified badge in parent portal when needed
 
 **Migrations Applied:**
 1. `001_create_migrations_table` - Feb 4, 2026
@@ -516,6 +535,8 @@ TRIAL_DAYS=14
 4. `004_add_trial_reminder_column` - Feb 5, 2026
 5. `005_add_login_security` - Feb 5, 2026
 6. `006_add_performance_indexes` - Feb 5, 2026
+7. `007_add_website_column` - Feb 5, 2026
+8. `008_add_verification_columns` - Feb 5, 2026
 
 ---
 

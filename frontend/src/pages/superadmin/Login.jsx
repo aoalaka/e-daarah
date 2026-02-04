@@ -34,8 +34,9 @@ function SuperAdminLogin() {
   return (
     <div className="superadmin-login">
       <div className="login-card">
+        <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="login-logo-img" />
         <h1>Platform Admin</h1>
-        <p className="subtitle">e-daarah Management Console</p>
+        <p className="subtitle">Management Console</p>
 
         <form onSubmit={handleSubmit}>
           {error && <div className="error-message">{error}</div>}

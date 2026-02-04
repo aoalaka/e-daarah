@@ -634,7 +634,7 @@ function TeacherDashboard() {
       {/* Sidebar - Dark Theme */}
       <aside className={`sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <span className="sidebar-logo">e-daarah</span>
+          <img src="/e-daarah-blackbg-logo.png" alt="e-daarah" className="sidebar-logo-img" />
         </div>
         <nav className="sidebar-nav">
           {navItems.map(item => (

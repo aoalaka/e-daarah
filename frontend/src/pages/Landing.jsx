@@ -55,7 +55,9 @@ function Landing() {
     <div className="landing">
       {/* Header */}
       <header className="landing-header">
-        <Link to="/" className="logo">e-daarah</Link>
+        <Link to="/" className="logo">
+          <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="logo-img" />
+        </Link>
         <nav className="header-nav">
           <Link to="/pricing" className="nav-link">Pricing</Link>
           <Link to="/demo/login" className="nav-link">Demo</Link>
@@ -171,6 +173,21 @@ function Landing() {
               Start Trial
             </button>
           </div>
+
+          <div className="pricing-card">
+            <h3>Enterprise</h3>
+            <div className="price">Custom</div>
+            <ul>
+              <li>Unlimited students</li>
+              <li>Unlimited teachers</li>
+              <li>Custom integrations</li>
+              <li>Dedicated support</li>
+              <li>SLA guarantee</li>
+            </ul>
+            <a href="mailto:support@e-daarah.com?subject=Enterprise%20Plan%20Inquiry" className="btn secondary">
+              Contact Us
+            </a>
+          </div>
         </div>
 
         <p className="pricing-cta">
@@ -182,7 +199,7 @@ function Landing() {
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-brand">
-            <span className="logo">e-daarah</span>
+            <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="footer-logo-img" />
             <p>نظام إدارة المدارس الذكي</p>
           </div>
           <div className="footer-links">

@@ -69,7 +69,9 @@ function Pricing() {
     <div className="pricing-page">
       {/* Header */}
       <header className="pricing-header">
-        <Link to="/" className="logo">e-daarah</Link>
+        <Link to="/" className="logo">
+          <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="logo-img" />
+        </Link>
         <nav className="header-nav">
           <Link to="/demo/login" className="nav-link">Demo</Link>
           <Link to="/register" className="nav-link primary">Get Started</Link>
@@ -101,7 +103,7 @@ function Pricing() {
         </div>
 
         {/* Plans Grid */}
-        <div className="plans-grid">
+        <div className="plans-grid three-cols">
           {/* Standard Plan */}
           <div className="plan-card">
             <div className="plan-header">
@@ -166,6 +168,57 @@ function Pricing() {
                   {feature}
                 </li>
               ))}
+            </ul>
+          </div>
+
+          {/* Enterprise Plan */}
+          <div className="plan-card">
+            <div className="plan-header">
+              <h2 className="plan-name">Enterprise</h2>
+              <p className="plan-description">For large organizations with custom needs</p>
+            </div>
+            <div className="plan-price">
+              <span className="amount custom">Custom</span>
+            </div>
+            <a
+              href="mailto:support@e-daarah.com?subject=Enterprise%20Plan%20Inquiry"
+              className="plan-btn"
+            >
+              Contact Us
+            </a>
+            <ul className="plan-features">
+              <li className="feature included">
+                <span className="check">✓</span>
+                Unlimited students
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                Unlimited teachers
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                Unlimited classes
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                Everything in Plus
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                Custom integrations
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                Dedicated account manager
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                SLA guarantee
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                On-premise option
+              </li>
             </ul>
           </div>
         </div>

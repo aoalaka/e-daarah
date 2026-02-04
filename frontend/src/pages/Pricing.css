@@ -14,10 +14,14 @@
 }
 
 .pricing-header .logo {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--black);
   text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.pricing-header .logo-img {
+  height: 32px;
+  width: auto;
 }
 
 .pricing-header .header-nav {
@@ -121,8 +125,19 @@
   margin-bottom: 3rem;
 }
 
+.plans-grid.three-cols {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 900px) {
+  .plans-grid.three-cols {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 700px) {
-  .plans-grid {
+  .plans-grid,
+  .plans-grid.three-cols {
     grid-template-columns: 1fr;
   }
 }
@@ -187,6 +202,10 @@
   font-size: 2.5rem;
   font-weight: 600;
   color: var(--black);
+}
+
+.plan-price .amount.custom {
+  font-size: 2rem;
 }
 
 .plan-price .period {

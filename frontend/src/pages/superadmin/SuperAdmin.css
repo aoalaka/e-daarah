@@ -19,6 +19,17 @@
   font-weight: 600;
 }
 
+.header-logo-img {
+  height: 26px;
+  width: auto;
+}
+
+.platform-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
 .header-left {
   display: flex;
   align-items: center;
@@ -73,6 +84,12 @@
   border-radius: 8px;
   width: 100%;
   max-width: 360px;
+}
+
+.login-logo-img {
+  height: 36px;
+  width: auto;
+  margin-bottom: 16px;
 }
 
 .login-card h1 {

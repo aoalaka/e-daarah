@@ -31,11 +31,9 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.sidebar-logo {
-  font-size: 18px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.3px;
+.sidebar-logo-img {
+  height: 28px;
+  width: auto;
 }
 
 .sidebar-nav {

@@ -99,7 +99,8 @@ function SuperAdminDashboard() {
     <div className="superadmin">
       <header className="superadmin-header">
         <div className="header-left">
-          <h1>e-daarah Platform</h1>
+          <img src="/e-daarah-blackbg-logo.png" alt="e-daarah" className="header-logo-img" />
+          <span className="platform-label">Platform</span>
         </div>
         <div className="header-right">
           <span className="admin-name">{superAdmin.firstName} {superAdmin.lastName}</span>

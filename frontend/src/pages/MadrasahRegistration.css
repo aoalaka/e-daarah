@@ -27,11 +27,13 @@
 
 .register-logo {
   display: inline-block;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--black);
   text-decoration: none;
   margin-bottom: var(--sm);
+}
+
+.register-logo-img {
+  height: 36px;
+  width: auto;
 }
 
 .register-title {

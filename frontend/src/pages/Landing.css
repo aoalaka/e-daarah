@@ -16,10 +16,19 @@
 }
 
 .logo {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a1a1a;
   text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.logo-img {
+  height: 32px;
+  width: auto;
+}
+
+.footer-logo-img {
+  height: 28px;
+  width: auto;
 }
 
 .header-nav {
@@ -426,8 +435,8 @@
   }
 
   .pricing-cards {
-    grid-template-columns: repeat(2, 1fr);
-    max-width: 700px;
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 900px;
   }
 
   .footer {
@@ -438,6 +447,14 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-start;
+  }
+}
+
+/* Medium screens - 2 column pricing */
+@media (min-width: 640px) and (max-width: 899px) {
+  .pricing-cards {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 700px;
   }
 }
 

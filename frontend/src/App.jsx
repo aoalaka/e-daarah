@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { Toaster } from 'sonner';
 import { PrivateRoute } from './components/PrivateRoute';
 import { MadrasahProvider } from './contexts/MadrasahContext';
+import SessionTimeout from './components/SessionTimeout';
 
 // Public pages
 import Landing from './pages/Landing';
@@ -35,6 +36,7 @@ import './App.css';
 function MadrasahRoutes() {
   return (
     <MadrasahProvider>
+      <SessionTimeout />
       <Routes>
         <Route path="login" element={<Login />} />
         <Route path="forgot-password" element={<ForgotPassword />} />

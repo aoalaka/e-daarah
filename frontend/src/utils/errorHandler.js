@@ -14,6 +14,14 @@ const PLAN_ERROR_CODES = [
 ];
 
 /**
+ * Security-related error codes
+ */
+const SECURITY_ERROR_CODES = [
+  'ACCOUNT_LOCKED',
+  'SESSION_TIMEOUT'
+];
+
+/**
  * Handle API errors with special handling for plan limit errors
  * @param {Error} error - The error from axios
  * @param {string} fallbackMessage - Default message if no specific error
@@ -24,6 +32,14 @@ export function handleApiError(error, fallbackMessage = 'An error occurred', onU
   const data = error.response?.data;
   const code = data?.code;
   const message = data?.message || data?.error || fallbackMessage;
+
+  // Check if this is a security-related error
+  if (code && SECURITY_ERROR_CODES.includes(code)) {
+    toast.error(message, {
+      duration: 10000
+    });
+    return { handled: true, code, isSecurityError: true };
+  }
 
   // Check if this is a plan-related error
   if (code && PLAN_ERROR_CODES.includes(code)) {
@@ -81,4 +97,31 @@ export function getPlanErrorMessage(code, data = {}) {
   }
 }
 
-export default { handleApiError, isPlanLimitError, getPlanErrorMessage };
+/**
+ * Check if an error is a security error (lockout, session timeout)
+ * @param {Error} error - The error from axios
+ * @returns {boolean}
+ */
+export function isSecurityError(error) {
+  const code = error.response?.data?.code;
+  return code && SECURITY_ERROR_CODES.includes(code);
+}
+
+/**
+ * Check if account is locked from error response
+ * @param {Error} error - The error from axios
+ * @returns {{ locked: boolean, lockedUntil: Date|null, message: string|null }}
+ */
+export function getAccountLockInfo(error) {
+  const data = error.response?.data;
+  if (data?.code === 'ACCOUNT_LOCKED') {
+    return {
+      locked: true,
+      lockedUntil: data.lockedUntil ? new Date(data.lockedUntil) : null,
+      message: data.message
+    };
+  }
+  return { locked: false, lockedUntil: null, message: null };
+}
+
+export default { handleApiError, isPlanLimitError, getPlanErrorMessage, isSecurityError, getAccountLockInfo };

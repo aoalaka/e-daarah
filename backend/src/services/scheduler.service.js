@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { sendTrialExpiringEmail } from './email.service.js';
+import { cleanupExpiredSessions } from './security.service.js';
 
 /**
  * Check for trials expiring soon and send reminder emails
@@ -102,6 +103,19 @@ export const startScheduler = (intervalHours = 24) => {
   setInterval(() => {
     checkTrialExpirations().catch(console.error);
   }, intervalMs);
+
+  // Session cleanup runs every hour
+  const sessionCleanupInterval = 60 * 60 * 1000; // 1 hour
+  setInterval(() => {
+    cleanupExpiredSessions().catch(err => {
+      console.error('[Scheduler] Session cleanup error:', err.message);
+    });
+  }, sessionCleanupInterval);
+
+  // Run session cleanup on startup too
+  cleanupExpiredSessions().catch(err => {
+    console.error('[Scheduler] Initial session cleanup error:', err.message);
+  });
 };
 
 export default { checkTrialExpirations, startScheduler };

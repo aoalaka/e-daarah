@@ -247,6 +247,36 @@
   margin-bottom: var(--md);
 }
 
+/* Lockout Error */
+.error-message.lockout-message {
+  background: #fef2f2;
+  border: 1px solid #f87171;
+  padding: var(--md);
+}
+
+.error-message.lockout-message strong {
+  display: block;
+  margin-bottom: var(--xs);
+  font-size: 14px;
+}
+
+.error-message.lockout-message p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+/* Warning Message */
+.warning-message {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  padding: var(--sm) var(--md);
+  border-radius: var(--radius);
+  font-size: 13px;
+  margin-bottom: var(--md);
+}
+
 /* Submit */
 .submit-btn,
 .login-btn {

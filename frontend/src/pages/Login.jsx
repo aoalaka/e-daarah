@@ -1,30 +1,46 @@
 import { useState } from 'react';
-import { useNavigate, Link, useParams } from 'react-router-dom';
+import { useNavigate, Link, useParams, useLocation } from 'react-router-dom';
 import { authService } from '../services/auth.service';
 import { useMadrasah } from '../contexts/MadrasahContext';
+import { getAccountLockInfo } from '../utils/errorHandler';
 import './Login.css';
 
 function Login() {
   const { madrasahSlug } = useParams();
   const { madrasah } = useMadrasah();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('teacher');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(location.state?.message || '');
+  const [lockInfo, setLockInfo] = useState(null);
+  const [attemptsRemaining, setAttemptsRemaining] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLockInfo(null);
+    setAttemptsRemaining(null);
     setLoading(true);
 
     try {
       await authService.login(madrasahSlug, email, password, role);
       navigate(role === 'admin' ? `/${madrasahSlug}/admin` : `/${madrasahSlug}/teacher`);
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid email or password');
+      const lockStatus = getAccountLockInfo(err);
+      if (lockStatus.locked) {
+        setLockInfo(lockStatus);
+        setError('');
+      } else {
+        setError(err.response?.data?.error || 'Invalid email or password');
+        // Show remaining attempts if provided
+        if (err.response?.data?.attemptsRemaining !== undefined) {
+          setAttemptsRemaining(err.response.data.attemptsRemaining);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -74,7 +90,20 @@ function Login() {
           </div>
         )}
 
+        {lockInfo && (
+          <div className="error-message lockout-message">
+            <strong>Account Temporarily Locked</strong>
+            <p>{lockInfo.message}</p>
+          </div>
+        )}
+
         {error && <div className="error-message">{error}</div>}
+
+        {attemptsRemaining !== null && attemptsRemaining <= 2 && (
+          <div className="warning-message">
+            Warning: {attemptsRemaining} login attempt{attemptsRemaining !== 1 ? 's' : ''} remaining before account lockout.
+          </div>
+        )}
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="field">

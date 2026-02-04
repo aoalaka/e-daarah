@@ -1,0 +1,124 @@
+.session-timeout-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.session-timeout-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.session-timeout-icon {
+  color: #f59e0b;
+  margin-bottom: 16px;
+}
+
+.session-timeout-modal h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  color: #111827;
+}
+
+.session-timeout-modal p {
+  margin: 0 0 8px 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.session-timeout-countdown {
+  font-size: 48px;
+  font-weight: 700;
+  color: #dc2626;
+  font-variant-numeric: tabular-nums;
+  margin: 16px 0;
+}
+
+.session-timeout-subtext {
+  color: #9ca3af;
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+.session-timeout-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.session-timeout-btn-primary {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.session-timeout-btn-primary:hover {
+  background: #059669;
+}
+
+.session-timeout-btn-secondary {
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.session-timeout-btn-secondary:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+@media (max-width: 480px) {
+  .session-timeout-modal {
+    padding: 24px;
+  }
+
+  .session-timeout-countdown {
+    font-size: 36px;
+  }
+
+  .session-timeout-actions {
+    flex-direction: column;
+  }
+
+  .session-timeout-btn-primary,
+  .session-timeout-btn-secondary {
+    width: 100%;
+  }
+}

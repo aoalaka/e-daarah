@@ -7,6 +7,14 @@ import { isValidEmail, isValidPhone, isValidName, isValidStaffId, isValidStudent
 import { sendEmailVerification, sendWelcomeEmail } from '../services/email.service.js';
 import crypto from 'crypto';
 import { PLAN_LIMITS } from '../middleware/plan-limits.middleware.js';
+import {
+  isAccountLocked,
+  recordFailedLogin,
+  recordSuccessfulLogin,
+  createSession,
+  invalidateSession,
+  getSessionInfo
+} from '../services/security.service.js';
 
 const router = express.Router();
 
@@ -213,43 +221,74 @@ router.get('/madrasahs/search', async (req, res) => {
   }
 });
 
-// Login endpoint (multi-tenant aware)
+// Login endpoint (multi-tenant aware) with account lockout protection
 router.post('/login', async (req, res) => {
   console.log('Login request received');
-  
+
+  const ipAddress = req.ip || req.connection?.remoteAddress;
+  const userAgent = req.get('user-agent');
+
   try {
     const { email, password, role } = req.body;
-    
+
     // Validate input
     if (!email || !password || !role) {
       return res.status(400).json({ error: 'Email, password, and role are required' });
     }
-    
+
     // Query users table with role check (include email_verified status, exclude deleted)
     const [users] = await pool.query(
       'SELECT u.id, u.madrasah_id, u.first_name, u.last_name, u.email, u.password, u.role, u.staff_id, u.email_verified, m.slug as madrasah_slug FROM users u JOIN madrasahs m ON u.madrasah_id = m.id WHERE u.email = ? AND u.role = ? AND u.deleted_at IS NULL AND m.deleted_at IS NULL',
       [email, role]
     );
-    
+
     if (users.length === 0) {
       console.log(`No user found with email ${email} and role ${role}`);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     const user = users[0];
-    
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      console.log('Invalid password for user:', email);
-      return res.status(401).json({ error: 'Invalid credentials' });
+
+    // Check if account is locked
+    const lockStatus = await isAccountLocked(user.id);
+    if (lockStatus.locked) {
+      console.log(`Account locked for user: ${email}, unlocks in ${lockStatus.remainingMinutes} minutes`);
+      return res.status(423).json({
+        error: 'Account temporarily locked',
+        code: 'ACCOUNT_LOCKED',
+        message: `Too many failed login attempts. Please try again in ${lockStatus.remainingMinutes} minutes.`,
+        lockedUntil: lockStatus.lockedUntil
+      });
     }
-    
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      console.log('Invalid password for user:', email);
+
+      // Record the failed attempt
+      const failResult = await recordFailedLogin(user.id, ipAddress, userAgent);
+
+      if (failResult.locked) {
+        return res.status(423).json({
+          error: 'Account temporarily locked',
+          code: 'ACCOUNT_LOCKED',
+          message: `Too many failed login attempts. Please try again in ${failResult.remainingMinutes} minutes.`,
+          lockedUntil: failResult.lockedUntil
+        });
+      }
+
+      return res.status(401).json({
+        error: 'Invalid credentials',
+        attemptsRemaining: failResult.attemptsRemaining
+      });
+    }
+
     // Generate JWT
     const token = jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
+      {
+        id: user.id,
+        email: user.email,
         role: user.role,
         madrasahId: user.madrasah_id,
         madrasahSlug: user.madrasah_slug,
@@ -258,9 +297,13 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
-    
+
+    // Record successful login and create session
+    await recordSuccessfulLogin(user.id, ipAddress, userAgent);
+    await createSession(user.id, token, ipAddress, userAgent);
+
     console.log(`Login successful for ${email} as ${role}`);
-    
+
     res.json({
       token,
       user: {
@@ -280,6 +323,46 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Logout endpoint - invalidate session
+router.post('/logout', authenticateToken, async (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (token) {
+      await invalidateSession(token);
+    }
+
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Logout failed' });
+  }
+});
+
+// Get session info (for frontend session timeout warning)
+router.get('/session-info', authenticateToken, async (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const sessionInfo = await getSessionInfo(token);
+
+    if (!sessionInfo) {
+      return res.status(401).json({ error: 'Session not found' });
+    }
+
+    res.json(sessionInfo);
+  } catch (error) {
+    console.error('Session info error:', error);
+    res.status(500).json({ error: 'Failed to get session info' });
   }
 });
 

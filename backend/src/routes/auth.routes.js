@@ -260,13 +260,12 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Teacher self-registration (madrasah slug first in URL path)
-router.post('/:madrasahSlug/register-teacher', async (req, res) => {
+// Teacher self-registration (slug in body like other endpoints)
+router.post('/register-teacher', async (req, res) => {
   console.log('Teacher registration request');
 
   try {
-    const { madrasahSlug } = req.params;
-    const { first_name, last_name, email, password, phone } = req.body;
+    const { first_name, last_name, email, password, phone, madrasahSlug } = req.body;
 
     // Map frontend field names to backend names
     const firstName = first_name;

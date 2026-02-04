@@ -695,4 +695,135 @@
     padding: 4px 8px;
     font-size: 12px;
   }
+
+  /* Tabs responsive */
+  .tabs {
+    flex-wrap: wrap;
+    gap: 0;
+  }
+
+  .tab {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* Table section responsive */
+  .table-section {
+    padding: 12px;
+    overflow-x: auto;
+  }
+
+  .table-section h2 {
+    font-size: 16px;
+  }
+
+  .section-desc {
+    font-size: 13px;
+  }
+
+  /* Review Queue - hide less important columns on mobile */
+  .data-table th:nth-child(2),
+  .data-table td:nth-child(2),
+  .data-table th:nth-child(4),
+  .data-table td:nth-child(4) {
+    display: none;
+  }
+
+  .slug {
+    display: none;
+  }
+
+  .email {
+    font-size: 11px;
+    word-break: break-all;
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .actions .btn-small {
+    margin-right: 0;
+    text-align: center;
+  }
+
+  /* Event type badges */
+  .event-type {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+
+  .details-preview {
+    max-width: 100px;
+    font-size: 11px;
+  }
+
+  /* Pagination responsive */
+  .pagination {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pagination button {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .superadmin-main {
+    padding: 12px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .tab {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .badge {
+    min-width: 16px;
+    height: 16px;
+    font-size: 10px;
+  }
+
+  /* Hide more columns on very small screens */
+  .data-table th:nth-child(3),
+  .data-table td:nth-child(3),
+  .data-table th:nth-child(5),
+  .data-table td:nth-child(5),
+  .data-table th:nth-child(6),
+  .data-table td:nth-child(6) {
+    display: none;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 6px 4px;
+    font-size: 12px;
+  }
+
+  .btn-small {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
 }

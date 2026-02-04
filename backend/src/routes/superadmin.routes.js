@@ -485,10 +485,23 @@ router.patch('/madrasahs/:id/verify', authenticateSuperAdmin, async (req, res) =
       return res.status(400).json({ error: 'Invalid verification status' });
     }
 
-    await pool.query(
-      'UPDATE madrasahs SET verification_status = ?, verification_notes = ?, verified_at = ?, verified_by = ? WHERE id = ?',
-      [status, notes || null, status === 'verified' ? new Date() : null, req.superAdmin.id, id]
-    );
+    // Try full update first, fallback to basic if columns don't exist
+    try {
+      await pool.query(
+        'UPDATE madrasahs SET verification_status = ?, verification_notes = ?, verified_at = ?, verified_by = ? WHERE id = ?',
+        [status, notes || null, status === 'verified' ? new Date() : null, req.superAdmin.id, id]
+      );
+    } catch (dbError) {
+      if (dbError.code === 'ER_BAD_FIELD_ERROR') {
+        // Columns don't exist yet, just update verification_status
+        await pool.query(
+          'UPDATE madrasahs SET verification_status = ? WHERE id = ?',
+          [status, id]
+        );
+      } else {
+        throw dbError;
+      }
+    }
 
     await logAudit(req, 'VERIFY', 'madrasah', id, { status, notes });
 

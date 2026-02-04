@@ -9,11 +9,39 @@ const SECURITY_CONFIG = {
   sessionMaxAgeHours: 24
 };
 
+// Track if security tables exist (checked once on first use)
+let securityTablesChecked = false;
+let securityTablesExist = false;
+
+/**
+ * Check if security tables/columns exist in database
+ * Caches result to avoid repeated queries
+ */
+const checkSecurityTables = async () => {
+  if (securityTablesChecked) {
+    return securityTablesExist;
+  }
+
+  try {
+    // Try to query the locked_until column - if it fails, migration not applied
+    await pool.query('SELECT locked_until FROM users LIMIT 1');
+    securityTablesExist = true;
+  } catch (error) {
+    console.log('[Security] Security columns not found - migration 005 not applied. Security features disabled.');
+    securityTablesExist = false;
+  }
+
+  securityTablesChecked = true;
+  return securityTablesExist;
+};
+
 /**
  * Log a security event for audit purposes
  */
 export const logSecurityEvent = async (eventType, { userId, madrasahId, ipAddress, userAgent, details }) => {
   try {
+    if (!await checkSecurityTables()) return;
+
     await pool.query(
       `INSERT INTO security_events (user_id, madrasah_id, event_type, ip_address, user_agent, details)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -37,6 +65,10 @@ export const logSecurityEvent = async (eventType, { userId, madrasahId, ipAddres
  */
 export const isAccountLocked = async (userId) => {
   try {
+    if (!await checkSecurityTables()) {
+      return { locked: false };
+    }
+
     const [[user]] = await pool.query(
       'SELECT locked_until FROM users WHERE id = ?',
       [userId]
@@ -77,6 +109,10 @@ export const isAccountLocked = async (userId) => {
  */
 export const recordFailedLogin = async (userId, ipAddress, userAgent) => {
   try {
+    if (!await checkSecurityTables()) {
+      return { locked: false, attemptsRemaining: null };
+    }
+
     // Increment failed attempts
     await pool.query(
       'UPDATE users SET failed_login_attempts = COALESCE(failed_login_attempts, 0) + 1 WHERE id = ?',
@@ -134,7 +170,7 @@ export const recordFailedLogin = async (userId, ipAddress, userAgent) => {
     };
   } catch (error) {
     console.error('[Security] Error recording failed login:', error.message);
-    return { locked: false };
+    return { locked: false, attemptsRemaining: null };
   }
 };
 
@@ -143,6 +179,8 @@ export const recordFailedLogin = async (userId, ipAddress, userAgent) => {
  */
 export const recordSuccessfulLogin = async (userId, ipAddress, userAgent) => {
   try {
+    if (!await checkSecurityTables()) return;
+
     // Get madrasah ID for logging
     const [[user]] = await pool.query(
       'SELECT madrasah_id FROM users WHERE id = ?',
@@ -177,6 +215,8 @@ export const recordSuccessfulLogin = async (userId, ipAddress, userAgent) => {
  */
 export const createSession = async (userId, token, ipAddress, userAgent) => {
   try {
+    if (!await checkSecurityTables()) return null;
+
     // Hash the token for storage
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
@@ -203,6 +243,8 @@ export const createSession = async (userId, token, ipAddress, userAgent) => {
  */
 export const validateSession = async (token) => {
   try {
+    if (!await checkSecurityTables()) return null;
+
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
     const [[session]] = await pool.query(
@@ -257,6 +299,8 @@ export const validateSession = async (token) => {
  */
 export const invalidateSession = async (token) => {
   try {
+    if (!await checkSecurityTables()) return true;
+
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     await pool.query('DELETE FROM active_sessions WHERE token_hash = ?', [tokenHash]);
     return true;
@@ -271,6 +315,8 @@ export const invalidateSession = async (token) => {
  */
 export const invalidateAllUserSessions = async (userId) => {
   try {
+    if (!await checkSecurityTables()) return 0;
+
     const [result] = await pool.query(
       'DELETE FROM active_sessions WHERE user_id = ?',
       [userId]
@@ -287,6 +333,8 @@ export const invalidateAllUserSessions = async (userId) => {
  */
 export const cleanupExpiredSessions = async () => {
   try {
+    if (!await checkSecurityTables()) return 0;
+
     const [result] = await pool.query(
       'DELETE FROM active_sessions WHERE expires_at < NOW()'
     );
@@ -305,6 +353,8 @@ export const cleanupExpiredSessions = async () => {
  */
 export const getSessionInfo = async (token) => {
   try {
+    if (!await checkSecurityTables()) return null;
+
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
     const [[session]] = await pool.query(

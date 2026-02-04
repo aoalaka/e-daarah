@@ -480,7 +480,7 @@ router.patch('/madrasahs/:id/verify', authenticateSuperAdmin, async (req, res) =
     const { id } = req.params;
     const { status, notes } = req.body;
 
-    const validStatuses = ['pending', 'verified', 'flagged', 'rejected'];
+    const validStatuses = ['unverified', 'pending', 'verified', 'flagged', 'rejected'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: 'Invalid verification status' });
     }
@@ -507,8 +507,8 @@ router.patch('/madrasahs/:id/verify', authenticateSuperAdmin, async (req, res) =
 
     res.json({ message: 'Verification status updated' });
   } catch (error) {
-    console.error('Update verification error:', error);
-    res.status(500).json({ error: 'Failed to update verification status' });
+    console.error('Update verification error:', error.message, error.code);
+    res.status(500).json({ error: 'Failed to update verification status', details: error.message });
   }
 });
 

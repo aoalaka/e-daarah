@@ -20,17 +20,19 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .logo-img {
-  height: 44px;
+  height: 36px;
   width: auto;
 }
 
 .logo-text {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   color: #1a1a1a;
+  white-space: nowrap;
 }
 
 .footer-logo {
@@ -57,11 +59,12 @@
 }
 
 .nav-link {
-  padding: 12px 16px;
-  font-size: 15px;
+  padding: 10px 14px;
+  font-size: 14px;
   color: #666;
   text-decoration: none;
   border-radius: 6px;
+  white-space: nowrap;
 }
 
 .nav-link:hover {
@@ -482,5 +485,29 @@
 @media (min-width: 1024px) {
   .hero-title {
     font-size: 48px;
+  }
+}
+
+/* Small mobile screens */
+@media (max-width: 480px) {
+  .landing-header {
+    padding: 10px 12px;
+  }
+
+  .logo-img {
+    height: 32px;
+  }
+
+  .logo-text {
+    font-size: 16px;
+  }
+
+  .header-nav {
+    gap: 4px;
+  }
+
+  .nav-link {
+    padding: 8px 10px;
+    font-size: 13px;
   }
 }

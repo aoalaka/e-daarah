@@ -106,16 +106,17 @@ function Landing() {
       {/* Pricing */}
       <section id="pricing" className="pricing">
         <h2 className="section-title">Pricing</h2>
-        <p className="section-subtitle">Start with a 14-day free trial</p>
+        <p className="section-subtitle">Start with a 14-day free trial. No credit card required.</p>
 
         <div className="pricing-cards">
           <div className="pricing-card">
-            <h3>Starter</h3>
-            <div className="price">$29<span>/month</span></div>
+            <h3>Standard</h3>
+            <div className="price">$12<span>/month</span></div>
             <ul>
-              <li>Up to 50 students</li>
-              <li>3 teacher accounts</li>
-              <li>Basic reports</li>
+              <li>Up to 75 students</li>
+              <li>Up to 5 teachers</li>
+              <li>Attendance tracking</li>
+              <li>Parent portal</li>
               <li>Email support</li>
             </ul>
             <button onClick={() => navigate('/register')} className="btn secondary">
@@ -124,33 +125,24 @@ function Landing() {
           </div>
 
           <div className="pricing-card featured">
-            <h3>Professional</h3>
-            <div className="price">$79<span>/month</span></div>
+            <h3>Plus</h3>
+            <div className="price">$29<span>/month</span></div>
             <ul>
-              <li>Up to 200 students</li>
-              <li>10 teacher accounts</li>
-              <li>Advanced analytics</li>
+              <li>Up to 300 students</li>
+              <li>Up to 20 teachers</li>
+              <li>Everything in Standard</li>
+              <li>CSV/Excel exports</li>
               <li>Priority support</li>
             </ul>
             <button onClick={() => navigate('/register')} className="btn primary">
               Start Trial
             </button>
           </div>
-
-          <div className="pricing-card">
-            <h3>Enterprise</h3>
-            <div className="price">Custom</div>
-            <ul>
-              <li>Unlimited students</li>
-              <li>Unlimited teachers</li>
-              <li>API access</li>
-              <li>Dedicated support</li>
-            </ul>
-            <button onClick={() => navigate('/register')} className="btn secondary">
-              Contact Us
-            </button>
-          </div>
         </div>
+
+        <p className="pricing-cta">
+          <Link to="/pricing" className="pricing-link">See full plan comparison →</Link>
+        </p>
       </section>
 
       {/* Footer */}

@@ -647,7 +647,8 @@ router.post('/verify-email', async (req, res) => {
 
     // Find user with this token
     const [users] = await pool.query(
-      `SELECT u.id, u.email, u.first_name, u.email_verified, u.email_verification_expires, m.name as madrasah_name
+      `SELECT u.id, u.email, u.first_name, u.role, u.email_verified, u.email_verification_expires,
+              m.name as madrasah_name, m.slug as madrasah_slug
        FROM users u
        JOIN madrasahs m ON u.madrasah_id = m.id
        WHERE u.email_verification_token = ?`,
@@ -698,7 +699,7 @@ router.post('/verify-email', async (req, res) => {
     console.log('[Verify Email] Verification status after update:', verifyUpdate[0]?.email_verified);
 
     // Send welcome email (don't block on failure)
-    sendWelcomeEmail(user.email, user.first_name, user.madrasah_name).catch(err => {
+    sendWelcomeEmail(user.email, user.first_name, user.madrasah_name, user.madrasah_slug, user.role).catch(err => {
       console.error('[Verify Email] Failed to send welcome email:', err);
     });
 

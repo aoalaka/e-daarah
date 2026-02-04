@@ -139,11 +139,28 @@ export const sendEmailVerification = async (email, verificationToken, madrasahSl
 /**
  * Send welcome email after verification
  */
-export const sendWelcomeEmail = async (email, firstName, madrasahName) => {
+export const sendWelcomeEmail = async (email, firstName, madrasahName, madrasahSlug = '', role = 'admin') => {
+  // Build the login URL based on role
+  const loginUrl = madrasahSlug ? `${FRONTEND_URL}/${madrasahSlug}/login` : FRONTEND_URL;
+
+  // Customize content based on role
+  const isTeacher = role === 'teacher';
+  const quickStartItems = isTeacher
+    ? `<li>View your assigned classes</li>
+       <li>Take daily attendance</li>
+       <li>Record exam scores and grades</li>
+       <li>Track student progress</li>`
+    : `<li>Set up your academic sessions and semesters</li>
+       <li>Create classes and assign teachers</li>
+       <li>Add students (individually or bulk upload)</li>
+       <li>Start tracking attendance and exam performance</li>`;
+
   if (!isEmailEnabled()) {
     console.log('\n=== WELCOME EMAIL (Console) ===');
     console.log(`To: ${email}`);
     console.log(`Welcome ${firstName} to ${madrasahName}!`);
+    console.log(`Role: ${role}`);
+    console.log(`Login URL: ${loginUrl}`);
     console.log('===============================\n');
     return { success: true };
   }
@@ -157,24 +174,21 @@ export const sendWelcomeEmail = async (email, firstName, madrasahName) => {
         Hi ${firstName},
       </p>
       <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4a4a4a;">
-        Your email has been verified and <strong>${madrasahName}</strong> is now fully activated on ${APP_NAME}.
+        Your email has been verified and you now have full access to <strong>${madrasahName}</strong> on ${APP_NAME}.
       </p>
       <div style="background: #f9fafb; border-radius: 6px; padding: 20px; margin-bottom: 24px;">
         <h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #1a1a1a;">
           Quick Start Guide:
         </h3>
         <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.8; color: #4a4a4a;">
-          <li>Set up your academic sessions and semesters</li>
-          <li>Create classes and assign teachers</li>
-          <li>Add students (individually or bulk upload)</li>
-          <li>Start tracking attendance and exam performance</li>
+          ${quickStartItems}
         </ul>
       </div>
       <table role="presentation" style="width: 100%; border-collapse: collapse;">
         <tr>
           <td align="center">
-            <a href="${FRONTEND_URL}" style="display: inline-block; padding: 14px 32px; background-color: #1a1a1a; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px;">
-              Go to Dashboard
+            <a href="${loginUrl}" style="display: inline-block; padding: 14px 32px; background-color: #1a1a1a; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px;">
+              Go to Login
             </a>
           </td>
         </tr>

@@ -40,7 +40,7 @@ export const authService = {
 
   // Teacher self-registration (scoped to madrasah)
   registerTeacher: async (madrasahSlug, data) => {
-    const response = await api.post(`/auth/register-teacher/${madrasahSlug}`, data);
+    const response = await api.post(`/auth/${madrasahSlug}/register-teacher`, data);
     return response.data;
   },
 

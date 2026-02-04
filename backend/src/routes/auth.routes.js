@@ -260,8 +260,8 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Teacher self-registration (madrasah slug in URL path)
-router.post('/register-teacher/:madrasahSlug', async (req, res) => {
+// Teacher self-registration (madrasah slug first in URL path)
+router.post('/:madrasahSlug/register-teacher', async (req, res) => {
   console.log('Teacher registration request');
 
   try {

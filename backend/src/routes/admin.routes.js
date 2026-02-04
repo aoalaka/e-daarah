@@ -2,6 +2,12 @@ import express from 'express';
 import pool from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
 import { validateTeacher, validateStudent, validateSession, validateSemester, validateClass } from '../utils/validation.js';
+import {
+  requireActiveSubscription,
+  enforceStudentLimit,
+  enforceTeacherLimit,
+  enforceClassLimit
+} from '../middleware/plan-limits.middleware.js';
 
 const router = express.Router();
 
@@ -275,7 +281,7 @@ router.delete('/semesters/:id', async (req, res) => {
 });
 
 // Create class (scoped to madrasah)
-router.post('/classes', async (req, res) => {
+router.post('/classes', requireActiveSubscription, enforceClassLimit, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { name, grade_level, school_days, description } = req.body;
@@ -460,7 +466,7 @@ router.get('/teachers', async (req, res) => {
 });
 
 // Create teacher (scoped to madrasah - admin creates, teacher sets password later)
-router.post('/teachers', async (req, res) => {
+router.post('/teachers', requireActiveSubscription, enforceTeacherLimit, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { first_name, last_name, staff_id, email, phone, phone_country_code, street, city, state, country } = req.body;
@@ -555,7 +561,7 @@ router.get('/students', async (req, res) => {
 });
 
 // Create student (scoped to madrasah)
-router.post('/students', async (req, res) => {
+router.post('/students', requireActiveSubscription, enforceStudentLimit, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { first_name, last_name, student_id, gender, email, class_id, date_of_birth,

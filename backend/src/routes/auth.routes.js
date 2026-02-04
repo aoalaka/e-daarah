@@ -6,6 +6,7 @@ import { authenticateToken, requireRole } from '../middleware/auth.middleware.js
 import { isValidEmail, isValidPhone, isValidName, isValidStaffId, isValidStudentId, isRequired, isValidPassword } from '../utils/validation.js';
 import { sendEmailVerification, sendWelcomeEmail } from '../services/email.service.js';
 import crypto from 'crypto';
+import { PLAN_LIMITS } from '../middleware/plan-limits.middleware.js';
 
 const router = express.Router();
 
@@ -326,9 +327,9 @@ router.post('/register-teacher', async (req, res) => {
       return res.status(400).json({ error: 'Invalid phone number format' });
     }
 
-    // Get madrasah by slug
+    // Get madrasah by slug with subscription info
     const [madrasahs] = await pool.query(
-      'SELECT id FROM madrasahs WHERE slug = ? AND is_active = TRUE AND deleted_at IS NULL',
+      'SELECT id, pricing_plan, subscription_status, trial_ends_at FROM madrasahs WHERE slug = ? AND is_active = TRUE AND deleted_at IS NULL',
       [madrasahSlug]
     );
 
@@ -336,7 +337,45 @@ router.post('/register-teacher', async (req, res) => {
       return res.status(404).json({ error: 'Madrasah not found' });
     }
 
-    const madrasahId = madrasahs[0].id;
+    const madrasah = madrasahs[0];
+    const madrasahId = madrasah.id;
+
+    // Check subscription status
+    const plan = madrasah.pricing_plan || 'trial';
+    const status = madrasah.subscription_status || 'trialing';
+    const trialEndsAt = madrasah.trial_ends_at;
+
+    // Check if trial expired
+    if (status === 'trialing' && trialEndsAt && new Date(trialEndsAt) < new Date()) {
+      return res.status(403).json({
+        error: 'Trial expired',
+        code: 'TRIAL_EXPIRED',
+        message: 'This madrasah\'s trial has expired. Please contact the administrator.'
+      });
+    }
+
+    // Check if subscription is inactive
+    if (status === 'canceled' || status === 'expired') {
+      return res.status(403).json({
+        error: 'Subscription inactive',
+        code: 'SUBSCRIPTION_INACTIVE',
+        message: 'This madrasah\'s subscription is not active. Please contact the administrator.'
+      });
+    }
+
+    // Check teacher limit
+    const [[teacherCount]] = await pool.query(
+      'SELECT COUNT(*) as count FROM users WHERE madrasah_id = ? AND role = "teacher" AND deleted_at IS NULL',
+      [madrasahId]
+    );
+    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.trial;
+    if (teacherCount.count >= limits.maxTeachers) {
+      return res.status(403).json({
+        error: 'Teacher limit reached',
+        code: 'TEACHER_LIMIT_REACHED',
+        message: 'This madrasah has reached its teacher limit. Please contact the administrator to upgrade the plan.'
+      });
+    }
 
     // Check if email already exists
     const [existingEmail] = await pool.query(

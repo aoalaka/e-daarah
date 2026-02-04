@@ -1,0 +1,48 @@
+.usage-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.usage-bar {
+  flex: 1;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.usage-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.usage-text {
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* Near limit state (80%+) */
+.usage-indicator.near-limit .usage-fill {
+  background: #f59e0b;
+}
+
+.usage-indicator.near-limit .usage-text {
+  color: #d97706;
+  font-weight: 500;
+}
+
+/* At limit state (100%) */
+.usage-indicator.at-limit .usage-fill {
+  background: #ef4444;
+}
+
+.usage-indicator.at-limit .usage-text {
+  color: #dc2626;
+  font-weight: 600;
+}

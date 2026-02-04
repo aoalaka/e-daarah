@@ -7,6 +7,9 @@ import { authService } from '../../services/auth.service';
 import api from '../../services/api';
 import SortableTable from '../../components/SortableTable';
 import EmailVerificationBanner from '../../components/EmailVerificationBanner';
+import TrialBanner from '../../components/TrialBanner';
+import UsageIndicator from '../../components/UsageIndicator';
+import { handleApiError } from '../../utils/errorHandler';
 import './Dashboard.css';
 
 function AdminDashboard() {
@@ -241,7 +244,9 @@ function AdminDashboard() {
       setNewClass({ name: '', grade_level: '', school_days: [], description: '' });
       loadData();
     } catch (error) {
-      toast.error(editingClass ? 'Failed to update class' : 'Failed to create class');
+      handleApiError(error, editingClass ? 'Failed to update class' : 'Failed to create class', () => {
+        setActiveTab('settings');
+      });
     }
   };
 
@@ -298,14 +303,16 @@ function AdminDashboard() {
         await api.post('/admin/teachers', newTeacher);
       }
       setShowTeacherForm(false);
-      setNewTeacher({ 
-        first_name: '', last_name: '', staff_id: '', email: '', 
+      setNewTeacher({
+        first_name: '', last_name: '', staff_id: '', email: '',
         phone: '', phone_country_code: '+64',
         street: '', city: '', state: '', country: ''
       });
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to save teacher');
+      handleApiError(error, 'Failed to save teacher', () => {
+        setActiveTab('settings');
+      });
     }
   };
 
@@ -351,12 +358,14 @@ function AdminDashboard() {
         first_name: '', last_name: '', student_id: '', gender: '', class_id: '',
         student_phone: '', student_phone_country_code: '+64',
         street: '', city: '', state: '', country: '',
-        next_of_kin_name: '', next_of_kin_relationship: '', 
+        next_of_kin_name: '', next_of_kin_relationship: '',
         next_of_kin_phone: '', next_of_kin_phone_country_code: '+64', notes: ''
       });
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to save student');
+      handleApiError(error, 'Failed to save student', () => {
+        setActiveTab('settings');
+      });
     }
   };
 
@@ -415,7 +424,10 @@ function AdminDashboard() {
       setUploadFile(null);
       loadData();
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to upload file');
+      handleApiError(error, 'Failed to upload file', () => {
+        setShowBulkUpload(false);
+        setActiveTab('settings');
+      });
     }
   };
 
@@ -673,6 +685,13 @@ function AdminDashboard() {
         {/* Email Verification Banner */}
         <EmailVerificationBanner />
 
+        {/* Trial Banner */}
+        <TrialBanner
+          trialEndsAt={madrasahProfile?.trial_ends_at}
+          subscriptionStatus={madrasahProfile?.subscription_status}
+          pricingPlan={madrasahProfile?.pricing_plan}
+        />
+
         {/* Main Content */}
         <main className="main">
           {/* Overview Tab */}
@@ -690,14 +709,17 @@ function AdminDashboard() {
                 <div className="stat-card">
                   <div className="stat-value">{classes.length}</div>
                   <div className="stat-label">Classes</div>
+                  <UsageIndicator type="classes" current={classes.length} plan={madrasahProfile?.pricing_plan} />
                 </div>
                 <div className="stat-card">
                   <div className="stat-value">{teachers.length}</div>
                   <div className="stat-label">Teachers</div>
+                  <UsageIndicator type="teachers" current={teachers.length} plan={madrasahProfile?.pricing_plan} />
                 </div>
                 <div className="stat-card">
                   <div className="stat-value">{students.length}</div>
                   <div className="stat-label">Students</div>
+                  <UsageIndicator type="students" current={students.length} plan={madrasahProfile?.pricing_plan} />
                 </div>
               </div>
 

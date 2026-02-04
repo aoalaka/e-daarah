@@ -5,6 +5,7 @@ import { createReadStream } from 'fs';
 import csvParser from 'csv-parser';
 import pool from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
+import { requireActiveSubscription, requirePlusPlan, enforceStudentLimit } from '../middleware/plan-limits.middleware.js';
 
 const router = express.Router();
 
@@ -100,8 +101,8 @@ function parseExcel(filePath) {
   return xlsx.utils.sheet_to_json(worksheet);
 }
 
-// Bulk upload students (scoped to madrasah)
-router.post('/students/bulk', upload.single('file'), async (req, res) => {
+// Bulk upload students (scoped to madrasah) - Plus plan only
+router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk student upload'), upload.single('file'), async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
 

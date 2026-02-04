@@ -14,6 +14,7 @@ import attendanceRoutes from './routes/attendance.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import superadminRoutes from './routes/superadmin.routes.js';
 import billingRoutes from './routes/billing.routes.js';
+import { startScheduler } from './services/scheduler.service.js';
 
 dotenv.config();
 
@@ -159,6 +160,11 @@ const startServer = async () => {
   // Then try to connect to database
   try {
     await testConnection();
+
+    // Start background scheduler for trial expiry emails (runs every 24 hours)
+    if (process.env.NODE_ENV !== 'test') {
+      startScheduler(24);
+    }
   } catch (error) {
     console.error('Database connection failed:', error.message);
     console.log('Server is running but database is not connected. Retrying...');

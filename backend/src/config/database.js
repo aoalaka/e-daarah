@@ -3,6 +3,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Slow query threshold in milliseconds
+const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.SLOW_QUERY_THRESHOLD_MS) || 500;
+
 // Support both DATABASE_URL (Railway) and individual env vars (Docker)
 const getPoolConfig = () => {
   // Railway: prefer private URL (free), fallback to public URL
@@ -39,7 +42,39 @@ const getPoolConfig = () => {
   };
 };
 
-const pool = mysql.createPool(getPoolConfig());
+const basePool = mysql.createPool(getPoolConfig());
+
+// Wrapper to log slow queries
+const createQueryLogger = (pool) => {
+  const originalQuery = pool.query.bind(pool);
+
+  pool.query = async (...args) => {
+    const start = Date.now();
+    try {
+      const result = await originalQuery(...args);
+      const duration = Date.now() - start;
+
+      if (duration > SLOW_QUERY_THRESHOLD_MS) {
+        const query = typeof args[0] === 'string' ? args[0] : args[0]?.sql || 'unknown';
+        // Truncate long queries for logging
+        const truncatedQuery = query.length > 200 ? query.substring(0, 200) + '...' : query;
+        console.warn(`[SLOW QUERY] ${duration}ms: ${truncatedQuery}`);
+      }
+
+      return result;
+    } catch (error) {
+      const duration = Date.now() - start;
+      const query = typeof args[0] === 'string' ? args[0] : args[0]?.sql || 'unknown';
+      const truncatedQuery = query.length > 100 ? query.substring(0, 100) + '...' : query;
+      console.error(`[QUERY ERROR] ${duration}ms: ${truncatedQuery}`, error.message);
+      throw error;
+    }
+  };
+
+  return pool;
+};
+
+const pool = createQueryLogger(basePool);
 
 export const testConnection = async () => {
   try {

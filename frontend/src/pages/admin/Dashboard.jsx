@@ -2802,7 +2802,7 @@ function AdminDashboard() {
                           position: 'absolute',
                           top: '-10px',
                           right: '12px',
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          background: 'var(--accent)',
                           color: 'white',
                           fontSize: '11px',
                           fontWeight: '600',
@@ -2810,7 +2810,7 @@ function AdminDashboard() {
                           borderRadius: '12px',
                           textTransform: 'uppercase',
                           letterSpacing: '0.5px',
-                          boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
+                          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
                         }}>Popular</span>
                         <div style={{ fontWeight: '600', marginBottom: '4px' }}>Plus</div>
                         <div style={{ fontSize: '24px', fontWeight: '600' }}>

@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const [classes] = await pool.query(
-      'SELECT * FROM classes WHERE madrasah_id = ?',
+      'SELECT * FROM classes WHERE madrasah_id = ? AND deleted_at IS NULL',
       [madrasahId]
     );
     res.json(classes);
@@ -36,7 +36,7 @@ router.get('/:classId/students', async (req, res) => {
     }
 
     const [students] = await pool.query(
-      'SELECT * FROM students WHERE class_id = ? AND madrasah_id = ?',
+      'SELECT * FROM students WHERE class_id = ? AND madrasah_id = ? AND deleted_at IS NULL',
       [classId, madrasahId]
     );
     res.json(students);

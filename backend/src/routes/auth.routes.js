@@ -202,9 +202,9 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email, password, and role are required' });
     }
     
-    // Query users table with role check (include email_verified status)
+    // Query users table with role check (include email_verified status, exclude deleted)
     const [users] = await pool.query(
-      'SELECT u.id, u.madrasah_id, u.first_name, u.last_name, u.email, u.password, u.role, u.staff_id, u.email_verified, m.slug as madrasah_slug FROM users u JOIN madrasahs m ON u.madrasah_id = m.id WHERE u.email = ? AND u.role = ?',
+      'SELECT u.id, u.madrasah_id, u.first_name, u.last_name, u.email, u.password, u.role, u.staff_id, u.email_verified, m.slug as madrasah_slug FROM users u JOIN madrasahs m ON u.madrasah_id = m.id WHERE u.email = ? AND u.role = ? AND u.deleted_at IS NULL AND m.deleted_at IS NULL',
       [email, role]
     );
     

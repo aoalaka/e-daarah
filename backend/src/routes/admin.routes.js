@@ -13,7 +13,7 @@ router.get('/sessions', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const [sessions] = await pool.query(
-      'SELECT * FROM sessions WHERE madrasah_id = ? ORDER BY start_date DESC',
+      'SELECT * FROM sessions WHERE madrasah_id = ? AND deleted_at IS NULL ORDER BY start_date DESC',
       [madrasahId]
     );
     res.json(sessions);
@@ -74,12 +74,15 @@ router.put('/sessions/:id', async (req, res) => {
   }
 });
 
-// Delete session (scoped to madrasah)
+// Delete session (soft delete, scoped to madrasah)
 router.delete('/sessions/:id', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
-    await pool.query('DELETE FROM sessions WHERE id = ? AND madrasah_id = ?', [id, madrasahId]);
+    await pool.query(
+      'UPDATE sessions SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
     res.json({ message: 'Session deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete session' });
@@ -94,7 +97,7 @@ router.get('/semesters', async (req, res) => {
       `SELECT s.*, sess.name as session_name
        FROM semesters s
        LEFT JOIN sessions sess ON s.session_id = sess.id
-       WHERE sess.madrasah_id = ?
+       WHERE sess.madrasah_id = ? AND s.deleted_at IS NULL AND sess.deleted_at IS NULL
        ORDER BY s.start_date DESC`,
       [madrasahId]
     );
@@ -264,7 +267,7 @@ router.delete('/semesters/:id', async (req, res) => {
       return res.status(404).json({ error: 'Semester not found' });
     }
 
-    await pool.query('DELETE FROM semesters WHERE id = ?', [id]);
+    await pool.query('UPDATE semesters SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL', [id]);
     res.json({ message: 'Semester deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete semester' });
@@ -392,7 +395,7 @@ router.get('/teachers', async (req, res) => {
     const [teachers] = await pool.query(
       `SELECT id, first_name, last_name, staff_id, email, phone
        FROM users
-       WHERE madrasah_id = ? AND role = 'teacher'
+       WHERE madrasah_id = ? AND role = 'teacher' AND deleted_at IS NULL
        ORDER BY last_name, first_name`,
       [madrasahId]
     );
@@ -464,13 +467,13 @@ router.put('/teachers/:id', async (req, res) => {
   }
 });
 
-// Delete teacher (scoped to madrasah)
+// Delete teacher (soft delete, scoped to madrasah)
 router.delete('/teachers/:id', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
     await pool.query(
-      "DELETE FROM users WHERE id = ? AND madrasah_id = ? AND role = 'teacher'",
+      "UPDATE users SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ? AND role = 'teacher' AND deleted_at IS NULL",
       [id, madrasahId]
     );
     res.json({ message: 'Teacher deleted successfully' });
@@ -487,7 +490,7 @@ router.get('/students', async (req, res) => {
       `SELECT s.*, c.name as class_name
        FROM students s
        LEFT JOIN classes c ON s.class_id = c.id
-       WHERE s.madrasah_id = ?
+       WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
        ORDER BY s.last_name, s.first_name`,
       [madrasahId]
     );
@@ -601,12 +604,15 @@ router.put('/students/:id', async (req, res) => {
   }
 });
 
-// Delete student (scoped to madrasah)
+// Delete student (soft delete, scoped to madrasah)
 router.delete('/students/:id', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
-    await pool.query('DELETE FROM students WHERE id = ? AND madrasah_id = ?', [id, madrasahId]);
+    await pool.query(
+      'UPDATE students SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
     res.json({ message: 'Student deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete student' });

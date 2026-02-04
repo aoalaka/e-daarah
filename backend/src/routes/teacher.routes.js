@@ -12,14 +12,14 @@ router.get('/active-session-semester', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const [sessions] = await pool.query(
-      'SELECT * FROM sessions WHERE madrasah_id = ? AND is_active = TRUE LIMIT 1',
+      'SELECT * FROM sessions WHERE madrasah_id = ? AND is_active = TRUE AND deleted_at IS NULL LIMIT 1',
       [madrasahId]
     );
     const [semesters] = await pool.query(
       `SELECT s.*, sess.name as session_name
        FROM semesters s
        LEFT JOIN sessions sess ON s.session_id = sess.id
-       WHERE sess.madrasah_id = ? AND s.is_active = TRUE LIMIT 1`,
+       WHERE sess.madrasah_id = ? AND s.is_active = TRUE AND s.deleted_at IS NULL AND sess.deleted_at IS NULL LIMIT 1`,
       [madrasahId]
     );
 
@@ -40,7 +40,7 @@ router.get('/semesters', async (req, res) => {
       `SELECT s.*, sess.name as session_name
        FROM semesters s
        LEFT JOIN sessions sess ON s.session_id = sess.id
-       WHERE sess.madrasah_id = ?
+       WHERE sess.madrasah_id = ? AND s.deleted_at IS NULL AND sess.deleted_at IS NULL
        ORDER BY s.start_date DESC`,
       [madrasahId]
     );
@@ -57,7 +57,7 @@ router.get('/my-classes', async (req, res) => {
     const [classes] = await pool.query(
       `SELECT c.* FROM classes c
        INNER JOIN class_teachers ct ON c.id = ct.class_id
-       WHERE ct.user_id = ? AND c.madrasah_id = ?`,
+       WHERE ct.user_id = ? AND c.madrasah_id = ? AND c.deleted_at IS NULL`,
       [req.user.id, madrasahId]
     );
     res.json(classes);
@@ -87,7 +87,7 @@ router.get('/classes/:classId/students', async (req, res) => {
     const [students] = await pool.query(
       `SELECT id, first_name, last_name, student_id
        FROM students
-       WHERE class_id = ? AND madrasah_id = ?
+       WHERE class_id = ? AND madrasah_id = ? AND deleted_at IS NULL
        ORDER BY last_name, first_name`,
       [classId, madrasahId]
     );

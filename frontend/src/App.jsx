@@ -8,6 +8,9 @@ import SessionTimeout from './components/SessionTimeout';
 import Landing from './pages/Landing';
 import MadrasahRegistration from './pages/MadrasahRegistration';
 import Pricing from './pages/Pricing';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import Help from './pages/Help';
 
 // Check if we're on the admin subdomain
 const isAdminSubdomain = () => {
@@ -96,6 +99,9 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/register" element={<MadrasahRegistration />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/help" element={<Help />} />
 
         {/* Super Admin routes (also accessible via /superadmin on main domain) */}
         <Route path="/superadmin/login" element={<SuperAdminLogin />} />

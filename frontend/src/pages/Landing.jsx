@@ -210,6 +210,12 @@ function Landing() {
             <Link to="/demo/login">Demo</Link>
             <Link to="/register">Register</Link>
             <a href="#pricing">Pricing</a>
+            <Link to="/help">Help</Link>
+          </div>
+          <div className="footer-links">
+            <Link to="/terms">Terms</Link>
+            <Link to="/privacy">Privacy</Link>
+            <a href="mailto:support@e-daarah.com">Contact</a>
           </div>
         </div>
         <p className="copyright">© 2026 e-daarah</p>

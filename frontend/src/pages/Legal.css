@@ -1,0 +1,139 @@
+/* Legal Pages - Terms & Privacy */
+
+.legal-page {
+  min-height: 100vh;
+  background: var(--lighter);
+  padding: var(--xl) var(--lg);
+}
+
+.legal-container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: var(--white);
+  border: var(--border);
+  border-radius: var(--radius);
+  padding: var(--xl);
+}
+
+.legal-back {
+  display: inline-block;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  margin-bottom: var(--lg);
+  transition: color 0.15s;
+}
+
+.legal-back:hover {
+  color: var(--dark);
+}
+
+.legal-container h1 {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: var(--xs);
+}
+
+.legal-updated {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: var(--xl);
+  padding-bottom: var(--lg);
+  border-bottom: var(--border);
+}
+
+.legal-container section {
+  margin-bottom: var(--xl);
+}
+
+.legal-container h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: var(--md);
+}
+
+.legal-container h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-top: var(--md);
+  margin-bottom: var(--sm);
+}
+
+.legal-container p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--gray);
+  margin-bottom: var(--md);
+}
+
+.legal-container ul {
+  margin: 0 0 var(--md) var(--lg);
+  padding: 0;
+}
+
+.legal-container li {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--gray);
+  margin-bottom: var(--xs);
+}
+
+.legal-container a {
+  color: var(--dark);
+  text-decoration: underline;
+}
+
+.legal-container a:hover {
+  color: var(--black);
+}
+
+.legal-contact {
+  background: var(--lighter);
+  padding: var(--md);
+  border-radius: var(--radius);
+}
+
+.legal-footer {
+  margin-top: var(--xl);
+  padding-top: var(--lg);
+  border-top: var(--border);
+  display: flex;
+  gap: var(--lg);
+}
+
+.legal-footer a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.legal-footer a:hover {
+  color: var(--dark);
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .legal-page {
+    padding: var(--md);
+  }
+
+  .legal-container {
+    padding: var(--lg);
+  }
+
+  .legal-container h1 {
+    font-size: 24px;
+  }
+
+  .legal-container h2 {
+    font-size: 16px;
+  }
+
+  .legal-footer {
+    flex-direction: column;
+    gap: var(--sm);
+  }
+}

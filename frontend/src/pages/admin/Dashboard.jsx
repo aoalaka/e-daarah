@@ -93,8 +93,7 @@ function AdminDashboard() {
     { id: 'classes', label: 'Classes' },
     { id: 'teachers', label: 'Teachers' },
     { id: 'students', label: 'Students' },
-    { id: 'reports', label: 'Reports' },
-    { id: 'settings', label: 'Settings' }
+    { id: 'reports', label: 'Reports' }
   ];
 
   useEffect(() => {
@@ -648,7 +647,7 @@ function AdminDashboard() {
           ))}
         </nav>
         <div className="sidebar-footer">
-          <div className="sidebar-user">
+          <div className="sidebar-user" onClick={() => handleTabChange('settings')} style={{ cursor: 'pointer' }}>
             <div className="user-avatar">
               {user?.firstName?.charAt(0) || 'A'}
             </div>
@@ -656,6 +655,20 @@ function AdminDashboard() {
               <div className="user-name">{user?.firstName} {user?.lastName}</div>
               <div className="user-role">{user?.role || 'Admin'}</div>
             </div>
+            <svg 
+              width="20" 
+              height="20" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              style={{ opacity: 0.7 }}
+            >
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M12 1v6m0 6v6m-8-8h6m6 0h6"></path>
+            </svg>
           </div>
         </div>
       </aside>

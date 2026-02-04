@@ -343,13 +343,22 @@ router.post('/register-teacher', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create teacher
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Create teacher with verification token
     const [result] = await pool.query(
-      'INSERT INTO users (madrasah_id, first_name, last_name, staff_id, email, password, phone, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [madrasahId, firstName, lastName, staffId, email, hashedPassword, phone || '', 'teacher']
+      'INSERT INTO users (madrasah_id, first_name, last_name, staff_id, email, password, phone, role, email_verification_token, email_verification_expires) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [madrasahId, firstName, lastName, staffId, email, hashedPassword, phone || '', 'teacher', verificationToken, verificationExpires]
     );
 
     console.log('Teacher registered successfully:', result.insertId, 'Staff ID:', staffId);
+
+    // Send verification email (async, don't block registration)
+    sendEmailVerification(email, verificationToken, madrasahSlug).catch(err => {
+      console.error('Failed to send teacher verification email:', err);
+    });
 
     res.status(201).json({
       message: 'Teacher registered successfully',

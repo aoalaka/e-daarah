@@ -649,24 +649,32 @@ router.delete('/exam-performance/:id', async (req, res) => {
 
 // Update exam batch (multiple records) - scoped to madrasah
 router.put('/exam-performance/batch', async (req, res) => {
+  console.log('==================== BATCH UPDATE START ====================');
+  console.error('==================== BATCH UPDATE START ====================');
+  
   try {
     const madrasahId = req.madrasahId;
     const { record_ids, semester_id, subject, exam_date, max_score } = req.body;
 
-    console.error('[BATCH UPDATE] Request received:', JSON.stringify({ 
+    const debugData = { 
       record_ids, 
       record_ids_type: typeof record_ids,
       record_ids_isArray: Array.isArray(record_ids),
+      record_ids_length: record_ids?.length,
       semester_id, 
       subject, 
       exam_date, 
       max_score, 
       madrasahId, 
-      userId: req.user.id 
-    }));
+      userId: req.user?.id 
+    };
+    
+    console.log('[BATCH UPDATE] Request received:', JSON.stringify(debugData));
+    console.error('[BATCH UPDATE] Request received:', JSON.stringify(debugData));
 
     if (!record_ids || !Array.isArray(record_ids) || record_ids.length === 0) {
-      console.error('[BATCH UPDATE] Invalid record_ids');
+      console.log('[BATCH UPDATE] Invalid record_ids - returning 400');
+      console.error('[BATCH UPDATE] Invalid record_ids - returning 400');
       return res.status(400).json({ error: 'Record IDs are required' });
     }
 
@@ -676,17 +684,23 @@ router.put('/exam-performance/batch', async (req, res) => {
     const query = `SELECT id FROM exam_performance WHERE id IN (${placeholders}) AND user_id = ? AND madrasah_id = ?`;
     const params = [...record_ids, req.user.id, madrasahId];
     
+    console.log('[BATCH UPDATE] Verification query:', query);
     console.error('[BATCH UPDATE] Verification query:', query);
+    console.log('[BATCH UPDATE] Query params:', JSON.stringify(params));
     console.error('[BATCH UPDATE] Query params:', JSON.stringify(params));
     
     const [records] = await pool.query(query, params);
 
+    console.log('[BATCH UPDATE] Found records:', records.length, 'Expected:', record_ids.length);
     console.error('[BATCH UPDATE] Found records:', records.length, 'Expected:', record_ids.length);
+    console.log('[BATCH UPDATE] Record IDs from query:', JSON.stringify(records.map(r => r.id)));
     console.error('[BATCH UPDATE] Record IDs from query:', JSON.stringify(records.map(r => r.id)));
+    console.log('[BATCH UPDATE] Expected IDs:', JSON.stringify(record_ids));
     console.error('[BATCH UPDATE] Expected IDs:', JSON.stringify(record_ids));
 
     if (records.length !== record_ids.length) {
-      console.error('[BATCH UPDATE] Authorization failed - record count mismatch');
+      console.log('[BATCH UPDATE] Authorization failed - record count mismatch - returning 403');
+      console.error('[BATCH UPDATE] Authorization failed - record count mismatch - returning 403');
       return res.status(403).json({ error: `Not authorized to edit some records. Found ${records.length} of ${record_ids.length} records.` });
     }
 

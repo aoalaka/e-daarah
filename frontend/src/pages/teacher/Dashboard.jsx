@@ -2016,29 +2016,34 @@ function TeacherDashboard() {
                         )
                       },
                       {
-                        key: 'avg_percentage',
-                        label: 'Average %',
+                        key: 'overall_percentage',
+                        label: 'Overall %',
                         sortable: true,
                         sortType: 'number',
                         render: (row) => (
                           <span style={{
                             fontWeight: '700',
                             fontSize: '18px',
-                            color: row.avg_percentage >= 80 ? '#10b981' : 
-                                   row.avg_percentage >= 70 ? '#22c55e' :
-                                   row.avg_percentage >= 50 ? '#f59e0b' : 
+                            color: row.overall_percentage >= 80 ? '#10b981' : 
+                                   row.overall_percentage >= 70 ? '#22c55e' :
+                                   row.overall_percentage >= 50 ? '#f59e0b' : 
                                    '#ef4444'
                           }}>
-                            {row.avg_percentage}%
+                            {row.overall_percentage}%
                           </span>
                         )
                       },
                       {
-                        key: 'avg_score',
-                        label: 'Avg Score',
+                        key: 'total_score',
+                        label: 'Total Score',
                         sortable: true,
                         sortType: 'number',
-                        render: (row) => <strong>{row.avg_score}</strong>
+                        render: (row) => (
+                          <div>
+                            <strong>{row.total_score}</strong>
+                            <span style={{ color: 'var(--muted)', fontSize: '12px' }}> / {row.total_max_score}</span>
+                          </div>
+                        )
                       },
                       {
                         key: 'subject_count',
@@ -2082,7 +2087,7 @@ function TeacherDashboard() {
                         label: 'Status',
                         sortable: false,
                         render: (row) => {
-                          const percentage = parseFloat(row.avg_percentage);
+                          const percentage = parseFloat(row.overall_percentage);
                           if (percentage >= 80) {
                             return (
                               <span style={{
@@ -2140,7 +2145,7 @@ function TeacherDashboard() {
                       }
                     ]}
                     data={studentReports}
-                    defaultSort={{ key: 'avg_percentage', direction: 'desc' }}
+                    defaultSort={{ key: 'overall_percentage', direction: 'desc' }}
                   />
                 </div>
               )}

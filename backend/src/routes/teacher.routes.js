@@ -787,8 +787,12 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
         COUNT(ep.id) as total_exams,
         SUM(CASE WHEN ep.is_absent = FALSE THEN 1 ELSE 0 END) as exams_taken,
         SUM(CASE WHEN ep.is_absent = TRUE THEN 1 ELSE 0 END) as exams_absent,
-        AVG(CASE WHEN ep.is_absent = FALSE THEN (ep.score / ep.max_score) * 100 ELSE NULL END) as avg_percentage,
-        AVG(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE NULL END) as avg_score
+        SUM(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE 0 END) as total_score,
+        SUM(ep.max_score) as total_max_score,
+        CASE 
+          WHEN SUM(ep.max_score) > 0 THEN (SUM(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE 0 END) / SUM(ep.max_score)) * 100
+          ELSE 0
+        END as overall_percentage
       FROM students s
       LEFT JOIN exam_performance ep ON s.id = ep.student_id AND ep.madrasah_id = ?
       LEFT JOIN semesters sem ON ep.semester_id = sem.id
@@ -807,15 +811,16 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
       queryParams.push(semesterId);
     }
 
-    query += ` GROUP BY s.id ORDER BY avg_percentage DESC`;
+    query += ` GROUP BY s.id ORDER BY overall_percentage DESC`;
 
     const [reports] = await pool.query(query, queryParams);
 
     // Format the results
     const formattedReports = reports.map(report => ({
       ...report,
-      avg_percentage: report.avg_percentage ? parseFloat(report.avg_percentage).toFixed(2) : '0.00',
-      avg_score: report.avg_score ? parseFloat(report.avg_score).toFixed(2) : '0.00',
+      overall_percentage: report.overall_percentage ? parseFloat(report.overall_percentage).toFixed(2) : '0.00',
+      total_score: report.total_score ? parseFloat(report.total_score).toFixed(2) : '0.00',
+      total_max_score: report.total_max_score ? parseFloat(report.total_max_score).toFixed(2) : '0.00',
       subject_count: parseInt(report.subject_count) || 0,
       total_exams: parseInt(report.total_exams) || 0,
       exams_taken: parseInt(report.exams_taken) || 0,

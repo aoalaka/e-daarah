@@ -704,9 +704,12 @@ function TeacherDashboard() {
   };
 
   const handleEditExamBatch = (subject, batch) => {
+    // Format date to YYYY-MM-DD for date input
+    const dateValue = batch.exam_date ? batch.exam_date.split('T')[0] : '';
+    
     setEditingExamBatch({
       subject,
-      exam_date: batch.exam_date,
+      exam_date: dateValue,
       semester_id: batch.semester_id,
       semester_name: batch.semester_name,
       max_score: batch.max_score,

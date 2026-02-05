@@ -4,6 +4,19 @@ import { authenticateToken, requireRole } from '../middleware/auth.middleware.js
 
 const router = express.Router();
 
+// Add logging middleware before authentication to catch ALL requests
+router.use((req, res, next) => {
+  if (req.path.includes('batch')) {
+    console.log('========================================');
+    console.error('========================================');
+    console.log(`[TEACHER ROUTES] ${req.method} ${req.path} - Before auth`);
+    console.error(`[TEACHER ROUTES] ${req.method} ${req.path} - Before auth`);
+    console.log('[TEACHER ROUTES] Body:', JSON.stringify(req.body));
+    console.error('[TEACHER ROUTES] Body:', JSON.stringify(req.body));
+  }
+  next();
+});
+
 // All routes require authentication and teacher role
 router.use(authenticateToken, requireRole('teacher'));
 

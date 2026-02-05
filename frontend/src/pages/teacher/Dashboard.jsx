@@ -57,6 +57,11 @@ function TeacherDashboard() {
   const [showEditExamBatchModal, setShowEditExamBatchModal] = useState(false);
   const [editingExamBatch, setEditingExamBatch] = useState(null);
   const [deleteExamBatch, setDeleteExamBatch] = useState(null);
+  // Student Reports state
+  const [studentReports, setStudentReports] = useState([]);
+  const [reportFilterSession, setReportFilterSession] = useState('');
+  const [reportFilterSemester, setReportFilterSemester] = useState('');
+  const [reportFilteredSemesters, setReportFilteredSemesters] = useState([]);
   // Settings state
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -66,7 +71,8 @@ function TeacherDashboard() {
   const navItems = [
     { id: 'overview', label: 'Overview' },
     { id: 'attendance', label: 'Attendance' },
-    { id: 'exams', label: 'Exam Performance' }
+    { id: 'exams', label: 'Exam Performance' },
+    { id: 'reports', label: 'Student Reports' }
   ];
 
   // Close mobile menu when tab changes
@@ -110,6 +116,26 @@ function TeacherDashboard() {
       setExamFilteredSemesters(semesters);
     }
   }, [examFilterSession, semesters]);
+
+  // Filter semesters by selected session for reports tab
+  useEffect(() => {
+    if (reportFilterSession) {
+      const filtered = semesters.filter(sem => sem.session_id === parseInt(reportFilterSession));
+      setReportFilteredSemesters(filtered);
+      if (reportFilterSemester && !filtered.find(s => s.id === parseInt(reportFilterSemester))) {
+        setReportFilterSemester('');
+      }
+    } else {
+      setReportFilteredSemesters(semesters);
+    }
+  }, [reportFilterSession, semesters]);
+
+  // Fetch student reports when filters change
+  useEffect(() => {
+    if (selectedClass && activeTab === 'reports') {
+      fetchStudentReports();
+    }
+  }, [selectedClass, reportFilterSession, reportFilterSemester, activeTab]);
 
   // Fetch all students for overview when classes are loaded
   useEffect(() => {
@@ -724,6 +750,26 @@ function TeacherDashboard() {
     } catch (error) {
       console.error('Failed to delete exam batch:', error);
       toast.error(error.response?.data?.error || 'Failed to delete exam batch');
+    }
+  };
+
+  const fetchStudentReports = async () => {
+    if (!selectedClass) return;
+    try {
+      const params = {};
+      
+      if (reportFilterSession) {
+        params.sessionId = reportFilterSession;
+      }
+      if (reportFilterSemester) {
+        params.semesterId = reportFilterSemester;
+      }
+      
+      const response = await api.get(`/teacher/classes/${selectedClass.id}/student-reports`, { params });
+      setStudentReports(response.data);
+    } catch (error) {
+      console.error('Failed to fetch student reports:', error);
+      setStudentReports([]);
     }
   };
 
@@ -1859,6 +1905,258 @@ function TeacherDashboard() {
                         </button>
                       </div>
                     </form>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Student Reports Tab */}
+          {activeTab === 'reports' && (
+            <>
+              <div className="section-header">
+                <h2 className="page-title">Student Reports</h2>
+                <p style={{ color: 'var(--muted)', marginTop: 'var(--sm)' }}>
+                  View overall performance summary for each student
+                </p>
+              </div>
+
+              {/* Filters Card */}
+              <div className="card">
+                <h3 style={{ marginBottom: 'var(--md)' }}>Filters</h3>
+                <div className="filters">
+                  <div className="filter-grid">
+                    <div className="form-group">
+                      <label className="form-label">Class *</label>
+                      <select
+                        value={selectedClass?.id || ''}
+                        onChange={(e) => {
+                          const cls = classes.find(c => c.id === parseInt(e.target.value));
+                          setSelectedClass(cls || null);
+                          if (cls) {
+                            fetchStudents();
+                            fetchStudentReports();
+                          }
+                        }}
+                        className="form-select"
+                      >
+                        <option value="">-- Select a class --</option>
+                        {classes.map(cls => (
+                          <option key={cls.id} value={cls.id}>{cls.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Filter by Session</label>
+                      <select
+                        value={reportFilterSession}
+                        onChange={(e) => setReportFilterSession(e.target.value)}
+                        className="form-select"
+                        disabled={!selectedClass}
+                      >
+                        <option value="">All Sessions</option>
+                        {sessions.map(session => (
+                          <option key={session.id} value={session.id}>
+                            {session.name} {session.is_active ? '(Active)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Filter by Semester</label>
+                      <select
+                        value={reportFilterSemester}
+                        onChange={(e) => setReportFilterSemester(e.target.value)}
+                        className="form-select"
+                        disabled={!selectedClass}
+                      >
+                        <option value="">All Semesters</option>
+                        {reportFilteredSemesters.map(sem => (
+                          <option key={sem.id} value={sem.id}>
+                            {sem.name} {sem.is_active ? '(Active)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Student Reports Table */}
+              {selectedClass && studentReports.length > 0 && (
+                <div className="card">
+                  <h3 style={{ marginBottom: 'var(--md)' }}>
+                    Class Rankings - {selectedClass.name}
+                  </h3>
+                  <SortableTable
+                    columns={[
+                      {
+                        key: 'rank',
+                        label: 'Rank',
+                        sortable: false,
+                        render: (row, index) => (
+                          <span style={{ 
+                            fontWeight: '700', 
+                            fontSize: '16px',
+                            color: index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : 'var(--text)'
+                          }}>
+                            {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`}
+                          </span>
+                        )
+                      },
+                      {
+                        key: 'name',
+                        label: 'Student',
+                        sortable: true,
+                        render: (row) => (
+                          <div>
+                            <strong>{row.first_name} {row.last_name}</strong>
+                            <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{row.student_id}</div>
+                          </div>
+                        )
+                      },
+                      {
+                        key: 'avg_percentage',
+                        label: 'Average %',
+                        sortable: true,
+                        sortType: 'number',
+                        render: (row) => (
+                          <span style={{
+                            fontWeight: '700',
+                            fontSize: '18px',
+                            color: row.avg_percentage >= 80 ? '#10b981' : 
+                                   row.avg_percentage >= 70 ? '#22c55e' :
+                                   row.avg_percentage >= 50 ? '#f59e0b' : 
+                                   '#ef4444'
+                          }}>
+                            {row.avg_percentage}%
+                          </span>
+                        )
+                      },
+                      {
+                        key: 'avg_score',
+                        label: 'Avg Score',
+                        sortable: true,
+                        sortType: 'number',
+                        render: (row) => <strong>{row.avg_score}</strong>
+                      },
+                      {
+                        key: 'subject_count',
+                        label: 'Subjects',
+                        sortable: true,
+                        sortType: 'number',
+                        render: (row) => (
+                          <span style={{
+                            padding: '4px 12px',
+                            borderRadius: '20px',
+                            backgroundColor: 'var(--accent-light)',
+                            color: 'var(--accent)',
+                            fontWeight: '600',
+                            fontSize: '14px'
+                          }}>
+                            {row.subject_count}
+                          </span>
+                        )
+                      },
+                      {
+                        key: 'exams_taken',
+                        label: 'Exams Taken',
+                        sortable: true,
+                        sortType: 'number'
+                      },
+                      {
+                        key: 'exams_absent',
+                        label: 'Absences',
+                        sortable: true,
+                        sortType: 'number',
+                        render: (row) => (
+                          <span style={{
+                            color: row.exams_absent > 0 ? 'var(--error)' : 'var(--muted)'
+                          }}>
+                            {row.exams_absent}
+                          </span>
+                        )
+                      },
+                      {
+                        key: 'status',
+                        label: 'Status',
+                        sortable: false,
+                        render: (row) => {
+                          const percentage = parseFloat(row.avg_percentage);
+                          if (percentage >= 80) {
+                            return (
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                backgroundColor: '#dcfce7',
+                                color: '#166534'
+                              }}>
+                                Excellent
+                              </span>
+                            );
+                          } else if (percentage >= 70) {
+                            return (
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                backgroundColor: '#fef3c7',
+                                color: '#92400e'
+                              }}>
+                                Good
+                              </span>
+                            );
+                          } else if (percentage >= 50) {
+                            return (
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                backgroundColor: '#fff7ed',
+                                color: '#b86e00'
+                              }}>
+                                Average
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                backgroundColor: '#fef2f2',
+                                color: '#dc2626'
+                              }}>
+                                Needs Attention
+                              </span>
+                            );
+                          }
+                        }
+                      }
+                    ]}
+                    data={studentReports}
+                    defaultSort={{ key: 'avg_percentage', direction: 'desc' }}
+                  />
+                </div>
+              )}
+
+              {selectedClass && studentReports.length === 0 && (
+                <div className="card">
+                  <div className="empty">
+                    <p>No exam data available for this class. Students need to have exam records to appear here.</p>
+                  </div>
+                </div>
+              )}
+
+              {!selectedClass && (
+                <div className="card">
+                  <div className="empty">
+                    <p>Please select a class to view student reports.</p>
                   </div>
                 </div>
               )}

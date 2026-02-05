@@ -757,4 +757,76 @@ router.delete('/exam-performance/batch', async (req, res) => {
   }
 });
 
+// Get student reports/summary for a class (scoped to madrasah)
+router.get('/classes/:classId/student-reports', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { classId } = req.params;
+    const { sessionId, semesterId } = req.query;
+
+    // Verify access
+    const [access] = await pool.query(
+      `SELECT ct.* FROM class_teachers ct
+       INNER JOIN classes c ON ct.class_id = c.id
+       WHERE ct.class_id = ? AND ct.user_id = ? AND c.madrasah_id = ?`,
+      [classId, req.user.id, madrasahId]
+    );
+
+    if (access.length === 0) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    // Build query with filters
+    let query = `
+      SELECT 
+        s.id,
+        s.student_id,
+        s.first_name,
+        s.last_name,
+        COUNT(DISTINCT ep.subject) as subject_count,
+        COUNT(ep.id) as total_exams,
+        SUM(CASE WHEN ep.is_absent = FALSE THEN 1 ELSE 0 END) as exams_taken,
+        SUM(CASE WHEN ep.is_absent = TRUE THEN 1 ELSE 0 END) as exams_absent,
+        AVG(CASE WHEN ep.is_absent = FALSE THEN (ep.score / ep.max_score) * 100 ELSE NULL END) as avg_percentage,
+        AVG(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE NULL END) as avg_score
+      FROM students s
+      LEFT JOIN exam_performance ep ON s.id = ep.student_id AND ep.madrasah_id = ?
+      LEFT JOIN semesters sem ON ep.semester_id = sem.id
+      WHERE s.class_id = ? AND s.deleted_at IS NULL
+    `;
+    
+    const queryParams = [madrasahId, classId];
+
+    if (sessionId) {
+      query += ` AND sem.session_id = ?`;
+      queryParams.push(sessionId);
+    }
+
+    if (semesterId) {
+      query += ` AND ep.semester_id = ?`;
+      queryParams.push(semesterId);
+    }
+
+    query += ` GROUP BY s.id ORDER BY avg_percentage DESC`;
+
+    const [reports] = await pool.query(query, queryParams);
+
+    // Format the results
+    const formattedReports = reports.map(report => ({
+      ...report,
+      avg_percentage: report.avg_percentage ? parseFloat(report.avg_percentage).toFixed(2) : '0.00',
+      avg_score: report.avg_score ? parseFloat(report.avg_score).toFixed(2) : '0.00',
+      subject_count: parseInt(report.subject_count) || 0,
+      total_exams: parseInt(report.total_exams) || 0,
+      exams_taken: parseInt(report.exams_taken) || 0,
+      exams_absent: parseInt(report.exams_absent) || 0
+    }));
+
+    res.json(formattedReports);
+  } catch (error) {
+    console.error('Get student reports error:', error);
+    res.status(500).json({ error: 'Failed to fetch student reports' });
+  }
+});
+
 export default router;

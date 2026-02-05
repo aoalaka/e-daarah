@@ -836,6 +836,8 @@ function TeacherDashboard() {
         return <svg {...iconProps}><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>;
       case 'exams':
         return <svg {...iconProps}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
+      case 'reports':
+        return <svg {...iconProps}><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>;
       default:
         return null;
     }
@@ -2096,15 +2098,18 @@ function TeacherDashboard() {
                         key: 'rank',
                         label: 'Rank',
                         sortable: false,
-                        render: (row, index) => (
-                          <span style={{ 
-                            fontWeight: '700', 
-                            fontSize: '16px',
-                            color: index === 0 ? '#ffd700' : index === 1 ? '#c0c0c0' : index === 2 ? '#cd7f32' : 'var(--text)'
-                          }}>
-                            {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`}
-                          </span>
-                        )
+                        render: (row) => {
+                          const rank = row.rank || 0;
+                          return (
+                            <span style={{ 
+                              fontWeight: '700', 
+                              fontSize: '16px',
+                              color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : 'var(--text)'
+                            }}>
+                              {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+                            </span>
+                          );
+                        }
                       },
                       {
                         key: 'name',

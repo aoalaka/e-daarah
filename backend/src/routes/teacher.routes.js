@@ -826,9 +826,10 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
 
     const [reports] = await pool.query(query, queryParams);
 
-    // Format the results
-    const formattedReports = reports.map(report => ({
+    // Format the results and add rank
+    const formattedReports = reports.map((report, index) => ({
       ...report,
+      rank: index + 1, // Add rank based on sorted order (already sorted by overall_percentage DESC)
       overall_percentage: report.overall_percentage ? parseFloat(report.overall_percentage).toFixed(2) : '0.00',
       total_score: report.total_score ? parseFloat(report.total_score).toFixed(2) : '0.00',
       total_max_score: report.total_max_score ? parseFloat(report.total_max_score).toFixed(2) : '0.00',

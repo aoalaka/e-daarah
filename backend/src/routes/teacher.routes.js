@@ -800,7 +800,7 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { sessionId, semesterId } = req.query;
+    const { sessionId, semesterId, subject } = req.query;
 
     // Verify access
     const [access] = await pool.query(
@@ -827,6 +827,7 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
         SUM(CASE WHEN ep.is_absent = TRUE THEN 1 ELSE 0 END) as exams_absent,
         SUM(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE 0 END) as total_score,
         SUM(ep.max_score) as total_max_score,
+        GROUP_CONCAT(DISTINCT ep.subject ORDER BY ep.subject SEPARATOR ', ') as subjects,
         CASE 
           WHEN SUM(ep.max_score) > 0 THEN (SUM(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE 0 END) / SUM(ep.max_score)) * 100
           ELSE 0
@@ -847,6 +848,11 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
     if (semesterId) {
       query += ` AND ep.semester_id = ?`;
       queryParams.push(semesterId);
+    }
+
+    if (subject) {
+      query += ` AND ep.subject = ?`;
+      queryParams.push(subject);
     }
 
     query += ` GROUP BY s.id ORDER BY overall_percentage DESC`;

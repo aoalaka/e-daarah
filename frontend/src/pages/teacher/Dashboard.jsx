@@ -60,11 +60,13 @@ function TeacherDashboard() {
   // Exam performance pagination
   const [currentSubjectPage, setCurrentSubjectPage] = useState(1);
   const subjectsPerPage = 1; // Show one subject at a time
-  // Student Reports state
+  // Exam Reports state
   const [studentReports, setStudentReports] = useState([]);
   const [reportFilterSession, setReportFilterSession] = useState('');
   const [reportFilterSemester, setReportFilterSemester] = useState('');
   const [reportFilteredSemesters, setReportFilteredSemesters] = useState([]);
+  const [reportFilterSubject, setReportFilterSubject] = useState('all');
+  const [reportAvailableSubjects, setReportAvailableSubjects] = useState([]);
   // Settings state
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -74,8 +76,8 @@ function TeacherDashboard() {
   const navItems = [
     { id: 'overview', label: 'Overview' },
     { id: 'attendance', label: 'Attendance' },
-    { id: 'exams', label: 'Exam Performance' },
-    { id: 'reports', label: 'Student Reports' }
+    { id: 'exams', label: 'Exam Recording' },
+    { id: 'reports', label: 'Exam Reports' }
   ];
 
   // Close mobile menu when tab changes
@@ -139,7 +141,7 @@ function TeacherDashboard() {
     if (selectedClass && activeTab === 'reports') {
       fetchStudentReports();
     }
-  }, [selectedClass, reportFilterSession, reportFilterSemester, activeTab]);
+  }, [selectedClass, reportFilterSession, reportFilterSemester, reportFilterSubject, activeTab]);
 
   // Fetch all students for overview when classes are loaded
   useEffect(() => {
@@ -771,12 +773,25 @@ function TeacherDashboard() {
       if (reportFilterSemester) {
         params.semesterId = reportFilterSemester;
       }
+      if (reportFilterSubject && reportFilterSubject !== 'all') {
+        params.subject = reportFilterSubject;
+      }
       
       const response = await api.get(`/teacher/classes/${selectedClass.id}/student-reports`, { params });
       setStudentReports(response.data);
+      
+      // Extract unique subjects from the exam data
+      const subjects = new Set();
+      response.data.forEach(student => {
+        if (student.subjects) {
+          student.subjects.split(',').forEach(sub => subjects.add(sub.trim()));
+        }
+      });
+      setReportAvailableSubjects(Array.from(subjects).sort());
     } catch (error) {
       console.error('Failed to fetch student reports:', error);
       setStudentReports([]);
+      setReportAvailableSubjects([]);
     }
   };
 
@@ -2136,11 +2151,25 @@ function TeacherDashboard() {
                         ))}
                       </select>
                     </div>
+                    <div className="form-group">
+                      <label className="form-label">Filter by Subject</label>
+                      <select
+                        value={reportFilterSubject}
+                        onChange={(e) => setReportFilterSubject(e.target.value)}
+                        className="form-select"
+                        disabled={!selectedClass}
+                      >
+                        <option value="all">All Subjects</option>
+                        {reportAvailableSubjects.map(subject => (
+                          <option key={subject} value={subject}>{subject}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Student Reports Table */}
+              {/* Exam Reports Table */}
               {selectedClass && studentReports.length > 0 && (
                 <div className="card">
                   <h3 style={{ marginBottom: 'var(--md)' }}>
@@ -2322,7 +2351,7 @@ function TeacherDashboard() {
               {!selectedClass && (
                 <div className="card">
                   <div className="empty">
-                    <p>Please select a class to view student reports.</p>
+                    <p>Please select a class to view exam reports.</p>
                   </div>
                 </div>
               )}

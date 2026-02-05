@@ -25,11 +25,17 @@ function Landing() {
         setSearchResults(response.data);
         setShowResults(true);
       } catch (err) {
-        setSearchResults([]);
+        console.error('Search error:', err);
+        if (err.response?.status === 429) {
+          // Rate limit hit - show a friendly message
+          setSearchResults([]);
+        } else {
+          setSearchResults([]);
+        }
       } finally {
         setSearching(false);
       }
-    }, 300);
+    }, 500); // Increased from 300ms to 500ms
 
     return () => clearTimeout(timer);
   }, [searchQuery]);

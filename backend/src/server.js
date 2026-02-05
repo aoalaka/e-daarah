@@ -98,6 +98,15 @@ const passwordLimiter = rateLimit({
   legacyHeaders: false
 });
 
+// Rate limiting - search endpoints (lenient for UX)
+const searchLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  message: { error: 'Search rate limit exceeded, please slow down' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Apply general rate limiting to all API routes
 app.use('/api/', generalLimiter);
 
@@ -115,6 +124,9 @@ app.use('/api/auth/parent-login', authLimiter);
 app.use('/api/auth/register-madrasah', authLimiter);
 app.use('/api/auth/register-teacher', authLimiter);
 app.use('/api/password', passwordLimiter);
+
+// Apply lenient rate limiting to search endpoint
+app.use('/api/auth/madrasahs/search', searchLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);

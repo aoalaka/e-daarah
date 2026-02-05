@@ -54,6 +54,9 @@ function TeacherDashboard() {
   const [showEditExamModal, setShowEditExamModal] = useState(false);
   const [editingExamRecord, setEditingExamRecord] = useState(null);
   const [deleteExamId, setDeleteExamId] = useState(null);
+  const [showEditExamBatchModal, setShowEditExamBatchModal] = useState(false);
+  const [editingExamBatch, setEditingExamBatch] = useState(null);
+  const [deleteExamBatch, setDeleteExamBatch] = useState(null);
   // Settings state
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -316,7 +319,7 @@ function TeacherDashboard() {
       return;
     }
 
-    // Group by subject
+    // Group by subject first, then by exam batch (date + semester + max_score)
     const bySubject = {};
     data.forEach(record => {
       if (!bySubject[record.subject]) {
@@ -325,34 +328,48 @@ function TeacherDashboard() {
       bySubject[record.subject].push(record);
     });
 
-    // Calculate KPIs for each subject
-    const subjectKpis = Object.entries(bySubject).map(([subject, records]) => {
-      const totalStudents = new Set(records.map(r => r.student_id)).size;
-      const presentStudents = records.filter(r => !r.is_absent);
-      const absentStudents = records.filter(r => r.is_absent);
-      
+    // Calculate KPIs for each subject and group by exam batches
+    const subjectKpis = Object.entries(bySubject).map(([subject, allRecords]) => {
+      // Group records into exam batches (same date + semester + max_score)
+      const batchMap = {};
+      allRecords.forEach(record => {
+        const batchKey = `${record.exam_date}_${record.semester_id}_${record.max_score}`;
+        if (!batchMap[batchKey]) {
+          batchMap[batchKey] = {
+            exam_date: record.exam_date,
+            semester_id: record.semester_id,
+            semester_name: record.semester_name,
+            max_score: record.max_score,
+            records: []
+          };
+        }
+        batchMap[batchKey].records.push(record);
+      });
+
+      const examBatches = Object.values(batchMap);
+
+      // Calculate overall subject KPIs
+      const totalStudents = new Set(allRecords.map(r => r.student_id)).size;
+      const presentStudents = allRecords.filter(r => !r.is_absent);
       const scores = presentStudents.map(r => (r.score / r.max_score) * 100);
       const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-      
       const passCount = scores.filter(s => s >= 50).length;
       const failCount = scores.filter(s => s < 50).length;
       const passRate = presentStudents.length > 0 ? (passCount / presentStudents.length) * 100 : 0;
-      
       const highPerformers = scores.filter(s => s >= 80).length;
-      const lowPerformers = scores.filter(s => s < 50).length;
 
       return {
         subject,
         totalStudents,
         presentCount: presentStudents.length,
-        absentCount: absentStudents.length,
+        absentCount: allRecords.length - presentStudents.length,
         avgScore: scores.length > 0 ? avgScore.toFixed(2) : '0.00',
         passCount,
         failCount,
         passRate: presentStudents.length > 0 ? passRate.toFixed(2) : '0.00',
         highPerformers,
-        lowPerformers,
-        records
+        examBatches, // Array of exam batches
+        records: allRecords
       };
     });
 
@@ -657,6 +674,56 @@ function TeacherDashboard() {
     } catch (error) {
       console.error('Failed to delete exam record:', error);
       toast.error(error.response?.data?.error || 'Failed to delete exam record');
+    }
+  };
+
+  const handleEditExamBatch = (subject, batch) => {
+    setEditingExamBatch({
+      subject,
+      exam_date: batch.exam_date,
+      semester_id: batch.semester_id,
+      semester_name: batch.semester_name,
+      max_score: batch.max_score,
+      student_count: batch.records.length,
+      record_ids: batch.records.map(r => r.id)
+    });
+    setShowEditExamBatchModal(true);
+  };
+
+  const handleUpdateExamBatch = async (e) => {
+    e.preventDefault();
+    
+    try {
+      await api.put('/teacher/exam-performance/batch', {
+        record_ids: editingExamBatch.record_ids,
+        semester_id: editingExamBatch.semester_id,
+        subject: editingExamBatch.subject,
+        exam_date: editingExamBatch.exam_date,
+        max_score: editingExamBatch.max_score
+      });
+      
+      toast.success('Exam batch updated successfully!');
+      setShowEditExamBatchModal(false);
+      setEditingExamBatch(null);
+      fetchExamPerformance();
+    } catch (error) {
+      console.error('Failed to update exam batch:', error);
+      toast.error(error.response?.data?.error || 'Failed to update exam batch');
+    }
+  };
+
+  const handleDeleteExamBatch = async () => {
+    try {
+      await api.delete('/teacher/exam-performance/batch', {
+        data: { record_ids: deleteExamBatch.record_ids }
+      });
+      
+      toast.success('Exam batch deleted successfully!');
+      setDeleteExamBatch(null);
+      fetchExamPerformance();
+    } catch (error) {
+      console.error('Failed to delete exam batch:', error);
+      toast.error(error.response?.data?.error || 'Failed to delete exam batch');
     }
   };
 
@@ -1342,10 +1409,45 @@ function TeacherDashboard() {
                         </div>
                       </div>
 
-                      {/* Student Performance Table */}
-                      <div className="card">
-                        <SortableTable
-                          columns={[
+                      {/* Exam Batches - Grouped by Date/Semester */}
+                      {kpi.examBatches && kpi.examBatches.map((batch, batchIndex) => (
+                        <div key={batchIndex} className="card" style={{ marginBottom: 'var(--md)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--md)', padding: 'var(--sm)', backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius)' }}>
+                            <div>
+                              <strong style={{ fontSize: '15px' }}>
+                                {new Date(batch.exam_date).toLocaleDateString()} - {batch.semester_name} (Max: {batch.max_score})
+                              </strong>
+                              <span style={{ marginLeft: 'var(--md)', color: 'var(--muted)', fontSize: '13px' }}>
+                                {batch.records.length} student{batch.records.length !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: 'var(--sm)' }}>
+                              <button
+                                onClick={() => handleEditExamBatch(kpi.subject, batch)}
+                                className="btn-sm btn-edit"
+                                title="Edit this exam batch"
+                              >
+                                Edit Batch
+                              </button>
+                              <button
+                                onClick={() => setDeleteExamBatch({
+                                  subject: kpi.subject,
+                                  exam_date: batch.exam_date,
+                                  semester_name: batch.semester_name,
+                                  student_count: batch.records.length,
+                                  record_ids: batch.records.map(r => r.id)
+                                })}
+                                className="btn-sm btn-delete"
+                                title="Delete this exam batch"
+                              >
+                                Delete Batch
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Student Performance Table */}
+                          <SortableTable
+                            columns={[
                             { 
                               key: 'name', 
                               label: 'Student', 
@@ -1478,9 +1580,10 @@ function TeacherDashboard() {
                               )
                             }
                           ]}
-                          data={kpi.records}
+                          data={batch.records}
                         />
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </>
@@ -2001,6 +2104,129 @@ function TeacherDashboard() {
               </button>
               <button onClick={() => handleDeleteExam(deleteExamId)} className="btn btn-danger">
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Exam Batch Modal */}
+      {showEditExamBatchModal && editingExamBatch && (
+        <div className="modal-overlay" onClick={() => setShowEditExamBatchModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Edit Exam Batch</h3>
+              <button onClick={() => setShowEditExamBatchModal(false)} className="modal-close">×</button>
+            </div>
+            <form onSubmit={handleUpdateExamBatch}>
+              <div className="modal-body">
+                <div style={{ padding: 'var(--md)', backgroundColor: '#fff3cd', borderRadius: 'var(--radius)', marginBottom: 'var(--md)', border: '1px solid #ffc107' }}>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#856404' }}>
+                    <strong>⚠️ Batch Edit:</strong> This will update {editingExamBatch.student_count} student record{editingExamBatch.student_count !== 1 ? 's' : ''}.
+                  </p>
+                </div>
+
+                <div className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 'var(--md)' }}>
+                  <div className="form-group">
+                    <label className="form-label">Subject *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={editingExamBatch.subject}
+                      onChange={(e) => setEditingExamBatch({ ...editingExamBatch, subject: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Semester *</label>
+                    <select
+                      className="form-select"
+                      value={editingExamBatch.semester_id}
+                      onChange={(e) => setEditingExamBatch({ ...editingExamBatch, semester_id: parseInt(e.target.value) })}
+                      required
+                    >
+                      {semesters.map(sem => (
+                        <option key={sem.id} value={sem.id}>
+                          {sem.name} {sem.is_active ? '✓ (Active)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Exam Date *</label>
+                    <input
+                      type="date"
+                      className="form-input"
+                      value={editingExamBatch.exam_date}
+                      onChange={(e) => setEditingExamBatch({ ...editingExamBatch, exam_date: e.target.value })}
+                      max={getLocalDate()}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Max Score *</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={editingExamBatch.max_score}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || (parseFloat(value) >= 1 && parseFloat(value) <= 1000)) {
+                          setEditingExamBatch({ ...editingExamBatch, max_score: value });
+                        }
+                      }}
+                      min="1"
+                      max="1000"
+                      step="0.1"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" onClick={() => setShowEditExamBatchModal(false)} className="btn btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Update Batch
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Exam Batch Confirmation */}
+      {deleteExamBatch && (
+        <div className="modal-overlay" onClick={() => setDeleteExamBatch(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Confirm Batch Delete</h3>
+              <button onClick={() => setDeleteExamBatch(null)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ padding: 'var(--md)', backgroundColor: '#f8d7da', borderRadius: 'var(--radius)', marginBottom: 'var(--md)', border: '1px solid #dc3545' }}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#721c24' }}>
+                  <strong>⚠️ Warning:</strong> This will permanently delete all exam records for:
+                </p>
+              </div>
+              <div style={{ padding: 'var(--md)', backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius)' }}>
+                <p style={{ margin: '0 0 8px 0' }}><strong>Subject:</strong> {deleteExamBatch.subject}</p>
+                <p style={{ margin: '0 0 8px 0' }}><strong>Date:</strong> {new Date(deleteExamBatch.exam_date).toLocaleDateString()}</p>
+                <p style={{ margin: '0 0 8px 0' }}><strong>Semester:</strong> {deleteExamBatch.semester_name}</p>
+                <p style={{ margin: 0 }}><strong>Students:</strong> {deleteExamBatch.student_count} record{deleteExamBatch.student_count !== 1 ? 's' : ''}</p>
+              </div>
+              <p style={{ marginTop: 'var(--md)', color: 'var(--error)' }}>This action cannot be undone.</p>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setDeleteExamBatch(null)} className="btn btn-secondary">
+                Cancel
+              </button>
+              <button onClick={handleDeleteExamBatch} className="btn btn-danger">
+                Delete All {deleteExamBatch.student_count} Records
               </button>
             </div>
           </div>

@@ -647,4 +647,114 @@ router.delete('/exam-performance/:id', async (req, res) => {
   }
 });
 
+// Update exam batch (multiple records) - scoped to madrasah
+router.put('/exam-performance/batch', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { record_ids, semester_id, subject, exam_date, max_score } = req.body;
+
+    if (!record_ids || !Array.isArray(record_ids) || record_ids.length === 0) {
+      return res.status(400).json({ error: 'Record IDs are required' });
+    }
+
+    // Verify all records belong to this teacher and madrasah
+    const [records] = await pool.query(
+      `SELECT id FROM exam_performance 
+       WHERE id IN (?) AND user_id = ? AND madrasah_id = ?`,
+      [record_ids, req.user.id, madrasahId]
+    );
+
+    if (records.length !== record_ids.length) {
+      return res.status(403).json({ error: 'Not authorized to edit some records' });
+    }
+
+    // Validate inputs
+    if (semester_id) {
+      const [semester] = await pool.query(
+        'SELECT id FROM semesters WHERE id = ? AND deleted_at IS NULL',
+        [semester_id]
+      );
+      if (semester.length === 0) {
+        return res.status(400).json({ error: 'Invalid semester' });
+      }
+    }
+
+    if (max_score) {
+      const maxScoreNum = parseFloat(max_score);
+      if (isNaN(maxScoreNum) || maxScoreNum <= 0 || maxScoreNum > 1000) {
+        return res.status(400).json({ error: 'Max score must be between 1 and 1000' });
+      }
+    }
+
+    // Build update query dynamically based on provided fields
+    const updates = [];
+    const values = [];
+
+    if (semester_id) {
+      updates.push('semester_id = ?');
+      values.push(semester_id);
+    }
+    if (subject) {
+      updates.push('subject = ?');
+      values.push(subject);
+    }
+    if (exam_date) {
+      updates.push('exam_date = ?');
+      values.push(exam_date);
+    }
+    if (max_score) {
+      updates.push('max_score = ?');
+      values.push(max_score);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    updates.push('updated_at = NOW()');
+    values.push(record_ids);
+
+    await pool.query(
+      `UPDATE exam_performance SET ${updates.join(', ')} WHERE id IN (?)`,
+      values
+    );
+
+    res.json({ message: 'Exam batch updated successfully' });
+  } catch (error) {
+    console.error('Update exam batch error:', error);
+    res.status(500).json({ error: 'Failed to update exam batch' });
+  }
+});
+
+// Delete exam batch (multiple records) - scoped to madrasah
+router.delete('/exam-performance/batch', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { record_ids } = req.body;
+
+    if (!record_ids || !Array.isArray(record_ids) || record_ids.length === 0) {
+      return res.status(400).json({ error: 'Record IDs are required' });
+    }
+
+    // Verify all records belong to this teacher and madrasah
+    const [records] = await pool.query(
+      `SELECT id FROM exam_performance 
+       WHERE id IN (?) AND user_id = ? AND madrasah_id = ?`,
+      [record_ids, req.user.id, madrasahId]
+    );
+
+    if (records.length !== record_ids.length) {
+      return res.status(403).json({ error: 'Not authorized to delete some records' });
+    }
+
+    // Delete all records
+    await pool.query('DELETE FROM exam_performance WHERE id IN (?)', [record_ids]);
+
+    res.json({ message: `${record_ids.length} exam records deleted successfully` });
+  } catch (error) {
+    console.error('Delete exam batch error:', error);
+    res.status(500).json({ error: 'Failed to delete exam batch' });
+  }
+});
+
 export default router;

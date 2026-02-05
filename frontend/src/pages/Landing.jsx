@@ -194,6 +194,15 @@ function Landing() {
         <p className="pricing-cta">
           <Link to="/pricing" className="pricing-link">See full plan comparison →</Link>
         </p>
+
+        <div className="regional-discount">
+          <p className="discount-text">
+            <strong>50% off for schools in Australia & New Zealand</strong>
+          </p>
+          <p className="discount-subtext">
+            Contact us at <a href="mailto:support@e-daarah.com?subject=NZ/AU%20Discount%20Request">support@e-daarah.com</a> for your coupon code.
+          </p>
+        </div>
       </section>
 
       {/* Footer */}

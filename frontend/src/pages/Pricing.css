@@ -328,6 +328,34 @@
   flex-shrink: 0;
 }
 
+/* Regional Discount */
+.regional-discount {
+  margin: 2rem auto;
+  padding: 1.25rem 1.5rem;
+  background: var(--white);
+  border: 2px dashed var(--black);
+  border-radius: var(--radius);
+  text-align: center;
+  max-width: 500px;
+}
+
+.discount-text {
+  font-size: 1rem;
+  color: var(--black);
+  margin: 0 0 0.5rem 0;
+}
+
+.discount-subtext {
+  font-size: 0.9rem;
+  color: var(--gray);
+  margin: 0;
+}
+
+.discount-subtext a {
+  color: var(--black);
+  font-weight: 500;
+}
+
 /* FAQ Section */
 .pricing-faq {
   border-top: 1px solid var(--light);

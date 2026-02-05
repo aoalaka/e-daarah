@@ -46,6 +46,7 @@ function TeacherDashboard() {
   const [attendanceHistory, setAttendanceHistory] = useState([]);
   const [historyClass, setHistoryClass] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [examFilterSession, setExamFilterSession] = useState('');
   const [examFilterSemester, setExamFilterSemester] = useState('');
   const [examFilteredSemesters, setExamFilteredSemesters] = useState([]);

@@ -236,19 +236,19 @@ export const validateStudent = (data, isUpdate = false) => {
     errors.push('Invalid date of birth');
   }
 
-  if (!isValidName(data.next_of_kin_name)) {
+  if (!isValidName(data.parent_guardian_name)) {
     errors.push('Invalid next of kin name');
   }
 
-  if (!isRequired(data.next_of_kin_relationship)) {
+  if (!isRequired(data.parent_guardian_relationship)) {
     errors.push('Next of kin relationship is required');
   }
 
-  if (!isValidPhone(data.next_of_kin_phone)) {
+  if (!isValidPhone(data.parent_guardian_phone)) {
     errors.push('Next of kin phone number is required');
   }
 
-  if (!isValidCountryCode(data.next_of_kin_phone_country_code)) {
+  if (!isValidCountryCode(data.parent_guardian_phone_country_code)) {
     errors.push('Next of kin country code is required');
   }
 

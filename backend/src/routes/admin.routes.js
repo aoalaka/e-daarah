@@ -585,13 +585,13 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
     const madrasahId = req.madrasahId;
     const { first_name, last_name, student_id, gender, email, class_id, date_of_birth,
             student_phone, student_phone_country_code, street, city, state, country,
-            next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, next_of_kin_phone_country_code, notes } = req.body;
+            parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes } = req.body;
 
     // Validate input
     const validationErrors = validateStudent({
       first_name, last_name, student_id, gender, email, phone: student_phone, phone_country_code: student_phone_country_code,
       street, city, state, country, date_of_birth,
-      next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, next_of_kin_phone_country_code
+      parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code
     }, false);
     if (validationErrors.length > 0) {
       return res.status(400).json({ error: validationErrors[0] });
@@ -611,11 +611,11 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
     const [result] = await pool.query(
       `INSERT INTO students (madrasah_id, first_name, last_name, student_id, gender, email, class_id,
        student_phone, student_phone_country_code, street, city, state, country, date_of_birth,
-       next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, next_of_kin_phone_country_code, notes)
+       parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [madrasahId, first_name, last_name, student_id, gender, email, class_id || null,
        student_phone, student_phone_country_code, street, city, state, country, date_of_birth,
-       next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, next_of_kin_phone_country_code, notes]
+       parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes]
     );
     res.status(201).json({ id: result.insertId, first_name, last_name, student_id });
   } catch (error) {
@@ -634,13 +634,13 @@ router.put('/students/:id', async (req, res) => {
     const { id } = req.params;
     const { first_name, last_name, student_id, gender, email, class_id, date_of_birth,
             student_phone, student_phone_country_code, street, city, state, country,
-            next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, next_of_kin_phone_country_code, notes } = req.body;
+            parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes } = req.body;
 
     // Validate input
     const validationErrors = validateStudent({
       first_name, last_name, student_id, gender, email, phone: student_phone, phone_country_code: student_phone_country_code,
       street, city, state, country, date_of_birth,
-      next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, next_of_kin_phone_country_code
+      parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code
     }, true);
     if (validationErrors.length > 0) {
       return res.status(400).json({ error: validationErrors[0] });
@@ -669,12 +669,12 @@ router.put('/students/:id', async (req, res) => {
     await pool.query(
       `UPDATE students SET first_name = ?, last_name = ?, student_id = ?, gender = ?, email = ?,
        student_phone = ?, student_phone_country_code = ?, street = ?, city = ?, state = ?, country = ?,
-       class_id = ?, date_of_birth = ?, next_of_kin_name = ?, next_of_kin_relationship = ?,
-       next_of_kin_phone = ?, next_of_kin_phone_country_code = ?, notes = ? WHERE id = ? AND madrasah_id = ?`,
+       class_id = ?, date_of_birth = ?, parent_guardian_name = ?, parent_guardian_relationship = ?,
+       parent_guardian_phone = ?, parent_guardian_phone_country_code = ?, notes = ? WHERE id = ? AND madrasah_id = ?`,
       [first_name, last_name, student_id, gender, email,
        student_phone, student_phone_country_code, street, city, state, country,
        class_id || null, date_of_birth,
-       next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, next_of_kin_phone_country_code, notes, id, madrasahId]
+       parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes, id, madrasahId]
     );
     res.json({ message: 'Student updated successfully' });
   } catch (error) {

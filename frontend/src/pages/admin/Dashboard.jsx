@@ -42,8 +42,8 @@ function AdminDashboard() {
     first_name: '', last_name: '', student_id: '', gender: '', class_id: '',
     student_phone: '', student_phone_country_code: '+64',
     street: '', city: '', state: '', country: '',
-    next_of_kin_name: '', next_of_kin_relationship: '', 
-    next_of_kin_phone: '', next_of_kin_phone_country_code: '+64', notes: ''
+    parent_guardian_name: '', parent_guardian_relationship: '', 
+    parent_guardian_phone: '', parent_guardian_phone_country_code: '+64', notes: ''
   });
   const [editingSession, setEditingSession] = useState(null);
   const [editingSemester, setEditingSemester] = useState(null);
@@ -407,8 +407,8 @@ function AdminDashboard() {
         first_name: '', last_name: '', student_id: '', gender: '', class_id: '',
         student_phone: '', student_phone_country_code: '+64',
         street: '', city: '', state: '', country: '',
-        next_of_kin_name: '', next_of_kin_relationship: '',
-        next_of_kin_phone: '', next_of_kin_phone_country_code: '+64', notes: ''
+        parent_guardian_name: '', parent_guardian_relationship: '',
+        parent_guardian_phone: '', parent_guardian_phone_country_code: '+64', notes: ''
       });
       loadData();
     } catch (error) {
@@ -432,10 +432,10 @@ function AdminDashboard() {
       city: student.city || '',
       state: student.state || '',
       country: student.country || '',
-      next_of_kin_name: student.next_of_kin_name || '',
-      next_of_kin_relationship: student.next_of_kin_relationship || '',
-      next_of_kin_phone: student.next_of_kin_phone || '',
-      next_of_kin_phone_country_code: student.next_of_kin_phone_country_code || '+64',
+      parent_guardian_name: student.parent_guardian_name || '',
+      parent_guardian_relationship: student.parent_guardian_relationship || '',
+      parent_guardian_phone: student.parent_guardian_phone || '',
+      parent_guardian_phone_country_code: student.parent_guardian_phone_country_code || '+64',
       notes: student.notes || ''
     });
     setShowStudentForm(true);
@@ -1582,7 +1582,7 @@ function AdminDashboard() {
                     setEditingStudent(null);
                     setNewStudent({
                       first_name: '', last_name: '', student_id: '', gender: '', class_id: '',
-                      next_of_kin_name: '', next_of_kin_relationship: '', next_of_kin_phone: '', notes: ''
+                      parent_guardian_name: '', parent_guardian_relationship: '', parent_guardian_phone: '', notes: ''
                     });
                     setShowStudentForm(!showStudentForm);
                     setShowBulkUpload(false);
@@ -1601,7 +1601,7 @@ function AdminDashboard() {
                       <p>Upload a CSV or Excel file with the following columns:</p>
                       <code>
                         Required: first_name, last_name, gender<br/>
-                        Optional: email, phone, next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, notes
+                        Optional: email, phone, parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes
                       </code>
                       <p>Gender must be either 'Male' or 'Female'. Student IDs will be auto-generated.</p>
                       <button onClick={downloadTemplate} className="btn btn-secondary btn-sm">
@@ -1816,16 +1816,16 @@ function AdminDashboard() {
                       </div>
 
                       <h4 style={{ fontSize: '14px', margin: 'var(--lg) 0 var(--md)', color: 'var(--dark)' }}>
-                        Next of Kin Information
+                        Parent/Guardian Information
                       </h4>
                       <div className="form-grid form-grid-3">
                         <div className="form-group">
-                          <label className="form-label">Next of Kin Name *</label>
+                          <label className="form-label">Parent/Guardian Name *</label>
                           <input
                             type="text"
                             className="form-input"
-                            value={newStudent.next_of_kin_name}
-                            onChange={(e) => setNewStudent({ ...newStudent, next_of_kin_name: e.target.value })}
+                            value={newStudent.parent_guardian_name}
+                            onChange={(e) => setNewStudent({ ...newStudent, parent_guardian_name: e.target.value })}
                             required
                           />
                         </div>
@@ -1834,8 +1834,8 @@ function AdminDashboard() {
                           <input
                             type="text"
                             className="form-input"
-                            value={newStudent.next_of_kin_relationship}
-                            onChange={(e) => setNewStudent({ ...newStudent, next_of_kin_relationship: e.target.value })}
+                            value={newStudent.parent_guardian_relationship}
+                            onChange={(e) => setNewStudent({ ...newStudent, parent_guardian_relationship: e.target.value })}
                             placeholder="Mother, Father, Guardian, etc."
                             required
                           />
@@ -1844,12 +1844,12 @@ function AdminDashboard() {
                           <label className="form-label">Phone Number *</label>
                           <PhoneInput
                             country={'nz'}
-                            value={newStudent.next_of_kin_phone_country_code + newStudent.next_of_kin_phone}
+                            value={newStudent.parent_guardian_phone_country_code + newStudent.parent_guardian_phone}
                             onChange={(phone, country) => {
                               setNewStudent({ 
                                 ...newStudent, 
-                                next_of_kin_phone: phone.substring(country.dialCode.length),
-                                next_of_kin_phone_country_code: '+' + country.dialCode
+                                parent_guardian_phone: phone.substring(country.dialCode.length),
+                                parent_guardian_phone_country_code: '+' + country.dialCode
                               });
                             }}
                             inputProps={{
@@ -1905,11 +1905,11 @@ function AdminDashboard() {
                       render: (row) => row.class_name || <span style={{ color: 'var(--muted)' }}>Unassigned</span>
                     },
                     {
-                      key: 'next_of_kin_name',
-                      label: 'Next of Kin',
+                      key: 'parent_guardian_name',
+                      label: 'Parent/Guardian',
                       sortable: true,
-                      render: (row) => row.next_of_kin_name ? (
-                        <span>{row.next_of_kin_name} ({row.next_of_kin_relationship || 'N/A'})</span>
+                      render: (row) => row.parent_guardian_name ? (
+                        <span>{row.parent_guardian_name} ({row.parent_guardian_relationship || 'N/A'})</span>
                       ) : (
                         <span style={{ color: 'var(--muted)' }}>-</span>
                       )
@@ -1933,7 +1933,7 @@ function AdminDashboard() {
                   data={students}
                   searchable={true}
                   searchPlaceholder="Search by name, student ID, or class..."
-                  searchKeys={['student_id', 'first_name', 'last_name', 'class_name', 'next_of_kin_name']}
+                  searchKeys={['student_id', 'first_name', 'last_name', 'class_name', 'parent_guardian_name']}
                   pagination={true}
                   pageSize={25}
                   emptyMessage="No students yet. Create one to get started."

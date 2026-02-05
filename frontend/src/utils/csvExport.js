@@ -71,8 +71,8 @@ export const studentColumns = [
   { key: 'gender', label: 'Gender' },
   { key: 'date_of_birth', label: 'Date of Birth' },
   { key: 'class_name', label: 'Class' },
-  { key: 'next_of_kin_name', label: 'Parent/Guardian Name' },
-  { key: 'next_of_kin_relationship', label: 'Relationship' },
+  { key: 'parent_guardian_name', label: 'Parent/Guardian Name' },
+  { key: 'parent_guardian_relationship', label: 'Relationship' },
   { key: 'student_phone', label: 'Phone' },
   { key: 'address', label: 'Address' },
 ];

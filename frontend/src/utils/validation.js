@@ -325,20 +325,20 @@ export const validateStudentForm = (form, isEdit = false) => {
     errors.gender = 'Gender is required';
   }
 
-  if (!isRequired(form.next_of_kin_name)) {
-    errors.next_of_kin_name = 'Next of kin name is required';
-  } else if (!isValidName(form.next_of_kin_name)) {
-    errors.next_of_kin_name = 'Next of kin name can only contain letters, spaces, hyphens, and apostrophes';
+  if (!isRequired(form.parent_guardian_name)) {
+    errors.parent_guardian_name = 'Next of kin name is required';
+  } else if (!isValidName(form.parent_guardian_name)) {
+    errors.parent_guardian_name = 'Next of kin name can only contain letters, spaces, hyphens, and apostrophes';
   }
 
-  if (!isRequired(form.next_of_kin_relationship)) {
-    errors.next_of_kin_relationship = 'Relationship is required';
+  if (!isRequired(form.parent_guardian_relationship)) {
+    errors.parent_guardian_relationship = 'Relationship is required';
   }
 
-  if (!isRequired(form.next_of_kin_phone)) {
-    errors.next_of_kin_phone = 'Next of kin phone is required';
-  } else if (!isValidPhone(form.next_of_kin_phone)) {
-    errors.next_of_kin_phone = 'Invalid phone number format';
+  if (!isRequired(form.parent_guardian_phone)) {
+    errors.parent_guardian_phone = 'Next of kin phone is required';
+  } else if (!isValidPhone(form.parent_guardian_phone)) {
+    errors.parent_guardian_phone = 'Invalid phone number format';
   }
 
   return errors;

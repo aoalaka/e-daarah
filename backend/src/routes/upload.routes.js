@@ -165,7 +165,7 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
         await pool.query(
           `INSERT INTO students (
             madrasah_id, first_name, last_name, student_id, gender, email, phone, class_id,
-            next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, notes
+            parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             madrasahId,
@@ -176,9 +176,9 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
             student.email?.trim() || null,
             student.phone?.trim() || null,
             class_id || null,
-            student.next_of_kin_name?.trim() || null,
-            student.next_of_kin_relationship?.trim() || null,
-            student.next_of_kin_phone?.trim() || null,
+            student.parent_guardian_name?.trim() || null,
+            student.parent_guardian_relationship?.trim() || null,
+            student.parent_guardian_phone?.trim() || null,
             student.notes?.trim() || null
           ]
         );
@@ -211,7 +211,7 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
 
 // Download CSV template
 router.get('/students/template', (req, res) => {
-  const template = `first_name,last_name,gender,email,phone,next_of_kin_name,next_of_kin_relationship,next_of_kin_phone,notes
+  const template = `first_name,last_name,gender,email,phone,parent_guardian_name,parent_guardian_relationship,parent_guardian_phone,notes
 John,Doe,Male,john.doe@example.com,1234567890,Jane Doe,Mother,0987654321,Good student
 Mary,Smith,Female,mary.smith@example.com,2345678901,Bob Smith,Father,8765432109,Needs extra support`;
 

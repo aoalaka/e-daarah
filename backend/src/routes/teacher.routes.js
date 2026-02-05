@@ -20,6 +20,15 @@ router.use((req, res, next) => {
 // All routes require authentication and teacher role
 router.use(authenticateToken, requireRole('teacher'));
 
+// Add logging after authentication
+router.use((req, res, next) => {
+  if (req.path.includes('batch')) {
+    console.log('[TEACHER ROUTES] After auth - user:', req.user?.id, 'madrasah:', req.madrasahId);
+    console.error('[TEACHER ROUTES] After auth - user:', req.user?.id, 'madrasah:', req.madrasahId);
+  }
+  next();
+});
+
 // Get active session and semester (scoped to madrasah)
 router.get('/active-session-semester', async (req, res) => {
   try {

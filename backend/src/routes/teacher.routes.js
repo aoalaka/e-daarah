@@ -653,26 +653,40 @@ router.put('/exam-performance/batch', async (req, res) => {
     const madrasahId = req.madrasahId;
     const { record_ids, semester_id, subject, exam_date, max_score } = req.body;
 
-    console.log('Batch update request:', { record_ids, semester_id, subject, exam_date, max_score, madrasahId, userId: req.user.id });
+    console.error('[BATCH UPDATE] Request received:', JSON.stringify({ 
+      record_ids, 
+      record_ids_type: typeof record_ids,
+      record_ids_isArray: Array.isArray(record_ids),
+      semester_id, 
+      subject, 
+      exam_date, 
+      max_score, 
+      madrasahId, 
+      userId: req.user.id 
+    }));
 
     if (!record_ids || !Array.isArray(record_ids) || record_ids.length === 0) {
+      console.error('[BATCH UPDATE] Invalid record_ids');
       return res.status(400).json({ error: 'Record IDs are required' });
     }
 
     // Verify all records belong to this teacher and madrasah
     // Need to create placeholders for IN clause
     const placeholders = record_ids.map(() => '?').join(',');
-    const [records] = await pool.query(
-      `SELECT id FROM exam_performance 
-       WHERE id IN (${placeholders}) AND user_id = ? AND madrasah_id = ?`,
-      [...record_ids, req.user.id, madrasahId]
-    );
+    const query = `SELECT id FROM exam_performance WHERE id IN (${placeholders}) AND user_id = ? AND madrasah_id = ?`;
+    const params = [...record_ids, req.user.id, madrasahId];
+    
+    console.error('[BATCH UPDATE] Verification query:', query);
+    console.error('[BATCH UPDATE] Query params:', JSON.stringify(params));
+    
+    const [records] = await pool.query(query, params);
 
-    console.log('Found records:', records.length, 'Expected:', record_ids.length);
-    console.log('Record IDs from query:', records.map(r => r.id));
-    console.log('Expected IDs:', record_ids);
+    console.error('[BATCH UPDATE] Found records:', records.length, 'Expected:', record_ids.length);
+    console.error('[BATCH UPDATE] Record IDs from query:', JSON.stringify(records.map(r => r.id)));
+    console.error('[BATCH UPDATE] Expected IDs:', JSON.stringify(record_ids));
 
     if (records.length !== record_ids.length) {
+      console.error('[BATCH UPDATE] Authorization failed - record count mismatch');
       return res.status(403).json({ error: `Not authorized to edit some records. Found ${records.length} of ${record_ids.length} records.` });
     }
 

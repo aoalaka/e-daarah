@@ -68,6 +68,8 @@ function AdminDashboard() {
   const [analyticsFilterGender, setAnalyticsFilterGender] = useState('');
   const [examKpis, setExamKpis] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState('all');
+  const [currentSubjectPage, setCurrentSubjectPage] = useState(1);
+  const subjectsPerPage = 1; // Show one subject at a time
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [reportFilterSession, setReportFilterSession] = useState('');
   const [reportFilteredSemesters, setReportFilteredSemesters] = useState([]);
@@ -2038,7 +2040,7 @@ function AdminDashboard() {
                     onClick={() => setReportSubTab('exams')}
                     className={`report-tab-btn ${reportSubTab === 'exams' ? 'active' : ''}`}
                   >
-                    Exam Performance
+                    Exam Records
                   </button>
                   <button
                     onClick={() => setReportSubTab('student-reports')}
@@ -2789,9 +2791,55 @@ function AdminDashboard() {
               {reportSubTab === 'exams' && selectedClassForPerformance && (
                 <>
                   {/* Exam KPIs by Subject */}
-                  {examKpis && examKpis.length > 0 ? (
-                    <>
-                      {examKpis.map(kpi => (
+                  {examKpis && examKpis.length > 0 ? (() => {
+                    const totalSubjects = examKpis.length;
+                    const totalPages = Math.ceil(totalSubjects / subjectsPerPage);
+                    const startIndex = (currentSubjectPage - 1) * subjectsPerPage;
+                    const endIndex = startIndex + subjectsPerPage;
+                    const currentSubjects = examKpis.slice(startIndex, endIndex);
+
+                    return (
+                      <>
+                        {/* Subject Pagination Controls */}
+                        {totalPages > 1 && (
+                          <div className="card" style={{ marginBottom: 'var(--md)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ color: 'var(--muted)', fontSize: '14px' }}>
+                                Showing subject {startIndex + 1} of {totalSubjects}
+                              </div>
+                              <div style={{ display: 'flex', gap: 'var(--sm)' }}>
+                                <button
+                                  onClick={() => setCurrentSubjectPage(prev => Math.max(1, prev - 1))}
+                                  disabled={currentSubjectPage === 1}
+                                  className="btn-sm"
+                                  style={{ opacity: currentSubjectPage === 1 ? 0.5 : 1 }}
+                                >
+                                  ← Previous Subject
+                                </button>
+                                <div style={{ 
+                                  padding: '8px 16px', 
+                                  backgroundColor: 'var(--accent-light)', 
+                                  color: 'var(--accent)',
+                                  borderRadius: 'var(--radius)',
+                                  fontWeight: '600',
+                                  fontSize: '14px'
+                                }}>
+                                  {currentSubjectPage} / {totalPages}
+                                </div>
+                                <button
+                                  onClick={() => setCurrentSubjectPage(prev => Math.min(totalPages, prev + 1))}
+                                  disabled={currentSubjectPage === totalPages}
+                                  className="btn-sm"
+                                  style={{ opacity: currentSubjectPage === totalPages ? 0.5 : 1 }}
+                                >
+                                  Next Subject →
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {currentSubjects.map(kpi => (
                         <div key={kpi.subject} className="exam-subject-section">
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--sm)' }}>
                             <h3 className="exam-subject-title" style={{ margin: 0 }}>
@@ -2976,8 +3024,9 @@ function AdminDashboard() {
                           </div>
                         </div>
                       ))}
-                    </>
-                  ) : (
+                      </>
+                    );
+                  })() : (
                     <div className="card">
                       <div className="empty">
                         <p>No exam records yet for this class.</p>

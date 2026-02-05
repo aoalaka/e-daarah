@@ -2152,23 +2152,47 @@ function AdminDashboard() {
                       </div>
                     )}
                     {reportSubTab === 'individual' && (
-                      <div className="form-group">
-                        <label className="form-label">Select Student</label>
-                        <select
-                          className="form-select"
-                          onChange={(e) => {
-                            const studentId = parseInt(e.target.value);
-                            if (studentId) fetchStudentReport(studentId);
-                          }}
-                        >
-                          <option value="">-- Select a student --</option>
-                          {students.map(student => (
-                            <option key={student.id} value={student.id}>
-                              {student.first_name} {student.last_name} ({student.student_id})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      <>
+                        <div className="form-group">
+                          <label className="form-label">Filter by Class</label>
+                          <select
+                            className="form-select"
+                            value={selectedClassForPerformance?.id || ''}
+                            onChange={(e) => {
+                              const cls = classes.find(c => c.id === parseInt(e.target.value));
+                              setSelectedClassForPerformance(cls);
+                              setSelectedStudentForReport(null);
+                              setStudentReport(null);
+                            }}
+                          >
+                            <option value="">All Classes</option>
+                            {classes.map(cls => (
+                              <option key={cls.id} value={cls.id}>{cls.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Select Student</label>
+                          <select
+                            className="form-select"
+                            value={selectedStudentForReport?.id || ''}
+                            onChange={(e) => {
+                              const studentId = parseInt(e.target.value);
+                              if (studentId) fetchStudentReport(studentId);
+                            }}
+                          >
+                            <option value="">-- Select a student --</option>
+                            {(selectedClassForPerformance 
+                              ? students.filter(s => s.class_id === selectedClassForPerformance.id)
+                              : students
+                            ).map(student => (
+                              <option key={student.id} value={student.id}>
+                                {student.first_name} {student.last_name} ({student.student_id})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>

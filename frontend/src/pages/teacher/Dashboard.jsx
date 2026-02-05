@@ -131,12 +131,19 @@ function TeacherDashboard() {
 
   const fetchSessions = async () => {
     try {
-      const semestersRes = await api.get('/teacher/semesters');
+      // Fetch both sessions and semesters
+      const [sessionsRes, semestersRes] = await Promise.all([
+        api.get('/teacher/sessions'),
+        api.get('/teacher/semesters')
+      ]);
       
+      const sessionsData = sessionsRes.data || [];
       const semestersData = semestersRes.data || [];
       
+      console.log('Raw sessions data:', sessionsData);
       console.log('Raw semesters data:', semestersData);
       
+      setSessions(sessionsData);
       setSemesters(semestersData);
       
       // Auto-select active semester
@@ -555,15 +562,18 @@ function TeacherDashboard() {
   };
 
   const openExamModal = () => {
-    if (!activeSession || !activeSemester) {
-      toast.error('No active session or semester found');
+    if (sessions.length === 0 || semesters.length === 0) {
+      toast.error('No sessions or semesters available');
       return;
     }
     
-    // Initialize exam form with active session/semester and all students
+    // Initialize exam form with active session/semester (or first available) and all students
+    const defaultSession = activeSession || sessions[0];
+    const defaultSemester = activeSemester || semesters[0];
+    
     setExamForm({
-      session_id: activeSession.id,
-      semester_id: activeSemester.id,
+      session_id: defaultSession.id,
+      semester_id: defaultSemester.id,
       subject: '',
       exam_date: getLocalDate(),
       max_score: 100,
@@ -1409,27 +1419,46 @@ function TeacherDashboard() {
                     </div>
                     <form onSubmit={handleExamSubmit}>
                       <div className="modal-body">
-                        {/* Session and Semester (Read-only) */}
+                        {/* Session and Semester (Selectable with active highlighted) */}
                         <div className="form-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', marginBottom: 'var(--md)' }}>
                           <div className="form-group">
-                            <label className="form-label">Session (Active)</label>
-                            <input
-                              type="text"
-                              className="form-input"
-                              value={activeSession?.name || 'No active session'}
-                              disabled
-                              style={{ backgroundColor: 'var(--gray-50)' }}
-                            />
+                            <label className="form-label">Session *</label>
+                            <select
+                              className="form-select"
+                              value={examForm.session_id}
+                              onChange={(e) => {
+                                const sessionId = parseInt(e.target.value);
+                                setExamForm({
+                                  ...examForm,
+                                  session_id: sessionId,
+                                  semester_id: '' // Reset semester when session changes
+                                });
+                              }}
+                              required
+                            >
+                              {sessions.map(session => (
+                                <option key={session.id} value={session.id}>
+                                  {session.name} {session.is_active ? '✓ (Active)' : ''}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                           <div className="form-group">
-                            <label className="form-label">Semester (Active)</label>
-                            <input
-                              type="text"
-                              className="form-input"
-                              value={activeSemester?.name || 'No active semester'}
-                              disabled
-                              style={{ backgroundColor: 'var(--gray-50)' }}
-                            />
+                            <label className="form-label">Semester *</label>
+                            <select
+                              className="form-select"
+                              value={examForm.semester_id}
+                              onChange={(e) => setExamForm({...examForm, semester_id: parseInt(e.target.value)})}
+                              required
+                            >
+                              {semesters
+                                .filter(sem => sem.session_id === examForm.session_id)
+                                .map(sem => (
+                                  <option key={sem.id} value={sem.id}>
+                                    {sem.name} {sem.is_active ? '✓ (Active)' : ''}
+                                  </option>
+                                ))}
+                            </select>
                           </div>
                         </div>
 

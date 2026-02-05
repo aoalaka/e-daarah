@@ -32,6 +32,22 @@ router.get('/active-session-semester', async (req, res) => {
   }
 });
 
+// Get all sessions (scoped to madrasah)
+router.get('/sessions', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [sessions] = await pool.query(
+      `SELECT * FROM sessions 
+       WHERE madrasah_id = ? AND deleted_at IS NULL
+       ORDER BY start_date DESC`,
+      [madrasahId]
+    );
+    res.json(sessions);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch sessions' });
+  }
+});
+
 // Get all semesters (scoped to madrasah)
 router.get('/semesters', async (req, res) => {
   try {

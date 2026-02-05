@@ -338,9 +338,11 @@ function AdminDashboard() {
     try {
       if (editingTeacher) {
         await api.put(`/admin/teachers/${editingTeacher.id}`, newTeacher);
+        toast.success('Teacher updated successfully');
         setEditingTeacher(null);
       } else {
         await api.post('/admin/teachers', newTeacher);
+        toast.success('Teacher created successfully');
       }
       setShowTeacherForm(false);
       setNewTeacher({
@@ -350,9 +352,16 @@ function AdminDashboard() {
       });
       loadData();
     } catch (error) {
-      handleApiError(error, 'Failed to save teacher', () => {
-        setActiveTab('settings');
-      });
+      const errorMessage = error.response?.data?.error || (editingTeacher ? 'Failed to update teacher' : 'Failed to create teacher');
+      console.error('Teacher error:', error.response?.data);
+      toast.error(errorMessage);
+      
+      // Check if it's a billing limit error
+      if (error.response?.status === 403) {
+        handleApiError(error, errorMessage, () => {
+          setActiveTab('settings');
+        });
+      }
     }
   };
 

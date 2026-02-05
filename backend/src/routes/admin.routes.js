@@ -515,9 +515,12 @@ router.put('/teachers/:id', async (req, res) => {
     const { id } = req.params;
     const { first_name, last_name, staff_id, email, phone, phone_country_code, street, city, state, country } = req.body;
 
+    console.log('Updating teacher:', { id, madrasahId, first_name, last_name, staff_id, email, phone });
+
     // Validate input
     const validationErrors = validateTeacher({ first_name, last_name, staff_id, email, phone, phone_country_code, street, city, state, country }, true);
     if (validationErrors.length > 0) {
+      console.error('Teacher validation failed:', validationErrors);
       return res.status(400).json({ error: validationErrors[0] });
     }
 
@@ -527,6 +530,7 @@ router.put('/teachers/:id', async (req, res) => {
       [id, madrasahId]
     );
     if (check.length === 0) {
+      console.error('Teacher not found:', { id, madrasahId });
       return res.status(404).json({ error: 'Teacher not found' });
     }
 
@@ -534,8 +538,10 @@ router.put('/teachers/:id', async (req, res) => {
       'UPDATE users SET first_name = ?, last_name = ?, staff_id = ?, email = ?, phone = ?, phone_country_code = ?, street = ?, city = ?, state = ?, country = ? WHERE id = ? AND madrasah_id = ?',
       [first_name, last_name, staff_id, email, phone, phone_country_code, street, city, state, country, id, madrasahId]
     );
+    console.log('Teacher updated successfully:', id);
     res.json({ message: 'Teacher updated successfully' });
   } catch (error) {
+    console.error('Failed to update teacher:', error);
     res.status(500).json({ error: 'Failed to update teacher' });
   }
 });

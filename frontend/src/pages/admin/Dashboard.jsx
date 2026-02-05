@@ -64,6 +64,8 @@ function AdminDashboard() {
   const [reportSubTab, setReportSubTab] = useState('insights');
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsFilterClass, setAnalyticsFilterClass] = useState('');
+  const [analyticsFilterGender, setAnalyticsFilterGender] = useState('');
   const [examKpis, setExamKpis] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [availableSubjects, setAvailableSubjects] = useState([]);
@@ -153,7 +155,7 @@ function AdminDashboard() {
     if (activeTab === 'reports' && reportSubTab === 'insights' && hasPlusAccess() && madrasahProfile) {
       fetchAnalytics();
     }
-  }, [activeTab, reportSubTab, reportSemester, madrasahProfile]);
+  }, [activeTab, reportSubTab, reportSemester, analyticsFilterClass, analyticsFilterGender, madrasahProfile]);
 
   // Set default report sub-tab based on plan access
   useEffect(() => {
@@ -654,9 +656,12 @@ function AdminDashboard() {
     if (!hasPlusAccess()) return;
     setAnalyticsLoading(true);
     try {
-      const endpoint = reportSemester
-        ? `/admin/analytics?semester_id=${reportSemester}`
-        : '/admin/analytics';
+      const params = new URLSearchParams();
+      if (reportSemester) params.append('semester_id', reportSemester);
+      if (analyticsFilterClass) params.append('class_id', analyticsFilterClass);
+      if (analyticsFilterGender) params.append('gender', analyticsFilterGender);
+
+      const endpoint = `/admin/analytics${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await api.get(endpoint);
       setAnalyticsData(response.data);
     } catch (error) {
@@ -2041,6 +2046,39 @@ function AdminDashboard() {
               {/* Insights Tab (Plus only) */}
               {reportSubTab === 'insights' && hasPlusAccess() && (
                 <>
+                  {/* Insights Filters */}
+                  <div className="card" style={{ marginBottom: 'var(--md)' }}>
+                    <div className="card-body">
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label className="form-label">Filter by Class</label>
+                          <select
+                            className="form-select"
+                            value={analyticsFilterClass}
+                            onChange={(e) => setAnalyticsFilterClass(e.target.value)}
+                          >
+                            <option value="">All Classes</option>
+                            {classes.map(cls => (
+                              <option key={cls.id} value={cls.id}>{cls.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Filter by Gender</label>
+                          <select
+                            className="form-select"
+                            value={analyticsFilterGender}
+                            onChange={(e) => setAnalyticsFilterGender(e.target.value)}
+                          >
+                            <option value="">All Students</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {analyticsLoading ? (
                     <div className="card">
                       <div className="card-body" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
@@ -2049,7 +2087,8 @@ function AdminDashboard() {
                     </div>
                   ) : analyticsData ? (
                     <>
-                      {/* Summary Cards */}
+                      {/* Attendance Summary Cards */}
+                      <h3 className="subsection-title">Attendance Overview</h3>
                       <div className="insights-grid">
                         <div className={`insight-card ${analyticsData.summary.attendanceStatus}`}>
                           <div className="insight-icon">
@@ -2098,6 +2137,65 @@ function AdminDashboard() {
                         </div>
                       </div>
 
+                      {/* Exam Performance Cards */}
+                      {analyticsData.summary.studentsWithExams > 0 && (
+                        <>
+                          <h3 className="subsection-title" style={{ marginTop: 'var(--lg)' }}>Exam Performance</h3>
+                          <div className="insights-grid">
+                            <div className={`insight-card ${analyticsData.summary.examStatus}`}>
+                              <div className="insight-icon">📝</div>
+                              <div className="insight-content">
+                                <div className="insight-value">{analyticsData.summary.avgExamPercentage || 0}%</div>
+                                <div className="insight-label">Average Score</div>
+                                <div className="insight-status">{analyticsData.summary.examLabel}</div>
+                              </div>
+                            </div>
+
+                            <div className={`insight-card ${analyticsData.summary.examPassRate >= 70 ? 'good' : analyticsData.summary.examPassRate >= 50 ? 'fair' : 'needs-attention'}`}>
+                              <div className="insight-icon">✓</div>
+                              <div className="insight-content">
+                                <div className="insight-value">{analyticsData.summary.examPassRate || 0}%</div>
+                                <div className="insight-label">Pass Rate</div>
+                                <div className="insight-status">Students scoring 50%+</div>
+                              </div>
+                            </div>
+
+                            <div className={`insight-card ${analyticsData.summary.studentsStruggling > 0 ? 'needs-attention' : 'good'}`}>
+                              <div className="insight-icon">📚</div>
+                              <div className="insight-content">
+                                <div className="insight-value">{analyticsData.summary.studentsStruggling}</div>
+                                <div className="insight-label">Struggling Students</div>
+                                <div className="insight-status">
+                                  {analyticsData.summary.studentsStruggling === 0
+                                    ? 'All students doing well'
+                                    : 'Below 50% average'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Classes Not Taking Attendance Alert */}
+                      {analyticsData.classesWithoutRecentAttendance && analyticsData.classesWithoutRecentAttendance.length > 0 && (
+                        <div className="alert-box danger" style={{ marginTop: 'var(--lg)' }}>
+                          <h4>Classes Without Recent Attendance</h4>
+                          <p>These classes haven't recorded attendance in the last 7 days.</p>
+                          <div className="alert-list">
+                            {analyticsData.classesWithoutRecentAttendance.map(cls => (
+                              <div key={cls.id} className="alert-item">
+                                <strong>{cls.class_name}</strong>
+                                <span className="alert-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
+                                  {cls.last_attendance_date
+                                    ? `${cls.days_since_attendance} days ago`
+                                    : 'Never recorded'}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Frequent Absences Alert */}
                       {analyticsData.frequentAbsences && analyticsData.frequentAbsences.length > 0 && (
                         <div className="alert-box warning">
@@ -2142,16 +2240,17 @@ function AdminDashboard() {
                         </div>
                       )}
 
-                      {/* At-Risk Students */}
+                      {/* At-Risk Students (Attendance) */}
                       {analyticsData.atRiskStudents && analyticsData.atRiskStudents.length > 0 && (
                         <div className="card">
-                          <div className="card-header">Students Needing Attention</div>
+                          <div className="card-header">Students Needing Attention (Attendance)</div>
                           <div className="table-wrap">
                             <table className="table">
                               <thead>
                                 <tr>
                                   <th>Student</th>
                                   <th>Class</th>
+                                  <th>Gender</th>
                                   <th>Attendance</th>
                                   <th>Days Present</th>
                                 </tr>
@@ -2164,6 +2263,7 @@ function AdminDashboard() {
                                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{student.student_id}</div>
                                     </td>
                                     <td>{student.class_name || '-'}</td>
+                                    <td>{student.gender || '-'}</td>
                                     <td>
                                       <span style={{
                                         color: student.attendance_rate < 50 ? 'var(--error)' :
@@ -2181,12 +2281,115 @@ function AdminDashboard() {
                         </div>
                       )}
 
+                      {/* Exam Performance by Subject */}
+                      {analyticsData.examBySubject && analyticsData.examBySubject.length > 0 && (
+                        <div className="card">
+                          <div className="card-header">Performance by Subject</div>
+                          <div className="card-body">
+                            <div className="class-bars">
+                              {analyticsData.examBySubject.map(subject => (
+                                <div key={subject.subject_name} className="class-bar-row">
+                                  <div className="class-bar-label">{subject.subject_name}</div>
+                                  <div className="class-bar-container">
+                                    <div
+                                      className={`class-bar-fill ${
+                                        subject.avg_percentage >= 80 ? 'excellent' :
+                                        subject.avg_percentage >= 65 ? 'good' :
+                                        subject.avg_percentage >= 50 ? 'fair' : 'poor'
+                                      }`}
+                                      style={{ width: `${subject.avg_percentage || 0}%` }}
+                                    />
+                                  </div>
+                                  <div className="class-bar-value">{subject.avg_percentage || 0}%</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Struggling Students (Exams) */}
+                      {analyticsData.strugglingStudents && analyticsData.strugglingStudents.length > 0 && (
+                        <div className="card">
+                          <div className="card-header">Students Struggling Academically</div>
+                          <div className="table-wrap">
+                            <table className="table">
+                              <thead>
+                                <tr>
+                                  <th>Student</th>
+                                  <th>Class</th>
+                                  <th>Gender</th>
+                                  <th>Avg Score</th>
+                                  <th>Exams Taken</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {analyticsData.strugglingStudents.map(student => (
+                                  <tr key={student.id}>
+                                    <td>
+                                      <strong>{student.first_name} {student.last_name}</strong>
+                                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{student.student_id}</div>
+                                    </td>
+                                    <td>{student.class_name || '-'}</td>
+                                    <td>{student.gender || '-'}</td>
+                                    <td>
+                                      <span style={{
+                                        color: student.avg_percentage < 30 ? 'var(--error)' :
+                                               student.avg_percentage < 50 ? 'var(--warning)' : 'var(--text)'
+                                      }}>
+                                        {student.avg_percentage}%
+                                      </span>
+                                    </td>
+                                    <td>{student.exam_count}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Gender Breakdown */}
+                      {analyticsData.genderBreakdown && !analyticsFilterGender && (
+                        <div className="card">
+                          <div className="card-header">Performance by Gender</div>
+                          <div className="card-body">
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--md)' }}>
+                              {analyticsData.genderBreakdown.attendance && analyticsData.genderBreakdown.attendance.map(g => (
+                                <div key={g.gender} style={{ padding: 'var(--md)', background: 'var(--lighter)', borderRadius: 'var(--radius)' }}>
+                                  <div style={{ fontWeight: '600', marginBottom: 'var(--xs)' }}>{g.gender || 'Unknown'}</div>
+                                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{g.student_count} students</div>
+                                  <div style={{ marginTop: 'var(--sm)', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Attendance:</span>
+                                    <strong style={{ color: g.attendance_rate >= 80 ? 'var(--success)' : g.attendance_rate >= 70 ? 'var(--warning)' : 'var(--error)' }}>
+                                      {g.attendance_rate || 0}%
+                                    </strong>
+                                  </div>
+                                  {analyticsData.genderBreakdown.exams && (() => {
+                                    const examData = analyticsData.genderBreakdown.exams.find(e => e.gender === g.gender);
+                                    return examData ? (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>Exam Avg:</span>
+                                        <strong style={{ color: examData.avg_percentage >= 65 ? 'var(--success)' : examData.avg_percentage >= 50 ? 'var(--warning)' : 'var(--error)' }}>
+                                          {examData.avg_percentage || 0}%
+                                        </strong>
+                                      </div>
+                                    ) : null;
+                                  })()}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* No Data State */}
                       {(!analyticsData.classComparison || analyticsData.classComparison.length === 0) &&
-                       (!analyticsData.atRiskStudents || analyticsData.atRiskStudents.length === 0) && (
+                       (!analyticsData.atRiskStudents || analyticsData.atRiskStudents.length === 0) &&
+                       (!analyticsData.examBySubject || analyticsData.examBySubject.length === 0) && (
                         <div className="card">
                           <div className="empty">
-                            <p>No attendance data yet. Start recording attendance to see insights.</p>
+                            <p>No data yet. Start recording attendance and exams to see insights.</p>
                           </div>
                         </div>
                       )}

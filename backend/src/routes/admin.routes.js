@@ -1045,7 +1045,7 @@ router.get('/profile', async (req, res) => {
 router.get('/analytics', requirePlusPlan('Analytics Dashboard'), async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { semester_id } = req.query;
+    const { semester_id, class_id, gender } = req.query;
 
     // Get date ranges for comparison
     const now = new Date();
@@ -1061,96 +1061,170 @@ router.get('/analytics', requirePlusPlan('Analytics Dashboard'), async (req, res
 
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Base semester filter
-    let semesterFilter = '';
-    const baseSemesterParams = [];
+    // Build filters
+    let attendanceFilters = '';
+    let studentFilters = '';
+    let examFilters = '';
+    const attendanceParams = [];
+    const studentParams = [];
+    const examParams = [];
+
     if (semester_id) {
-      semesterFilter = ' AND a.semester_id = ?';
-      baseSemesterParams.push(semester_id);
+      attendanceFilters += ' AND a.semester_id = ?';
+      attendanceParams.push(semester_id);
+      examFilters += ' AND ep.semester_id = ?';
+      examParams.push(semester_id);
     }
 
-    // 1. Overall attendance stats
-    const [overallStats] = await pool.query(`
+    if (class_id) {
+      attendanceFilters += ' AND a.class_id = ?';
+      attendanceParams.push(class_id);
+      studentFilters += ' AND s.class_id = ?';
+      studentParams.push(class_id);
+    }
+
+    if (gender) {
+      studentFilters += ' AND s.gender = ?';
+      studentParams.push(gender);
+    }
+
+    // 1. Overall attendance stats (with optional class/gender filters via student join)
+    let overallStatsQuery = `
       SELECT
         COUNT(DISTINCT a.student_id) as students_with_attendance,
         COUNT(*) as total_records,
         SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as total_present,
         ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as attendance_rate
       FROM attendance a
-      WHERE a.madrasah_id = ?${semesterFilter}
-    `, [madrasahId, ...baseSemesterParams]);
+    `;
+    const overallStatsParams = [madrasahId];
+
+    if (gender) {
+      overallStatsQuery += ' JOIN students s ON a.student_id = s.id';
+    }
+    overallStatsQuery += ` WHERE a.madrasah_id = ?${attendanceFilters}`;
+    overallStatsParams.push(...attendanceParams);
+
+    if (gender) {
+      overallStatsQuery += ' AND s.gender = ?';
+      overallStatsParams.push(gender);
+    }
+
+    const [overallStats] = await pool.query(overallStatsQuery, overallStatsParams);
 
     // 2. This week's absences
-    const [thisWeekAbsences] = await pool.query(`
-      SELECT COUNT(*) as absent_count
-      FROM attendance a
-      WHERE a.madrasah_id = ? AND a.present = 0 AND a.date >= ?${semesterFilter}
-    `, [madrasahId, thisWeekStart.toISOString().split('T')[0], ...baseSemesterParams]);
+    let thisWeekQuery = `SELECT COUNT(*) as absent_count FROM attendance a`;
+    const thisWeekParams = [madrasahId, thisWeekStart.toISOString().split('T')[0]];
+    if (gender) thisWeekQuery += ' JOIN students s ON a.student_id = s.id';
+    thisWeekQuery += ` WHERE a.madrasah_id = ? AND a.present = 0 AND a.date >= ?${attendanceFilters}`;
+    thisWeekParams.push(...attendanceParams);
+    if (gender) {
+      thisWeekQuery += ' AND s.gender = ?';
+      thisWeekParams.push(gender);
+    }
+    const [thisWeekAbsences] = await pool.query(thisWeekQuery, thisWeekParams);
 
     // 3. Last week's absences (for trend comparison)
-    const [lastWeekAbsences] = await pool.query(`
-      SELECT COUNT(*) as absent_count
-      FROM attendance a
-      WHERE a.madrasah_id = ? AND a.present = 0 AND a.date >= ? AND a.date <= ?${semesterFilter}
-    `, [madrasahId, lastWeekStart.toISOString().split('T')[0], lastWeekEnd.toISOString().split('T')[0], ...baseSemesterParams]);
+    let lastWeekQuery = `SELECT COUNT(*) as absent_count FROM attendance a`;
+    const lastWeekParams = [madrasahId, lastWeekStart.toISOString().split('T')[0], lastWeekEnd.toISOString().split('T')[0]];
+    if (gender) lastWeekQuery += ' JOIN students s ON a.student_id = s.id';
+    lastWeekQuery += ` WHERE a.madrasah_id = ? AND a.present = 0 AND a.date >= ? AND a.date <= ?${attendanceFilters}`;
+    lastWeekParams.push(...attendanceParams);
+    if (gender) {
+      lastWeekQuery += ' AND s.gender = ?';
+      lastWeekParams.push(gender);
+    }
+    const [lastWeekAbsences] = await pool.query(lastWeekQuery, lastWeekParams);
 
     // 4. Students needing attention (below 70% attendance)
-    const [atRiskStudents] = await pool.query(`
+    let atRiskQuery = `
       SELECT
         s.id,
         s.student_id,
         s.first_name,
         s.last_name,
+        s.gender,
         c.name as class_name,
         COUNT(a.id) as total_days,
         SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as present_days,
         ROUND(SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) / NULLIF(COUNT(a.id), 0) * 100, 1) as attendance_rate
       FROM students s
       LEFT JOIN classes c ON s.class_id = c.id
-      LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?${semesterFilter}
-      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?${attendanceFilters}
+      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL${studentFilters}
       GROUP BY s.id
       HAVING attendance_rate < 70 OR attendance_rate IS NULL
       ORDER BY attendance_rate ASC
       LIMIT 10
-    `, [madrasahId, ...baseSemesterParams, madrasahId]);
+    `;
+    const atRiskParams = [madrasahId, ...attendanceParams, madrasahId, ...studentParams];
+    const [atRiskStudents] = await pool.query(atRiskQuery, atRiskParams);
 
-    // 5. Attendance by class (for comparison bars)
-    const [classAttendance] = await pool.query(`
-      SELECT
-        c.id,
-        c.name as class_name,
-        COUNT(a.id) as total_records,
-        SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as present_count,
-        ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as attendance_rate
-      FROM classes c
-      LEFT JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?${semesterFilter}
-      WHERE c.madrasah_id = ? AND c.deleted_at IS NULL
-      GROUP BY c.id
-      ORDER BY attendance_rate DESC
-    `, [madrasahId, ...baseSemesterParams, madrasahId]);
+    // 5. Attendance by class (for comparison bars) - skip if filtering by specific class
+    let classAttendance = [];
+    if (!class_id) {
+      let classAttQuery = `
+        SELECT
+          c.id,
+          c.name as class_name,
+          COUNT(a.id) as total_records,
+          SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as present_count,
+          ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as attendance_rate
+        FROM classes c
+        LEFT JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?
+      `;
+      const classAttParams = [madrasahId];
+
+      // Add semester filter to attendance join
+      if (semester_id) {
+        classAttQuery = classAttQuery.replace(
+          'LEFT JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?',
+          'LEFT JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ? AND a.semester_id = ?'
+        );
+        classAttParams.push(semester_id);
+      }
+
+      // Join students for gender filter
+      if (gender) {
+        classAttQuery += ' LEFT JOIN students s ON a.student_id = s.id';
+      }
+
+      classAttQuery += ' WHERE c.madrasah_id = ? AND c.deleted_at IS NULL';
+      classAttParams.push(madrasahId);
+
+      if (gender) {
+        classAttQuery += ' AND (s.gender = ? OR a.id IS NULL)';
+        classAttParams.push(gender);
+      }
+
+      classAttQuery += ' GROUP BY c.id ORDER BY attendance_rate DESC';
+      [classAttendance] = await pool.query(classAttQuery, classAttParams);
+    }
 
     // 6. Students with 3+ absences this month
-    const [frequentAbsences] = await pool.query(`
+    let freqAbsQuery = `
       SELECT
         s.id,
         s.student_id,
         s.first_name,
         s.last_name,
+        s.gender,
         c.name as class_name,
         COUNT(*) as absence_count
       FROM attendance a
       JOIN students s ON a.student_id = s.id
       LEFT JOIN classes c ON s.class_id = c.id
-      WHERE a.madrasah_id = ? AND a.present = 0 AND a.date >= ?${semesterFilter}
+      WHERE a.madrasah_id = ? AND a.present = 0 AND a.date >= ?${attendanceFilters}${studentFilters}
       GROUP BY s.id
       HAVING absence_count >= 3
       ORDER BY absence_count DESC
       LIMIT 5
-    `, [madrasahId, thisMonthStart.toISOString().split('T')[0], ...baseSemesterParams]);
+    `;
+    const freqAbsParams = [madrasahId, thisMonthStart.toISOString().split('T')[0], ...attendanceParams, ...studentParams];
+    const [frequentAbsences] = await pool.query(freqAbsQuery, freqAbsParams);
 
     // 7. Recent attendance trend (last 4 weeks)
-    const [weeklyTrend] = await pool.query(`
+    let trendQuery = `
       SELECT
         YEARWEEK(a.date, 1) as year_week,
         MIN(a.date) as week_start,
@@ -1158,10 +1232,151 @@ router.get('/analytics', requirePlusPlan('Analytics Dashboard'), async (req, res
         SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as present_count,
         ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as attendance_rate
       FROM attendance a
-      WHERE a.madrasah_id = ? AND a.date >= DATE_SUB(NOW(), INTERVAL 4 WEEK)${semesterFilter}
-      GROUP BY YEARWEEK(a.date, 1)
-      ORDER BY year_week ASC
-    `, [madrasahId, ...baseSemesterParams]);
+    `;
+    const trendParams = [madrasahId];
+    if (gender) trendQuery += ' JOIN students s ON a.student_id = s.id';
+    trendQuery += ` WHERE a.madrasah_id = ? AND a.date >= DATE_SUB(NOW(), INTERVAL 4 WEEK)${attendanceFilters}`;
+    trendParams.push(...attendanceParams);
+    if (gender) {
+      trendQuery += ' AND s.gender = ?';
+      trendParams.push(gender);
+    }
+    trendQuery += ' GROUP BY YEARWEEK(a.date, 1) ORDER BY year_week ASC';
+    const [weeklyTrend] = await pool.query(trendQuery, trendParams);
+
+    // 8. Classes not taking attendance recently (last 7 days)
+    const [classesWithoutRecentAttendance] = await pool.query(`
+      SELECT
+        c.id,
+        c.name as class_name,
+        MAX(a.date) as last_attendance_date,
+        DATEDIFF(NOW(), MAX(a.date)) as days_since_attendance
+      FROM classes c
+      LEFT JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?
+      WHERE c.madrasah_id = ? AND c.deleted_at IS NULL
+      GROUP BY c.id
+      HAVING last_attendance_date IS NULL OR days_since_attendance > 7
+      ORDER BY days_since_attendance DESC
+    `, [madrasahId, madrasahId]);
+
+    // 9. Exam performance summary
+    let examQuery = `
+      SELECT
+        COUNT(DISTINCT ep.student_id) as students_with_exams,
+        COUNT(*) as total_exam_records,
+        ROUND(AVG(ep.score / ep.max_score * 100), 1) as avg_percentage,
+        ROUND(SUM(CASE WHEN ep.score / ep.max_score >= 0.5 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) * 100, 1) as pass_rate,
+        COUNT(DISTINCT ep.subject_name) as subjects_count
+      FROM exam_performance ep
+      JOIN students s ON ep.student_id = s.id
+      WHERE ep.madrasah_id = ? AND ep.is_absent = 0
+    `;
+    const examSummaryParams = [madrasahId];
+    if (semester_id) {
+      examQuery += ' AND ep.semester_id = ?';
+      examSummaryParams.push(semester_id);
+    }
+    if (class_id) {
+      examQuery += ' AND s.class_id = ?';
+      examSummaryParams.push(class_id);
+    }
+    if (gender) {
+      examQuery += ' AND s.gender = ?';
+      examSummaryParams.push(gender);
+    }
+    const [examSummary] = await pool.query(examQuery, examSummaryParams);
+
+    // 10. Exam performance by subject (top 5)
+    let subjectExamQuery = `
+      SELECT
+        ep.subject_name,
+        COUNT(*) as exam_count,
+        ROUND(AVG(ep.score / ep.max_score * 100), 1) as avg_percentage,
+        ROUND(SUM(CASE WHEN ep.score / ep.max_score >= 0.5 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) * 100, 1) as pass_rate
+      FROM exam_performance ep
+      JOIN students s ON ep.student_id = s.id
+      WHERE ep.madrasah_id = ? AND ep.is_absent = 0
+    `;
+    const subjectExamParams = [madrasahId];
+    if (semester_id) {
+      subjectExamQuery += ' AND ep.semester_id = ?';
+      subjectExamParams.push(semester_id);
+    }
+    if (class_id) {
+      subjectExamQuery += ' AND s.class_id = ?';
+      subjectExamParams.push(class_id);
+    }
+    if (gender) {
+      subjectExamQuery += ' AND s.gender = ?';
+      subjectExamParams.push(gender);
+    }
+    subjectExamQuery += ' GROUP BY ep.subject_name ORDER BY avg_percentage DESC LIMIT 10';
+    const [examBySubject] = await pool.query(subjectExamQuery, subjectExamParams);
+
+    // 11. Students struggling academically (avg < 50%)
+    let strugglingQuery = `
+      SELECT
+        s.id,
+        s.student_id,
+        s.first_name,
+        s.last_name,
+        s.gender,
+        c.name as class_name,
+        ROUND(AVG(ep.score / ep.max_score * 100), 1) as avg_percentage,
+        COUNT(*) as exam_count
+      FROM exam_performance ep
+      JOIN students s ON ep.student_id = s.id
+      LEFT JOIN classes c ON s.class_id = c.id
+      WHERE ep.madrasah_id = ? AND ep.is_absent = 0
+    `;
+    const strugglingParams = [madrasahId];
+    if (semester_id) {
+      strugglingQuery += ' AND ep.semester_id = ?';
+      strugglingParams.push(semester_id);
+    }
+    if (class_id) {
+      strugglingQuery += ' AND s.class_id = ?';
+      strugglingParams.push(class_id);
+    }
+    if (gender) {
+      strugglingQuery += ' AND s.gender = ?';
+      strugglingParams.push(gender);
+    }
+    strugglingQuery += ' GROUP BY s.id HAVING avg_percentage < 50 ORDER BY avg_percentage ASC LIMIT 10';
+    const [strugglingStudents] = await pool.query(strugglingQuery, strugglingParams);
+
+    // 12. Gender breakdown (if not filtered by gender)
+    let genderBreakdown = null;
+    if (!gender) {
+      const [genderAttendance] = await pool.query(`
+        SELECT
+          s.gender,
+          COUNT(DISTINCT s.id) as student_count,
+          ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as attendance_rate
+        FROM students s
+        LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?${attendanceFilters}
+        WHERE s.madrasah_id = ? AND s.deleted_at IS NULL${class_id ? ' AND s.class_id = ?' : ''}
+        GROUP BY s.gender
+      `, class_id
+        ? [madrasahId, ...attendanceParams, madrasahId, class_id]
+        : [madrasahId, ...attendanceParams, madrasahId]
+      );
+
+      const [genderExams] = await pool.query(`
+        SELECT
+          s.gender,
+          ROUND(AVG(ep.score / ep.max_score * 100), 1) as avg_percentage
+        FROM exam_performance ep
+        JOIN students s ON ep.student_id = s.id
+        WHERE ep.madrasah_id = ? AND ep.is_absent = 0${semester_id ? ' AND ep.semester_id = ?' : ''}${class_id ? ' AND s.class_id = ?' : ''}
+        GROUP BY s.gender
+      `, [madrasahId, ...(semester_id ? [semester_id] : []), ...(class_id ? [class_id] : [])]);
+
+      genderBreakdown = {
+        attendance: genderAttendance,
+        exams: genderExams
+      };
+    }
 
     // Calculate trends
     const thisWeekAbsentCount = thisWeekAbsences[0]?.absent_count || 0;
@@ -1185,20 +1400,48 @@ router.get('/analytics', requirePlusPlan('Analytics Dashboard'), async (req, res
       attendanceLabel = 'Fair';
     }
 
+    // Exam performance status
+    const avgExamPercentage = examSummary[0]?.avg_percentage || 0;
+    let examStatus = 'needs-attention';
+    let examLabel = 'Needs Improvement';
+    if (avgExamPercentage >= 80) {
+      examStatus = 'excellent';
+      examLabel = 'Excellent';
+    } else if (avgExamPercentage >= 65) {
+      examStatus = 'good';
+      examLabel = 'Good';
+    } else if (avgExamPercentage >= 50) {
+      examStatus = 'fair';
+      examLabel = 'Fair';
+    }
+
     res.json({
       summary: {
+        // Attendance
         overallAttendanceRate: attendanceRate,
         attendanceStatus,
         attendanceLabel,
         totalStudentsTracked: overallStats[0]?.students_with_attendance || 0,
         absencesThisWeek: thisWeekAbsentCount,
-        absenceTrend, // negative is good (fewer absences), positive is bad
-        studentsNeedingAttention: atRiskStudents.length
+        absenceTrend,
+        studentsNeedingAttention: atRiskStudents.length,
+        // Exams
+        avgExamPercentage,
+        examStatus,
+        examLabel,
+        examPassRate: examSummary[0]?.pass_rate || 0,
+        studentsWithExams: examSummary[0]?.students_with_exams || 0,
+        subjectsCount: examSummary[0]?.subjects_count || 0,
+        studentsStruggling: strugglingStudents.length
       },
       atRiskStudents,
       classComparison: classAttendance,
       frequentAbsences,
-      weeklyTrend
+      weeklyTrend,
+      classesWithoutRecentAttendance,
+      examBySubject,
+      strugglingStudents,
+      genderBreakdown
     });
   } catch (error) {
     console.error('Analytics error:', error);

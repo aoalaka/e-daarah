@@ -575,6 +575,11 @@ Intuitive insights for non-technical users:
 - [x] Trend arrows (up/down vs last week)
 - [x] Frequent absences alert (3+ absences this month)
 - [x] No complex charts or jargon
+- [x] Exam performance analytics (avg score, pass rate, struggling students)
+- [x] Performance by subject bar charts
+- [x] Filters by class and gender
+- [x] Classes not taking attendance alert
+- [x] Gender breakdown comparison
 
 #### 7.4 Print-Friendly Parent Reports
 Cost-effective alternative to PDF generation:

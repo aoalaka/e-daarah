@@ -562,92 +562,7 @@ router.post('/classes/:classId/exam-performance/bulk', async (req, res) => {
   }
 });
 
-// Update individual exam performance record (scoped to madrasah)
-router.put('/exam-performance/:id', async (req, res) => {
-  try {
-    const madrasahId = req.madrasahId;
-    const { id } = req.params;
-    const { score, is_absent, absence_reason, notes } = req.body;
-
-    // Verify access - teacher can only edit their own records in their madrasah
-    const [record] = await pool.query(
-      `SELECT ep.*, ep.max_score 
-       FROM exam_performance ep
-       WHERE ep.id = ? AND ep.user_id = ? AND ep.madrasah_id = ?`,
-      [id, req.user.id, madrasahId]
-    );
-
-    if (record.length === 0) {
-      return res.status(403).json({ error: 'Not authorized to edit this record' });
-    }
-
-    const maxScore = record[0].max_score;
-
-    // Validate data
-    if (!is_absent) {
-      if (score === null || score === undefined || score === '') {
-        return res.status(400).json({ error: 'Score is required when student is not absent' });
-      }
-      const scoreNum = parseFloat(score);
-      if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > maxScore) {
-        return res.status(400).json({ error: `Score must be between 0 and ${maxScore}` });
-      }
-    } else {
-      if (!absence_reason) {
-        return res.status(400).json({ error: 'Absence reason is required' });
-      }
-    }
-
-    // Update record
-    await pool.query(
-      `UPDATE exam_performance 
-       SET score = ?, is_absent = ?, absence_reason = ?, notes = ?, updated_at = NOW()
-       WHERE id = ?`,
-      [
-        is_absent ? null : (score || 0),
-        is_absent || false,
-        is_absent ? absence_reason : null,
-        notes || null,
-        id
-      ]
-    );
-
-    res.json({ message: 'Exam performance updated successfully' });
-  } catch (error) {
-    console.error('Update exam performance error:', error);
-    res.status(500).json({ error: 'Failed to update exam performance' });
-  }
-});
-
-// Delete exam performance record (scoped to madrasah)
-router.delete('/exam-performance/:id', async (req, res) => {
-  try {
-    const madrasahId = req.madrasahId;
-    const { id } = req.params;
-
-    // Verify access - teacher can only delete their own records in their madrasah
-    const [record] = await pool.query(
-      `SELECT ep.id 
-       FROM exam_performance ep
-       WHERE ep.id = ? AND ep.user_id = ? AND ep.madrasah_id = ?`,
-      [id, req.user.id, madrasahId]
-    );
-
-    if (record.length === 0) {
-      return res.status(403).json({ error: 'Not authorized to delete this record' });
-    }
-
-    // Delete record
-    await pool.query('DELETE FROM exam_performance WHERE id = ?', [id]);
-
-    res.json({ message: 'Exam performance deleted successfully' });
-  } catch (error) {
-    console.error('Delete exam performance error:', error);
-    res.status(500).json({ error: 'Failed to delete exam performance' });
-  }
-});
-
-// Update exam batch (multiple records) - scoped to madrasah
+// Update exam batch (multiple records) - MUST come before /:id route
 router.put('/exam-performance/batch', async (req, res) => {
   console.log('==================== BATCH UPDATE START ====================');
   console.error('==================== BATCH UPDATE START ====================');
@@ -679,7 +594,6 @@ router.put('/exam-performance/batch', async (req, res) => {
     }
 
     // Verify all records belong to this teacher and madrasah
-    // Need to create placeholders for IN clause
     const placeholders = record_ids.map(() => '?').join(',');
     const query = `SELECT id FROM exam_performance WHERE id IN (${placeholders}) AND user_id = ? AND madrasah_id = ?`;
     const params = [...record_ids, req.user.id, madrasahId];
@@ -763,7 +677,7 @@ router.put('/exam-performance/batch', async (req, res) => {
   }
 });
 
-// Delete exam batch (multiple records) - scoped to madrasah
+// Delete exam batch (multiple records) - MUST come before /:id route
 router.delete('/exam-performance/batch', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
@@ -793,6 +707,91 @@ router.delete('/exam-performance/batch', async (req, res) => {
   } catch (error) {
     console.error('Delete exam batch error:', error);
     res.status(500).json({ error: 'Failed to delete exam batch' });
+  }
+});
+
+// Update individual exam performance record (scoped to madrasah)
+router.put('/exam-performance/:id', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    const { score, is_absent, absence_reason, notes } = req.body;
+
+    // Verify access - teacher can only edit their own records in their madrasah
+    const [record] = await pool.query(
+      `SELECT ep.*, ep.max_score 
+       FROM exam_performance ep
+       WHERE ep.id = ? AND ep.user_id = ? AND ep.madrasah_id = ?`,
+      [id, req.user.id, madrasahId]
+    );
+
+    if (record.length === 0) {
+      return res.status(403).json({ error: 'Not authorized to edit this record' });
+    }
+
+    const maxScore = record[0].max_score;
+
+    // Validate data
+    if (!is_absent) {
+      if (score === null || score === undefined || score === '') {
+        return res.status(400).json({ error: 'Score is required when student is not absent' });
+      }
+      const scoreNum = parseFloat(score);
+      if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > maxScore) {
+        return res.status(400).json({ error: `Score must be between 0 and ${maxScore}` });
+      }
+    } else {
+      if (!absence_reason) {
+        return res.status(400).json({ error: 'Absence reason is required' });
+      }
+    }
+
+    // Update record
+    await pool.query(
+      `UPDATE exam_performance 
+       SET score = ?, is_absent = ?, absence_reason = ?, notes = ?, updated_at = NOW()
+       WHERE id = ?`,
+      [
+        is_absent ? null : (score || 0),
+        is_absent || false,
+        is_absent ? absence_reason : null,
+        notes || null,
+        id
+      ]
+    );
+
+    res.json({ message: 'Exam performance updated successfully' });
+  } catch (error) {
+    console.error('Update exam performance error:', error);
+    res.status(500).json({ error: 'Failed to update exam performance' });
+  }
+});
+
+// Delete exam performance record (scoped to madrasah)
+router.delete('/exam-performance/:id', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+
+    // Verify access - teacher can only delete their own records in their madrasah
+    const [record] = await pool.query(
+      `SELECT ep.id 
+       FROM exam_performance ep
+       WHERE ep.id = ? AND ep.user_id = ? AND ep.madrasah_id = ?`,
+      [id, req.user.id, madrasahId]
+    );
+
+    if (record.length === 0) {
+      return res.status(403).json({ error: 'Not authorized to delete this record' });
+    }
+
+    // Delete record
+    await pool.query('DELETE FROM exam_performance WHERE id = ?', [id]);
+
+    res.json({ message: 'Exam performance deleted successfully' });
+  } catch (error) {
+    console.error('Delete exam performance error:', error);
+    res.status(500).json({ error: 'Failed to delete exam performance' });
   }
 });
 

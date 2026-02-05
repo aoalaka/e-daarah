@@ -68,6 +68,7 @@ function AdminDashboard() {
   const [reportFilterSession, setReportFilterSession] = useState('');
   const [reportFilteredSemesters, setReportFilteredSemesters] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Settings state
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -663,10 +664,19 @@ function AdminDashboard() {
       />
 
       {/* Sidebar - Dark Theme */}
-      <aside className={`sidebar ${mobileMenuOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${mobileMenuOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <img src="/e-daarah-blackbg-logo.png" alt="e-daarah" className="sidebar-logo-img" />
           <span className="sidebar-logo-text">e-daarah</span>
+          <button 
+            className="sidebar-collapse-btn"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            aria-label="Toggle sidebar"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points={sidebarCollapsed ? "9 18 15 12 9 6" : "15 18 9 12 15 6"}></polyline>
+            </svg>
+          </button>
         </div>
         <nav className="sidebar-nav">
           {navItems.map(item => (
@@ -708,7 +718,7 @@ function AdminDashboard() {
       </aside>
 
       {/* Main Wrapper */}
-      <div className="main-wrapper">
+      <div className={`main-wrapper ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         {/* Header */}
         <header className="header">
           <div className="header-left">

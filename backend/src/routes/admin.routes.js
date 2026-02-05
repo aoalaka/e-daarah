@@ -6,7 +6,8 @@ import {
   requireActiveSubscription,
   enforceStudentLimit,
   enforceTeacherLimit,
-  enforceClassLimit
+  enforceClassLimit,
+  requirePlusPlan
 } from '../middleware/plan-limits.middleware.js';
 
 const router = express.Router();
@@ -1037,6 +1038,171 @@ router.get('/profile', async (req, res) => {
   } catch (error) {
     console.error('Failed to fetch madrasah profile:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+// Analytics Dashboard (Plus only) - School-wide insights
+router.get('/analytics', requirePlusPlan('Analytics Dashboard'), async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { semester_id } = req.query;
+
+    // Get date ranges for comparison
+    const now = new Date();
+    const thisWeekStart = new Date(now);
+    thisWeekStart.setDate(now.getDate() - now.getDay()); // Start of this week (Sunday)
+    thisWeekStart.setHours(0, 0, 0, 0);
+
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    const lastWeekEnd = new Date(thisWeekStart);
+    lastWeekEnd.setDate(lastWeekEnd.getDate() - 1);
+
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Base semester filter
+    let semesterFilter = '';
+    const baseSemesterParams = [];
+    if (semester_id) {
+      semesterFilter = ' AND a.semester_id = ?';
+      baseSemesterParams.push(semester_id);
+    }
+
+    // 1. Overall attendance stats
+    const [overallStats] = await pool.query(`
+      SELECT
+        COUNT(DISTINCT a.student_id) as students_with_attendance,
+        COUNT(*) as total_records,
+        SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as total_present,
+        ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as attendance_rate
+      FROM attendance a
+      WHERE a.madrasah_id = ?${semesterFilter}
+    `, [madrasahId, ...baseSemesterParams]);
+
+    // 2. This week's absences
+    const [thisWeekAbsences] = await pool.query(`
+      SELECT COUNT(*) as absent_count
+      FROM attendance a
+      WHERE a.madrasah_id = ? AND a.present = 0 AND a.date >= ?${semesterFilter}
+    `, [madrasahId, thisWeekStart.toISOString().split('T')[0], ...baseSemesterParams]);
+
+    // 3. Last week's absences (for trend comparison)
+    const [lastWeekAbsences] = await pool.query(`
+      SELECT COUNT(*) as absent_count
+      FROM attendance a
+      WHERE a.madrasah_id = ? AND a.present = 0 AND a.date >= ? AND a.date <= ?${semesterFilter}
+    `, [madrasahId, lastWeekStart.toISOString().split('T')[0], lastWeekEnd.toISOString().split('T')[0], ...baseSemesterParams]);
+
+    // 4. Students needing attention (below 70% attendance)
+    const [atRiskStudents] = await pool.query(`
+      SELECT
+        s.id,
+        s.student_id,
+        s.first_name,
+        s.last_name,
+        c.name as class_name,
+        COUNT(a.id) as total_days,
+        SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as present_days,
+        ROUND(SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) / NULLIF(COUNT(a.id), 0) * 100, 1) as attendance_rate
+      FROM students s
+      LEFT JOIN classes c ON s.class_id = c.id
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?${semesterFilter}
+      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+      GROUP BY s.id
+      HAVING attendance_rate < 70 OR attendance_rate IS NULL
+      ORDER BY attendance_rate ASC
+      LIMIT 10
+    `, [madrasahId, ...baseSemesterParams, madrasahId]);
+
+    // 5. Attendance by class (for comparison bars)
+    const [classAttendance] = await pool.query(`
+      SELECT
+        c.id,
+        c.name as class_name,
+        COUNT(a.id) as total_records,
+        SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as present_count,
+        ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as attendance_rate
+      FROM classes c
+      LEFT JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?${semesterFilter}
+      WHERE c.madrasah_id = ? AND c.deleted_at IS NULL
+      GROUP BY c.id
+      ORDER BY attendance_rate DESC
+    `, [madrasahId, ...baseSemesterParams, madrasahId]);
+
+    // 6. Students with 3+ absences this month
+    const [frequentAbsences] = await pool.query(`
+      SELECT
+        s.id,
+        s.student_id,
+        s.first_name,
+        s.last_name,
+        c.name as class_name,
+        COUNT(*) as absence_count
+      FROM attendance a
+      JOIN students s ON a.student_id = s.id
+      LEFT JOIN classes c ON s.class_id = c.id
+      WHERE a.madrasah_id = ? AND a.present = 0 AND a.date >= ?${semesterFilter}
+      GROUP BY s.id
+      HAVING absence_count >= 3
+      ORDER BY absence_count DESC
+      LIMIT 5
+    `, [madrasahId, thisMonthStart.toISOString().split('T')[0], ...baseSemesterParams]);
+
+    // 7. Recent attendance trend (last 4 weeks)
+    const [weeklyTrend] = await pool.query(`
+      SELECT
+        YEARWEEK(a.date, 1) as year_week,
+        MIN(a.date) as week_start,
+        COUNT(*) as total_records,
+        SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as present_count,
+        ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as attendance_rate
+      FROM attendance a
+      WHERE a.madrasah_id = ? AND a.date >= DATE_SUB(NOW(), INTERVAL 4 WEEK)${semesterFilter}
+      GROUP BY YEARWEEK(a.date, 1)
+      ORDER BY year_week ASC
+    `, [madrasahId, ...baseSemesterParams]);
+
+    // Calculate trends
+    const thisWeekAbsentCount = thisWeekAbsences[0]?.absent_count || 0;
+    const lastWeekAbsentCount = lastWeekAbsences[0]?.absent_count || 0;
+    const absenceTrend = lastWeekAbsentCount > 0
+      ? Math.round(((thisWeekAbsentCount - lastWeekAbsentCount) / lastWeekAbsentCount) * 100)
+      : 0;
+
+    // Determine attendance status label
+    const attendanceRate = overallStats[0]?.attendance_rate || 0;
+    let attendanceStatus = 'needs-attention';
+    let attendanceLabel = 'Needs Improvement';
+    if (attendanceRate >= 90) {
+      attendanceStatus = 'excellent';
+      attendanceLabel = 'Excellent';
+    } else if (attendanceRate >= 80) {
+      attendanceStatus = 'good';
+      attendanceLabel = 'Good';
+    } else if (attendanceRate >= 70) {
+      attendanceStatus = 'fair';
+      attendanceLabel = 'Fair';
+    }
+
+    res.json({
+      summary: {
+        overallAttendanceRate: attendanceRate,
+        attendanceStatus,
+        attendanceLabel,
+        totalStudentsTracked: overallStats[0]?.students_with_attendance || 0,
+        absencesThisWeek: thisWeekAbsentCount,
+        absenceTrend, // negative is good (fewer absences), positive is bad
+        studentsNeedingAttention: atRiskStudents.length
+      },
+      atRiskStudents,
+      classComparison: classAttendance,
+      frequentAbsences,
+      weeklyTrend
+    });
+  } catch (error) {
+    console.error('Analytics error:', error);
+    res.status(500).json({ error: 'Failed to fetch analytics' });
   }
 });
 

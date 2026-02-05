@@ -66,21 +66,25 @@
 | Parent portal (report cards) | Yes | Yes |
 | Session & semester management | Yes | Yes |
 | Email notifications | Basic (welcome, password reset) | Yes + attendance alerts |
-| **Reports** | | |
+| **Calendar & Planning** | | |
+| Academic calendar | No | Yes |
+| Holiday/event management | No | Yes |
+| Calendar-linked attendance | No | Yes |
+| **Reports & Analytics** | | |
 | View attendance reports | Yes | Yes |
 | View exam reports | Yes | Yes |
 | Export to CSV | No | Yes |
-| PDF report cards | No | Yes |
+| Print-friendly reports | No | Yes |
+| Analytics dashboard | No | Yes |
 | **Bulk Operations** | | |
 | Bulk student upload (CSV/Excel) | No | Yes |
-| Bulk attendance entry | No | Yes |
 | **Support** | | |
 | Email support | Yes (48hr response) | Yes (24hr response) |
 | Help center access | Yes | Yes |
 | Priority support | No | Yes |
-| **Coming Soon** | | |
-| SMS notifications | No | Add-on ($5/mo) |
-| Custom branding | No | Yes |
+| **Future** | | |
+| SMS notifications | No | Add-on (paid) |
+| Custom branding | No | Future |
 | API access | No | Future |
 
 ### Why This Pricing?
@@ -537,6 +541,58 @@ TRIAL_DAYS=14
 6. `006_add_performance_indexes` - Feb 5, 2026
 7. `007_add_website_column` - Feb 5, 2026
 8. `008_add_verification_columns` - Feb 5, 2026
+
+---
+
+### Phase 7: Plus Features Enhancement (Week 12-16)
+**Goal:** Differentiate Plus plan with high-value features
+
+#### 7.1 Academic Calendar (Plus)
+Admin can define the academic calendar for each session:
+- [ ] `calendar_events` table (madrasah_id, session_id, date, event_type, title)
+- [ ] Event types: school_day, holiday, exam_period, special_event
+- [ ] Admin UI to set up calendar: mark holidays, set school days pattern
+- [ ] Default school days from class.school_days (existing)
+- [ ] Override specific dates (e.g., Eid holidays, snow days)
+- [ ] Calendar view in admin dashboard
+
+#### 7.2 Attendance Integration with Calendar
+Teachers only mark attendance on valid school days:
+- [ ] Backend: validate attendance date against calendar
+- [ ] Teacher dashboard: only show school days in date picker
+- [ ] Warning if trying to mark attendance on holiday
+- [ ] Show calendar events in attendance view (why was there no school)
+
+#### 7.3 Simple Analytics Dashboard (Plus) - COMPLETE
+Intuitive insights for non-technical users:
+- [x] Overview cards with plain language:
+  - "X students were absent this week"
+  - "Average attendance: 85% (Good)"
+  - "Y students need attention (below 70% attendance)"
+- [x] Color-coded indicators (green/yellow/red)
+- [x] Simple bar charts for attendance by class
+- [x] At-risk students list (below 70% attendance)
+- [x] Trend arrows (up/down vs last week)
+- [x] Frequent absences alert (3+ absences this month)
+- [x] No complex charts or jargon
+
+#### 7.4 Print-Friendly Parent Reports
+Cost-effective alternative to PDF generation:
+- [ ] Add "Print Report" button to parent portal
+- [ ] CSS `@media print` styles for clean printout
+- [ ] Hide navigation, show only report content
+- [ ] Include madrasah logo and student info
+- [ ] Zero server cost (browser handles printing)
+
+#### 7.5 Email Attendance Alerts (Plus)
+Notify parents of absences:
+- [ ] Option to enable/disable per madrasah
+- [ ] Monthly digest email summarizing attendance
+- [ ] Uses existing Resend integration (free tier)
+- [ ] Template includes: total days, absences, attendance percentage
+- [ ] Sent at end of each month (or semester)
+
+**Deliverable:** Clear value differentiation for Plus plan
 
 ---
 

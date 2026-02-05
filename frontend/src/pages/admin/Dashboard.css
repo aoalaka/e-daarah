@@ -1340,3 +1340,245 @@
 .mobile-nav {
   display: none;
 }
+
+/* ============================================
+   INSIGHTS / ANALYTICS STYLES (Plus Feature)
+   ============================================ */
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--md);
+  margin-bottom: var(--lg);
+}
+
+.insight-card {
+  background: white;
+  border-radius: var(--radius);
+  padding: var(--lg);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--md);
+  border-left: 4px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.insight-card.excellent {
+  border-left-color: #10b981;
+  background: linear-gradient(135deg, #f0fdf4 0%, white 100%);
+}
+
+.insight-card.good {
+  border-left-color: #22c55e;
+  background: linear-gradient(135deg, #f0fdf4 0%, white 100%);
+}
+
+.insight-card.fair {
+  border-left-color: #f59e0b;
+  background: linear-gradient(135deg, #fffbeb 0%, white 100%);
+}
+
+.insight-card.needs-attention {
+  border-left-color: #ef4444;
+  background: linear-gradient(135deg, #fef2f2 0%, white 100%);
+}
+
+.insight-card.neutral {
+  border-left-color: var(--accent);
+  background: linear-gradient(135deg, #eff6ff 0%, white 100%);
+}
+
+.insight-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.05);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.insight-content {
+  flex: 1;
+}
+
+.insight-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sm);
+}
+
+.insight-label {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.insight-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.insight-card.excellent .insight-status { color: #10b981; }
+.insight-card.good .insight-status { color: #22c55e; }
+.insight-card.fair .insight-status { color: #f59e0b; }
+.insight-card.needs-attention .insight-status { color: #ef4444; }
+
+/* Trend indicators */
+.trend {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.trend.up.bad {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.trend.down.good {
+  color: #10b981;
+  background: #f0fdf4;
+}
+
+/* Alert box styles */
+.alert-box {
+  padding: var(--md);
+  border-radius: var(--radius);
+  margin-bottom: var(--lg);
+}
+
+.alert-box.warning {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+}
+
+.alert-box.danger {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+}
+
+.alert-box h4 {
+  margin: 0 0 var(--xs) 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.alert-box p {
+  margin: 0 0 var(--sm) 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xs);
+}
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sm);
+  padding: var(--sm);
+  background: rgba(255,255,255,0.7);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.alert-item strong {
+  flex: 1;
+}
+
+.alert-detail {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.alert-badge {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Class comparison bars */
+.class-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sm);
+}
+
+.class-bar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sm);
+}
+
+.class-bar-label {
+  width: 120px;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.class-bar-container {
+  flex: 1;
+  height: 20px;
+  background: var(--lighter);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.class-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.class-bar-fill.excellent { background: #10b981; }
+.class-bar-fill.good { background: #22c55e; }
+.class-bar-fill.fair { background: #f59e0b; }
+.class-bar-fill.poor { background: #ef4444; }
+
+.class-bar-value {
+  width: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  color: var(--text);
+}
+
+/* Responsive insights */
+@media (max-width: 768px) {
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .insight-value {
+    font-size: 24px;
+  }
+
+  .class-bar-label {
+    width: 80px;
+    font-size: 12px;
+  }
+
+  .alert-item {
+    flex-wrap: wrap;
+  }
+}

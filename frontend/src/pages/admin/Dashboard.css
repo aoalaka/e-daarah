@@ -38,11 +38,14 @@
   align-items: center;
   gap: 10px;
   position: relative;
+  min-height: 76px;
 }
 
 .sidebar.collapsed .sidebar-header {
   justify-content: center;
-  padding: 20px 12px;
+  padding: 20px 8px;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .sidebar-collapse-btn {
@@ -56,6 +59,7 @@
   justify-content: center;
   margin-left: auto;
   transition: color 0.15s;
+  flex-shrink: 0;
 }
 
 .sidebar-collapse-btn:hover {
@@ -64,16 +68,18 @@
 
 .sidebar.collapsed .sidebar-collapse-btn {
   margin-left: 0;
+  width: 100%;
 }
 
 .sidebar-logo-img {
   height: 36px;
   width: auto;
-  transition: none;
+  transition: height 0.2s ease;
+  flex-shrink: 0;
 }
 
 .sidebar.collapsed .sidebar-logo-img {
-  height: 28px;
+  height: 24px;
 }
 
 .sidebar-logo-text {
@@ -81,13 +87,14 @@
   font-weight: 600;
   color: #ffffff;
   white-space: nowrap;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, width 0.2s ease;
+  overflow: hidden;
 }
 
 .sidebar.collapsed .sidebar-logo-text {
   opacity: 0;
   width: 0;
-  overflow: hidden;
+  display: none;
 }
 
 .sidebar-nav {
@@ -182,6 +189,8 @@
 .user-avatar {
   width: 32px;
   height: 32px;
+  min-width: 32px;
+  min-height: 32px;
   border-radius: 50%;
   background: #333;
   display: flex;
@@ -190,6 +199,7 @@
   font-size: 13px;
   font-weight: 500;
   color: #fff;
+  flex-shrink: 0;
 }
 
 .user-info {
@@ -203,6 +213,7 @@
   opacity: 0;
   width: 0;
   overflow: hidden;
+  display: none;
 }
 
 .user-name {

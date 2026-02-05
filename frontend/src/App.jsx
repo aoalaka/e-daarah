@@ -11,6 +11,7 @@ import Pricing from './pages/Pricing';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import Help from './pages/Help';
+import NotFound from './pages/NotFound';
 
 // Check if we're on the admin subdomain
 const isAdminSubdomain = () => {
@@ -111,8 +112,8 @@ function App() {
         {/* Madrasah-scoped routes */}
         <Route path="/:madrasahSlug/*" element={<MadrasahRoutes />} />
 
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* 404 Page */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

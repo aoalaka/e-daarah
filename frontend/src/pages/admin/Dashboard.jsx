@@ -87,6 +87,23 @@ function AdminDashboard() {
   };
 
   const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  // Helper to check if user has Plus-level access (Plus plan OR active trial)
+  const hasPlusAccess = () => {
+    if (!madrasahProfile) return false;
+    const plan = madrasahProfile.pricing_plan;
+    const status = madrasahProfile.subscription_status;
+    // Plus and enterprise plans have access
+    if (plan === 'plus' || plan === 'enterprise') return true;
+    // Active trial users get Plus-level access
+    if (status === 'trialing') {
+      const trialEndsAt = madrasahProfile.trial_ends_at;
+      if (!trialEndsAt) return true; // No end date means trial is active
+      return new Date(trialEndsAt) > new Date();
+    }
+    return false;
+  };
+
   const navItems = [
     { id: 'overview', label: 'Overview' },
     { id: 'sessions', label: 'Sessions' },
@@ -1471,7 +1488,7 @@ function AdminDashboard() {
               <div className="page-header">
                 <h2 className="page-title">Students</h2>
                 <div style={{ display: 'flex', gap: 'var(--sm)', flexWrap: 'wrap' }}>
-                  {madrasahProfile?.pricing_plan === 'plus' && (
+                  {hasPlusAccess() && (
                     <button
                       onClick={() => downloadCSV(students, studentColumns, `students-${getDateSuffix()}`)}
                       className="btn btn-secondary"
@@ -2080,7 +2097,7 @@ function AdminDashboard() {
                   <div className="card">
                     <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>Attendance Records</span>
-                      {madrasahProfile?.pricing_plan === 'plus' && classAttendance.length > 0 && (
+                      {hasPlusAccess() && classAttendance.length > 0 && (
                         <button
                           onClick={() => downloadCSV(
                             classAttendance.map(r => ({ ...r, class_name: classes.find(c => c.id === selectedClassForPerformance)?.name })),
@@ -2176,7 +2193,7 @@ function AdminDashboard() {
                             <h3 className="exam-subject-title" style={{ margin: 0 }}>
                               {kpi.subject}
                             </h3>
-                            {madrasahProfile?.pricing_plan === 'plus' && kpi.records?.length > 0 && (
+                            {hasPlusAccess() && kpi.records?.length > 0 && (
                               <button
                                 onClick={() => downloadCSV(
                                   kpi.records.map(r => ({ ...r, subject_name: kpi.subject })),

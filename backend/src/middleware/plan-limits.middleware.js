@@ -222,6 +222,7 @@ export const enforceClassLimit = async (req, res, next) => {
 
 /**
  * Middleware to require Plus plan for certain features
+ * Note: Trialing users get full Plus access during their trial period
  */
 export const requirePlusPlan = (feature) => {
   return async (req, res, next) => {
@@ -235,6 +236,11 @@ export const requirePlusPlan = (feature) => {
 
       // Plus and enterprise have access to all features
       if (usage.plan === 'plus' || usage.plan === 'enterprise') {
+        return next();
+      }
+
+      // Trialing users get full Plus access during their active trial
+      if (usage.status === 'trialing' && !isTrialExpired(usage.trialEndsAt, usage.status)) {
         return next();
       }
 

@@ -33,9 +33,26 @@ const AUTH_ENDPOINTS = [
   '/password/'
 ];
 
+// Plan-related error codes that should NOT trigger logout
+const PLAN_ERROR_CODES = [
+  'STUDENT_LIMIT_REACHED',
+  'TEACHER_LIMIT_REACHED',
+  'CLASS_LIMIT_REACHED',
+  'TRIAL_EXPIRED',
+  'SUBSCRIPTION_INACTIVE',
+  'PAYMENT_PAST_DUE',
+  'UPGRADE_REQUIRED'
+];
+
 // Check if request URL is an auth endpoint
 const isAuthEndpoint = (url) => {
   return AUTH_ENDPOINTS.some(endpoint => url?.includes(endpoint));
+};
+
+// Check if error is a plan-related error (should NOT logout)
+const isPlanError = (error) => {
+  const code = error.response?.data?.code;
+  return code && PLAN_ERROR_CODES.includes(code);
 };
 
 // Handle auth errors
@@ -49,8 +66,14 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // For other endpoints, redirect on 401/403 (session expired, unauthorized)
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    // Don't redirect for plan-related errors - user should see error message, not be logged out
+    if (isPlanError(error)) {
+      return Promise.reject(error);
+    }
+
+    // For 401 (unauthorized/session expired), redirect to login
+    // Don't redirect on 403 - it may be a permission issue that doesn't require logout
+    if (error.response?.status === 401) {
       const madrasah = JSON.parse(localStorage.getItem('madrasah') || '{}');
 
       // Clear auth data

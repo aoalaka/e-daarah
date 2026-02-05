@@ -120,12 +120,22 @@ router.post('/semesters', async (req, res) => {
     const madrasahId = req.madrasahId;
     const { session_id, name, start_date, end_date, is_active } = req.body;
 
+    // Log request for debugging
+    console.log('Creating semester:', { madrasahId, session_id, name, start_date, end_date, is_active });
+
+    // Validate required fields
+    if (!session_id || !name || !start_date || !end_date) {
+      console.error('Missing required fields:', { session_id, name, start_date, end_date });
+      return res.status(400).json({ error: 'Missing required fields: session_id, name, start_date, end_date' });
+    }
+
     // Verify session belongs to this madrasah and get session dates
     const [sessionCheck] = await pool.query(
       'SELECT id, start_date, end_date FROM sessions WHERE id = ? AND madrasah_id = ?',
       [session_id, madrasahId]
     );
     if (sessionCheck.length === 0) {
+      console.error('Invalid session:', { session_id, madrasahId });
       return res.status(400).json({ error: 'Invalid session' });
     }
     
@@ -133,9 +143,11 @@ router.post('/semesters', async (req, res) => {
     
     // Validate semester dates are within session dates
     if (new Date(start_date) < new Date(session.start_date)) {
+      console.error('Semester start date before session start:', { semester_start: start_date, session_start: session.start_date });
       return res.status(400).json({ error: 'Semester start date must be within session date range' });
     }
     if (new Date(end_date) > new Date(session.end_date)) {
+      console.error('Semester end date after session end:', { semester_end: end_date, session_end: session.end_date });
       return res.status(400).json({ error: 'Semester end date must be within session date range' });
     }
     

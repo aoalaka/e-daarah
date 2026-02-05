@@ -1052,6 +1052,7 @@ function TeacherDashboard() {
 
                   {selectedClass && selectedSemester && students.length > 0 && (
                     <div className="card">
+                      {/* Desktop Table View */}
                       <div className="table-wrap">
                         <table className="table">
                           <thead>
@@ -1161,6 +1162,107 @@ function TeacherDashboard() {
                           </tbody>
                         </table>
                       </div>
+
+                      {/* Mobile Card View */}
+                      {students.map(student => (
+                        <div key={student.id} className="mobile-student-card">
+                          <div className="student-header">
+                            <div>
+                              <div className="student-name">{student.first_name} {student.last_name}</div>
+                              <div className="student-id">{student.student_id}</div>
+                            </div>
+                          </div>
+
+                          <div className="form-section">
+                            <div className="form-label">Attendance</div>
+                            <div className="radio-group">
+                              <label className="radio-label">
+                                <input
+                                  type="radio"
+                                  name={`attendance-mobile-${student.id}`}
+                                  checked={attendanceRecords[student.id]?.present === true}
+                                  onChange={() => {
+                                    updateAttendanceRecord(student.id, 'present', true);
+                                    updateAttendanceRecord(student.id, 'absence_reason', '');
+                                  }}
+                                />
+                                <span>Present</span>
+                              </label>
+                              <label className="radio-label">
+                                <input
+                                  type="radio"
+                                  name={`attendance-mobile-${student.id}`}
+                                  checked={attendanceRecords[student.id]?.present === false}
+                                  onChange={() => {
+                                    updateAttendanceRecord(student.id, 'present', false);
+                                    updateAttendanceRecord(student.id, 'dressing_grade', '');
+                                    updateAttendanceRecord(student.id, 'behavior_grade', '');
+                                  }}
+                                />
+                                <span>Absent</span>
+                              </label>
+                            </div>
+                          </div>
+
+                          {attendanceRecords[student.id]?.present === false && (
+                            <div className="form-section">
+                              <label className="form-label">Absence Reason</label>
+                              <select
+                                value={attendanceRecords[student.id]?.absence_reason || ''}
+                                onChange={(e) => updateAttendanceRecord(student.id, 'absence_reason', e.target.value)}
+                              >
+                                <option value="">Select reason...</option>
+                                <option value="Sick">Sick</option>
+                                <option value="Parent Request">Parent Request</option>
+                                <option value="School Not Notified">School Not Notified</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+                          )}
+
+                          {attendanceRecords[student.id]?.present === true && (
+                            <>
+                              <div className="form-section">
+                                <label className="form-label">Dressing</label>
+                                <select
+                                  value={attendanceRecords[student.id]?.dressing_grade || ''}
+                                  onChange={(e) => updateAttendanceRecord(student.id, 'dressing_grade', e.target.value)}
+                                >
+                                  <option value="">Select...</option>
+                                  <option value="Excellent">Excellent</option>
+                                  <option value="Good">Good</option>
+                                  <option value="Fair">Fair</option>
+                                  <option value="Poor">Poor</option>
+                                </select>
+                              </div>
+
+                              <div className="form-section">
+                                <label className="form-label">Behavior</label>
+                                <select
+                                  value={attendanceRecords[student.id]?.behavior_grade || ''}
+                                  onChange={(e) => updateAttendanceRecord(student.id, 'behavior_grade', e.target.value)}
+                                >
+                                  <option value="">Select...</option>
+                                  <option value="Excellent">Excellent</option>
+                                  <option value="Good">Good</option>
+                                  <option value="Fair">Fair</option>
+                                  <option value="Poor">Poor</option>
+                                </select>
+                              </div>
+                            </>
+                          )}
+
+                          <div className="form-section">
+                            <label className="form-label">Notes (Optional)</label>
+                            <textarea
+                              value={attendanceRecords[student.id]?.notes || ''}
+                              onChange={(e) => updateAttendanceRecord(student.id, 'notes', e.target.value)}
+                              placeholder="Add any notes..."
+                              rows="2"
+                            />
+                          </div>
+                        </div>
+                      ))}
 
                       <div className="form-actions" style={{ padding: 'var(--md)', borderTop: 'var(--border)' }}>
                         <button onClick={saveAttendance} className="btn btn-primary" disabled={saving}>

@@ -51,6 +51,9 @@ function TeacherDashboard() {
   const [examFilterSemester, setExamFilterSemester] = useState('');
   const [examFilteredSemesters, setExamFilteredSemesters] = useState([]);
   const [examStudentSearch, setExamStudentSearch] = useState('');
+  const [showEditExamModal, setShowEditExamModal] = useState(false);
+  const [editingExamRecord, setEditingExamRecord] = useState(null);
+  const [deleteExamId, setDeleteExamId] = useState(null);
   // Settings state
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -595,6 +598,66 @@ function TeacherDashboard() {
     });
     setExamStudentSearch(''); // Reset search
     setShowExamModal(true);
+  };
+
+  const handleEditExam = (record) => {
+    setEditingExamRecord({
+      id: record.id,
+      student_name: `${record.first_name} ${record.last_name}`,
+      student_id: record.student_id,
+      subject: record.subject,
+      exam_date: record.exam_date,
+      max_score: record.max_score,
+      semester_name: record.semester_name,
+      score: record.is_absent ? '' : record.score,
+      is_absent: record.is_absent,
+      absence_reason: record.absence_reason || '',
+      notes: record.notes || ''
+    });
+    setShowEditExamModal(true);
+  };
+
+  const handleUpdateExam = async (e) => {
+    e.preventDefault();
+    
+    if (!editingExamRecord.is_absent && (editingExamRecord.score === '' || editingExamRecord.score === null)) {
+      toast.error('Score is required when student is not absent');
+      return;
+    }
+
+    if (editingExamRecord.is_absent && !editingExamRecord.absence_reason) {
+      toast.error('Absence reason is required');
+      return;
+    }
+
+    try {
+      await api.put(`/teacher/exam-performance/${editingExamRecord.id}`, {
+        score: editingExamRecord.score,
+        is_absent: editingExamRecord.is_absent,
+        absence_reason: editingExamRecord.absence_reason,
+        notes: editingExamRecord.notes
+      });
+      
+      toast.success('Exam record updated successfully!');
+      setShowEditExamModal(false);
+      setEditingExamRecord(null);
+      fetchExamPerformance();
+    } catch (error) {
+      console.error('Failed to update exam record:', error);
+      toast.error(error.response?.data?.error || 'Failed to update exam record');
+    }
+  };
+
+  const handleDeleteExam = async (id) => {
+    try {
+      await api.delete(`/teacher/exam-performance/${id}`);
+      toast.success('Exam record deleted successfully!');
+      setDeleteExamId(null);
+      fetchExamPerformance();
+    } catch (error) {
+      console.error('Failed to delete exam record:', error);
+      toast.error(error.response?.data?.error || 'Failed to delete exam record');
+    }
   };
 
   const updateStudentExamData = (studentId, field, value) => {
@@ -1390,6 +1453,29 @@ function TeacherDashboard() {
                               label: 'Notes', 
                               sortable: false,
                               render: (row) => row.notes || '-'
+                            },
+                            {
+                              key: 'actions',
+                              label: 'Actions',
+                              sortable: false,
+                              render: (row) => (
+                                <div style={{ display: 'flex', gap: 'var(--sm)' }}>
+                                  <button
+                                    onClick={() => handleEditExam(row)}
+                                    className="btn-sm btn-edit"
+                                    title="Edit"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteExamId(row.id)}
+                                    className="btn-sm btn-delete"
+                                    title="Delete"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )
                             }
                           ]}
                           data={kpi.records}
@@ -1778,6 +1864,148 @@ function TeacherDashboard() {
           )}
         </main>
       </div>
+
+      {/* Edit Exam Modal */}
+      {showEditExamModal && editingExamRecord && (
+        <div className="modal-overlay" onClick={() => setShowEditExamModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Edit Exam Record</h3>
+              <button onClick={() => setShowEditExamModal(false)} className="modal-close">×</button>
+            </div>
+            <form onSubmit={handleUpdateExam}>
+              <div className="modal-body">
+                {/* Student Info (Read-only) */}
+                <div style={{ padding: 'var(--md)', backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius)', marginBottom: 'var(--md)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sm)' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Student</label>
+                      <p style={{ margin: '4px 0 0 0', fontWeight: '600' }}>{editingExamRecord.student_name}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Student ID</label>
+                      <p style={{ margin: '4px 0 0 0' }}>{editingExamRecord.student_id}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Subject</label>
+                      <p style={{ margin: '4px 0 0 0' }}>{editingExamRecord.subject}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Semester</label>
+                      <p style={{ margin: '4px 0 0 0' }}>{editingExamRecord.semester_name}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Exam Date</label>
+                      <p style={{ margin: '4px 0 0 0' }}>{new Date(editingExamRecord.exam_date).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Max Score</label>
+                      <p style={{ margin: '4px 0 0 0' }}>{editingExamRecord.max_score}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Absent Checkbox */}
+                <div className="form-group" style={{ marginBottom: 'var(--md)' }}>
+                  <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: 'var(--sm)' }}>
+                    <input
+                      type="checkbox"
+                      checked={editingExamRecord.is_absent}
+                      onChange={(e) => setEditingExamRecord({
+                        ...editingExamRecord,
+                        is_absent: e.target.checked,
+                        score: e.target.checked ? '' : editingExamRecord.score
+                      })}
+                    />
+                    <span>Student was absent</span>
+                  </label>
+                </div>
+
+                {/* Score or Absence Reason */}
+                {!editingExamRecord.is_absent ? (
+                  <div className="form-group">
+                    <label className="form-label">Score *</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={editingExamRecord.score}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || (parseFloat(value) >= 0 && parseFloat(value) <= editingExamRecord.max_score)) {
+                          setEditingExamRecord({ ...editingExamRecord, score: value });
+                        }
+                      }}
+                      min="0"
+                      max={editingExamRecord.max_score}
+                      step="0.1"
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div className="form-group">
+                    <label className="form-label">Absence Reason *</label>
+                    <select
+                      className="form-select"
+                      value={editingExamRecord.absence_reason}
+                      onChange={(e) => setEditingExamRecord({ ...editingExamRecord, absence_reason: e.target.value })}
+                      required
+                    >
+                      <option value="">Select reason</option>
+                      <option value="Sick">Sick</option>
+                      <option value="Parent Request">Parent Request</option>
+                      <option value="School Not Notified">School Not Notified</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div className="form-group">
+                  <label className="form-label">Notes</label>
+                  <textarea
+                    className="form-input"
+                    value={editingExamRecord.notes}
+                    onChange={(e) => setEditingExamRecord({ ...editingExamRecord, notes: e.target.value })}
+                    rows="3"
+                    placeholder="Optional notes about this exam record"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" onClick={() => setShowEditExamModal(false)} className="btn btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Update Record
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteExamId && (
+        <div className="modal-overlay" onClick={() => setDeleteExamId(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Confirm Delete</h3>
+              <button onClick={() => setDeleteExamId(null)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to delete this exam record? This action cannot be undone.</p>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setDeleteExamId(null)} className="btn btn-secondary">
+                Cancel
+              </button>
+              <button onClick={() => handleDeleteExam(deleteExamId)} className="btn btn-danger">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

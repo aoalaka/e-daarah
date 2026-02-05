@@ -2088,7 +2088,7 @@ function TeacherDashboard() {
           {activeTab === 'reports' && (
             <>
               <div className="section-header">
-                <h2 className="page-title">Student Reports</h2>
+                <h2 className="page-title">Exam Reports</h2>
                 <p style={{ color: 'var(--muted)', marginTop: 'var(--sm)' }}>
                   View overall performance summary for each student
                 </p>

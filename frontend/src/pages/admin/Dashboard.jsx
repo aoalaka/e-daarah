@@ -71,6 +71,10 @@ function AdminDashboard() {
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [reportFilterSession, setReportFilterSession] = useState('');
   const [reportFilteredSemesters, setReportFilteredSemesters] = useState([]);
+  const [reportFilterSemester, setReportFilterSemester] = useState('');
+  const [reportFilterSubject, setReportFilterSubject] = useState('all');
+  const [reportAvailableSubjects, setReportAvailableSubjects] = useState([]);
+  const [studentReports, setStudentReports] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Settings state
@@ -142,6 +146,26 @@ function AdminDashboard() {
       setReportFilteredSemesters(semesters);
     }
   }, [reportFilterSession, semesters]);
+
+  // Filter semesters for exam reports by selected session
+  useEffect(() => {
+    if (reportFilterSession) {
+      const filtered = semesters.filter(sem => sem.session_id === parseInt(reportFilterSession));
+      setReportFilteredSemesters(filtered);
+      if (reportFilterSemester && !filtered.find(s => s.id === parseInt(reportFilterSemester))) {
+        setReportFilterSemester('');
+      }
+    } else {
+      setReportFilteredSemesters(semesters);
+    }
+  }, [reportFilterSession, semesters]);
+
+  // Fetch student reports when exam reports filters change
+  useEffect(() => {
+    if (selectedClassForPerformance && reportSubTab === 'student-reports') {
+      fetchStudentReports();
+    }
+  }, [selectedClassForPerformance, reportFilterSession, reportFilterSemester, reportFilterSubject, reportSubTab]);
 
   // Reset subject filter when class changes
   useEffect(() => {
@@ -663,6 +687,39 @@ function AdminDashboard() {
     });
 
     setExamKpis(subjectKpis);
+  };
+
+  const fetchStudentReports = async () => {
+    if (!selectedClassForPerformance) return;
+    try {
+      const params = {};
+      
+      if (reportFilterSession) {
+        params.sessionId = reportFilterSession;
+      }
+      if (reportFilterSemester) {
+        params.semesterId = reportFilterSemester;
+      }
+      if (reportFilterSubject && reportFilterSubject !== 'all') {
+        params.subject = reportFilterSubject;
+      }
+      
+      const response = await api.get(`/admin/classes/${selectedClassForPerformance}/student-reports`, { params });
+      setStudentReports(response.data);
+      
+      // Extract unique subjects from the exam data
+      const subjects = new Set();
+      response.data.forEach(student => {
+        if (student.subjects) {
+          student.subjects.split(',').forEach(sub => subjects.add(sub.trim()));
+        }
+      });
+      setReportAvailableSubjects(Array.from(subjects).sort());
+    } catch (error) {
+      console.error('Failed to fetch student reports:', error);
+      setStudentReports([]);
+      setReportAvailableSubjects([]);
+    }
   };
 
   const fetchClassKpis = async (classId) => {
@@ -1980,7 +2037,13 @@ function AdminDashboard() {
                     onClick={() => setReportSubTab('exams')}
                     className={`report-tab-btn ${reportSubTab === 'exams' ? 'active' : ''}`}
                   >
-                    Exam Reports
+                    Exam Performance
+                  </button>
+                  <button
+                    onClick={() => setReportSubTab('student-reports')}
+                    className={`report-tab-btn ${reportSubTab === 'student-reports' ? 'active' : ''}`}
+                  >
+                    Student Rankings
                   </button>
                   <button
                     onClick={() => setReportSubTab('individual')}
@@ -2014,8 +2077,14 @@ function AdminDashboard() {
                       <label className="form-label">Filter by Semester</label>
                       <select
                         className="form-select"
-                        value={reportSemester}
-                        onChange={(e) => setReportSemester(e.target.value)}
+                        value={reportSubTab === 'student-reports' ? reportFilterSemester : reportSemester}
+                        onChange={(e) => {
+                          if (reportSubTab === 'student-reports') {
+                            setReportFilterSemester(e.target.value);
+                          } else {
+                            setReportSemester(e.target.value);
+                          }
+                        }}
                       >
                         <option value="">All Semesters</option>
                         {reportFilteredSemesters.map(sem => (
@@ -2025,7 +2094,7 @@ function AdminDashboard() {
                         ))}
                       </select>
                     </div>
-                    {(reportSubTab === 'attendance' || reportSubTab === 'exams') && (
+                    {(reportSubTab === 'attendance' || reportSubTab === 'exams' || reportSubTab === 'student-reports') && (
                       <div className="form-group">
                         <label className="form-label">Select Class</label>
                         <select
@@ -2035,15 +2104,34 @@ function AdminDashboard() {
                             const cls = classes.find(c => c.id === parseInt(e.target.value));
                             setSelectedClassForPerformance(cls);
                             if (cls) {
-                              fetchClassKpis(cls.id);
-                              fetchClassAttendance(cls.id);
-                              fetchClassExams(cls.id);
+                              if (reportSubTab === 'student-reports') {
+                                fetchStudentReports();
+                              } else {
+                                fetchClassKpis(cls.id);
+                                fetchClassAttendance(cls.id);
+                                fetchClassExams(cls.id);
+                              }
                             }
                           }}
                         >
                           <option value="">-- Select a class --</option>
                           {classes.map(cls => (
                             <option key={cls.id} value={cls.id}>{cls.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {reportSubTab === 'student-reports' && selectedClassForPerformance && (
+                      <div className="form-group">
+                        <label className="form-label">Filter by Subject</label>
+                        <select
+                          className="form-select"
+                          value={reportFilterSubject}
+                          onChange={(e) => setReportFilterSubject(e.target.value)}
+                        >
+                          <option value="all">All Subjects</option>
+                          {reportAvailableSubjects.map(subject => (
+                            <option key={subject} value={subject}>{subject}</option>
                           ))}
                         </select>
                       </div>
@@ -2841,6 +2929,193 @@ function AdminDashboard() {
                 <div className="card">
                   <div className="empty">
                     <p>Select a class to view exam reports</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Student Rankings Tab */}
+              {reportSubTab === 'student-reports' && selectedClassForPerformance && studentReports.length > 0 && (
+                <div className="card">
+                  <h3 style={{ marginBottom: 'var(--md)' }}>
+                    Class Rankings - {classes.find(c => c.id === selectedClassForPerformance)?.name}
+                  </h3>
+                  <SortableTable
+                    columns={[
+                      {
+                        key: 'rank',
+                        label: 'Rank',
+                        sortable: false,
+                        render: (row) => {
+                          const rank = row.rank || 0;
+                          return (
+                            <span style={{ 
+                              fontWeight: '700', 
+                              fontSize: '16px',
+                              color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : 'var(--text)'
+                            }}>
+                              {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+                            </span>
+                          );
+                        }
+                      },
+                      {
+                        key: 'name',
+                        label: 'Student',
+                        sortable: true,
+                        render: (row) => (
+                          <div>
+                            <strong>{row.first_name} {row.last_name}</strong>
+                            <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{row.student_id}</div>
+                          </div>
+                        )
+                      },
+                      {
+                        key: 'overall_percentage',
+                        label: 'Overall %',
+                        sortable: true,
+                        sortType: 'number',
+                        render: (row) => (
+                          <span style={{
+                            fontWeight: '700',
+                            fontSize: '18px',
+                            color: row.overall_percentage >= 80 ? '#10b981' : 
+                                   row.overall_percentage >= 70 ? '#22c55e' :
+                                   row.overall_percentage >= 50 ? '#f59e0b' : 
+                                   '#ef4444'
+                          }}>
+                            {row.overall_percentage}%
+                          </span>
+                        )
+                      },
+                      {
+                        key: 'total_score',
+                        label: 'Total Score',
+                        sortable: true,
+                        sortType: 'number',
+                        render: (row) => (
+                          <div>
+                            <strong>{row.total_score}</strong>
+                            <span style={{ color: 'var(--muted)', fontSize: '12px' }}> / {row.total_max_score}</span>
+                          </div>
+                        )
+                      },
+                      {
+                        key: 'subject_count',
+                        label: 'Subjects',
+                        sortable: true,
+                        sortType: 'number',
+                        render: (row) => (
+                          <span style={{
+                            padding: '4px 12px',
+                            borderRadius: '20px',
+                            backgroundColor: 'var(--accent-light)',
+                            color: 'var(--accent)',
+                            fontWeight: '600',
+                            fontSize: '14px'
+                          }}>
+                            {row.subject_count}
+                          </span>
+                        )
+                      },
+                      {
+                        key: 'exams_taken',
+                        label: 'Exams Taken',
+                        sortable: true,
+                        sortType: 'number'
+                      },
+                      {
+                        key: 'exams_absent',
+                        label: 'Absences',
+                        sortable: true,
+                        sortType: 'number',
+                        render: (row) => (
+                          <span style={{
+                            color: row.exams_absent > 0 ? 'var(--error)' : 'var(--muted)'
+                          }}>
+                            {row.exams_absent}
+                          </span>
+                        )
+                      },
+                      {
+                        key: 'status',
+                        label: 'Status',
+                        sortable: false,
+                        render: (row) => {
+                          const percentage = parseFloat(row.overall_percentage);
+                          if (percentage >= 80) {
+                            return (
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                backgroundColor: '#dcfce7',
+                                color: '#166534'
+                              }}>
+                                Excellent
+                              </span>
+                            );
+                          } else if (percentage >= 70) {
+                            return (
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                backgroundColor: '#fef3c7',
+                                color: '#92400e'
+                              }}>
+                                Good
+                              </span>
+                            );
+                          } else if (percentage >= 50) {
+                            return (
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                backgroundColor: '#fff7ed',
+                                color: '#b86e00'
+                              }}>
+                                Average
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                backgroundColor: '#fef2f2',
+                                color: '#dc2626'
+                              }}>
+                                Needs Attention
+                              </span>
+                            );
+                          }
+                        }
+                      }
+                    ]}
+                    data={studentReports}
+                    defaultSort={{ key: 'overall_percentage', direction: 'desc' }}
+                  />
+                </div>
+              )}
+
+              {reportSubTab === 'student-reports' && selectedClassForPerformance && studentReports.length === 0 && (
+                <div className="card">
+                  <div className="empty">
+                    <p>No exam data available for this class. Students need to have exam records to appear here.</p>
+                  </div>
+                </div>
+              )}
+
+              {reportSubTab === 'student-reports' && !selectedClassForPerformance && (
+                <div className="card">
+                  <div className="empty">
+                    <p>Please select a class to view student rankings.</p>
                   </div>
                 </div>
               )}

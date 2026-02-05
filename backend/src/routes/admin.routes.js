@@ -856,6 +856,104 @@ router.get('/classes/:classId/exam-performance', async (req, res) => {
   }
 });
 
+// Get student reports/summary for a class (scoped to madrasah)
+router.get('/classes/:classId/student-reports', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { classId } = req.params;
+    const { sessionId, semesterId, subject } = req.query;
+
+    // Verify class belongs to this madrasah
+    const [classCheck] = await pool.query(
+      'SELECT id FROM classes WHERE id = ? AND madrasah_id = ?',
+      [classId, madrasahId]
+    );
+    if (classCheck.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    // Build query with filters
+    let query = `
+      SELECT 
+        s.id,
+        s.student_id,
+        s.first_name,
+        s.last_name,
+        COUNT(DISTINCT ep.subject) as subject_count,
+        COUNT(ep.id) as total_exams,
+        SUM(CASE WHEN ep.is_absent = FALSE THEN 1 ELSE 0 END) as exams_taken,
+        SUM(CASE WHEN ep.is_absent = TRUE THEN 1 ELSE 0 END) as exams_absent,
+        SUM(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE 0 END) as total_score,
+        SUM(ep.max_score) as total_max_score,
+        GROUP_CONCAT(DISTINCT ep.subject ORDER BY ep.subject SEPARATOR ', ') as subjects,
+        CASE 
+          WHEN SUM(ep.max_score) > 0 THEN (SUM(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE 0 END) / SUM(ep.max_score)) * 100
+          ELSE 0
+        END as overall_percentage
+      FROM students s
+      LEFT JOIN exam_performance ep ON s.id = ep.student_id AND ep.madrasah_id = ?
+      LEFT JOIN semesters sem ON ep.semester_id = sem.id
+      WHERE s.class_id = ? AND s.deleted_at IS NULL
+    `;
+    
+    const queryParams = [madrasahId, classId];
+
+    if (sessionId) {
+      query += ` AND sem.session_id = ?`;
+      queryParams.push(sessionId);
+    }
+
+    if (semesterId) {
+      query += ` AND ep.semester_id = ?`;
+      queryParams.push(semesterId);
+    }
+
+    if (subject) {
+      query += ` AND ep.subject = ?`;
+      queryParams.push(subject);
+    }
+
+    query += ` GROUP BY s.id ORDER BY overall_percentage DESC`;
+
+    const [reports] = await pool.query(query, queryParams);
+
+    // Format the results and add rank (handle ties properly)
+    let currentRank = 1;
+    let previousPercentage = null;
+    let studentsAtCurrentRank = 0;
+    
+    const formattedReports = reports.map((report, index) => {
+      const percentage = report.overall_percentage ? parseFloat(report.overall_percentage).toFixed(2) : '0.00';
+      
+      // If this is a different percentage than the previous student, update rank
+      if (previousPercentage !== null && percentage !== previousPercentage) {
+        currentRank += studentsAtCurrentRank;
+        studentsAtCurrentRank = 0;
+      }
+      
+      studentsAtCurrentRank++;
+      previousPercentage = percentage;
+      
+      return {
+        ...report,
+        rank: currentRank, // Same rank for students with same percentage
+        overall_percentage: percentage,
+        total_score: report.total_score ? parseFloat(report.total_score).toFixed(2) : '0.00',
+        total_max_score: report.total_max_score ? parseFloat(report.total_max_score).toFixed(2) : '0.00',
+        subject_count: parseInt(report.subject_count) || 0,
+        total_exams: parseInt(report.total_exams) || 0,
+        exams_taken: parseInt(report.exams_taken) || 0,
+        exams_absent: parseInt(report.exams_absent) || 0
+      };
+    });
+
+    res.json(formattedReports);
+  } catch (error) {
+    console.error('Get student reports error:', error);
+    res.status(500).json({ error: 'Failed to fetch student reports' });
+  }
+});
+
 // Get student report (scoped to madrasah)
 router.get('/students/:id/report', async (req, res) => {
   try {

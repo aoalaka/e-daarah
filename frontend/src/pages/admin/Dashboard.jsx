@@ -471,6 +471,7 @@ function AdminDashboard() {
       });
       setUploadResults(response.data);
       setUploadFile(null);
+      setUploadClass('');
       loadData();
       toast.success(`Upload complete: ${response.data.successful} successful, ${response.data.failed} failed`);
     } catch (error) {

@@ -954,6 +954,526 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
   }
 });
 
+// Get attendance rankings for a class (scoped to madrasah)
+router.get('/classes/:classId/attendance-rankings', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { classId } = req.params;
+    const { sessionId, semesterId } = req.query;
+
+    // Verify class belongs to this madrasah
+    const [classCheck] = await pool.query(
+      'SELECT id FROM classes WHERE id = ? AND madrasah_id = ?',
+      [classId, madrasahId]
+    );
+    if (classCheck.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    // Build query with filters
+    let query = `
+      SELECT 
+        s.id,
+        s.student_id,
+        s.first_name,
+        s.last_name,
+        c.name as class_name,
+        COUNT(a.id) as total_days,
+        SUM(CASE WHEN a.is_present = TRUE THEN 1 ELSE 0 END) as days_present,
+        SUM(CASE WHEN a.is_present = FALSE THEN 1 ELSE 0 END) as days_absent,
+        CASE 
+          WHEN COUNT(a.id) > 0 THEN (SUM(CASE WHEN a.is_present = TRUE THEN 1 ELSE 0 END) / COUNT(a.id)) * 100
+          ELSE 0
+        END as attendance_rate
+      FROM students s
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?
+      LEFT JOIN semesters sem ON a.semester_id = sem.id
+      LEFT JOIN classes c ON s.class_id = c.id
+      WHERE s.class_id = ? AND s.deleted_at IS NULL
+    `;
+    
+    const queryParams = [madrasahId, classId];
+
+    if (sessionId) {
+      query += ` AND sem.session_id = ?`;
+      queryParams.push(sessionId);
+    }
+
+    if (semesterId) {
+      query += ` AND a.semester_id = ?`;
+      queryParams.push(semesterId);
+    }
+
+    query += ` GROUP BY s.id ORDER BY attendance_rate DESC`;
+
+    const [rankings] = await pool.query(query, queryParams);
+
+    // Format the results and add rank (handle ties properly)
+    let currentRank = 1;
+    let previousRate = null;
+    let studentsAtCurrentRank = 0;
+    
+    const formattedRankings = rankings.map((student) => {
+      const rate = student.attendance_rate ? parseFloat(student.attendance_rate).toFixed(2) : '0.00';
+      
+      // If this is a different rate than the previous student, update rank
+      if (previousRate !== null && rate !== previousRate) {
+        currentRank += studentsAtCurrentRank;
+        studentsAtCurrentRank = 0;
+      }
+      
+      studentsAtCurrentRank++;
+      previousRate = rate;
+      
+      return {
+        ...student,
+        rank: currentRank,
+        attendance_rate: rate,
+        total_days: parseInt(student.total_days) || 0,
+        days_present: parseInt(student.days_present) || 0,
+        days_absent: parseInt(student.days_absent) || 0
+      };
+    });
+
+    res.json(formattedRankings);
+  } catch (error) {
+    console.error('Get attendance rankings error:', error);
+    res.status(500).json({ error: 'Failed to fetch attendance rankings' });
+  }
+});
+
+// Get dressing rankings for a class (scoped to madrasah)
+router.get('/classes/:classId/dressing-rankings', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { classId } = req.params;
+    const { sessionId, semesterId } = req.query;
+
+    // Verify class belongs to this madrasah
+    const [classCheck] = await pool.query(
+      'SELECT id FROM classes WHERE id = ? AND madrasah_id = ?',
+      [classId, madrasahId]
+    );
+    if (classCheck.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    // Build query with filters (Excellent=4, Good=3, Fair=2, Poor=1)
+    let query = `
+      SELECT 
+        s.id,
+        s.student_id,
+        s.first_name,
+        s.last_name,
+        c.name as class_name,
+        COUNT(a.id) as total_records,
+        AVG(
+          CASE a.dressing_grade
+            WHEN 'Excellent' THEN 4
+            WHEN 'Good' THEN 3
+            WHEN 'Fair' THEN 2
+            WHEN 'Poor' THEN 1
+            ELSE NULL
+          END
+        ) as avg_dressing_score,
+        SUM(CASE WHEN a.dressing_grade = 'Excellent' THEN 1 ELSE 0 END) as excellent_count,
+        SUM(CASE WHEN a.dressing_grade = 'Good' THEN 1 ELSE 0 END) as good_count,
+        SUM(CASE WHEN a.dressing_grade = 'Fair' THEN 1 ELSE 0 END) as fair_count,
+        SUM(CASE WHEN a.dressing_grade = 'Poor' THEN 1 ELSE 0 END) as poor_count
+      FROM students s
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ? AND a.dressing_grade IS NOT NULL
+      LEFT JOIN semesters sem ON a.semester_id = sem.id
+      LEFT JOIN classes c ON s.class_id = c.id
+      WHERE s.class_id = ? AND s.deleted_at IS NULL
+    `;
+    
+    const queryParams = [madrasahId, classId];
+
+    if (sessionId) {
+      query += ` AND sem.session_id = ?`;
+      queryParams.push(sessionId);
+    }
+
+    if (semesterId) {
+      query += ` AND a.semester_id = ?`;
+      queryParams.push(semesterId);
+    }
+
+    query += ` GROUP BY s.id ORDER BY avg_dressing_score DESC`;
+
+    const [rankings] = await pool.query(query, queryParams);
+
+    // Format the results and add rank (handle ties properly)
+    let currentRank = 1;
+    let previousScore = null;
+    let studentsAtCurrentRank = 0;
+    
+    const formattedRankings = rankings.map((student) => {
+      const score = student.avg_dressing_score ? parseFloat(student.avg_dressing_score).toFixed(2) : null;
+      
+      // If this is a different score than the previous student, update rank
+      if (previousScore !== null && score !== previousScore) {
+        currentRank += studentsAtCurrentRank;
+        studentsAtCurrentRank = 0;
+      }
+      
+      studentsAtCurrentRank++;
+      previousScore = score;
+      
+      // Convert score back to grade label
+      let gradeLabel = 'N/A';
+      if (score !== null) {
+        const scoreNum = parseFloat(score);
+        if (scoreNum >= 3.5) gradeLabel = 'Excellent';
+        else if (scoreNum >= 2.5) gradeLabel = 'Good';
+        else if (scoreNum >= 1.5) gradeLabel = 'Fair';
+        else gradeLabel = 'Poor';
+      }
+      
+      return {
+        ...student,
+        rank: score !== null ? currentRank : null,
+        avg_dressing_score: score,
+        avg_dressing_grade: gradeLabel,
+        total_records: parseInt(student.total_records) || 0,
+        excellent_count: parseInt(student.excellent_count) || 0,
+        good_count: parseInt(student.good_count) || 0,
+        fair_count: parseInt(student.fair_count) || 0,
+        poor_count: parseInt(student.poor_count) || 0
+      };
+    });
+
+    res.json(formattedRankings);
+  } catch (error) {
+    console.error('Get dressing rankings error:', error);
+    res.status(500).json({ error: 'Failed to fetch dressing rankings' });
+  }
+});
+
+// Get behavior rankings for a class (scoped to madrasah)
+router.get('/classes/:classId/behavior-rankings', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { classId } = req.params;
+    const { sessionId, semesterId } = req.query;
+
+    // Verify class belongs to this madrasah
+    const [classCheck] = await pool.query(
+      'SELECT id FROM classes WHERE id = ? AND madrasah_id = ?',
+      [classId, madrasahId]
+    );
+    if (classCheck.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    // Build query with filters (Excellent=4, Good=3, Fair=2, Poor=1)
+    let query = `
+      SELECT 
+        s.id,
+        s.student_id,
+        s.first_name,
+        s.last_name,
+        c.name as class_name,
+        COUNT(a.id) as total_records,
+        AVG(
+          CASE a.behavior_grade
+            WHEN 'Excellent' THEN 4
+            WHEN 'Good' THEN 3
+            WHEN 'Fair' THEN 2
+            WHEN 'Poor' THEN 1
+            ELSE NULL
+          END
+        ) as avg_behavior_score,
+        SUM(CASE WHEN a.behavior_grade = 'Excellent' THEN 1 ELSE 0 END) as excellent_count,
+        SUM(CASE WHEN a.behavior_grade = 'Good' THEN 1 ELSE 0 END) as good_count,
+        SUM(CASE WHEN a.behavior_grade = 'Fair' THEN 1 ELSE 0 END) as fair_count,
+        SUM(CASE WHEN a.behavior_grade = 'Poor' THEN 1 ELSE 0 END) as poor_count
+      FROM students s
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ? AND a.behavior_grade IS NOT NULL
+      LEFT JOIN semesters sem ON a.semester_id = sem.id
+      LEFT JOIN classes c ON s.class_id = c.id
+      WHERE s.class_id = ? AND s.deleted_at IS NULL
+    `;
+    
+    const queryParams = [madrasahId, classId];
+
+    if (sessionId) {
+      query += ` AND sem.session_id = ?`;
+      queryParams.push(sessionId);
+    }
+
+    if (semesterId) {
+      query += ` AND a.semester_id = ?`;
+      queryParams.push(semesterId);
+    }
+
+    query += ` GROUP BY s.id ORDER BY avg_behavior_score DESC`;
+
+    const [rankings] = await pool.query(query, queryParams);
+
+    // Format the results and add rank (handle ties properly)
+    let currentRank = 1;
+    let previousScore = null;
+    let studentsAtCurrentRank = 0;
+    
+    const formattedRankings = rankings.map((student) => {
+      const score = student.avg_behavior_score ? parseFloat(student.avg_behavior_score).toFixed(2) : null;
+      
+      // If this is a different score than the previous student, update rank
+      if (previousScore !== null && score !== previousScore) {
+        currentRank += studentsAtCurrentRank;
+        studentsAtCurrentRank = 0;
+      }
+      
+      studentsAtCurrentRank++;
+      previousScore = score;
+      
+      // Convert score back to grade label
+      let gradeLabel = 'N/A';
+      if (score !== null) {
+        const scoreNum = parseFloat(score);
+        if (scoreNum >= 3.5) gradeLabel = 'Excellent';
+        else if (scoreNum >= 2.5) gradeLabel = 'Good';
+        else if (scoreNum >= 1.5) gradeLabel = 'Fair';
+        else gradeLabel = 'Poor';
+      }
+      
+      return {
+        ...student,
+        rank: score !== null ? currentRank : null,
+        avg_behavior_score: score,
+        avg_behavior_grade: gradeLabel,
+        total_records: parseInt(student.total_records) || 0,
+        excellent_count: parseInt(student.excellent_count) || 0,
+        good_count: parseInt(student.good_count) || 0,
+        fair_count: parseInt(student.fair_count) || 0,
+        poor_count: parseInt(student.poor_count) || 0
+      };
+    });
+
+    res.json(formattedRankings);
+  } catch (error) {
+    console.error('Get behavior rankings error:', error);
+    res.status(500).json({ error: 'Failed to fetch behavior rankings' });
+  }
+});
+
+// Get all rankings for a specific student (madrasah-wide)
+router.get('/students/:id/all-rankings', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    const { sessionId, semesterId } = req.query;
+
+    // Verify student belongs to this madrasah
+    const [studentCheck] = await pool.query(
+      'SELECT id, student_id, first_name, last_name, class_id FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
+    if (studentCheck.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    const student = studentCheck[0];
+
+    // Get exam ranking (madrasah-wide)
+    let examQuery = `
+      SELECT 
+        s.id,
+        s.student_id,
+        CASE 
+          WHEN SUM(ep.max_score) > 0 THEN (SUM(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE 0 END) / SUM(ep.max_score)) * 100
+          ELSE 0
+        END as overall_percentage
+      FROM students s
+      LEFT JOIN exam_performance ep ON s.id = ep.student_id AND ep.madrasah_id = ?
+      LEFT JOIN semesters sem ON ep.semester_id = sem.id
+      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+    `;
+    const examParams = [madrasahId, madrasahId];
+
+    if (sessionId) {
+      examQuery += ` AND sem.session_id = ?`;
+      examParams.push(sessionId);
+    }
+    if (semesterId) {
+      examQuery += ` AND ep.semester_id = ?`;
+      examParams.push(semesterId);
+    }
+
+    examQuery += ` GROUP BY s.id ORDER BY overall_percentage DESC`;
+    const [examRankings] = await pool.query(examQuery, examParams);
+
+    // Find student's exam rank
+    let examRank = null;
+    let examPercentage = null;
+    let totalExamStudents = 0;
+    examRankings.forEach((r, index) => {
+      if (parseFloat(r.overall_percentage) > 0) totalExamStudents++;
+      if (r.id === parseInt(id)) {
+        examRank = index + 1;
+        examPercentage = parseFloat(r.overall_percentage).toFixed(2);
+      }
+    });
+
+    // Get attendance ranking (madrasah-wide)
+    let attendanceQuery = `
+      SELECT 
+        s.id,
+        CASE 
+          WHEN COUNT(a.id) > 0 THEN (SUM(CASE WHEN a.is_present = TRUE THEN 1 ELSE 0 END) / COUNT(a.id)) * 100
+          ELSE 0
+        END as attendance_rate
+      FROM students s
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?
+      LEFT JOIN semesters sem ON a.semester_id = sem.id
+      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+    `;
+    const attendanceParams = [madrasahId, madrasahId];
+
+    if (sessionId) {
+      attendanceQuery += ` AND sem.session_id = ?`;
+      attendanceParams.push(sessionId);
+    }
+    if (semesterId) {
+      attendanceQuery += ` AND a.semester_id = ?`;
+      attendanceParams.push(semesterId);
+    }
+
+    attendanceQuery += ` GROUP BY s.id ORDER BY attendance_rate DESC`;
+    const [attendanceRankings] = await pool.query(attendanceQuery, attendanceParams);
+
+    let attendanceRank = null;
+    let attendanceRate = null;
+    let totalAttendanceStudents = 0;
+    attendanceRankings.forEach((r, index) => {
+      if (parseFloat(r.attendance_rate) > 0) totalAttendanceStudents++;
+      if (r.id === parseInt(id)) {
+        attendanceRank = index + 1;
+        attendanceRate = parseFloat(r.attendance_rate).toFixed(2);
+      }
+    });
+
+    // Get dressing ranking (madrasah-wide)
+    let dressingQuery = `
+      SELECT 
+        s.id,
+        AVG(
+          CASE a.dressing_grade
+            WHEN 'Excellent' THEN 4
+            WHEN 'Good' THEN 3
+            WHEN 'Fair' THEN 2
+            WHEN 'Poor' THEN 1
+            ELSE NULL
+          END
+        ) as avg_dressing_score
+      FROM students s
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ? AND a.dressing_grade IS NOT NULL
+      LEFT JOIN semesters sem ON a.semester_id = sem.id
+      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+    `;
+    const dressingParams = [madrasahId, madrasahId];
+
+    if (sessionId) {
+      dressingQuery += ` AND sem.session_id = ?`;
+      dressingParams.push(sessionId);
+    }
+    if (semesterId) {
+      dressingQuery += ` AND a.semester_id = ?`;
+      dressingParams.push(semesterId);
+    }
+
+    dressingQuery += ` GROUP BY s.id HAVING avg_dressing_score IS NOT NULL ORDER BY avg_dressing_score DESC`;
+    const [dressingRankings] = await pool.query(dressingQuery, dressingParams);
+
+    let dressingRank = null;
+    let dressingScore = null;
+    let totalDressingStudents = dressingRankings.length;
+    dressingRankings.forEach((r, index) => {
+      if (r.id === parseInt(id)) {
+        dressingRank = index + 1;
+        dressingScore = parseFloat(r.avg_dressing_score).toFixed(2);
+      }
+    });
+
+    // Get behavior ranking (madrasah-wide)
+    let behaviorQuery = `
+      SELECT 
+        s.id,
+        AVG(
+          CASE a.behavior_grade
+            WHEN 'Excellent' THEN 4
+            WHEN 'Good' THEN 3
+            WHEN 'Fair' THEN 2
+            WHEN 'Poor' THEN 1
+            ELSE NULL
+          END
+        ) as avg_behavior_score
+      FROM students s
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ? AND a.behavior_grade IS NOT NULL
+      LEFT JOIN semesters sem ON a.semester_id = sem.id
+      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+    `;
+    const behaviorParams = [madrasahId, madrasahId];
+
+    if (sessionId) {
+      behaviorQuery += ` AND sem.session_id = ?`;
+      behaviorParams.push(sessionId);
+    }
+    if (semesterId) {
+      behaviorQuery += ` AND a.semester_id = ?`;
+      behaviorParams.push(semesterId);
+    }
+
+    behaviorQuery += ` GROUP BY s.id HAVING avg_behavior_score IS NOT NULL ORDER BY avg_behavior_score DESC`;
+    const [behaviorRankings] = await pool.query(behaviorQuery, behaviorParams);
+
+    let behaviorRank = null;
+    let behaviorScore = null;
+    let totalBehaviorStudents = behaviorRankings.length;
+    behaviorRankings.forEach((r, index) => {
+      if (r.id === parseInt(id)) {
+        behaviorRank = index + 1;
+        behaviorScore = parseFloat(r.avg_behavior_score).toFixed(2);
+      }
+    });
+
+    res.json({
+      student: {
+        id: student.id,
+        student_id: student.student_id,
+        first_name: student.first_name,
+        last_name: student.last_name,
+        class_id: student.class_id
+      },
+      rankings: {
+        exam: {
+          rank: examRank,
+          percentage: examPercentage,
+          total_students: totalExamStudents
+        },
+        attendance: {
+          rank: attendanceRank,
+          rate: attendanceRate,
+          total_students: totalAttendanceStudents
+        },
+        dressing: {
+          rank: dressingRank,
+          score: dressingScore,
+          total_students: totalDressingStudents
+        },
+        behavior: {
+          rank: behaviorRank,
+          score: behaviorScore,
+          total_students: totalBehaviorStudents
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get all rankings error:', error);
+    res.status(500).json({ error: 'Failed to fetch student rankings' });
+  }
+});
+
 // Get student report (scoped to madrasah)
 router.get('/students/:id/report', async (req, res) => {
   try {

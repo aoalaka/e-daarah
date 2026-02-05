@@ -77,6 +77,11 @@ function AdminDashboard() {
   const [reportFilterSubject, setReportFilterSubject] = useState('all');
   const [reportAvailableSubjects, setReportAvailableSubjects] = useState([]);
   const [studentReports, setStudentReports] = useState([]);
+  const [rankingSubTab, setRankingSubTab] = useState('exam'); // Sub-tab for rankings (exam, attendance, dressing, behavior)
+  const [attendanceRankings, setAttendanceRankings] = useState([]);
+  const [dressingRankings, setDressingRankings] = useState([]);
+  const [behaviorRankings, setBehaviorRankings] = useState([]);
+  const [individualRankings, setIndividualRankings] = useState(null); // Madrasah-wide rankings for individual student
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Settings state
@@ -168,6 +173,21 @@ function AdminDashboard() {
       fetchStudentReports();
     }
   }, [selectedClassForPerformance, reportFilterSession, reportFilterSemester, reportFilterSubject, reportSubTab]);
+
+  // Fetch rankings based on active ranking sub-tab
+  useEffect(() => {
+    if (selectedClassForPerformance && reportSubTab === 'rankings') {
+      if (rankingSubTab === 'exam') {
+        fetchStudentReports();
+      } else if (rankingSubTab === 'attendance') {
+        fetchAttendanceRankings();
+      } else if (rankingSubTab === 'dressing') {
+        fetchDressingRankings();
+      } else if (rankingSubTab === 'behavior') {
+        fetchBehaviorRankings();
+      }
+    }
+  }, [selectedClassForPerformance, reportFilterSession, reportFilterSemester, reportSubTab, rankingSubTab]);
 
   // Reset subject filter when class changes
   useEffect(() => {
@@ -586,6 +606,8 @@ function AdminDashboard() {
       const response = await api.get(url);
       setStudentReport(response.data);
       setSelectedStudentForReport(students.find(s => s.id === studentId));
+      // Fetch madrasah-wide rankings for the student
+      fetchIndividualRankings(studentId);
     } catch (error) {
       toast.error('Failed to load student report');
     }
@@ -722,6 +744,89 @@ function AdminDashboard() {
       console.error('Failed to fetch student reports:', error);
       setStudentReports([]);
       setReportAvailableSubjects([]);
+    }
+  };
+
+  const fetchAttendanceRankings = async () => {
+    if (!selectedClassForPerformance) return;
+    try {
+      const params = {};
+      
+      if (reportFilterSession) {
+        params.sessionId = reportFilterSession;
+      }
+      if (reportFilterSemester) {
+        params.semesterId = reportFilterSemester;
+      }
+      
+      const classId = selectedClassForPerformance.id || selectedClassForPerformance;
+      const response = await api.get(`/admin/classes/${classId}/attendance-rankings`, { params });
+      setAttendanceRankings(response.data);
+    } catch (error) {
+      console.error('Failed to fetch attendance rankings:', error);
+      setAttendanceRankings([]);
+    }
+  };
+
+  const fetchDressingRankings = async () => {
+    if (!selectedClassForPerformance) return;
+    try {
+      const params = {};
+      
+      if (reportFilterSession) {
+        params.sessionId = reportFilterSession;
+      }
+      if (reportFilterSemester) {
+        params.semesterId = reportFilterSemester;
+      }
+      
+      const classId = selectedClassForPerformance.id || selectedClassForPerformance;
+      const response = await api.get(`/admin/classes/${classId}/dressing-rankings`, { params });
+      setDressingRankings(response.data);
+    } catch (error) {
+      console.error('Failed to fetch dressing rankings:', error);
+      setDressingRankings([]);
+    }
+  };
+
+  const fetchBehaviorRankings = async () => {
+    if (!selectedClassForPerformance) return;
+    try {
+      const params = {};
+      
+      if (reportFilterSession) {
+        params.sessionId = reportFilterSession;
+      }
+      if (reportFilterSemester) {
+        params.semesterId = reportFilterSemester;
+      }
+      
+      const classId = selectedClassForPerformance.id || selectedClassForPerformance;
+      const response = await api.get(`/admin/classes/${classId}/behavior-rankings`, { params });
+      setBehaviorRankings(response.data);
+    } catch (error) {
+      console.error('Failed to fetch behavior rankings:', error);
+      setBehaviorRankings([]);
+    }
+  };
+
+  const fetchIndividualRankings = async (studentId) => {
+    if (!studentId) return;
+    try {
+      const params = {};
+      
+      if (reportFilterSession) {
+        params.sessionId = reportFilterSession;
+      }
+      if (reportFilterSemester) {
+        params.semesterId = reportFilterSemester;
+      }
+      
+      const response = await api.get(`/admin/students/${studentId}/all-rankings`, { params });
+      setIndividualRankings(response.data);
+    } catch (error) {
+      console.error('Failed to fetch individual rankings:', error);
+      setIndividualRankings(null);
     }
   };
 
@@ -3046,173 +3151,588 @@ function AdminDashboard() {
               )}
 
               {/* Student Rankings Tab */}
-              {reportSubTab === 'student-reports' && selectedClassForPerformance && studentReports.length > 0 && (
+              {reportSubTab === 'student-reports' && selectedClassForPerformance && (
                 <div className="card">
                   <h3 style={{ marginBottom: 'var(--md)' }}>
                     Class Rankings - {classes.find(c => c.id === selectedClassForPerformance)?.name}
                   </h3>
-                  <SortableTable
-                    columns={[
-                      {
-                        key: 'rank',
-                        label: 'Rank',
-                        sortable: false,
-                        render: (row) => {
-                          const rank = row.rank || 0;
-                          return (
-                            <span style={{ 
-                              fontWeight: '700', 
-                              fontSize: '16px',
-                              color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : 'var(--text)'
-                            }}>
-                              {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
-                            </span>
-                          );
-                        }
-                      },
-                      {
-                        key: 'name',
-                        label: 'Student',
-                        sortable: true,
-                        render: (row) => (
-                          <div>
-                            <strong>{row.first_name} {row.last_name}</strong>
-                            <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{row.student_id}</div>
-                          </div>
-                        )
-                      },
-                      {
-                        key: 'overall_percentage',
-                        label: 'Overall %',
-                        sortable: true,
-                        sortType: 'number',
-                        render: (row) => (
-                          <span style={{
-                            fontWeight: '700',
-                            fontSize: '18px',
-                            color: row.overall_percentage >= 80 ? '#10b981' : 
-                                   row.overall_percentage >= 70 ? '#22c55e' :
-                                   row.overall_percentage >= 50 ? '#f59e0b' : 
-                                   '#ef4444'
-                          }}>
-                            {row.overall_percentage}%
-                          </span>
-                        )
-                      },
-                      {
-                        key: 'total_score',
-                        label: 'Total Score',
-                        sortable: true,
-                        sortType: 'number',
-                        render: (row) => (
-                          <div>
-                            <strong>{row.total_score}</strong>
-                            <span style={{ color: 'var(--muted)', fontSize: '12px' }}> / {row.total_max_score}</span>
-                          </div>
-                        )
-                      },
-                      {
-                        key: 'subject_count',
-                        label: 'Subjects',
-                        sortable: true,
-                        sortType: 'number',
-                        render: (row) => (
-                          <span style={{
-                            padding: '4px 12px',
-                            borderRadius: '20px',
-                            backgroundColor: 'var(--accent-light)',
-                            color: 'var(--accent)',
-                            fontWeight: '600',
-                            fontSize: '14px'
-                          }}>
-                            {row.subject_count}
-                          </span>
-                        )
-                      },
-                      {
-                        key: 'exams_taken',
-                        label: 'Exams Taken',
-                        sortable: true,
-                        sortType: 'number'
-                      },
-                      {
-                        key: 'exams_absent',
-                        label: 'Absences',
-                        sortable: true,
-                        sortType: 'number',
-                        render: (row) => (
-                          <span style={{
-                            color: row.exams_absent > 0 ? 'var(--error)' : 'var(--muted)'
-                          }}>
-                            {row.exams_absent}
-                          </span>
-                        )
-                      },
-                      {
-                        key: 'status',
-                        label: 'Status',
-                        sortable: false,
-                        render: (row) => {
-                          const percentage = parseFloat(row.overall_percentage);
-                          if (percentage >= 80) {
+
+                  {/* Ranking Sub-tabs */}
+                  <div className="report-subtabs" style={{ marginBottom: 'var(--md)' }}>
+                    <button
+                      className={`subtab-btn ${rankingSubTab === 'exam' ? 'active' : ''}`}
+                      onClick={() => setRankingSubTab('exam')}
+                    >
+                      📚 Exam
+                    </button>
+                    <button
+                      className={`subtab-btn ${rankingSubTab === 'attendance' ? 'active' : ''}`}
+                      onClick={() => setRankingSubTab('attendance')}
+                    >
+                      ✅ Attendance
+                    </button>
+                    <button
+                      className={`subtab-btn ${rankingSubTab === 'dressing' ? 'active' : ''}`}
+                      onClick={() => setRankingSubTab('dressing')}
+                    >
+                      👔 Dressing
+                    </button>
+                    <button
+                      className={`subtab-btn ${rankingSubTab === 'behavior' ? 'active' : ''}`}
+                      onClick={() => setRankingSubTab('behavior')}
+                    >
+                      🌟 Behavior
+                    </button>
+                  </div>
+
+                  {/* Exam Rankings */}
+                  {rankingSubTab === 'exam' && studentReports.length > 0 && (
+                    <SortableTable
+                      columns={[
+                        {
+                          key: 'rank',
+                          label: 'Rank',
+                          sortable: false,
+                          render: (row) => {
+                            const rank = row.rank || 0;
                             return (
-                              <span style={{
-                                padding: '4px 10px',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                backgroundColor: '#dcfce7',
-                                color: '#166534'
+                              <span style={{ 
+                                fontWeight: '700', 
+                                fontSize: '16px',
+                                color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : 'var(--text)'
                               }}>
-                                Excellent
-                              </span>
-                            );
-                          } else if (percentage >= 70) {
-                            return (
-                              <span style={{
-                                padding: '4px 10px',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                backgroundColor: '#fef3c7',
-                                color: '#92400e'
-                              }}>
-                                Good
-                              </span>
-                            );
-                          } else if (percentage >= 50) {
-                            return (
-                              <span style={{
-                                padding: '4px 10px',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                backgroundColor: '#fff7ed',
-                                color: '#b86e00'
-                              }}>
-                                Average
-                              </span>
-                            );
-                          } else {
-                            return (
-                              <span style={{
-                                padding: '4px 10px',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                backgroundColor: '#fef2f2',
-                                color: '#dc2626'
-                              }}>
-                                Needs Attention
+                                {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
                               </span>
                             );
                           }
+                        },
+                        {
+                          key: 'name',
+                          label: 'Student',
+                          sortable: true,
+                          render: (row) => (
+                            <div>
+                              <strong>{row.first_name} {row.last_name}</strong>
+                              <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{row.student_id}</div>
+                            </div>
+                          )
+                        },
+                        {
+                          key: 'overall_percentage',
+                          label: 'Overall %',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{
+                              fontWeight: '700',
+                              fontSize: '18px',
+                              color: row.overall_percentage >= 80 ? '#10b981' : 
+                                     row.overall_percentage >= 70 ? '#22c55e' :
+                                     row.overall_percentage >= 50 ? '#f59e0b' : 
+                                     '#ef4444'
+                            }}>
+                              {row.overall_percentage}%
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'total_score',
+                          label: 'Total Score',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <div>
+                              <strong>{row.total_score}</strong>
+                              <span style={{ color: 'var(--muted)', fontSize: '12px' }}> / {row.total_max_score}</span>
+                            </div>
+                          )
+                        },
+                        {
+                          key: 'subject_count',
+                          label: 'Subjects',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: '20px',
+                              backgroundColor: 'var(--accent-light)',
+                              color: 'var(--accent)',
+                              fontWeight: '600',
+                              fontSize: '14px'
+                            }}>
+                              {row.subject_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'exams_taken',
+                          label: 'Exams Taken',
+                          sortable: true,
+                          sortType: 'number'
+                        },
+                        {
+                          key: 'exams_absent',
+                          label: 'Absences',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{
+                              color: row.exams_absent > 0 ? 'var(--error)' : 'var(--muted)'
+                            }}>
+                              {row.exams_absent}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'status',
+                          label: 'Status',
+                          sortable: false,
+                          render: (row) => {
+                            const percentage = parseFloat(row.overall_percentage);
+                            if (percentage >= 80) {
+                              return (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  backgroundColor: '#dcfce7',
+                                  color: '#166534'
+                                }}>
+                                  Excellent
+                                </span>
+                              );
+                            } else if (percentage >= 70) {
+                              return (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  backgroundColor: '#fef3c7',
+                                  color: '#92400e'
+                                }}>
+                                  Good
+                                </span>
+                              );
+                            } else if (percentage >= 50) {
+                              return (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  backgroundColor: '#fff7ed',
+                                  color: '#b86e00'
+                                }}>
+                                  Average
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  backgroundColor: '#fef2f2',
+                                  color: '#dc2626'
+                                }}>
+                                  Needs Attention
+                                </span>
+                              );
+                            }
+                          }
                         }
-                      }
-                    ]}
-                    data={studentReports}
-                    defaultSort={{ key: 'overall_percentage', direction: 'desc' }}
-                  />
+                      ]}
+                      data={studentReports}
+                      defaultSort={{ key: 'overall_percentage', direction: 'desc' }}
+                    />
+                  )}
+
+                  {/* Attendance Rankings */}
+                  {rankingSubTab === 'attendance' && attendanceRankings.length > 0 && (
+                    <SortableTable
+                      columns={[
+                        {
+                          key: 'rank',
+                          label: 'Rank',
+                          sortable: false,
+                          render: (row) => {
+                            const rank = row.rank || 0;
+                            return (
+                              <span style={{ 
+                                fontWeight: '700', 
+                                fontSize: '16px',
+                                color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : 'var(--text)'
+                              }}>
+                                {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+                              </span>
+                            );
+                          }
+                        },
+                        {
+                          key: 'name',
+                          label: 'Student',
+                          sortable: true,
+                          render: (row) => (
+                            <div>
+                              <strong>{row.first_name} {row.last_name}</strong>
+                              <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{row.student_id}</div>
+                            </div>
+                          )
+                        },
+                        {
+                          key: 'attendance_rate',
+                          label: 'Attendance Rate',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{
+                              fontWeight: '700',
+                              fontSize: '18px',
+                              color: row.attendance_rate >= 90 ? '#10b981' : 
+                                     row.attendance_rate >= 80 ? '#22c55e' :
+                                     row.attendance_rate >= 70 ? '#f59e0b' : 
+                                     '#ef4444'
+                            }}>
+                              {row.attendance_rate}%
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'days_present',
+                          label: 'Days Present',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#10b981', fontWeight: '600' }}>
+                              {row.days_present}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'days_absent',
+                          label: 'Days Absent',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: row.days_absent > 0 ? '#ef4444' : 'var(--muted)' }}>
+                              {row.days_absent}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'total_days',
+                          label: 'Total Days',
+                          sortable: true,
+                          sortType: 'number'
+                        },
+                        {
+                          key: 'status',
+                          label: 'Status',
+                          sortable: false,
+                          render: (row) => {
+                            const rate = parseFloat(row.attendance_rate);
+                            if (rate >= 90) {
+                              return (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  backgroundColor: '#dcfce7',
+                                  color: '#166534'
+                                }}>
+                                  Excellent
+                                </span>
+                              );
+                            } else if (rate >= 80) {
+                              return (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  backgroundColor: '#fef3c7',
+                                  color: '#92400e'
+                                }}>
+                                  Good
+                                </span>
+                              );
+                            } else if (rate >= 70) {
+                              return (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  backgroundColor: '#fff7ed',
+                                  color: '#b86e00'
+                                }}>
+                                  Needs Attention
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  backgroundColor: '#fef2f2',
+                                  color: '#dc2626'
+                                }}>
+                                  Urgent Intervention
+                                </span>
+                              );
+                            }
+                          }
+                        }
+                      ]}
+                      data={attendanceRankings}
+                      defaultSort={{ key: 'attendance_rate', direction: 'desc' }}
+                    />
+                  )}
+
+                  {/* Dressing Rankings */}
+                  {rankingSubTab === 'dressing' && dressingRankings.length > 0 && (
+                    <SortableTable
+                      columns={[
+                        {
+                          key: 'rank',
+                          label: 'Rank',
+                          sortable: false,
+                          render: (row) => {
+                            const rank = row.rank || '-';
+                            if (rank === '-') return <span style={{ color: 'var(--muted)' }}>N/A</span>;
+                            return (
+                              <span style={{ 
+                                fontWeight: '700', 
+                                fontSize: '16px',
+                                color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : 'var(--text)'
+                              }}>
+                                {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+                              </span>
+                            );
+                          }
+                        },
+                        {
+                          key: 'name',
+                          label: 'Student',
+                          sortable: true,
+                          render: (row) => (
+                            <div>
+                              <strong>{row.first_name} {row.last_name}</strong>
+                              <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{row.student_id}</div>
+                            </div>
+                          )
+                        },
+                        {
+                          key: 'avg_dressing_grade',
+                          label: 'Average Grade',
+                          sortable: true,
+                          render: (row) => {
+                            const grade = row.avg_dressing_grade || 'N/A';
+                            let color = 'var(--muted)';
+                            if (grade === 'Excellent') color = '#10b981';
+                            else if (grade === 'Good') color = '#22c55e';
+                            else if (grade === 'Fair') color = '#f59e0b';
+                            else if (grade === 'Poor') color = '#ef4444';
+                            
+                            return (
+                              <span style={{ fontWeight: '700', fontSize: '16px', color }}>
+                                {grade}
+                              </span>
+                            );
+                          }
+                        },
+                        {
+                          key: 'excellent_count',
+                          label: 'Excellent',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#10b981', fontWeight: '600' }}>
+                              {row.excellent_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'good_count',
+                          label: 'Good',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#22c55e', fontWeight: '600' }}>
+                              {row.good_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'fair_count',
+                          label: 'Fair',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#f59e0b', fontWeight: '600' }}>
+                              {row.fair_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'poor_count',
+                          label: 'Poor',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#ef4444', fontWeight: '600' }}>
+                              {row.poor_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'total_records',
+                          label: 'Total Records',
+                          sortable: true,
+                          sortType: 'number'
+                        }
+                      ]}
+                      data={dressingRankings}
+                      defaultSort={{ key: 'avg_dressing_score', direction: 'desc' }}
+                    />
+                  )}
+
+                  {/* Behavior Rankings */}
+                  {rankingSubTab === 'behavior' && behaviorRankings.length > 0 && (
+                    <SortableTable
+                      columns={[
+                        {
+                          key: 'rank',
+                          label: 'Rank',
+                          sortable: false,
+                          render: (row) => {
+                            const rank = row.rank || '-';
+                            if (rank === '-') return <span style={{ color: 'var(--muted)' }}>N/A</span>;
+                            return (
+                              <span style={{ 
+                                fontWeight: '700', 
+                                fontSize: '16px',
+                                color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : 'var(--text)'
+                              }}>
+                                {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+                              </span>
+                            );
+                          }
+                        },
+                        {
+                          key: 'name',
+                          label: 'Student',
+                          sortable: true,
+                          render: (row) => (
+                            <div>
+                              <strong>{row.first_name} {row.last_name}</strong>
+                              <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{row.student_id}</div>
+                            </div>
+                          )
+                        },
+                        {
+                          key: 'avg_behavior_grade',
+                          label: 'Average Grade',
+                          sortable: true,
+                          render: (row) => {
+                            const grade = row.avg_behavior_grade || 'N/A';
+                            let color = 'var(--muted)';
+                            if (grade === 'Excellent') color = '#10b981';
+                            else if (grade === 'Good') color = '#22c55e';
+                            else if (grade === 'Fair') color = '#f59e0b';
+                            else if (grade === 'Poor') color = '#ef4444';
+                            
+                            return (
+                              <span style={{ fontWeight: '700', fontSize: '16px', color }}>
+                                {grade}
+                              </span>
+                            );
+                          }
+                        },
+                        {
+                          key: 'excellent_count',
+                          label: 'Excellent',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#10b981', fontWeight: '600' }}>
+                              {row.excellent_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'good_count',
+                          label: 'Good',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#22c55e', fontWeight: '600' }}>
+                              {row.good_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'fair_count',
+                          label: 'Fair',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#f59e0b', fontWeight: '600' }}>
+                              {row.fair_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'poor_count',
+                          label: 'Poor',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#ef4444', fontWeight: '600' }}>
+                              {row.poor_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'total_records',
+                          label: 'Total Records',
+                          sortable: true,
+                          sortType: 'number'
+                        }
+                      ]}
+                      data={behaviorRankings}
+                      defaultSort={{ key: 'avg_behavior_score', direction: 'desc' }}
+                    />
+                  )}
+
+                  {/* Empty states */}
+                  {rankingSubTab === 'exam' && studentReports.length === 0 && (
+                    <div className="empty">
+                      <p>No exam data available for this class.</p>
+                    </div>
+                  )}
+                  {rankingSubTab === 'attendance' && attendanceRankings.length === 0 && (
+                    <div className="empty">
+                      <p>No attendance data available for this class.</p>
+                    </div>
+                  )}
+                  {rankingSubTab === 'dressing' && dressingRankings.length === 0 && (
+                    <div className="empty">
+                      <p>No dressing data available for this class.</p>
+                    </div>
+                  )}
+                  {rankingSubTab === 'behavior' && behaviorRankings.length === 0 && (
+                    <div className="empty">
+                      <p>No behavior data available for this class.</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -3309,6 +3829,130 @@ function AdminDashboard() {
                       )}
                     </div>
                   </div>
+
+                  {/* Madrasah-Wide Rankings */}
+                  {individualRankings && (
+                    <>
+                      <h3 className="subsection-title">Madrasah-Wide Rankings</h3>
+                      <div className="metric-grid">
+                        {/* Exam Rank */}
+                        <div className="metric-card">
+                          <div className="metric-label">📚 Exam Performance</div>
+                          <div className="metric-value" style={{ color: '#3b82f6' }}>
+                            {individualRankings.rankings.exam.rank 
+                              ? `Rank ${individualRankings.rankings.exam.rank}`
+                              : 'N/A'}
+                          </div>
+                          <div className="metric-sub">
+                            {individualRankings.rankings.exam.rank && (
+                              <>out of {individualRankings.rankings.exam.total_students} students</>
+                            )}
+                          </div>
+                          {individualRankings.rankings.exam.percentage && (
+                            <span className={`metric-badge ${
+                              parseFloat(individualRankings.rankings.exam.percentage) >= 80 ? 'excellent' :
+                              parseFloat(individualRankings.rankings.exam.percentage) >= 70 ? 'good' : 'needs-improvement'
+                            }`}>
+                              {individualRankings.rankings.exam.percentage}% overall
+                            </span>
+                          )}
+                          {individualRankings.rankings.exam.rank && individualRankings.rankings.exam.rank <= 3 && (
+                            <div style={{ fontSize: '32px', marginTop: '8px' }}>
+                              {individualRankings.rankings.exam.rank === 1 ? '🥇' : 
+                               individualRankings.rankings.exam.rank === 2 ? '🥈' : '🥉'}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Attendance Rank */}
+                        <div className="metric-card">
+                          <div className="metric-label">✅ Attendance</div>
+                          <div className="metric-value" style={{ color: '#10b981' }}>
+                            {individualRankings.rankings.attendance.rank 
+                              ? `Rank ${individualRankings.rankings.attendance.rank}`
+                              : 'N/A'}
+                          </div>
+                          <div className="metric-sub">
+                            {individualRankings.rankings.attendance.rank && (
+                              <>out of {individualRankings.rankings.attendance.total_students} students</>
+                            )}
+                          </div>
+                          {individualRankings.rankings.attendance.rate && (
+                            <span className={`metric-badge ${
+                              parseFloat(individualRankings.rankings.attendance.rate) >= 90 ? 'excellent' :
+                              parseFloat(individualRankings.rankings.attendance.rate) >= 80 ? 'good' : 'needs-improvement'
+                            }`}>
+                              {individualRankings.rankings.attendance.rate}% rate
+                            </span>
+                          )}
+                          {individualRankings.rankings.attendance.rank && individualRankings.rankings.attendance.rank <= 3 && (
+                            <div style={{ fontSize: '32px', marginTop: '8px' }}>
+                              {individualRankings.rankings.attendance.rank === 1 ? '🥇' : 
+                               individualRankings.rankings.attendance.rank === 2 ? '🥈' : '🥉'}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Dressing Rank */}
+                        <div className="metric-card">
+                          <div className="metric-label">👔 Dressing Standards</div>
+                          <div className="metric-value" style={{ color: '#f59e0b' }}>
+                            {individualRankings.rankings.dressing.rank 
+                              ? `Rank ${individualRankings.rankings.dressing.rank}`
+                              : 'N/A'}
+                          </div>
+                          <div className="metric-sub">
+                            {individualRankings.rankings.dressing.rank && (
+                              <>out of {individualRankings.rankings.dressing.total_students} students</>
+                            )}
+                          </div>
+                          {individualRankings.rankings.dressing.score && (
+                            <span className={`metric-badge ${
+                              parseFloat(individualRankings.rankings.dressing.score) >= 3.5 ? 'excellent' :
+                              parseFloat(individualRankings.rankings.dressing.score) >= 2.5 ? 'good' : 'needs-improvement'
+                            }`}>
+                              {individualRankings.rankings.dressing.score}/4.0
+                            </span>
+                          )}
+                          {individualRankings.rankings.dressing.rank && individualRankings.rankings.dressing.rank <= 3 && (
+                            <div style={{ fontSize: '32px', marginTop: '8px' }}>
+                              {individualRankings.rankings.dressing.rank === 1 ? '🥇' : 
+                               individualRankings.rankings.dressing.rank === 2 ? '🥈' : '🥉'}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Behavior Rank */}
+                        <div className="metric-card">
+                          <div className="metric-label">🌟 Behavior & Conduct</div>
+                          <div className="metric-value" style={{ color: '#8b5cf6' }}>
+                            {individualRankings.rankings.behavior.rank 
+                              ? `Rank ${individualRankings.rankings.behavior.rank}`
+                              : 'N/A'}
+                          </div>
+                          <div className="metric-sub">
+                            {individualRankings.rankings.behavior.rank && (
+                              <>out of {individualRankings.rankings.behavior.total_students} students</>
+                            )}
+                          </div>
+                          {individualRankings.rankings.behavior.score && (
+                            <span className={`metric-badge ${
+                              parseFloat(individualRankings.rankings.behavior.score) >= 3.5 ? 'excellent' :
+                              parseFloat(individualRankings.rankings.behavior.score) >= 2.5 ? 'good' : 'needs-improvement'
+                            }`}>
+                              {individualRankings.rankings.behavior.score}/4.0
+                            </span>
+                          )}
+                          {individualRankings.rankings.behavior.rank && individualRankings.rankings.behavior.rank <= 3 && (
+                            <div style={{ fontSize: '32px', marginTop: '8px' }}>
+                              {individualRankings.rankings.behavior.rank === 1 ? '🥇' : 
+                               individualRankings.rankings.behavior.rank === 2 ? '🥈' : '🥉'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {/* Overall Comment */}
                   <div className="card">

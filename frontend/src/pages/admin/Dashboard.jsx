@@ -704,7 +704,8 @@ function AdminDashboard() {
         params.subject = reportFilterSubject;
       }
       
-      const response = await api.get(`/admin/classes/${selectedClassForPerformance}/student-reports`, { params });
+      const classId = selectedClassForPerformance.id || selectedClassForPerformance;
+      const response = await api.get(`/admin/classes/${classId}/student-reports`, { params });
       setStudentReports(response.data);
       
       // Extract unique subjects from the exam data
@@ -2104,13 +2105,12 @@ function AdminDashboard() {
                             const cls = classes.find(c => c.id === parseInt(e.target.value));
                             setSelectedClassForPerformance(cls);
                             if (cls) {
-                              if (reportSubTab === 'student-reports') {
-                                fetchStudentReports();
-                              } else {
+                              if (reportSubTab !== 'student-reports') {
                                 fetchClassKpis(cls.id);
                                 fetchClassAttendance(cls.id);
                                 fetchClassExams(cls.id);
                               }
+                              // student-reports will be fetched by useEffect when selectedClassForPerformance changes
                             }
                           }}
                         >

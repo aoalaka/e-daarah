@@ -1915,6 +1915,16 @@ function AdminDashboard() {
                       )
                     },
                     {
+                      key: 'parent_guardian_phone',
+                      label: 'Parent/Guardian Phone',
+                      sortable: false,
+                      render: (row) => row.parent_guardian_phone ? (
+                        <span>{row.parent_guardian_phone_country_code || ''}{row.parent_guardian_phone}</span>
+                      ) : (
+                        <span style={{ color: 'var(--muted)' }}>-</span>
+                      )
+                    },
+                    {
                       key: 'actions',
                       label: 'Actions',
                       sortable: false,

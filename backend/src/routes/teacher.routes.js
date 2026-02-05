@@ -859,18 +859,35 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
 
     const [reports] = await pool.query(query, queryParams);
 
-    // Format the results and add rank
-    const formattedReports = reports.map((report, index) => ({
-      ...report,
-      rank: index + 1, // Add rank based on sorted order (already sorted by overall_percentage DESC)
-      overall_percentage: report.overall_percentage ? parseFloat(report.overall_percentage).toFixed(2) : '0.00',
-      total_score: report.total_score ? parseFloat(report.total_score).toFixed(2) : '0.00',
-      total_max_score: report.total_max_score ? parseFloat(report.total_max_score).toFixed(2) : '0.00',
-      subject_count: parseInt(report.subject_count) || 0,
-      total_exams: parseInt(report.total_exams) || 0,
-      exams_taken: parseInt(report.exams_taken) || 0,
-      exams_absent: parseInt(report.exams_absent) || 0
-    }));
+    // Format the results and add rank (handle ties properly)
+    let currentRank = 1;
+    let previousPercentage = null;
+    let studentsAtCurrentRank = 0;
+    
+    const formattedReports = reports.map((report, index) => {
+      const percentage = report.overall_percentage ? parseFloat(report.overall_percentage).toFixed(2) : '0.00';
+      
+      // If this is a different percentage than the previous student, update rank
+      if (previousPercentage !== null && percentage !== previousPercentage) {
+        currentRank += studentsAtCurrentRank;
+        studentsAtCurrentRank = 0;
+      }
+      
+      studentsAtCurrentRank++;
+      previousPercentage = percentage;
+      
+      return {
+        ...report,
+        rank: currentRank, // Same rank for students with same percentage
+        overall_percentage: percentage,
+        total_score: report.total_score ? parseFloat(report.total_score).toFixed(2) : '0.00',
+        total_max_score: report.total_max_score ? parseFloat(report.total_max_score).toFixed(2) : '0.00',
+        subject_count: parseInt(report.subject_count) || 0,
+        total_exams: parseInt(report.total_exams) || 0,
+        exams_taken: parseInt(report.exams_taken) || 0,
+        exams_absent: parseInt(report.exams_absent) || 0
+      };
+    });
 
     res.json(formattedReports);
   } catch (error) {

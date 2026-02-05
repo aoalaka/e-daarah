@@ -653,19 +653,27 @@ router.put('/exam-performance/batch', async (req, res) => {
     const madrasahId = req.madrasahId;
     const { record_ids, semester_id, subject, exam_date, max_score } = req.body;
 
+    console.log('Batch update request:', { record_ids, semester_id, subject, exam_date, max_score, madrasahId, userId: req.user.id });
+
     if (!record_ids || !Array.isArray(record_ids) || record_ids.length === 0) {
       return res.status(400).json({ error: 'Record IDs are required' });
     }
 
     // Verify all records belong to this teacher and madrasah
+    // Need to create placeholders for IN clause
+    const placeholders = record_ids.map(() => '?').join(',');
     const [records] = await pool.query(
       `SELECT id FROM exam_performance 
-       WHERE id IN (?) AND user_id = ? AND madrasah_id = ?`,
-      [record_ids, req.user.id, madrasahId]
+       WHERE id IN (${placeholders}) AND user_id = ? AND madrasah_id = ?`,
+      [...record_ids, req.user.id, madrasahId]
     );
 
+    console.log('Found records:', records.length, 'Expected:', record_ids.length);
+    console.log('Record IDs from query:', records.map(r => r.id));
+    console.log('Expected IDs:', record_ids);
+
     if (records.length !== record_ids.length) {
-      return res.status(403).json({ error: 'Not authorized to edit some records' });
+      return res.status(403).json({ error: `Not authorized to edit some records. Found ${records.length} of ${record_ids.length} records.` });
     }
 
     // Validate inputs
@@ -712,11 +720,12 @@ router.put('/exam-performance/batch', async (req, res) => {
     }
 
     updates.push('updated_at = NOW()');
-    values.push(record_ids);
 
+    // Build the update query with proper IN clause
+    const updatePlaceholders = record_ids.map(() => '?').join(',');
     await pool.query(
-      `UPDATE exam_performance SET ${updates.join(', ')} WHERE id IN (?)`,
-      values
+      `UPDATE exam_performance SET ${updates.join(', ')} WHERE id IN (${updatePlaceholders})`,
+      [...values, ...record_ids]
     );
 
     res.json({ message: 'Exam batch updated successfully' });
@@ -737,10 +746,11 @@ router.delete('/exam-performance/batch', async (req, res) => {
     }
 
     // Verify all records belong to this teacher and madrasah
+    const placeholders = record_ids.map(() => '?').join(',');
     const [records] = await pool.query(
       `SELECT id FROM exam_performance 
-       WHERE id IN (?) AND user_id = ? AND madrasah_id = ?`,
-      [record_ids, req.user.id, madrasahId]
+       WHERE id IN (${placeholders}) AND user_id = ? AND madrasah_id = ?`,
+      [...record_ids, req.user.id, madrasahId]
     );
 
     if (records.length !== record_ids.length) {
@@ -748,7 +758,8 @@ router.delete('/exam-performance/batch', async (req, res) => {
     }
 
     // Delete all records
-    await pool.query('DELETE FROM exam_performance WHERE id IN (?)', [record_ids]);
+    const deletePlaceholders = record_ids.map(() => '?').join(',');
+    await pool.query(`DELETE FROM exam_performance WHERE id IN (${deletePlaceholders})`, record_ids);
 
     res.json({ message: `${record_ids.length} exam records deleted successfully` });
   } catch (error) {

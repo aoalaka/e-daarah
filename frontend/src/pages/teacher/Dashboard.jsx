@@ -87,7 +87,7 @@ function TeacherDashboard() {
     if (selectedClass && activeTab === 'exams') {
       fetchExamPerformance();
     }
-  }, [selectedClass, examFilterSemester, selectedSubject, activeTab]);
+  }, [selectedClass, examFilterSession, examFilterSemester, selectedSubject, activeTab]);
 
   // Filter semesters by selected session for exam tab
   useEffect(() => {
@@ -98,6 +98,8 @@ function TeacherDashboard() {
       if (examFilterSemester && !filtered.find(s => s.id === parseInt(examFilterSemester))) {
         setExamFilterSemester('');
       }
+      // Reset subject filter when session changes
+      setSelectedSubject('all');
     } else {
       setExamFilteredSemesters(semesters);
     }
@@ -279,26 +281,29 @@ function TeacherDashboard() {
         params.semesterId = examFilterSemester;
       }
       
-      // Fetch all subjects first (without filter) to populate dropdown
-      if (selectedSubject === 'all') {
-        const response = await api.get(`/teacher/classes/${selectedClass.id}/exam-performance`, { params });
-        setExamPerformance(response.data);
-        calculateExamKpis(response.data);
-        
-        // Extract and store all unique subjects for the dropdown
-        const subjects = [...new Set(response.data.map(record => record.subject))].sort();
-        setAvailableSubjects(subjects);
-      } else {
-        // Fetch filtered data but keep the subjects list intact
+      // Always fetch all subjects first (without subject filter) to populate dropdown
+      const allSubjectsResponse = await api.get(`/teacher/classes/${selectedClass.id}/exam-performance`, { params });
+      
+      // Extract and store all unique subjects for the dropdown (based on filtered session/semester)
+      const subjects = [...new Set(allSubjectsResponse.data.map(record => record.subject))].sort();
+      setAvailableSubjects(subjects);
+      
+      // If a specific subject is selected, fetch filtered data
+      if (selectedSubject !== 'all') {
         params.subject = selectedSubject;
         const response = await api.get(`/teacher/classes/${selectedClass.id}/exam-performance`, { params });
         setExamPerformance(response.data);
         calculateExamKpis(response.data);
+      } else {
+        // Use the all subjects data
+        setExamPerformance(allSubjectsResponse.data);
+        calculateExamKpis(allSubjectsResponse.data);
       }
     } catch (error) {
       console.error('Failed to fetch exam performance:', error);
       setExamPerformance([]);
       setExamKpis(null);
+      setAvailableSubjects([]);
     }
   };
 

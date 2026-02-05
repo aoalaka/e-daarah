@@ -537,7 +537,7 @@ router.post('/classes/:classId/exam-performance/bulk', async (req, res) => {
 
       await pool.query(
         `INSERT INTO exam_performance
-         (madrasah_id, student_id, semester_id, user_id, subject, exam_date, max_score, score, is_absent, absence_reason, notes)
+         (madrasah_id, student_id, semester_id, teacher_id, subject, exam_date, max_score, score, is_absent, absence_reason, notes)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           madrasahId,
@@ -573,7 +573,7 @@ router.put('/exam-performance/:id', async (req, res) => {
     const [record] = await pool.query(
       `SELECT ep.*, ep.max_score 
        FROM exam_performance ep
-       WHERE ep.id = ? AND ep.user_id = ? AND ep.madrasah_id = ?`,
+       WHERE ep.id = ? AND ep.teacher_id = ? AND ep.madrasah_id = ?`,
       [id, req.user.id, madrasahId]
     );
 
@@ -629,7 +629,7 @@ router.delete('/exam-performance/:id', async (req, res) => {
     const [record] = await pool.query(
       `SELECT ep.id 
        FROM exam_performance ep
-       WHERE ep.id = ? AND ep.user_id = ? AND ep.madrasah_id = ?`,
+       WHERE ep.id = ? AND ep.teacher_id = ? AND ep.madrasah_id = ?`,
       [id, req.user.id, madrasahId]
     );
 
@@ -664,7 +664,7 @@ router.put('/exam-performance/batch', async (req, res) => {
     const placeholders = record_ids.map(() => '?').join(',');
     const [records] = await pool.query(
       `SELECT id FROM exam_performance 
-       WHERE id IN (${placeholders}) AND user_id = ? AND madrasah_id = ?`,
+       WHERE id IN (${placeholders}) AND teacher_id = ? AND madrasah_id = ?`,
       [...record_ids, req.user.id, madrasahId]
     );
 
@@ -749,7 +749,7 @@ router.delete('/exam-performance/batch', async (req, res) => {
     const placeholders = record_ids.map(() => '?').join(',');
     const [records] = await pool.query(
       `SELECT id FROM exam_performance 
-       WHERE id IN (${placeholders}) AND user_id = ? AND madrasah_id = ?`,
+       WHERE id IN (${placeholders}) AND teacher_id = ? AND madrasah_id = ?`,
       [...record_ids, req.user.id, madrasahId]
     );
 

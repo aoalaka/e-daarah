@@ -472,11 +472,30 @@ function AdminDashboard() {
       setUploadResults(response.data);
       setUploadFile(null);
       loadData();
+      toast.success(`Upload complete: ${response.data.successful} successful, ${response.data.failed} failed`);
     } catch (error) {
-      handleApiError(error, 'Failed to upload file', () => {
-        setShowBulkUpload(false);
-        setActiveTab('settings');
-      });
+      console.error('Bulk upload error:', error.response?.data);
+      
+      // Show validation errors if present
+      if (error.response?.data?.details) {
+        const errorList = error.response.data.details.slice(0, 5); // Show first 5 errors
+        const errorMessage = errorList.join('\n');
+        toast.error(
+          `Validation failed:\n${errorMessage}${error.response.data.details.length > 5 ? '\n...and more' : ''}`,
+          { duration: 8000 }
+        );
+      } else {
+        const errorMessage = error.response?.data?.error || 'Failed to upload file';
+        toast.error(errorMessage);
+        
+        // Check if it's a billing limit error
+        if (error.response?.status === 403) {
+          handleApiError(error, errorMessage, () => {
+            setShowBulkUpload(false);
+            setActiveTab('settings');
+          });
+        }
+      }
     }
   };
 

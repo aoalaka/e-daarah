@@ -144,6 +144,7 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
     });
 
     if (validationErrors.length > 0) {
+      console.error('Bulk upload validation errors:', validationErrors);
       return res.status(400).json({
         error: 'Validation failed',
         details: validationErrors

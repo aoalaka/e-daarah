@@ -50,6 +50,7 @@ function TeacherDashboard() {
   const [examFilterSession, setExamFilterSession] = useState('');
   const [examFilterSemester, setExamFilterSemester] = useState('');
   const [examFilteredSemesters, setExamFilteredSemesters] = useState([]);
+  const [examStudentSearch, setExamStudentSearch] = useState('');
   // Settings state
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -587,6 +588,7 @@ function TeacherDashboard() {
         notes: ''
       }))
     });
+    setExamStudentSearch(''); // Reset search
     setShowExamModal(true);
   };
 
@@ -1519,9 +1521,29 @@ function TeacherDashboard() {
 
                         {/* Student Scores Table */}
                         <div style={{ marginBottom: 'var(--md)' }}>
-                          <h4 style={{ marginBottom: 'var(--sm)', fontSize: 'var(--text-lg)', fontWeight: '600' }}>
-                            Student Scores
-                          </h4>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sm)' }}>
+                            <h4 style={{ fontSize: 'var(--text-lg)', fontWeight: '600', margin: 0 }}>
+                              Student Scores
+                            </h4>
+                            <div style={{ position: 'relative', width: '300px' }}>
+                              <input
+                                type="text"
+                                className="form-input"
+                                placeholder="Search by name or student ID..."
+                                value={examStudentSearch}
+                                onChange={(e) => setExamStudentSearch(e.target.value)}
+                                style={{ paddingLeft: '32px' }}
+                              />
+                              <svg
+                                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: '#666' }}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                              </svg>
+                            </div>
+                          </div>
                           <div style={{ overflowX: 'auto', maxHeight: '400px', border: 'var(--border)', borderRadius: 'var(--radius)' }}>
                             <table className="table" style={{ minWidth: '100%' }}>
                               <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--gray-50)', zIndex: 1 }}>
@@ -1537,7 +1559,16 @@ function TeacherDashboard() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {examForm.students.map((student, index) => (
+                                {examForm.students
+                                  .filter(student => {
+                                    if (!examStudentSearch.trim()) return true;
+                                    const searchLower = examStudentSearch.toLowerCase();
+                                    return (
+                                      student.student_name.toLowerCase().includes(searchLower) ||
+                                      student.student_number.toLowerCase().includes(searchLower)
+                                    );
+                                  })
+                                  .map((student, index) => (
                                   <tr key={student.student_id}>
                                     <td>{index + 1}</td>
                                     <td><strong>{student.student_name}</strong></td>

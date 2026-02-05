@@ -2288,8 +2288,8 @@ function AdminDashboard() {
                           <div className="card-body">
                             <div className="class-bars">
                               {analyticsData.examBySubject.map(subject => (
-                                <div key={subject.subject_name} className="class-bar-row">
-                                  <div className="class-bar-label">{subject.subject_name}</div>
+                                <div key={subject.subject} className="class-bar-row">
+                                  <div className="class-bar-label">{subject.subject}</div>
                                   <div className="class-bar-container">
                                     <div
                                       className={`class-bar-fill ${

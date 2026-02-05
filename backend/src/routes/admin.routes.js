@@ -1266,7 +1266,7 @@ router.get('/analytics', requirePlusPlan('Analytics Dashboard'), async (req, res
         COUNT(*) as total_exam_records,
         ROUND(AVG(ep.score / ep.max_score * 100), 1) as avg_percentage,
         ROUND(SUM(CASE WHEN ep.score / ep.max_score >= 0.5 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) * 100, 1) as pass_rate,
-        COUNT(DISTINCT ep.subject_name) as subjects_count
+        COUNT(DISTINCT ep.subject) as subjects_count
       FROM exam_performance ep
       JOIN students s ON ep.student_id = s.id
       WHERE ep.madrasah_id = ? AND ep.is_absent = 0
@@ -1289,7 +1289,7 @@ router.get('/analytics', requirePlusPlan('Analytics Dashboard'), async (req, res
     // 10. Exam performance by subject (top 5)
     let subjectExamQuery = `
       SELECT
-        ep.subject_name,
+        ep.subject,
         COUNT(*) as exam_count,
         ROUND(AVG(ep.score / ep.max_score * 100), 1) as avg_percentage,
         ROUND(SUM(CASE WHEN ep.score / ep.max_score >= 0.5 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) * 100, 1) as pass_rate
@@ -1310,7 +1310,7 @@ router.get('/analytics', requirePlusPlan('Analytics Dashboard'), async (req, res
       subjectExamQuery += ' AND s.gender = ?';
       subjectExamParams.push(gender);
     }
-    subjectExamQuery += ' GROUP BY ep.subject_name ORDER BY avg_percentage DESC LIMIT 10';
+    subjectExamQuery += ' GROUP BY ep.subject ORDER BY avg_percentage DESC LIMIT 10';
     const [examBySubject] = await pool.query(subjectExamQuery, subjectExamParams);
 
     // 11. Students struggling academically (avg < 50%)

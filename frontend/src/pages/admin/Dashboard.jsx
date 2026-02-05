@@ -231,15 +231,19 @@ function AdminDashboard() {
     try {
       if (editingSemester) {
         await api.put(`/admin/semesters/${editingSemester.id}`, newSemester);
+        toast.success('Semester updated successfully');
         setEditingSemester(null);
       } else {
         await api.post('/admin/semesters', newSemester);
+        toast.success('Semester created successfully');
       }
       setShowSemesterForm(false);
       setNewSemester({ session_id: '', name: '', start_date: '', end_date: '', is_active: false });
       loadData();
     } catch (error) {
-      toast.error(editingSemester ? 'Failed to update semester' : 'Failed to create semester');
+      const errorMessage = error.response?.data?.error || (editingSemester ? 'Failed to update semester' : 'Failed to create semester');
+      console.error('Semester error:', error.response?.data);
+      toast.error(errorMessage);
     }
   };
 

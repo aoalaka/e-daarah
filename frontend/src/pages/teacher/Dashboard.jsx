@@ -57,6 +57,9 @@ function TeacherDashboard() {
   const [showEditExamBatchModal, setShowEditExamBatchModal] = useState(false);
   const [editingExamBatch, setEditingExamBatch] = useState(null);
   const [deleteExamBatch, setDeleteExamBatch] = useState(null);
+  // Exam performance pagination
+  const [currentSubjectPage, setCurrentSubjectPage] = useState(1);
+  const subjectsPerPage = 1; // Show one subject at a time
   // Student Reports state
   const [studentReports, setStudentReports] = useState([]);
   const [reportFilterSession, setReportFilterSession] = useState('');
@@ -98,6 +101,7 @@ function TeacherDashboard() {
   useEffect(() => {
     if (selectedClass && activeTab === 'exams') {
       fetchExamPerformance();
+      setCurrentSubjectPage(1); // Reset to first page when filters change
     }
   }, [selectedClass, examFilterSession, examFilterSemester, selectedSubject, activeTab]);
 
@@ -1507,9 +1511,55 @@ function TeacherDashboard() {
               </div>
 
               {/* KPIs by Subject */}
-              {selectedClass && examKpis && examKpis.length > 0 && (
-                <>
-                  {examKpis.map(kpi => (
+              {selectedClass && examKpis && examKpis.length > 0 && (() => {
+                const totalSubjects = examKpis.length;
+                const totalPages = Math.ceil(totalSubjects / subjectsPerPage);
+                const startIndex = (currentSubjectPage - 1) * subjectsPerPage;
+                const endIndex = startIndex + subjectsPerPage;
+                const currentSubjects = examKpis.slice(startIndex, endIndex);
+
+                return (
+                  <>
+                    {/* Subject Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="card" style={{ marginBottom: 'var(--md)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ color: 'var(--muted)', fontSize: '14px' }}>
+                            Showing subject {startIndex + 1} of {totalSubjects}
+                          </div>
+                          <div style={{ display: 'flex', gap: 'var(--sm)' }}>
+                            <button
+                              onClick={() => setCurrentSubjectPage(prev => Math.max(1, prev - 1))}
+                              disabled={currentSubjectPage === 1}
+                              className="btn-sm"
+                              style={{ opacity: currentSubjectPage === 1 ? 0.5 : 1 }}
+                            >
+                              ← Previous Subject
+                            </button>
+                            <div style={{ 
+                              padding: '8px 16px', 
+                              backgroundColor: 'var(--accent-light)', 
+                              color: 'var(--accent)',
+                              borderRadius: 'var(--radius)',
+                              fontWeight: '600',
+                              fontSize: '14px'
+                            }}>
+                              {currentSubjectPage} / {totalPages}
+                            </div>
+                            <button
+                              onClick={() => setCurrentSubjectPage(prev => Math.min(totalPages, prev + 1))}
+                              disabled={currentSubjectPage === totalPages}
+                              className="btn-sm"
+                              style={{ opacity: currentSubjectPage === totalPages ? 0.5 : 1 }}
+                            >
+                              Next Subject →
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {currentSubjects.map(kpi => (
                     <div key={kpi.subject} className="exam-subject-section">
                       <h3 className="exam-subject-title">
                         {kpi.subject}
@@ -1739,8 +1789,9 @@ function TeacherDashboard() {
                       ))}
                     </div>
                   ))}
-                </>
-              )}
+                  </>
+                );
+              })()}
 
               {selectedClass && examPerformance.length === 0 && (
                 <div className="card">

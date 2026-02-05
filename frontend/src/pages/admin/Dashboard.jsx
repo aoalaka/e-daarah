@@ -2574,6 +2574,17 @@ function AdminDashboard() {
                               ? `${Number(classKpis.classStats.attendance_rate).toFixed(1)}%`
                               : 'N/A'}
                           </div>
+                          {classKpis.classStats?.attendance_rate != null && !isNaN(classKpis.classStats.attendance_rate) && (
+                            <div className="kpi-insight">
+                              {Number(classKpis.classStats.attendance_rate) >= 90 
+                                ? 'Excellent attendance! Class is consistently present.'
+                                : Number(classKpis.classStats.attendance_rate) >= 80
+                                ? 'Good attendance overall. Keep up the momentum.'
+                                : Number(classKpis.classStats.attendance_rate) >= 70
+                                ? 'Attendance needs attention. Consider follow-ups.'
+                                : 'Low attendance rate. Urgent intervention needed.'}
+                            </div>
+                          )}
                         </div>
                         <div className="kpi-card green">
                           <div className="kpi-label">Avg Dressing</div>
@@ -2583,6 +2594,17 @@ function AdminDashboard() {
                               : 'N/A'}
                           </div>
                           <div className="kpi-sub">out of 4.0</div>
+                          {classKpis.classStats?.avg_dressing_score != null && !isNaN(classKpis.classStats.avg_dressing_score) && (
+                            <div className="kpi-insight">
+                              {Number(classKpis.classStats.avg_dressing_score) >= 3.5
+                                ? 'Outstanding! Students are well-dressed.'
+                                : Number(classKpis.classStats.avg_dressing_score) >= 3.0
+                                ? 'Good presentation. Minor improvements possible.'
+                                : Number(classKpis.classStats.avg_dressing_score) >= 2.5
+                                ? 'Dressing standards need reinforcement.'
+                                : 'Dressing requires significant attention.'}
+                            </div>
+                          )}
                         </div>
                         <div className="kpi-card yellow">
                           <div className="kpi-label">Avg Behavior</div>
@@ -2592,6 +2614,17 @@ function AdminDashboard() {
                               : 'N/A'}
                           </div>
                           <div className="kpi-sub">out of 4.0</div>
+                          {classKpis.classStats?.avg_behavior_score != null && !isNaN(classKpis.classStats.avg_behavior_score) && (
+                            <div className="kpi-insight">
+                              {Number(classKpis.classStats.avg_behavior_score) >= 3.5
+                                ? 'Excellent behavior! Class is well-disciplined.'
+                                : Number(classKpis.classStats.avg_behavior_score) >= 3.0
+                                ? 'Good behavior overall. Maintain standards.'
+                                : Number(classKpis.classStats.avg_behavior_score) >= 2.5
+                                ? 'Behavior needs improvement. Guidance recommended.'
+                                : 'Behavior requires immediate attention.'}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -2601,7 +2634,7 @@ function AdminDashboard() {
                       ).length > 0 && (
                         <div className="alert-box danger">
                           <h4>At-Risk Students</h4>
-                          <p>Students with attendance below 70% or poor grades (below 2.5/4.0)</p>
+                          <p>Students with attendance below 70% or grades below 2.5/4.0</p>
                           <div className="table-wrap">
                             <table className="table">
                               <thead>
@@ -2611,40 +2644,46 @@ function AdminDashboard() {
                                   <th>Attendance</th>
                                   <th>Dressing</th>
                                   <th>Behavior</th>
-                                  <th>Risk Factors</th>
+                                  <th>Areas Needing Attention</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {classKpis.highRiskStudents
                                   .filter(s => s.attendance_rate < 70 || s.avg_dressing < 2.5 || s.avg_behavior < 2.5)
                                   .map(student => {
-                                    const riskFactors = [];
-                                    if (student.attendance_rate < 70) riskFactors.push('Low Attendance');
-                                    if (student.avg_dressing < 2.5) riskFactors.push('Poor Dressing');
-                                    if (student.avg_behavior < 2.5) riskFactors.push('Poor Behavior');
+                                    const areasNeedingAttention = [];
+                                    if (student.attendance_rate != null && student.attendance_rate < 70) {
+                                      areasNeedingAttention.push('Attendance Needs Improvement');
+                                    }
+                                    if (student.avg_dressing != null && student.avg_dressing < 2.5) {
+                                      areasNeedingAttention.push('Dressing Needs Attention');
+                                    }
+                                    if (student.avg_behavior != null && student.avg_behavior < 2.5) {
+                                      areasNeedingAttention.push('Behavior Needs Guidance');
+                                    }
 
                                     return (
                                       <tr key={student.id}>
                                         <td><strong>{student.student_id}</strong></td>
                                         <td>{student.first_name} {student.last_name}</td>
                                         <td>
-                                          <strong style={{ color: student.attendance_rate < 70 ? 'var(--error)' : 'var(--success)' }}>
-                                            {student.attendance_rate != null ? `${Number(student.attendance_rate).toFixed(1)}%` : 'N/A'}
+                                          <strong style={{ color: student.attendance_rate != null && student.attendance_rate < 70 ? 'var(--error)' : 'var(--success)' }}>
+                                            {student.attendance_rate != null ? `${Number(student.attendance_rate).toFixed(1)}%` : '-'}
                                           </strong>
                                         </td>
                                         <td>
-                                          <strong style={{ color: student.avg_dressing < 2.5 ? 'var(--error)' : 'var(--success)' }}>
-                                            {student.avg_dressing != null ? Number(student.avg_dressing).toFixed(2) : 'N/A'}
+                                          <strong style={{ color: student.avg_dressing != null && student.avg_dressing < 2.5 ? 'var(--error)' : student.avg_dressing != null ? 'var(--success)' : 'var(--muted)' }}>
+                                            {student.avg_dressing != null ? Number(student.avg_dressing).toFixed(2) : '-'}
                                           </strong>
                                         </td>
                                         <td>
-                                          <strong style={{ color: student.avg_behavior < 2.5 ? 'var(--error)' : 'var(--success)' }}>
-                                            {student.avg_behavior != null ? Number(student.avg_behavior).toFixed(2) : 'N/A'}
+                                          <strong style={{ color: student.avg_behavior != null && student.avg_behavior < 2.5 ? 'var(--error)' : student.avg_behavior != null ? 'var(--success)' : 'var(--muted)' }}>
+                                            {student.avg_behavior != null ? Number(student.avg_behavior).toFixed(2) : '-'}
                                           </strong>
                                         </td>
                                         <td>
-                                          {riskFactors.map((factor, idx) => (
-                                            <span key={idx} className="risk-badge">{factor}</span>
+                                          {areasNeedingAttention.map((area, idx) => (
+                                            <span key={idx} className="risk-badge">{area}</span>
                                           ))}
                                         </td>
                                       </tr>

@@ -489,8 +489,8 @@ function AdminDashboard() {
         setEditingStudent(null);
       } else {
         const response = await api.post('/admin/students', newStudent);
-        // Show the generated access code to admin
-        if (response.data.access_code) {
+        // Show the generated access code to admin (Plus/Enterprise/Trial only)
+        if (response.data.access_code && hasPlusAccess()) {
           setAccessCodeModal({
             studentName: `${newStudent.first_name} ${newStudent.last_name}`,
             studentId: response.data.student_id,
@@ -4529,6 +4529,17 @@ function AdminDashboard() {
                   </div>
 
                   {/* Plan Selection */}
+                  {madrasahProfile?.pricing_plan === 'enterprise' ? (
+                    <div style={{ marginTop: '16px', padding: '20px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--lighter)', textAlign: 'center' }}>
+                      <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>Enterprise Plan</div>
+                      <p style={{ fontSize: '14px', color: 'var(--muted)', margin: '0 0 12px 0' }}>
+                        Your plan is managed under a service agreement. For changes or questions, contact your account manager.
+                      </p>
+                      <a href="mailto:support@e-daarah.com?subject=Enterprise%20Account%20Inquiry" style={{ color: 'var(--accent)', fontSize: '14px', fontWeight: '500' }}>
+                        Contact Support →
+                      </a>
+                    </div>
+                  ) : (
                   <div style={{ marginTop: '16px', padding: '16px', border: '1px solid var(--border)', borderRadius: '8px' }}>
                     <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>Choose a Plan</h4>
 
@@ -4655,6 +4666,7 @@ function AdminDashboard() {
                       {madrasahProfile?.subscription_status === 'active' ? 'Change Plan' : 'Subscribe Now'}
                     </button>
                   </div>
+                  )}
 
                   {/* Manage Billing */}
                   {madrasahProfile?.stripe_customer_id && (

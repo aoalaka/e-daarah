@@ -129,9 +129,9 @@ router.get('/dashboard', authenticateSuperAdmin, async (req, res) => {
 
     // Madrasahs by plan
     const [planStats] = await pool.query(
-      `SELECT subscription_plan, COUNT(*) as count
+      `SELECT pricing_plan, COUNT(*) as count
        FROM madrasahs
-       GROUP BY subscription_plan`
+       GROUP BY pricing_plan`
     );
 
     await logAudit(req, 'VIEW', 'dashboard', null);
@@ -175,7 +175,7 @@ router.get('/madrasahs', authenticateSuperAdmin, async (req, res) => {
     }
 
     if (plan) {
-      query += ' AND m.subscription_plan = ?';
+      query += ' AND m.pricing_plan = ?';
       params.push(plan);
     }
 
@@ -302,26 +302,33 @@ router.post('/madrasahs/:id/reactivate', authenticateSuperAdmin, async (req, res
 router.patch('/madrasahs/:id/plan', authenticateSuperAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { plan, expiresAt } = req.body;
+    const { plan, subscriptionStatus } = req.body;
 
-    const planLimits = {
-      starter: { maxStudents: 50, maxTeachers: 3 },
-      professional: { maxStudents: 200, maxTeachers: 10 },
-      enterprise: { maxStudents: 99999, maxTeachers: 99999 }
-    };
+    const validPlans = ['trial', 'standard', 'plus', 'enterprise'];
 
-    if (!planLimits[plan]) {
-      return res.status(400).json({ error: 'Invalid plan' });
+    if (!validPlans.includes(plan)) {
+      return res.status(400).json({ error: 'Invalid plan. Must be one of: trial, standard, plus, enterprise' });
     }
 
-    await pool.query(
-      `UPDATE madrasahs
-       SET subscription_plan = ?, subscription_expires_at = ?, max_students = ?, max_teachers = ?
-       WHERE id = ?`,
-      [plan, expiresAt || null, planLimits[plan].maxStudents, planLimits[plan].maxTeachers, id]
-    );
+    // Update pricing_plan and optionally subscription_status
+    // Enterprise plans are managed via SLA - auto-set to active, clear Stripe fields
+    let query = 'UPDATE madrasahs SET pricing_plan = ?';
+    const params = [plan];
 
-    await logAudit(req, 'UPDATE_PLAN', 'madrasah', id, { plan, expiresAt });
+    if (plan === 'enterprise') {
+      query += ', subscription_status = ?, stripe_customer_id = NULL, stripe_subscription_id = NULL';
+      params.push(subscriptionStatus || 'active');
+    } else if (subscriptionStatus) {
+      query += ', subscription_status = ?';
+      params.push(subscriptionStatus);
+    }
+
+    query += ' WHERE id = ?';
+    params.push(id);
+
+    await pool.query(query, params);
+
+    await logAudit(req, 'UPDATE_PLAN', 'madrasah', id, { plan, subscriptionStatus });
 
     res.json({ message: 'Plan updated successfully' });
   } catch (error) {

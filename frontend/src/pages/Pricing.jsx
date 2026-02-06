@@ -18,10 +18,13 @@ function Pricing() {
         'Up to 5 classes',
         'Attendance tracking',
         'Exam recording',
-        'Parent portal',
+        'Tie-aware student ranking',
+        'Quick Insights report',
         'Email support (48hr)'
       ],
       notIncluded: [
+        'Parent portal',
+        'Advanced reports & rankings',
         'CSV/Excel exports',
         'PDF report cards',
         'Bulk uploads',
@@ -38,9 +41,11 @@ function Pricing() {
         'Up to 20 teachers',
         'Up to 15 classes',
         'Everything in Standard',
+        'Advanced reports & rankings',
         'CSV/Excel exports',
         'PDF report cards',
         'Bulk student upload',
+        'Parent portal',
         'Email notifications',
         'Priority support (24hr)'
       ],

@@ -615,9 +615,18 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
       }
     }
 
-    // Generate parent access code (PIN)
-    const accessCode = generateAccessCode();
-    const hashedAccessCode = await bcrypt.hash(accessCode, 10);
+    // Generate parent access code (PIN) only for Plus/Enterprise/Trial plans
+    const [madrasahRows] = await pool.query('SELECT pricing_plan, subscription_status FROM madrasahs WHERE id = ?', [madrasahId]);
+    const plan = madrasahRows[0]?.pricing_plan;
+    const subStatus = madrasahRows[0]?.subscription_status;
+    const hasParentPortal = plan === 'plus' || plan === 'enterprise' || (plan === 'trial' && subStatus === 'trialing');
+
+    let accessCode = null;
+    let hashedAccessCode = null;
+    if (hasParentPortal) {
+      accessCode = generateAccessCode();
+      hashedAccessCode = await bcrypt.hash(accessCode, 10);
+    }
 
     const [result] = await pool.query(
       `INSERT INTO students (madrasah_id, first_name, last_name, student_id, gender, email, class_id,
@@ -628,7 +637,9 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
        student_phone, student_phone_country_code, street, city, state, country, date_of_birth,
        parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes, hashedAccessCode]
     );
-    res.status(201).json({ id: result.insertId, first_name, last_name, student_id, access_code: accessCode });
+    const responseData = { id: result.insertId, first_name, last_name, student_id };
+    if (accessCode) responseData.access_code = accessCode;
+    res.status(201).json(responseData);
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'Student ID already exists in this madrasah' });

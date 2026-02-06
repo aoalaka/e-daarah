@@ -540,7 +540,7 @@ router.post('/parent-login', async (req, res) => {
 
     // Get madrasah by slug first (tenant isolation)
     const [madrasahs] = await pool.query(
-      'SELECT id, slug FROM madrasahs WHERE slug = ? AND is_active = TRUE',
+      'SELECT id, slug, pricing_plan, subscription_status FROM madrasahs WHERE slug = ? AND is_active = TRUE',
       [madrasahSlug]
     );
 
@@ -548,7 +548,15 @@ router.post('/parent-login', async (req, res) => {
       return res.status(404).json({ error: 'Madrasah not found' });
     }
 
-    const madrasahId = madrasahs[0].id;
+    const madrasah = madrasahs[0];
+    const madrasahId = madrasah.id;
+
+    // Check if madrasah plan supports parent portal (Plus/Enterprise/active Trial only)
+    const hasParentPortal = madrasah.pricing_plan === 'plus' || madrasah.pricing_plan === 'enterprise' || 
+      (madrasah.pricing_plan === 'trial' && madrasah.subscription_status === 'trialing');
+    if (!hasParentPortal) {
+      return res.status(403).json({ error: 'Parent portal is not available on this plan. Please contact your school administrator.' });
+    }
 
     // Find student by student_id AND madrasah_id (tenant isolated)
     const [students] = await pool.query(

@@ -32,7 +32,7 @@ function MadrasahDetail() {
       setLoading(true);
       const response = await api.get(`/superadmin/madrasahs/${id}`, getAuthHeader());
       setData(response.data);
-      setSelectedPlan(response.data.madrasah.subscription_plan);
+      setSelectedPlan(response.data.madrasah.pricing_plan || 'trial');
     } catch (error) {
       if (error.response?.status === 401) {
         navigate(`${getBasePath()}/login`);
@@ -126,7 +126,7 @@ function MadrasahDetail() {
             </div>
             <div className="detail-item">
               <label>Students</label>
-              <span>{studentCount} / {madrasah.max_students}</span>
+              <span>{studentCount}{madrasah.pricing_plan === 'enterprise' ? '' : ` / ${madrasah.pricing_plan === 'plus' ? '300' : '75'}`}</span>
             </div>
           </div>
 
@@ -144,17 +144,24 @@ function MadrasahDetail() {
           <h2>Subscription</h2>
           <div className="plan-manager">
             <select value={selectedPlan} onChange={(e) => setSelectedPlan(e.target.value)}>
-              <option value="starter">Starter ($29/mo)</option>
-              <option value="professional">Professional ($79/mo)</option>
+              <option value="trial">Trial (Free)</option>
+              <option value="standard">Standard ($12/mo)</option>
+              <option value="plus">Plus ($29/mo)</option>
               <option value="enterprise">Enterprise (Custom)</option>
             </select>
             <button
               onClick={handleUpdatePlan}
               className="btn primary"
-              disabled={selectedPlan === madrasah.subscription_plan}
+              disabled={selectedPlan === (madrasah.pricing_plan || 'trial')}
             >
               Update Plan
             </button>
+          </div>
+          <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
+            <strong>Status:</strong> {madrasah.subscription_status || 'trialing'}
+            {madrasah.trial_ends_at && (
+              <span> · <strong>Trial ends:</strong> {new Date(madrasah.trial_ends_at).toLocaleDateString()}</span>
+            )}
           </div>
         </section>
 

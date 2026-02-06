@@ -241,6 +241,7 @@ function SuperAdminDashboard() {
                 <option value="trial">Trial</option>
                 <option value="standard">Standard</option>
                 <option value="plus">Plus</option>
+                <option value="enterprise">Enterprise</option>
               </select>
             </section>
 

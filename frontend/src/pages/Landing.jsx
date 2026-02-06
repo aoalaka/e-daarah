@@ -158,7 +158,8 @@ function Landing() {
               <li>Up to 75 students</li>
               <li>Up to 5 teachers</li>
               <li>Attendance tracking</li>
-              <li>Parent portal</li>
+              <li>Tie-aware student ranking</li>
+              <li>Exam recording</li>
               <li>Email support</li>
             </ul>
             <button onClick={() => navigate('/register')} className="btn secondary">
@@ -173,7 +174,8 @@ function Landing() {
               <li>Up to 300 students</li>
               <li>Up to 20 teachers</li>
               <li>Everything in Standard</li>
-              <li>CSV/Excel exports</li>
+              <li>Parent portal</li>
+              <li>Advanced reports & exports</li>
               <li>Priority support</li>
             </ul>
             <button onClick={() => navigate('/register')} className="btn primary">

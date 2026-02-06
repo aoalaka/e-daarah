@@ -20,7 +20,8 @@ const PRICE_LOOKUP_KEYS = {
 const PLAN_LIMITS = {
   trial: { maxStudents: 75, maxTeachers: 5, maxClasses: 5, plan: 'trial' },
   standard: { maxStudents: 75, maxTeachers: 5, maxClasses: 5, plan: 'standard' },
-  plus: { maxStudents: 300, maxTeachers: 20, maxClasses: 15, plan: 'plus' }
+  plus: { maxStudents: 300, maxTeachers: 20, maxClasses: 15, plan: 'plus' },
+  enterprise: { maxStudents: Infinity, maxTeachers: Infinity, maxClasses: Infinity, plan: 'enterprise' }
 };
 
 /**

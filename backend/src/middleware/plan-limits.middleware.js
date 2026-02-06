@@ -8,8 +8,24 @@ const PLAN_LIMITS = {
   enterprise: { maxStudents: Infinity, maxTeachers: Infinity, maxClasses: Infinity }
 };
 
-// Plus-only features
-const PLUS_FEATURES = ['csv_export', 'excel_export', 'pdf_reports', 'bulk_upload'];
+// Plus-only features (available on Plus, Enterprise, and active Trial)
+const PLUS_FEATURES = [
+  'csv_export',
+  'excel_export',
+  'pdf_reports',
+  'bulk_upload',
+  'advanced_reports',      // Attendance, Exam, Student Rankings, Individual report tabs
+  'parent_access_codes',   // Parent portal access code generation
+  'email_notifications'    // Email notifications (future)
+];
+
+// Enterprise-only features (Plus + these extras)
+const ENTERPRISE_FEATURES = [
+  'custom_integrations',
+  'dedicated_account_manager',
+  'sla_guarantee',
+  'on_premise'
+];
 
 /**
  * Get madrasah subscription info and current usage
@@ -266,4 +282,4 @@ export const getPlanLimits = (plan) => {
   return PLAN_LIMITS[plan] || PLAN_LIMITS.trial;
 };
 
-export { PLAN_LIMITS, PLUS_FEATURES };
+export { PLAN_LIMITS, PLUS_FEATURES, ENTERPRISE_FEATURES };

@@ -9,21 +9,65 @@
 /* Header */
 .landing-header {
   display: flex;
-  flex-direction: row;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid #eee;
-  gap: 32px;
 }
 
-/* Navbar logo now uses register-logo classes for perfect alignment */
-
-.footer-logo {
+.logo {
+  /* text-decoration: none;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: #1a1a1a; */
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  margin-bottom: var(--sm);
+}
+
+.logo:hover,
+.logo:focus,
+.logo:active,
+.logo:focus-visible {
+  text-decoration: none;
+  outline: none;
+  box-shadow: none;
+  color: #1a1a1a;
+}
+
+.logo-img {
+  height: 36px;
+  width: auto;
+  display: block;
+  outline: none;
+  border: none;
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.footer-logo {
+  /* display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px; */
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  margin-bottom: var(--sm);
 }
 
 .footer-logo-img {
@@ -31,7 +75,23 @@
   width: auto;
 }
 
-/* Footer logo now uses register-logo classes for perfect alignment */
+.footer-logo-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-decoration: none;
+}
+
+.header-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-link {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #666;
+  text-decoration: none;
   border-radius: 6px;
   white-space: nowrap;
 }
@@ -404,11 +464,7 @@
   }
 
   .header-nav {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    margin-left: auto;
+    gap: 4px;
   }
 
   .nav-link {

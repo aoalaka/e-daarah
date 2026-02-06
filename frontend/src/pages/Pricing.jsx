@@ -74,9 +74,9 @@ function Pricing() {
     <div className="pricing-page">
       {/* Header */}
       <header className="pricing-header">
-        <Link to="/" className="register-logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="register-logo-img" />
-          <span className="register-logo-text">e-daarah</span>
+        <Link to="/" className="logo">
+          <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="logo-img" />
+          <span className="logo-text">e-daarah</span>
         </Link>
         <nav className="header-nav">
           <Link to="/demo/login" className="nav-link">Demo</Link>

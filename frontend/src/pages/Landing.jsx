@@ -8,9 +8,9 @@ function Landing() {
     <div className="landing">
       {/* Header */}
       <header className="landing-header">
-        <Link to="/" className="register-logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="register-logo-img" />
-          <span className="register-logo-text">e-daarah</span>
+        <Link to="/" className="logo">
+          <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="logo-img" />
+          <span className="logo-text">e-daarah</span>
         </Link>
         <nav className="header-nav">
           <Link to="/pricing" className="nav-link">Pricing</Link>
@@ -72,7 +72,7 @@ function Landing() {
       {/* Pricing */}
       <section id="pricing" className="pricing">
         <h2 className="section-title">Simple Pricing</h2>
-        <p className="section-subtitle">14-day free trial. No credit card needed.<br /><span style={{color:'#888',fontSize:'13px'}}>All prices in USD</span></p>
+        <p className="section-subtitle">14-day free trial. No credit card needed.<br /><br /><span style={{color:'#888',fontSize:'13px'}}>All prices in USD</span></p>
 
         <div className="pricing-cards">
           <div className="pricing-card">
@@ -141,9 +141,9 @@ function Landing() {
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-brand">
-            <div className="register-logo" style={{ marginBottom: 0 }}>
-              <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="register-logo-img" />
-              <span className="register-logo-text">e-daarah</span>
+            <div className="footer-logo">
+              <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="footer-logo-img" />
+              <span className="footer-logo-text">e-daarah</span>
             </div>
             <p style={{ marginTop: 4 }}>{'نظام إدارة المدارس الدينية'}</p>
           </div>

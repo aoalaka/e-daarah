@@ -1,4 +1,44 @@
-/* Navbar logo now uses register-logo classes for perfect alignment */
+.pricing-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.pricing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--light);
+}
+
+.pricing-header .logo {
+  /* text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  cursor: pointer; */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  margin-bottom: var(--sm);
+}
+
+.pricing-header .logo:hover {
+  text-decoration: none;
+  outline: none;
+}
+
+.pricing-header .logo:hover .logo-text,
+.pricing-header .logo:hover .logo-img {
+  text-decoration: none;
+  opacity: 1;
+}
+
+.pricing-header .logo-img {
   height: 36px;
   width: auto;
 }
@@ -12,10 +52,8 @@
 
 .pricing-header .header-nav {
   display: flex;
-  flex-direction: row;
+  gap: 8px;
   align-items: center;
-  gap: 16px;
-  margin-left: auto;
 }
 
 .pricing-header .nav-link {
@@ -329,8 +367,6 @@
 .pricing-faq {
   border-top: 1px solid var(--light);
   padding-top: 2.5rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
 }
 
 .pricing-faq h2 {
@@ -343,8 +379,6 @@
 
 .faq-item {
   margin-bottom: 1.5rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
 }
 
 .faq-item h3 {

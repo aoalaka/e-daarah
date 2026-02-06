@@ -204,13 +204,13 @@ function AdminDashboard() {
     }
   }, [activeTab, reportSubTab, reportSemester, madrasahProfile]);
 
-  // Re-fetch individual student report when filters change
+  // Re-fetch individual student report when filters or student changes
   useEffect(() => {
-    if (reportSubTab === 'individual' && selectedStudentForReport) {
+    if (reportSubTab === 'individual' && selectedStudentForReport?.id) {
       fetchStudentReport(selectedStudentForReport.id);
       fetchIndividualRankings(selectedStudentForReport.id);
     }
-  }, [reportFilterSession, reportFilterSemester]);
+  }, [reportFilterSession, reportFilterSemester, selectedStudentForReport?.id]);
 
   const loadData = async () => {
     setLoading(true);
@@ -2467,13 +2467,15 @@ function AdminDashboard() {
                                   <span>No attendance marked today</span>
                                 </div>
                               )}
-                              {analyticsData.quickActions.pendingGrading > 0 && (
+                              {analyticsData.quickActions.classesWithoutExams > 0 && (
                                 <div className="action-item">
                                   <span className="action-icon">📝</span>
-                                  <span>{analyticsData.quickActions.pendingGrading} exam{analyticsData.quickActions.pendingGrading !== 1 ? 's' : ''} need grading</span>
+                                  <span>
+                                    Awaiting exams recording for {analyticsData.quickActions.classesWithoutExams} class{analyticsData.quickActions.classesWithoutExams !== 1 ? 'es' : ''} in {analyticsData.quickActions.activeSemesterName}
+                                  </span>
                                 </div>
                               )}
-                              {analyticsData.quickActions.attendanceMarkedToday && analyticsData.quickActions.pendingGrading === 0 && (
+                              {analyticsData.quickActions.attendanceMarkedToday && analyticsData.quickActions.classesWithoutExams === 0 && (
                                 <div className="action-item all-good">
                                   <span className="action-icon">✓</span>
                                   <span>All caught up!</span>

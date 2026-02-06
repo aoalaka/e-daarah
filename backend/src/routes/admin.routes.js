@@ -2236,10 +2236,36 @@ router.get('/analytics', async (req, res) => {
       'SELECT COUNT(*) as count FROM attendance WHERE madrasah_id = ? AND date = ?',
       [madrasahId, today]
     );
-    const [pendingGrading] = await pool.query(
-      'SELECT COUNT(*) as count FROM exam_performance WHERE madrasah_id = ? AND score IS NULL',
-      [madrasahId]
-    );
+
+    // Count classes without any exam records in the active semester
+    const [classesWithoutExams] = await pool.query(`
+      SELECT COUNT(DISTINCT c.id) as count
+      FROM classes c
+      JOIN sessions sess ON sess.madrasah_id = c.madrasah_id AND sess.deleted_at IS NULL
+      JOIN semesters sem ON sem.session_id = sess.id
+        AND sem.is_active = 1
+        AND sem.deleted_at IS NULL
+      WHERE c.madrasah_id = ?
+        AND c.deleted_at IS NULL
+        AND EXISTS (SELECT 1 FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL)
+        AND NOT EXISTS (
+          SELECT 1 FROM exam_performance ep
+          JOIN students s ON ep.student_id = s.id
+          WHERE s.class_id = c.id AND ep.semester_id = sem.id
+        )
+    `, [madrasahId]);
+
+    // Get active semester name
+    const [activeSemester] = await pool.query(`
+      SELECT sem.name
+      FROM semesters sem
+      JOIN sessions sess ON sem.session_id = sess.id
+      WHERE sess.madrasah_id = ?
+        AND sem.is_active = 1
+        AND sem.deleted_at IS NULL
+        AND sess.deleted_at IS NULL
+      LIMIT 1
+    `, [madrasahId]);
 
     // 15. Month-over-Month Comparison
     const [currentMonthAttendance] = await pool.query(`
@@ -2302,7 +2328,8 @@ router.get('/analytics', async (req, res) => {
       topPerformer: topPerformer[0] || null,
       quickActions: {
         attendanceMarkedToday: todayAttendance[0]?.count > 0,
-        pendingGrading: pendingGrading[0]?.count || 0
+        classesWithoutExams: classesWithoutExams[0]?.count || 0,
+        activeSemesterName: activeSemester[0]?.name || 'current semester'
       },
       monthOverMonth: {
         currentRate,

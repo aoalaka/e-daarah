@@ -19,7 +19,7 @@ function ForgotPassword() {
     setLoading(true);
 
     try {
-      await api.post('/password/forgot-password', { email, role });
+      await api.post('/password/forgot-password', { email, role, madrasahSlug });
       setSent(true);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to send reset email');

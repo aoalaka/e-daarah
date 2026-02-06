@@ -13,7 +13,7 @@ const router = express.Router();
  * Body: { email, role }
  */
 router.post('/forgot-password', async (req, res) => {
-  const { email, role } = req.body;
+  const { email, role, madrasahSlug } = req.body;
 
   // Validate input
   if (!email || !role) {
@@ -25,9 +25,12 @@ router.post('/forgot-password', async (req, res) => {
   }
 
   try {
-    // Check if user exists with the specified role
+    // Check if user exists with the specified role, and get their madrasah slug
     const [users] = await pool.query(
-      `SELECT id, email FROM users WHERE email = ? AND role = ?`,
+      `SELECT u.id, u.email, m.slug as madrasah_slug 
+       FROM users u 
+       JOIN madrasahs m ON u.madrasah_id = m.id 
+       WHERE u.email = ? AND u.role = ?`,
       [email, role]
     );
 
@@ -57,8 +60,9 @@ router.post('/forgot-password', async (req, res) => {
     );
 
     // Send reset email (use unhashed token in URL)
+    const slug = user.madrasah_slug || madrasahSlug;
     try {
-      await sendPasswordResetEmail(user.email, resetToken, role);
+      await sendPasswordResetEmail(user.email, resetToken, role, slug);
     } catch (emailError) {
       console.error('Failed to send reset email:', emailError);
       // Don't reveal email sending failure to user

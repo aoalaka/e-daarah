@@ -223,8 +223,8 @@ export const sendWelcomeEmail = async (email, firstName, madrasahName, madrasahS
 /**
  * Send password reset email
  */
-export const sendPasswordResetEmail = async (email, resetToken, role) => {
-  const resetUrl = `${FRONTEND_URL}/reset-password?token=${resetToken}&role=${role}`;
+export const sendPasswordResetEmail = async (email, resetToken, role, madrasahSlug) => {
+  const resetUrl = `${FRONTEND_URL}/${madrasahSlug}/reset-password?token=${resetToken}&role=${role}`;
 
   if (!isEmailEnabled()) {
     console.log('\n=== PASSWORD RESET EMAIL (Console) ===');

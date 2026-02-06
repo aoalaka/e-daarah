@@ -74,6 +74,8 @@ api.interceptors.response.use(
     // For 401 (unauthorized/session expired), redirect to login
     // Don't redirect on 403 - it may be a permission issue that doesn't require logout
     if (error.response?.status === 401) {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const isDemo = user?.isDemo;
       const madrasah = JSON.parse(localStorage.getItem('madrasah') || '{}');
 
       // Clear auth data
@@ -82,8 +84,10 @@ api.interceptors.response.use(
       localStorage.removeItem('parentToken');
       localStorage.removeItem('parentStudent');
 
-      // Redirect to madrasah-specific login or home
-      if (madrasah?.slug) {
+      // Demo users go back to demo page
+      if (isDemo) {
+        window.location.href = '/demo';
+      } else if (madrasah?.slug) {
         window.location.href = `/${madrasah.slug}/login`;
       } else {
         window.location.href = '/';

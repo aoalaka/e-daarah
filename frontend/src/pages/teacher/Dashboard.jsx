@@ -864,8 +864,10 @@ function TeacherDashboard() {
   };
 
   const handleLogout = () => {
+    const user = authService.getCurrentUser();
+    const isDemo = user?.isDemo;
     authService.logout();
-    navigate(`/${madrasahSlug}/login`);
+    navigate(isDemo ? '/demo' : `/${madrasahSlug}/login`);
   };
 
   const getNavIcon = (id) => {

@@ -12,6 +12,9 @@ function SessionTimeout({ onLogout }) {
   const countdownRef = useRef(null);
 
   const handleSessionExpired = useCallback(() => {
+    const userStr = localStorage.getItem('user');
+    const isDemo = userStr ? JSON.parse(userStr)?.isDemo : false;
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('madrasah');
@@ -20,9 +23,13 @@ function SessionTimeout({ onLogout }) {
       onLogout();
     }
 
-    navigate('/login', {
-      state: { message: 'Your session has expired due to inactivity. Please log in again.' }
-    });
+    if (isDemo) {
+      navigate('/demo');
+    } else {
+      navigate('/login', {
+        state: { message: 'Your session has expired due to inactivity. Please log in again.' }
+      });
+    }
   }, [navigate, onLogout]);
 
   const checkSession = useCallback(async () => {
@@ -55,6 +62,9 @@ function SessionTimeout({ onLogout }) {
   };
 
   const handleLogoutNow = async () => {
+    const userStr = localStorage.getItem('user');
+    const isDemo = userStr ? JSON.parse(userStr)?.isDemo : false;
+
     try {
       await api.post('/auth/logout');
     } catch {
@@ -69,7 +79,7 @@ function SessionTimeout({ onLogout }) {
       onLogout();
     }
 
-    navigate('/login');
+    navigate(isDemo ? '/demo' : '/login');
   };
 
   // Check session periodically

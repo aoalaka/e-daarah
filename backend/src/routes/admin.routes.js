@@ -1366,13 +1366,35 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     attendanceQuery += ` GROUP BY s.id ORDER BY attendance_rate DESC`;
     const [attendanceRankings] = await pool.query(attendanceQuery, attendanceParams);
 
+    // Apply tie-aware ranking for attendance
+    let attendanceRankArray = [];
+    let attendanceCurrentRank = 1;
+    let attendancePreviousRate = null;
+    let attendanceStudentsAtCurrentRank = 0;
+    
+    attendanceRankings.forEach((student) => {
+      const rate = student.attendance_rate ? parseFloat(student.attendance_rate).toFixed(2) : '0.00';
+      
+      if (attendancePreviousRate !== null && rate !== attendancePreviousRate) {
+        attendanceCurrentRank += attendanceStudentsAtCurrentRank;
+        attendanceStudentsAtCurrentRank = 0;
+      }
+      
+      attendanceStudentsAtCurrentRank++;
+      attendancePreviousRate = rate;
+      
+      attendanceRankArray.push({
+        ...student,
+        rank: attendanceCurrentRank
+      });
+    });
+
     let attendanceRank = null;
     let attendanceRate = null;
-    let totalAttendanceStudents = 0;
-    attendanceRankings.forEach((r, index) => {
-      if (parseFloat(r.attendance_rate) > 0) totalAttendanceStudents++;
+    let totalAttendanceStudents = attendanceRankArray.length;
+    attendanceRankArray.forEach((r) => {
       if (r.id === parseInt(id)) {
-        attendanceRank = index + 1;
+        attendanceRank = r.rank;
         attendanceRate = parseFloat(r.attendance_rate).toFixed(2);
       }
     });

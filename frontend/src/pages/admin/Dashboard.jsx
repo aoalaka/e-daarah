@@ -3735,11 +3735,11 @@ function AdminDashboard() {
                         <span>Attendance</span>
                       </div>
                       <div className="performance-card-body">
-                        {studentReport.attendance.totalDays > 0 ? (
+                        {individualRankings?.rankings?.attendance?.rank || studentReport.attendance.totalDays > 0 ? (
                           <>
                             <div className="performance-main-stat">
                               <div className="performance-big-number" style={{ color: parseFloat(studentReport.attendance.attendanceRate) >= 90 ? '#10b981' : parseFloat(studentReport.attendance.attendanceRate) >= 80 ? '#22c55e' : '#f59e0b' }}>
-                                {studentReport.attendance.attendanceRate != null ? `${studentReport.attendance.attendanceRate}%` : 'N/A'}
+                                {studentReport.attendance.attendanceRate != null ? `${studentReport.attendance.attendanceRate}%` : 'No attendance yet'}
                               </div>
                               <div className="performance-label">Attendance Rate</div>
                             </div>
@@ -3783,11 +3783,11 @@ function AdminDashboard() {
                         <span>Exam Performance</span>
                       </div>
                       <div className="performance-card-body">
-                        {studentReport.exams.length > 0 ? (
+                        {individualRankings?.rankings?.exam?.rank ? (
                           <>
                             <div className="performance-main-stat">
                               <div className="performance-big-number" style={{ color: individualRankings?.rankings.exam.percentage >= 80 ? '#10b981' : individualRankings?.rankings.exam.percentage >= 70 ? '#22c55e' : '#f59e0b' }}>
-                                {individualRankings?.rankings.exam.percentage ? `${individualRankings.rankings.exam.percentage}%` : 'N/A'}
+                                {individualRankings.rankings.exam.percentage}%
                               </div>
                               <div className="performance-label">Overall Score</div>
                             </div>
@@ -3829,11 +3829,11 @@ function AdminDashboard() {
                         <span>Dressing Standards</span>
                       </div>
                       <div className="performance-card-body">
-                        {studentReport.dressingBehavior?.avgDressing ? (
+                        {individualRankings?.rankings?.dressing?.rank ? (
                           <>
                             <div className="performance-main-stat">
                               <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgDressing >= 3.5 ? '#10b981' : studentReport.dressingBehavior?.avgDressing >= 2.5 ? '#22c55e' : '#f59e0b' }}>
-                                {studentReport.dressingBehavior.avgDressing.toFixed(1)}
+                                {studentReport.dressingBehavior?.avgDressing ? studentReport.dressingBehavior.avgDressing.toFixed(1) : '0.0'}
                               </div>
                               <div className="performance-label">Average Grade (out of 4.0)</div>
                             </div>
@@ -3870,11 +3870,11 @@ function AdminDashboard() {
                         <span>Behavior & Conduct</span>
                       </div>
                       <div className="performance-card-body">
-                        {studentReport.dressingBehavior?.avgBehavior ? (
+                        {individualRankings?.rankings?.behavior?.rank ? (
                           <>
                             <div className="performance-main-stat">
                               <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgBehavior >= 3.5 ? '#10b981' : studentReport.dressingBehavior?.avgBehavior >= 2.5 ? '#22c55e' : '#f59e0b' }}>
-                                {studentReport.dressingBehavior.avgBehavior.toFixed(1)}
+                                {studentReport.dressingBehavior?.avgBehavior ? studentReport.dressingBehavior.avgBehavior.toFixed(1) : '0.0'}
                               </div>
                               <div className="performance-label">Average Grade (out of 4.0)</div>
                             </div>

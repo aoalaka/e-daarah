@@ -15,41 +15,7 @@
   border-bottom: 1px solid #eee;
 }
 
-.logo {
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  cursor: pointer;
-  color: #1a1a1a;
-}
-
-.logo:hover,
-.logo:focus,
-.logo:active,
-.logo:focus-visible {
-  text-decoration: none;
-  outline: none;
-  box-shadow: none;
-  color: #1a1a1a;
-}
-
-.logo-img {
-  height: 36px;
-  width: auto;
-  display: block;
-  outline: none;
-  border: none;
-}
-
-.logo-text {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
-  white-space: nowrap;
-  text-decoration: none;
-}
+/* Navbar logo now uses register-logo classes for perfect alignment */
 
 .footer-logo {
   display: flex;

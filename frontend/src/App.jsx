@@ -11,6 +11,8 @@ import Pricing from './pages/Pricing';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import Help from './pages/Help';
+import Demo from './pages/Demo';
+import SignIn from './pages/SignIn';
 import NotFound from './pages/NotFound';
 
 // Check if we're on the admin subdomain
@@ -100,6 +102,8 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/register" element={<MadrasahRegistration />} />
+        <Route path="/demo" element={<Demo />} />
+        <Route path="/signin" element={<SignIn />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/help" element={<Help />} />

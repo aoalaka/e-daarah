@@ -199,6 +199,78 @@ router.get('/madrasah/:slug', async (req, res) => {
   }
 });
 
+// Demo login - instant access to demo madrasahs (no password needed)
+router.post('/demo-login', async (req, res) => {
+  try {
+    const { slug, role } = req.body;
+
+    // Only allow demo slugs
+    const allowedSlugs = ['standard-demo', 'plus-demo', 'enterprise-demo'];
+    if (!allowedSlugs.includes(slug)) {
+      return res.status(400).json({ error: 'Invalid demo madrasah' });
+    }
+
+    if (!role || !['admin', 'teacher'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    // Find the demo user
+    const [users] = await pool.query(
+      `SELECT u.id, u.madrasah_id, u.first_name, u.last_name, u.email, u.role, u.staff_id,
+              m.slug as madrasah_slug, m.name as madrasah_name
+       FROM users u
+       JOIN madrasahs m ON u.madrasah_id = m.id
+       WHERE m.slug = ? AND u.role = ? AND u.deleted_at IS NULL AND m.deleted_at IS NULL
+       ORDER BY u.id ASC LIMIT 1`,
+      [slug, role]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'Demo account not found' });
+    }
+
+    const user = users[0];
+
+    // Generate JWT (shorter expiry for demos - 4 hours)
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        madrasahId: user.madrasah_id,
+        madrasahSlug: user.madrasah_slug,
+        staffId: user.staff_id || null,
+        isDemo: true
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '4h' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        email: user.email,
+        role: user.role,
+        staffId: user.staff_id || null,
+        emailVerified: true,
+        madrasah_name: user.madrasah_name,
+        isDemo: true
+      },
+      madrasah: {
+        id: user.madrasah_id,
+        slug: user.madrasah_slug,
+        name: user.madrasah_name
+      }
+    });
+  } catch (error) {
+    console.error('Demo login error:', error);
+    res.status(500).json({ error: 'Demo login failed' });
+  }
+});
+
 // Search madrasahs by name (for login finder)
 router.get('/madrasahs/search', async (req, res) => {
   try {

@@ -5,6 +5,7 @@ import api from '../../services/api';
 import { authService } from '../../services/auth.service';
 import SortableTable from '../../components/SortableTable';
 import EmailVerificationBanner from '../../components/EmailVerificationBanner';
+import DemoBanner from '../../components/DemoBanner';
 import '../admin/Dashboard.css';
 
 function TeacherDashboard() {
@@ -981,6 +982,9 @@ function TeacherDashboard() {
 
         {/* Email Verification Banner */}
         <EmailVerificationBanner />
+
+        {/* Demo Banner */}
+        <DemoBanner />
 
         {/* Read-Only Warning Banner */}
         {isReadOnly() && (

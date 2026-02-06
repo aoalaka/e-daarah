@@ -7,6 +7,7 @@ import { authService } from '../../services/auth.service';
 import api from '../../services/api';
 import SortableTable from '../../components/SortableTable';
 import EmailVerificationBanner from '../../components/EmailVerificationBanner';
+import DemoBanner from '../../components/DemoBanner';
 import TrialBanner from '../../components/TrialBanner';
 import UsageIndicator from '../../components/UsageIndicator';
 import { handleApiError } from '../../utils/errorHandler';
@@ -1078,6 +1079,9 @@ function AdminDashboard() {
 
         {/* Email Verification Banner */}
         <EmailVerificationBanner />
+
+        {/* Demo Banner */}
+        <DemoBanner />
 
         {/* Trial Banner */}
         <TrialBanner

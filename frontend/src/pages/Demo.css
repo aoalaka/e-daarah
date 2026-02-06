@@ -1,0 +1,246 @@
+/* Demo Page - Minimalist Mobile-First */
+
+.demo-page {
+  min-height: 100vh;
+  background: #fff;
+  color: #1a1a1a;
+}
+
+/* Header (matches Landing) */
+.demo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+/* Hero */
+.demo-hero {
+  padding: 48px 20px 32px;
+  text-align: center;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.demo-hero h1 {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.demo-hero p {
+  font-size: 16px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* Error */
+.demo-error {
+  max-width: 480px;
+  margin: 0 auto 16px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  color: #c1121f;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Cards */
+.demo-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 20px 40px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.demo-card {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 24px;
+  background: #fff;
+}
+
+.demo-card.featured {
+  border-color: #1a1a1a;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.demo-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.plan-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.plan-price {
+  font-size: 15px;
+  font-weight: 600;
+  color: #666;
+}
+
+.demo-school-name {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.demo-card-desc {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+/* Stats */
+.demo-stats {
+  display: flex;
+  gap: 24px;
+  padding: 12px 0;
+  margin-bottom: 16px;
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #999;
+}
+
+/* Features */
+.demo-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.demo-features li {
+  font-size: 14px;
+  color: #444;
+  padding-left: 18px;
+  position: relative;
+}
+
+.demo-features li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #2d6a4f;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Actions */
+.demo-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.demo-btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.demo-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.demo-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.demo-btn.admin {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.demo-btn.teacher {
+  background: #fff;
+  color: #1a1a1a;
+  border: 1px solid #ddd;
+}
+
+/* Info */
+.demo-info {
+  text-align: center;
+  padding: 24px 20px 40px;
+  border-top: 1px solid #eee;
+}
+
+.demo-info p {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.demo-info a {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+/* Footer */
+.demo-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #eee;
+  text-align: center;
+}
+
+.demo-footer p {
+  font-size: 13px;
+  color: #999;
+}
+
+/* Tablet+ */
+@media (min-width: 768px) {
+  .demo-hero {
+    padding: 64px 20px 40px;
+  }
+
+  .demo-hero h1 {
+    font-size: 32px;
+  }
+
+  .demo-cards {
+    flex-direction: row;
+    padding: 0 32px 48px;
+  }
+
+  .demo-card {
+    flex: 1;
+  }
+}

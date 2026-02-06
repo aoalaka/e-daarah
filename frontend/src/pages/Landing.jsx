@@ -1,61 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../services/api';
 import './Landing.css';
 
 function Landing() {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const searchRef = useRef(null);
-
-  // Debounced search
-  useEffect(() => {
-    if (searchQuery.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const response = await api.get(`/auth/madrasahs/search?q=${encodeURIComponent(searchQuery)}`);
-        setSearchResults(response.data);
-        setShowResults(true);
-      } catch (err) {
-        console.error('Search error:', err);
-        if (err.response?.status === 429) {
-          // Rate limit hit - show a friendly message
-          setSearchResults([]);
-        } else {
-          setSearchResults([]);
-        }
-      } finally {
-        setSearching(false);
-      }
-    }, 500); // Increased from 300ms to 500ms
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setShowResults(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelectMadrasah = (madrasah) => {
-    setShowResults(false);
-    setSearchQuery('');
-    navigate(`/${madrasah.slug}/login`);
-  };
 
   return (
     <div className="landing">
@@ -67,7 +14,7 @@ function Landing() {
         </Link>
         <nav className="header-nav">
           <Link to="/pricing" className="nav-link">Pricing</Link>
-          <Link to="/demo/login" className="nav-link">Demo</Link>
+          <Link to="/demo" className="nav-link">Demo</Link>
           <Link to="/register" className="nav-link primary">Get Started</Link>
         </nav>
       </header>
@@ -84,7 +31,7 @@ function Landing() {
           <button onClick={() => navigate('/register')} className="btn primary">
             Start Free Trial
           </button>
-          <button onClick={() => navigate('/demo/login')} className="btn secondary">
+          <button onClick={() => navigate('/demo')} className="btn secondary">
             View Demo
           </button>
         </div>
@@ -93,32 +40,9 @@ function Landing() {
       {/* Finder */}
       <section className="finder">
         <p className="finder-label">Already have an account?</p>
-        <div className="finder-search" ref={searchRef}>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => searchResults.length > 0 && setShowResults(true)}
-            placeholder="Search your madrasah or school name..."
-            className="finder-input"
-          />
-          {searching && <span className="finder-loading">Searching...</span>}
-          {showResults && searchResults.length > 0 && (
-            <ul className="finder-results">
-              {searchResults.map((madrasah) => (
-                <li key={madrasah.id} onClick={() => handleSelectMadrasah(madrasah)}>
-                  <span className="result-name">{madrasah.name}</span>
-                  <span className="result-slug">e-daarah.com/{madrasah.slug}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {showResults && searchQuery.length >= 2 && searchResults.length === 0 && !searching && (
-            <div className="finder-no-results">
-              No madrasah found. <Link to="/register">Register a new one</Link>
-            </div>
-          )}
-        </div>
+        <button onClick={() => navigate('/signin')} className="btn primary finder-btn">
+          Sign In
+        </button>
       </section>
 
       {/* Features */}
@@ -224,9 +148,9 @@ function Landing() {
             <p>نظام إدارة المدارس الذكي</p>
           </div>
           <div className="footer-links">
-            <Link to="/demo/login">Demo</Link>
+            <Link to="/signin">Sign In</Link>
+            <Link to="/demo">Demo</Link>
             <Link to="/register">Register</Link>
-            <a href="#pricing">Pricing</a>
             <Link to="/help">Help</Link>
           </div>
           <div className="footer-links">

@@ -1,0 +1,269 @@
+/* Sign In Page - Professional Madrasah Finder */
+
+.signin-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  background: #f5f5f5;
+}
+
+.signin-card {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 32px;
+}
+
+/* Logo */
+.signin-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  margin-bottom: 32px;
+  justify-content: center;
+}
+
+.signin-logo-img {
+  height: 32px;
+  width: auto;
+}
+
+.signin-logo-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* Header */
+.signin-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.signin-header h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.signin-header p {
+  font-size: 14px;
+  color: #999;
+}
+
+/* Search */
+.signin-search {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.signin-search label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.signin-input-wrapper {
+  position: relative;
+}
+
+.signin-input-wrapper input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
+  color: #1a1a1a;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.signin-input-wrapper input:focus {
+  outline: none;
+  border-color: #1a1a1a;
+}
+
+.signin-input-wrapper input::placeholder {
+  color: #bbb;
+}
+
+.signin-spinner {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e5e5e5;
+  border-top-color: #1a1a1a;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* Results dropdown */
+.signin-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  list-style: none;
+  padding: 4px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.signin-results li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.signin-results li:hover {
+  background: #f5f5f5;
+}
+
+.result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.result-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.result-url {
+  font-size: 12px;
+  color: #999;
+}
+
+.result-arrow {
+  font-size: 16px;
+  color: #999;
+}
+
+.signin-no-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 16px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.signin-no-results p {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+.signin-no-results-hint {
+  font-size: 13px;
+  color: #999;
+}
+
+/* Divider */
+.signin-divider {
+  position: relative;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.signin-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #e5e5e5;
+}
+
+.signin-divider span {
+  position: relative;
+  background: #fff;
+  padding: 0 12px;
+  font-size: 13px;
+  color: #999;
+}
+
+/* Alternatives */
+.signin-alternatives {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.signin-alt-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+  background: #fff;
+  color: #1a1a1a;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.signin-alt-btn:hover {
+  background: #f9f9f9;
+}
+
+.signin-alt-link {
+  font-size: 14px;
+  color: #666;
+  text-decoration: none;
+}
+
+.signin-alt-link:hover {
+  color: #1a1a1a;
+}
+
+/* Footer */
+.signin-footer {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.signin-footer a {
+  font-size: 13px;
+  color: #999;
+  text-decoration: none;
+}
+
+.signin-footer a:hover {
+  color: #666;
+}

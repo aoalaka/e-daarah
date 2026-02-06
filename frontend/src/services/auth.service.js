@@ -44,6 +44,17 @@ export const authService = {
     return response.data;
   },
 
+  // Demo login - instant access, no password needed
+  demoLogin: async (slug, role) => {
+    const response = await api.post('/auth/demo-login', { slug, role });
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('madrasah', JSON.stringify(response.data.madrasah));
+    }
+    return response.data;
+  },
+
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');

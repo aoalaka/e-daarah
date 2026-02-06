@@ -3163,25 +3163,40 @@ function AdminDashboard() {
                       className={`subtab-btn ${rankingSubTab === 'exam' ? 'active' : ''}`}
                       onClick={() => setRankingSubTab('exam')}
                     >
-                      📚 Exam
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                      </svg>
+                      Exam
                     </button>
                     <button
                       className={`subtab-btn ${rankingSubTab === 'attendance' ? 'active' : ''}`}
                       onClick={() => setRankingSubTab('attendance')}
                     >
-                      ✅ Attendance
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                      </svg>
+                      Attendance
                     </button>
                     <button
                       className={`subtab-btn ${rankingSubTab === 'dressing' ? 'active' : ''}`}
                       onClick={() => setRankingSubTab('dressing')}
                     >
-                      👔 Dressing
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                      </svg>
+                      Dressing
                     </button>
                     <button
                       className={`subtab-btn ${rankingSubTab === 'behavior' ? 'active' : ''}`}
                       onClick={() => setRankingSubTab('behavior')}
                     >
-                      🌟 Behavior
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                      Behavior
                     </button>
                   </div>
 
@@ -3837,7 +3852,13 @@ function AdminDashboard() {
                       <div className="metric-grid">
                         {/* Exam Rank */}
                         <div className="metric-card">
-                          <div className="metric-label">📚 Exam Performance</div>
+                          <div className="metric-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+                              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                            </svg>
+                            Exam Performance
+                          </div>
                           <div className="metric-value" style={{ color: '#3b82f6' }}>
                             {individualRankings.rankings.exam.rank 
                               ? `Rank ${individualRankings.rankings.exam.rank}`
@@ -3866,7 +3887,13 @@ function AdminDashboard() {
 
                         {/* Attendance Rank */}
                         <div className="metric-card">
-                          <div className="metric-label">✅ Attendance</div>
+                          <div className="metric-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+                              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                              <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            Attendance
+                          </div>
                           <div className="metric-value" style={{ color: '#10b981' }}>
                             {individualRankings.rankings.attendance.rank 
                               ? `Rank ${individualRankings.rankings.attendance.rank}`
@@ -3895,7 +3922,13 @@ function AdminDashboard() {
 
                         {/* Dressing Rank */}
                         <div className="metric-card">
-                          <div className="metric-label">👔 Dressing Standards</div>
+                          <div className="metric-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                              <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            Dressing Standards
+                          </div>
                           <div className="metric-value" style={{ color: '#f59e0b' }}>
                             {individualRankings.rankings.dressing.rank 
                               ? `Rank ${individualRankings.rankings.dressing.rank}`
@@ -3924,7 +3957,12 @@ function AdminDashboard() {
 
                         {/* Behavior Rank */}
                         <div className="metric-card">
-                          <div className="metric-label">🌟 Behavior & Conduct</div>
+                          <div className="metric-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            Behavior & Conduct
+                          </div>
                           <div className="metric-value" style={{ color: '#8b5cf6' }}>
                             {individualRankings.rankings.behavior.rank 
                               ? `Rank ${individualRankings.rankings.behavior.rank}`

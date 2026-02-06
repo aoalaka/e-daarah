@@ -1975,6 +1975,7 @@ router.get('/analytics', async (req, res) => {
 
     // 8. Classes that should be taking attendance but haven't recently
     // Show classes that: have students, have an active semester (started), but no recent attendance
+    // Note: semesters link to sessions (session_id), and sessions have madrasah_id
     const [classesWithoutRecentAttendance] = await pool.query(`
       SELECT
         c.id,
@@ -1987,7 +1988,8 @@ router.get('/analytics', async (req, res) => {
           ELSE FLOOR(DATEDIFF(NOW(), (SELECT MAX(a.date) FROM attendance a WHERE a.class_id = c.id AND a.madrasah_id = ?)) / 7)
         END as weeks_missed
       FROM classes c
-      JOIN semesters sem ON sem.madrasah_id = c.madrasah_id
+      JOIN sessions sess ON sess.madrasah_id = c.madrasah_id AND sess.deleted_at IS NULL
+      JOIN semesters sem ON sem.session_id = sess.id
         AND sem.is_active = 1
         AND sem.start_date <= CURDATE()
         AND sem.deleted_at IS NULL

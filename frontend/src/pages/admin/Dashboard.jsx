@@ -204,6 +204,14 @@ function AdminDashboard() {
     }
   }, [activeTab, reportSubTab, reportSemester, madrasahProfile]);
 
+  // Re-fetch individual student report when filters change
+  useEffect(() => {
+    if (reportSubTab === 'individual' && selectedStudentForReport) {
+      fetchStudentReport(selectedStudentForReport.id);
+      fetchIndividualRankings(selectedStudentForReport.id);
+    }
+  }, [reportFilterSession, reportFilterSemester]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -594,10 +602,15 @@ function AdminDashboard() {
 
   const fetchStudentReport = async (studentId) => {
     try {
-      const url = reportSemester 
-        ? `/admin/students/${studentId}/report?semester_id=${reportSemester}`
-        : `/admin/students/${studentId}/report`;
-      const response = await api.get(url);
+      const params = {};
+      if (reportFilterSession) {
+        params.sessionId = reportFilterSession;
+      }
+      if (reportFilterSemester) {
+        params.semesterId = reportFilterSemester;
+      }
+      
+      const response = await api.get(`/admin/students/${studentId}/report`, { params });
       setStudentReport(response.data);
       setSelectedStudentForReport(students.find(s => s.id === studentId));
       // Fetch madrasah-wide rankings for the student

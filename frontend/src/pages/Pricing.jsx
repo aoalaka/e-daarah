@@ -74,9 +74,9 @@ function Pricing() {
     <div className="pricing-page">
       {/* Header */}
       <header className="pricing-header">
-        <Link to="/" className="logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="logo-img" />
-          <span className="logo-text">e-daarah</span>
+        <Link to="/" className="register-logo">
+          <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="register-logo-img" />
+          <span className="register-logo-text">e-daarah</span>
         </Link>
         <nav className="header-nav">
           <Link to="/demo/login" className="nav-link">Demo</Link>
@@ -88,7 +88,8 @@ function Pricing() {
       <main className="pricing-main">
         <h1 className="pricing-title">Simple, Transparent Pricing</h1>
         <p className="pricing-subtitle">
-          Start with a 14-day free trial. No credit card required.
+          Start with a 14-day free trial. No credit card required.<br />
+          <span style={{color:'#888',fontSize:'13px'}}>All prices in USD</span>
         </p>
 
         {/* Billing Toggle */}
@@ -119,7 +120,7 @@ function Pricing() {
             <div className="plan-price">
               <span className="currency">$</span>
               <span className="amount">{getPrice(plans.standard)}</span>
-              <span className="period">{getPriceLabel()}</span>
+              <span className="period">{getPriceLabel()} USD</span>
             </div>
             {billingCycle === 'annual' && (
               <p className="savings">Save ${getSavings(plans.standard)}/year</p>
@@ -156,7 +157,7 @@ function Pricing() {
             <div className="plan-price">
               <span className="currency">$</span>
               <span className="amount">{getPrice(plans.plus)}</span>
-              <span className="period">{getPriceLabel()}</span>
+              <span className="period">{getPriceLabel()} USD</span>
             </div>
             {billingCycle === 'annual' && (
               <p className="savings">Save ${getSavings(plans.plus)}/year</p>

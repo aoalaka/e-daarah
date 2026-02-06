@@ -361,6 +361,8 @@
 .pricing-faq {
   border-top: 1px solid var(--light);
   padding-top: 2.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 .pricing-faq h2 {
@@ -373,6 +375,8 @@
 
 .faq-item {
   margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
 }
 
 .faq-item h3 {

@@ -75,6 +75,7 @@ function AdminDashboard() {
   const [reportFilteredSemesters, setReportFilteredSemesters] = useState([]);
   const [reportFilterSemester, setReportFilterSemester] = useState('');
   const [reportFilterSubject, setReportFilterSubject] = useState('all');
+  const [isEditingComment, setIsEditingComment] = useState(false);
   const [reportAvailableSubjects, setReportAvailableSubjects] = useState([]);
   const [studentReports, setStudentReports] = useState([]);
   const [rankingSubTab, setRankingSubTab] = useState('exam'); // Sub-tab for rankings (exam, attendance, dressing, behavior)
@@ -2113,12 +2114,12 @@ function AdminDashboard() {
           {/* Reports Tab */}
           {activeTab === 'reports' && (
             <>
-              <div className="page-header">
+              <div className="page-header no-print">
                 <h2 className="page-title">Reports & Analytics</h2>
               </div>
 
               {/* Report Sub-Tabs */}
-              <div className="report-tabs">
+              <div className="report-tabs no-print">
                 <nav className="report-tabs-nav">
                   <button
                     onClick={() => setReportSubTab('insights')}
@@ -3708,25 +3709,52 @@ function AdminDashboard() {
                   {/* School Overall Comment */}
                   <div className="report-card-comment">
                     <h3>School Overall Comment</h3>
-                    <textarea
-                      className="comment-textarea"
-                      rows="4"
-                      value={selectedStudentForReport.notes || ''}
-                      onChange={(e) => {
-                        setSelectedStudentForReport({
-                          ...selectedStudentForReport,
-                          notes: e.target.value
-                        });
-                      }}
-                      placeholder="Add overall comment about student's performance..."
-                    />
-                    <button
-                      className="btn btn-primary btn-sm no-print"
-                      onClick={() => updateStudentComment(selectedStudentForReport.id, selectedStudentForReport.notes)}
-                      style={{ marginTop: '12px' }}
-                    >
-                      Save Comment
-                    </button>
+                    {!isEditingComment ? (
+                      <>
+                        <div className="comment-display">
+                          {selectedStudentForReport.notes || 'No comment added yet.'}
+                        </div>
+                        <button
+                          className="btn btn-secondary btn-sm no-print"
+                          onClick={() => setIsEditingComment(true)}
+                          style={{ marginTop: '12px' }}
+                        >
+                          Edit Comment
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <textarea
+                          className="comment-textarea"
+                          rows="4"
+                          value={selectedStudentForReport.notes || ''}
+                          onChange={(e) => {
+                            setSelectedStudentForReport({
+                              ...selectedStudentForReport,
+                              notes: e.target.value
+                            });
+                          }}
+                          placeholder="Add overall comment about student's performance..."
+                        />
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }} className="no-print">
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={async () => {
+                              await updateStudentComment(selectedStudentForReport.id, selectedStudentForReport.notes);
+                              setIsEditingComment(false);
+                            }}
+                          >
+                            Save Comment
+                          </button>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => setIsEditingComment(false)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Report Footer */}

@@ -2257,8 +2257,11 @@ function TeacherDashboard() {
                   <h3 style={{ marginBottom: 'var(--md)' }}>
                     Class Rankings - {selectedClass.name}
                   </h3>
-                  <SortableTable
-                    columns={[
+
+                  {/* Desktop Table View */}
+                  <div className="rankings-desktop">
+                    <SortableTable
+                      columns={[
                       {
                         key: 'rank',
                         label: 'Rank',
@@ -2419,6 +2422,59 @@ function TeacherDashboard() {
                     data={studentReports}
                     defaultSort={{ key: 'overall_percentage', direction: 'desc' }}
                   />
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="rankings-mobile">
+                    {[...studentReports]
+                      .sort((a, b) => (a.rank || 999) - (b.rank || 999))
+                      .map((row) => {
+                        const percentage = parseFloat(row.overall_percentage);
+                        const statusLabel = percentage >= 80 ? 'Excellent' : percentage >= 70 ? 'Good' : percentage >= 50 ? 'Average' : 'Needs Attention';
+                        const statusColor = percentage >= 80 ? '#166534' : percentage >= 70 ? '#92400e' : percentage >= 50 ? '#b86e00' : '#dc2626';
+                        const statusBg = percentage >= 80 ? '#dcfce7' : percentage >= 70 ? '#fef3c7' : percentage >= 50 ? '#fff7ed' : '#fef2f2';
+                        const percentColor = percentage >= 80 ? '#10b981' : percentage >= 70 ? '#22c55e' : percentage >= 50 ? '#f59e0b' : '#ef4444';
+                        return (
+                          <div key={row.student_id} className="ranking-card">
+                            <div className="ranking-card-top">
+                              <div className="ranking-card-rank">
+                                {row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : `#${row.rank}`}
+                              </div>
+                              <div className="ranking-card-student">
+                                <div className="ranking-card-name">{row.first_name} {row.last_name}</div>
+                                <div className="ranking-card-id">{row.student_id}</div>
+                              </div>
+                              <div className="ranking-card-score" style={{ color: percentColor }}>
+                                {row.overall_percentage}%
+                              </div>
+                            </div>
+                            <div className="ranking-card-details">
+                              <div className="ranking-detail">
+                                <span className="ranking-detail-label">Score</span>
+                                <span className="ranking-detail-value">{row.total_score}/{row.total_max_score}</span>
+                              </div>
+                              <div className="ranking-detail">
+                                <span className="ranking-detail-label">Subjects</span>
+                                <span className="ranking-detail-value">{row.subject_count}</span>
+                              </div>
+                              <div className="ranking-detail">
+                                <span className="ranking-detail-label">Taken</span>
+                                <span className="ranking-detail-value">{row.exams_taken}</span>
+                              </div>
+                              {row.exams_absent > 0 && (
+                                <div className="ranking-detail">
+                                  <span className="ranking-detail-label">Absent</span>
+                                  <span className="ranking-detail-value" style={{ color: '#ef4444' }}>{row.exams_absent}</span>
+                                </div>
+                              )}
+                              <div className="ranking-detail">
+                                <span className="ranking-status" style={{ backgroundColor: statusBg, color: statusColor }}>{statusLabel}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               )}
 

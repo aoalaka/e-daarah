@@ -2890,3 +2890,223 @@
     font-size: 14px;
   }
 }
+
+/* ============================================
+   ADMIN DASHBOARD MOBILE OPTIMIZATIONS
+   ============================================ */
+
+/* Admin mobile cards: hidden by default, shown on mobile */
+.admin-mobile-cards {
+  display: none;
+  padding: 12px;
+}
+
+/* Admin profile grid (settings page) */
+.admin-profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 600px;
+}
+
+/* Plan options grid (billing page) */
+.plan-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Admin mobile card styling */
+.admin-mobile-card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.admin-mobile-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.admin-mobile-card-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: #0a0a0a;
+}
+
+.admin-mobile-card-sub {
+  font-size: 13px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.admin-mobile-card-badge {
+  font-size: 12px;
+  color: #666;
+  background: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.admin-mobile-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.admin-mobile-card-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+/* At-risk students mobile card */
+.at-risk-mobile-cards {
+  display: none;
+}
+
+.at-risk-card {
+  background: #fff;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.at-risk-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.at-risk-card-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: #0a0a0a;
+}
+
+.at-risk-card-id {
+  font-size: 13px;
+  color: #666;
+}
+
+.at-risk-card-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.at-risk-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.at-risk-stat-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.at-risk-stat-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.at-risk-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* --- 768px breakpoint: tablets & phones --- */
+@media (max-width: 768px) {
+
+  /* Hide admin desktop tables, show mobile cards */
+  .admin-table-desktop {
+    display: none;
+  }
+  .admin-mobile-cards {
+    display: block;
+  }
+
+  /* At-risk students: hide table, show cards */
+  .alert-box .table-wrap {
+    display: none;
+  }
+  .at-risk-mobile-cards {
+    display: block;
+  }
+
+  /* Admin profile grid: stack on mobile */
+  .admin-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Plan options: stack on mobile */
+  .plan-options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Usage stats: wrap on mobile */
+  .card [style*="display: flex"][style*="gap: 24px"] {
+    flex-wrap: wrap;
+  }
+
+  /* Settings: remove max-width constraints */
+  .card form[style*="maxWidth"] {
+    max-width: 100% !important;
+  }
+
+  /* Billing section: remove max-width */
+  .card > div[style*="maxWidth: 500px"],
+  .card > div[style*="maxWidth: 400px"] {
+    max-width: 100% !important;
+  }
+
+  /* Form inputs: 16px to prevent iOS zoom */
+  .form-input,
+  .form-select,
+  .form-textarea,
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px !important;
+  }
+
+  /* Subject pagination in exam reports */
+  .subject-pagination {
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+  }
+
+  /* Exam metrics grid: 3 cols on mobile */
+  .exam-metrics-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* --- 480px breakpoint: small phones --- */
+@media (max-width: 480px) {
+  .admin-mobile-card {
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .admin-mobile-card-title {
+    font-size: 14px;
+  }
+
+  /* Exam metrics: 2 cols on small phones */
+  .exam-metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}

@@ -1163,7 +1163,7 @@ function AdminDashboard() {
               )}
 
               <div className="card">
-                <div className="table-wrap">
+                <div className="table-wrap admin-table-desktop">
                   <table className="table">
                     <thead>
                       <tr>
@@ -1202,6 +1202,31 @@ function AdminDashboard() {
                       )}
                     </tbody>
                   </table>
+                </div>
+                {/* Mobile cards for sessions */}
+                <div className="admin-mobile-cards">
+                  {sessions.map(session => (
+                    <div key={session.id} className="admin-mobile-card">
+                      <div className="admin-mobile-card-top">
+                        <div>
+                          <div className="admin-mobile-card-title">{session.name}</div>
+                          <div className="admin-mobile-card-sub">
+                            {new Date(session.start_date).toLocaleDateString()} – {new Date(session.end_date).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <span className={`badge ${session.is_active ? 'badge-success' : 'badge-muted'}`}>
+                          {session.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <div className="admin-mobile-card-actions">
+                        <button onClick={() => handleEditSession(session)} className="btn btn-sm btn-secondary">Edit</button>
+                        <button onClick={() => handleDeleteSession(session.id)} className="btn btn-sm btn-danger">Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                  {sessions.length === 0 && (
+                    <div className="empty"><p>No sessions yet. Create one to get started.</p></div>
+                  )}
                 </div>
               </div>
             </>
@@ -1301,7 +1326,7 @@ function AdminDashboard() {
               )}
 
               <div className="card">
-                <div className="table-wrap">
+                <div className="table-wrap admin-table-desktop">
                   <table className="table">
                     <thead>
                       <tr>
@@ -1342,6 +1367,32 @@ function AdminDashboard() {
                       )}
                     </tbody>
                   </table>
+                </div>
+                {/* Mobile cards for semesters */}
+                <div className="admin-mobile-cards">
+                  {semesters.map(semester => (
+                    <div key={semester.id} className="admin-mobile-card">
+                      <div className="admin-mobile-card-top">
+                        <div>
+                          <div className="admin-mobile-card-title">{semester.name}</div>
+                          <div className="admin-mobile-card-sub">{semester.session_name || 'N/A'}</div>
+                          <div className="admin-mobile-card-sub">
+                            {new Date(semester.start_date).toLocaleDateString()} – {new Date(semester.end_date).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <span className={`badge ${semester.is_active ? 'badge-success' : 'badge-muted'}`}>
+                          {semester.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <div className="admin-mobile-card-actions">
+                        <button onClick={() => handleEditSemester(semester)} className="btn btn-sm btn-secondary">Edit</button>
+                        <button onClick={() => handleDeleteSemester(semester.id)} className="btn btn-sm btn-danger">Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                  {semesters.length === 0 && (
+                    <div className="empty"><p>No semesters yet. Create one to get started.</p></div>
+                  )}
                 </div>
               </div>
             </>
@@ -1428,7 +1479,7 @@ function AdminDashboard() {
               )}
 
               <div className="card">
-                <div className="table-wrap">
+                <div className="table-wrap admin-table-desktop">
                   <table className="table">
                     <thead>
                       <tr>
@@ -1484,6 +1535,39 @@ function AdminDashboard() {
                       )}
                     </tbody>
                   </table>
+                </div>
+                {/* Mobile cards for classes */}
+                <div className="admin-mobile-cards">
+                  {classes.map(cls => {
+                    let schoolDays = 'Not set';
+                    try {
+                      if (cls.school_days) {
+                        const days = typeof cls.school_days === 'string'
+                          ? JSON.parse(cls.school_days)
+                          : cls.school_days;
+                        schoolDays = Array.isArray(days) ? days.map(d => d.substring(0, 3)).join(', ') : 'Not set';
+                      }
+                    } catch (e) { /* ignore */ }
+                    return (
+                      <div key={cls.id} className="admin-mobile-card">
+                        <div className="admin-mobile-card-top">
+                          <div>
+                            <div className="admin-mobile-card-title">{cls.name}</div>
+                            <div className="admin-mobile-card-sub">{cls.grade_level || 'No grade level'}</div>
+                          </div>
+                          <div className="admin-mobile-card-badge">{schoolDays}</div>
+                        </div>
+                        <div className="admin-mobile-card-actions">
+                          <button onClick={() => handleEditClass(cls)} className="btn btn-sm btn-secondary">Edit</button>
+                          <button onClick={() => handleManageTeachers(cls)} className="btn btn-sm btn-secondary">Teachers</button>
+                          <button onClick={() => handleDeleteClass(cls)} className="btn btn-sm btn-danger">Delete</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {classes.length === 0 && (
+                    <div className="empty"><p>No classes yet. Create one to get started.</p></div>
+                  )}
                 </div>
               </div>
 
@@ -2706,6 +2790,50 @@ function AdminDashboard() {
                               </tbody>
                             </table>
                           </div>
+                          {/* Mobile cards for at-risk students */}
+                          <div className="at-risk-mobile-cards">
+                            {classKpis.highRiskStudents
+                              .filter(s => s.attendance_rate < 70 || s.avg_dressing < 2.5 || s.avg_behavior < 2.5)
+                              .map(student => {
+                                const areas = [];
+                                if (student.attendance_rate != null && student.attendance_rate < 70) areas.push('Attendance');
+                                if (student.avg_dressing != null && student.avg_dressing < 2.5) areas.push('Dressing');
+                                if (student.avg_behavior != null && student.avg_behavior < 2.5) areas.push('Behavior');
+                                return (
+                                  <div key={student.id} className="at-risk-card">
+                                    <div className="at-risk-card-header">
+                                      <div>
+                                        <div className="at-risk-card-name">{student.first_name} {student.last_name}</div>
+                                        <div className="at-risk-card-id">{student.student_id}</div>
+                                      </div>
+                                    </div>
+                                    <div className="at-risk-card-stats">
+                                      <div className="at-risk-stat">
+                                        <span className="at-risk-stat-label">Attend.</span>
+                                        <span className="at-risk-stat-value" style={{ color: student.attendance_rate != null && student.attendance_rate < 70 ? '#ef4444' : '#10b981' }}>
+                                          {student.attendance_rate != null ? `${Number(student.attendance_rate).toFixed(1)}%` : '-'}
+                                        </span>
+                                      </div>
+                                      <div className="at-risk-stat">
+                                        <span className="at-risk-stat-label">Dressing</span>
+                                        <span className="at-risk-stat-value" style={{ color: student.avg_dressing != null && student.avg_dressing < 2.5 ? '#ef4444' : '#10b981' }}>
+                                          {student.avg_dressing != null ? Number(student.avg_dressing).toFixed(2) : '-'}
+                                        </span>
+                                      </div>
+                                      <div className="at-risk-stat">
+                                        <span className="at-risk-stat-label">Behavior</span>
+                                        <span className="at-risk-stat-value" style={{ color: student.avg_behavior != null && student.avg_behavior < 2.5 ? '#ef4444' : '#10b981' }}>
+                                          {student.avg_behavior != null ? Number(student.avg_behavior).toFixed(2) : '-'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="at-risk-card-badges">
+                                      {areas.map((a, i) => <span key={i} className="risk-badge">{a}</span>)}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
                         </div>
                       )}
                     </>
@@ -2815,7 +2943,7 @@ function AdminDashboard() {
                         {/* Subject Pagination Controls */}
                         {totalPages > 1 && (
                           <div className="card" style={{ marginBottom: 'var(--md)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="subject-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div style={{ color: 'var(--muted)', fontSize: '14px' }}>
                                 Showing subject {startIndex + 1} of {totalSubjects}
                               </div>
@@ -3109,6 +3237,8 @@ function AdminDashboard() {
 
                   {/* Exam Rankings */}
                   {rankingSubTab === 'exam' && studentReports.length > 0 && (
+                    <>
+                    <div className="rankings-desktop">
                     <SortableTable
                       columns={[
                         {
@@ -3271,10 +3401,43 @@ function AdminDashboard() {
                       data={studentReports}
                       defaultSort={{ key: 'overall_percentage', direction: 'desc' }}
                     />
+                    </div>
+                    {/* Mobile ranking cards for exams */}
+                    <div className="rankings-mobile">
+                      {studentReports.map(row => {
+                        const rank = row.rank || 0;
+                        const pct = parseFloat(row.overall_percentage);
+                        return (
+                          <div key={row.student_id} className="ranking-card">
+                            <div className="ranking-card-top">
+                              <span className="ranking-card-rank">
+                                {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`}
+                              </span>
+                              <div className="ranking-card-info">
+                                <div className="ranking-card-name">{row.first_name} {row.last_name}</div>
+                                <div className="ranking-card-id">{row.student_id}</div>
+                              </div>
+                              <div className="ranking-card-score" style={{ color: pct >= 80 ? '#10b981' : pct >= 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444' }}>
+                                {row.overall_percentage}%
+                              </div>
+                            </div>
+                            <div className="ranking-card-details">
+                              <div className="ranking-detail"><span className="ranking-detail-label">Score</span><span className="ranking-detail-value">{row.total_score}/{row.total_max_score}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Subjects</span><span className="ranking-detail-value">{row.subject_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Taken</span><span className="ranking-detail-value">{row.exams_taken}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Absent</span><span className="ranking-detail-value" style={{ color: row.exams_absent > 0 ? '#ef4444' : 'inherit' }}>{row.exams_absent}</span></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    </>
                   )}
 
                   {/* Attendance Rankings */}
                   {rankingSubTab === 'attendance' && attendanceRankings.length > 0 && (
+                    <>
+                    <div className="rankings-desktop">
                     <SortableTable
                       columns={[
                         {
@@ -3416,10 +3579,41 @@ function AdminDashboard() {
                       data={attendanceRankings}
                       defaultSort={{ key: 'attendance_rate', direction: 'desc' }}
                     />
+                    </div>
+                    <div className="rankings-mobile">
+                      {attendanceRankings.map(row => {
+                        const rank = row.rank || 0;
+                        const rate = parseFloat(row.attendance_rate);
+                        return (
+                          <div key={row.student_id} className="ranking-card">
+                            <div className="ranking-card-top">
+                              <span className="ranking-card-rank">
+                                {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`}
+                              </span>
+                              <div className="ranking-card-info">
+                                <div className="ranking-card-name">{row.first_name} {row.last_name}</div>
+                                <div className="ranking-card-id">{row.student_id}</div>
+                              </div>
+                              <div className="ranking-card-score" style={{ color: rate >= 90 ? '#10b981' : rate >= 80 ? '#22c55e' : rate >= 70 ? '#f59e0b' : '#ef4444' }}>
+                                {row.attendance_rate}%
+                              </div>
+                            </div>
+                            <div className="ranking-card-details">
+                              <div className="ranking-detail"><span className="ranking-detail-label">Present</span><span className="ranking-detail-value" style={{ color: '#10b981' }}>{row.days_present}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Absent</span><span className="ranking-detail-value" style={{ color: row.days_absent > 0 ? '#ef4444' : 'inherit' }}>{row.days_absent}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Total</span><span className="ranking-detail-value">{row.total_days}</span></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    </>
                   )}
 
                   {/* Dressing Rankings */}
                   {rankingSubTab === 'dressing' && dressingRankings.length > 0 && (
+                    <>
+                    <div className="rankings-desktop">
                     <SortableTable
                       columns={[
                         {
@@ -3524,10 +3718,45 @@ function AdminDashboard() {
                       data={dressingRankings}
                       defaultSort={{ key: 'avg_dressing_score', direction: 'desc' }}
                     />
+                    </div>
+                    <div className="rankings-mobile">
+                      {dressingRankings.map(row => {
+                        const rank = row.rank || '-';
+                        const grade = row.avg_dressing_grade || 'N/A';
+                        let color = '#888';
+                        if (grade === 'Excellent') color = '#10b981';
+                        else if (grade === 'Good') color = '#22c55e';
+                        else if (grade === 'Fair') color = '#f59e0b';
+                        else if (grade === 'Poor') color = '#ef4444';
+                        return (
+                          <div key={row.student_id} className="ranking-card">
+                            <div className="ranking-card-top">
+                              <span className="ranking-card-rank">
+                                {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank === '-' ? '-' : `#${rank}`}
+                              </span>
+                              <div className="ranking-card-info">
+                                <div className="ranking-card-name">{row.first_name} {row.last_name}</div>
+                                <div className="ranking-card-id">{row.student_id}</div>
+                              </div>
+                              <div className="ranking-card-score" style={{ color }}>{grade}</div>
+                            </div>
+                            <div className="ranking-card-details">
+                              <div className="ranking-detail"><span className="ranking-detail-label">Excellent</span><span className="ranking-detail-value" style={{ color: '#10b981' }}>{row.excellent_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Good</span><span className="ranking-detail-value" style={{ color: '#22c55e' }}>{row.good_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Fair</span><span className="ranking-detail-value" style={{ color: '#f59e0b' }}>{row.fair_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Poor</span><span className="ranking-detail-value" style={{ color: '#ef4444' }}>{row.poor_count}</span></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    </>
                   )}
 
                   {/* Behavior Rankings */}
                   {rankingSubTab === 'behavior' && behaviorRankings.length > 0 && (
+                    <>
+                    <div className="rankings-desktop">
                     <SortableTable
                       columns={[
                         {
@@ -3632,6 +3861,39 @@ function AdminDashboard() {
                       data={behaviorRankings}
                       defaultSort={{ key: 'avg_behavior_score', direction: 'desc' }}
                     />
+                    </div>
+                    <div className="rankings-mobile">
+                      {behaviorRankings.map(row => {
+                        const rank = row.rank || '-';
+                        const grade = row.avg_behavior_grade || 'N/A';
+                        let color = '#888';
+                        if (grade === 'Excellent') color = '#10b981';
+                        else if (grade === 'Good') color = '#22c55e';
+                        else if (grade === 'Fair') color = '#f59e0b';
+                        else if (grade === 'Poor') color = '#ef4444';
+                        return (
+                          <div key={row.student_id} className="ranking-card">
+                            <div className="ranking-card-top">
+                              <span className="ranking-card-rank">
+                                {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank === '-' ? '-' : `#${rank}`}
+                              </span>
+                              <div className="ranking-card-info">
+                                <div className="ranking-card-name">{row.first_name} {row.last_name}</div>
+                                <div className="ranking-card-id">{row.student_id}</div>
+                              </div>
+                              <div className="ranking-card-score" style={{ color }}>{grade}</div>
+                            </div>
+                            <div className="ranking-card-details">
+                              <div className="ranking-detail"><span className="ranking-detail-label">Excellent</span><span className="ranking-detail-value" style={{ color: '#10b981' }}>{row.excellent_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Good</span><span className="ranking-detail-value" style={{ color: '#22c55e' }}>{row.good_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Fair</span><span className="ranking-detail-value" style={{ color: '#f59e0b' }}>{row.fair_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Poor</span><span className="ranking-detail-value" style={{ color: '#ef4444' }}>{row.poor_count}</span></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    </>
                   )}
 
                   {/* Empty states */}
@@ -4079,7 +4341,7 @@ function AdminDashboard() {
               {madrasahProfile && (
                 <div className="card" style={{ marginTop: '20px' }}>
                   <h3>Madrasah Profile</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '600px' }}>
+                  <div className="admin-profile-grid">
                     <div>
                       <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Name</label>
                       <p style={{ margin: '4px 0 0 0', fontWeight: '500' }}>{madrasahProfile.name}</p>
@@ -4230,7 +4492,7 @@ function AdminDashboard() {
                     </div>
 
                     {/* Plan Options */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="plan-options-grid">
                       {/* Standard Plan */}
                       <div
                         onClick={() => setSelectedPlan('standard')}

@@ -1770,8 +1770,8 @@ router.get('/profile', async (req, res) => {
   }
 });
 
-// Analytics Dashboard (Plus only) - School-wide insights
-router.get('/analytics', requirePlusPlan('Analytics Dashboard'), async (req, res) => {
+// Analytics Dashboard - School-wide insights (available to all plans for Insights overview)
+router.get('/analytics', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { semester_id, class_id, gender } = req.query;

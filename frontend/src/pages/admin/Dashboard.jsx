@@ -196,19 +196,12 @@ function AdminDashboard() {
     }
   }, [selectedClassForPerformance]);
 
-  // Fetch analytics when Reports tab is active and user has Plus access
+  // Fetch analytics when Reports tab is active and Insights is selected
   useEffect(() => {
-    if (activeTab === 'reports' && reportSubTab === 'insights' && hasPlusAccess() && madrasahProfile) {
+    if (activeTab === 'reports' && reportSubTab === 'insights' && madrasahProfile) {
       fetchAnalytics();
     }
-  }, [activeTab, reportSubTab, reportSemester, analyticsFilterClass, analyticsFilterGender, madrasahProfile]);
-
-  // Set default report sub-tab based on plan access
-  useEffect(() => {
-    if (madrasahProfile && reportSubTab === 'insights' && !hasPlusAccess()) {
-      setReportSubTab('attendance');
-    }
-  }, [madrasahProfile]);
+  }, [activeTab, reportSubTab, reportSemester, madrasahProfile]);
 
   const loadData = async () => {
     setLoading(true);
@@ -2127,14 +2120,12 @@ function AdminDashboard() {
               {/* Report Sub-Tabs */}
               <div className="report-tabs">
                 <nav className="report-tabs-nav">
-                  {hasPlusAccess() && (
-                    <button
-                      onClick={() => setReportSubTab('insights')}
-                      className={`report-tab-btn ${reportSubTab === 'insights' ? 'active' : ''}`}
-                    >
-                      Insights
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setReportSubTab('insights')}
+                    className={`report-tab-btn ${reportSubTab === 'insights' ? 'active' : ''}`}
+                  >
+                    Insights
+                  </button>
                   <button
                     onClick={() => setReportSubTab('attendance')}
                     className={`report-tab-btn ${reportSubTab === 'attendance' ? 'active' : ''}`}
@@ -2305,42 +2296,9 @@ function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Insights Tab (Plus only) */}
-              {reportSubTab === 'insights' && hasPlusAccess() && (
+              {/* Insights Tab - Simple Overview */}
+              {reportSubTab === 'insights' && (
                 <>
-                  {/* Insights Filters */}
-                  <div className="card" style={{ marginBottom: 'var(--md)' }}>
-                    <div className="card-body">
-                      <div className="form-grid">
-                        <div className="form-group">
-                          <label className="form-label">Filter by Class</label>
-                          <select
-                            className="form-select"
-                            value={analyticsFilterClass}
-                            onChange={(e) => setAnalyticsFilterClass(e.target.value)}
-                          >
-                            <option value="">All Classes</option>
-                            {classes.map(cls => (
-                              <option key={cls.id} value={cls.id}>{cls.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Filter by Gender</label>
-                          <select
-                            className="form-select"
-                            value={analyticsFilterGender}
-                            onChange={(e) => setAnalyticsFilterGender(e.target.value)}
-                          >
-                            <option value="">All Students</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   {analyticsLoading ? (
                     <div className="card">
                       <div className="card-body" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
@@ -2349,307 +2307,84 @@ function AdminDashboard() {
                     </div>
                   ) : analyticsData ? (
                     <>
-                      {/* Attendance Summary Cards */}
-                      <h3 className="subsection-title">Attendance Overview</h3>
-                      <div className="insights-grid">
-                        <div className={`insight-card ${analyticsData.summary.attendanceStatus}`}>
-                          <div className="insight-icon">
-                            {analyticsData.summary.attendanceStatus === 'excellent' ? '✓' :
-                             analyticsData.summary.attendanceStatus === 'good' ? '○' :
-                             analyticsData.summary.attendanceStatus === 'fair' ? '!' : '⚠'}
+                      {/* Quick Summary - 4 Key Metrics */}
+                      <div className="insights-summary">
+                        <div className={`summary-card ${analyticsData.summary.attendanceStatus}`}>
+                          <div className="summary-value">{analyticsData.summary.overallAttendanceRate || 0}%</div>
+                          <div className="summary-label">Attendance</div>
+                          <div className="summary-status">{analyticsData.summary.attendanceLabel}</div>
+                        </div>
+
+                        <div className={`summary-card ${analyticsData.summary.studentsWithExams > 0 ? analyticsData.summary.examStatus : 'neutral'}`}>
+                          <div className="summary-value">
+                            {analyticsData.summary.studentsWithExams > 0 ? `${analyticsData.summary.avgExamPercentage || 0}%` : '-'}
                           </div>
-                          <div className="insight-content">
-                            <div className="insight-value">{analyticsData.summary.overallAttendanceRate || 0}%</div>
-                            <div className="insight-label">Overall Attendance</div>
-                            <div className="insight-status">{analyticsData.summary.attendanceLabel}</div>
+                          <div className="summary-label">Exam Average</div>
+                          <div className="summary-status">
+                            {analyticsData.summary.studentsWithExams > 0 ? analyticsData.summary.examLabel : 'No exams yet'}
                           </div>
                         </div>
 
-                        <div className="insight-card neutral">
-                          <div className="insight-icon">📊</div>
-                          <div className="insight-content">
-                            <div className="insight-value">
-                              {analyticsData.summary.absencesThisWeek}
-                              {analyticsData.summary.absenceTrend !== 0 && (
-                                <span className={`trend ${analyticsData.summary.absenceTrend > 0 ? 'up bad' : 'down good'}`}>
-                                  {analyticsData.summary.absenceTrend > 0 ? '↑' : '↓'}
-                                  {Math.abs(analyticsData.summary.absenceTrend)}%
-                                </span>
-                              )}
-                            </div>
-                            <div className="insight-label">Absences This Week</div>
-                            <div className="insight-status">
-                              {analyticsData.summary.absenceTrend > 0 ? 'More than last week' :
-                               analyticsData.summary.absenceTrend < 0 ? 'Fewer than last week' : 'Same as last week'}
-                            </div>
-                          </div>
+                        <div className={`summary-card ${analyticsData.summary.studentsNeedingAttention > 0 ? 'needs-attention' : 'good'}`}>
+                          <div className="summary-value">{analyticsData.summary.studentsNeedingAttention}</div>
+                          <div className="summary-label">Need Attention</div>
+                          <div className="summary-status">Below 70% attendance</div>
                         </div>
 
-                        <div className={`insight-card ${analyticsData.summary.studentsNeedingAttention > 0 ? 'needs-attention' : 'good'}`}>
-                          <div className="insight-icon">👥</div>
-                          <div className="insight-content">
-                            <div className="insight-value">{analyticsData.summary.studentsNeedingAttention}</div>
-                            <div className="insight-label">Students Need Attention</div>
-                            <div className="insight-status">
-                              {analyticsData.summary.studentsNeedingAttention === 0
-                                ? 'Everyone is on track'
-                                : 'Below 70% attendance'}
-                            </div>
-                          </div>
+                        <div className={`summary-card ${analyticsData.summary.studentsStruggling > 0 ? 'needs-attention' : 'good'}`}>
+                          <div className="summary-value">{analyticsData.summary.studentsStruggling || 0}</div>
+                          <div className="summary-label">Struggling</div>
+                          <div className="summary-status">Below 50% exam avg</div>
                         </div>
                       </div>
 
-                      {/* Exam Performance Cards */}
-                      {analyticsData.summary.studentsWithExams > 0 && (
-                        <>
-                          <h3 className="subsection-title" style={{ marginTop: 'var(--lg)' }}>Exam Performance</h3>
-                          <div className="insights-grid">
-                            <div className={`insight-card ${analyticsData.summary.examStatus}`}>
-                              <div className="insight-icon">📝</div>
-                              <div className="insight-content">
-                                <div className="insight-value">{analyticsData.summary.avgExamPercentage || 0}%</div>
-                                <div className="insight-label">Average Score</div>
-                                <div className="insight-status">{analyticsData.summary.examLabel}</div>
-                              </div>
-                            </div>
-
-                            <div className={`insight-card ${analyticsData.summary.examPassRate >= 70 ? 'good' : analyticsData.summary.examPassRate >= 50 ? 'fair' : 'needs-attention'}`}>
-                              <div className="insight-icon">✓</div>
-                              <div className="insight-content">
-                                <div className="insight-value">{analyticsData.summary.examPassRate || 0}%</div>
-                                <div className="insight-label">Pass Rate</div>
-                                <div className="insight-status">Students scoring 50%+</div>
-                              </div>
-                            </div>
-
-                            <div className={`insight-card ${analyticsData.summary.studentsStruggling > 0 ? 'needs-attention' : 'good'}`}>
-                              <div className="insight-icon">📚</div>
-                              <div className="insight-content">
-                                <div className="insight-value">{analyticsData.summary.studentsStruggling}</div>
-                                <div className="insight-label">Struggling Students</div>
-                                <div className="insight-status">
-                                  {analyticsData.summary.studentsStruggling === 0
-                                    ? 'All students doing well'
-                                    : 'Below 50% average'}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Classes Not Taking Attendance Alert */}
-                      {analyticsData.classesWithoutRecentAttendance && analyticsData.classesWithoutRecentAttendance.length > 0 && (
-                        <div className="alert-box danger" style={{ marginTop: 'var(--lg)' }}>
-                          <h4>Classes Without Recent Attendance</h4>
-                          <p>These classes haven't recorded attendance in the last 7 days.</p>
-                          <div className="alert-list">
-                            {analyticsData.classesWithoutRecentAttendance.map(cls => (
-                              <div key={cls.id} className="alert-item">
-                                <strong>{cls.class_name}</strong>
-                                <span className="alert-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
-                                  {cls.last_attendance_date
-                                    ? `${cls.days_since_attendance} days ago`
-                                    : 'Never recorded'}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Frequent Absences Alert */}
-                      {analyticsData.frequentAbsences && analyticsData.frequentAbsences.length > 0 && (
-                        <div className="alert-box warning">
-                          <h4>Frequent Absences This Month</h4>
-                          <p>These students have been absent 3 or more times this month.</p>
-                          <div className="alert-list">
-                            {analyticsData.frequentAbsences.map(student => (
-                              <div key={student.id} className="alert-item">
-                                <strong>{student.first_name} {student.last_name}</strong>
-                                <span className="alert-detail">{student.class_name || 'No class'}</span>
-                                <span className="alert-badge">{student.absence_count} absences</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Class Comparison */}
-                      {analyticsData.classComparison && analyticsData.classComparison.length > 0 && (
-                        <div className="card">
-                          <div className="card-header">Attendance by Class</div>
-                          <div className="card-body">
-                            <div className="class-bars">
-                              {analyticsData.classComparison.map(cls => (
-                                <div key={cls.id} className="class-bar-row">
-                                  <div className="class-bar-label">{cls.class_name}</div>
-                                  <div className="class-bar-container">
-                                    <div
-                                      className={`class-bar-fill ${
-                                        cls.attendance_rate >= 90 ? 'excellent' :
-                                        cls.attendance_rate >= 80 ? 'good' :
-                                        cls.attendance_rate >= 70 ? 'fair' : 'poor'
-                                      }`}
-                                      style={{ width: `${cls.attendance_rate || 0}%` }}
-                                    />
+                      {/* Alerts Section - Only show if there are alerts */}
+                      {((analyticsData.classesWithoutRecentAttendance && analyticsData.classesWithoutRecentAttendance.length > 0) ||
+                        (analyticsData.frequentAbsences && analyticsData.frequentAbsences.length > 0)) && (
+                        <div className="insights-alerts">
+                          {/* Classes Not Taking Attendance */}
+                          {analyticsData.classesWithoutRecentAttendance && analyticsData.classesWithoutRecentAttendance.length > 0 && (
+                            <div className="alert-box danger">
+                              <h4>Classes Without Recent Attendance</h4>
+                              <div className="alert-list">
+                                {analyticsData.classesWithoutRecentAttendance.slice(0, 3).map(cls => (
+                                  <div key={cls.id} className="alert-item">
+                                    <strong>{cls.class_name}</strong>
+                                    <span className="alert-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
+                                      {cls.last_attendance_date ? `${cls.days_since_attendance} days` : 'Never'}
+                                    </span>
                                   </div>
-                                  <div className="class-bar-value">{cls.attendance_rate || 0}%</div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* At-Risk Students (Attendance) */}
-                      {analyticsData.atRiskStudents && analyticsData.atRiskStudents.length > 0 && (
-                        <div className="card">
-                          <div className="card-header">Students Needing Attention (Attendance)</div>
-                          <div className="table-wrap">
-                            <table className="table">
-                              <thead>
-                                <tr>
-                                  <th>Student</th>
-                                  <th>Class</th>
-                                  <th>Gender</th>
-                                  <th>Attendance</th>
-                                  <th>Days Present</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {analyticsData.atRiskStudents.map(student => (
-                                  <tr key={student.id}>
-                                    <td>
-                                      <strong>{student.first_name} {student.last_name}</strong>
-                                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{student.student_id}</div>
-                                    </td>
-                                    <td>{student.class_name || '-'}</td>
-                                    <td>{student.gender || '-'}</td>
-                                    <td>
-                                      <span style={{
-                                        color: student.attendance_rate < 50 ? 'var(--error)' :
-                                               student.attendance_rate < 70 ? 'var(--warning)' : 'var(--text)'
-                                      }}>
-                                        {student.attendance_rate != null ? `${student.attendance_rate}%` : 'No data'}
-                                      </span>
-                                    </td>
-                                    <td>{student.present_days || 0} / {student.total_days || 0}</td>
-                                  </tr>
                                 ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Exam Performance by Subject */}
-                      {analyticsData.examBySubject && analyticsData.examBySubject.length > 0 && (
-                        <div className="card">
-                          <div className="card-header">Performance by Subject</div>
-                          <div className="card-body">
-                            <div className="class-bars">
-                              {analyticsData.examBySubject.map(subject => (
-                                <div key={subject.subject} className="class-bar-row">
-                                  <div className="class-bar-label">{subject.subject}</div>
-                                  <div className="class-bar-container">
-                                    <div
-                                      className={`class-bar-fill ${
-                                        subject.avg_percentage >= 80 ? 'excellent' :
-                                        subject.avg_percentage >= 65 ? 'good' :
-                                        subject.avg_percentage >= 50 ? 'fair' : 'poor'
-                                      }`}
-                                      style={{ width: `${subject.avg_percentage || 0}%` }}
-                                    />
-                                  </div>
-                                  <div className="class-bar-value">{subject.avg_percentage || 0}%</div>
-                                </div>
-                              ))}
+                                {analyticsData.classesWithoutRecentAttendance.length > 3 && (
+                                  <div className="alert-more">+{analyticsData.classesWithoutRecentAttendance.length - 3} more</div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      )}
+                          )}
 
-                      {/* Struggling Students (Exams) */}
-                      {analyticsData.strugglingStudents && analyticsData.strugglingStudents.length > 0 && (
-                        <div className="card">
-                          <div className="card-header">Students Struggling Academically</div>
-                          <div className="table-wrap">
-                            <table className="table">
-                              <thead>
-                                <tr>
-                                  <th>Student</th>
-                                  <th>Class</th>
-                                  <th>Gender</th>
-                                  <th>Avg Score</th>
-                                  <th>Exams Taken</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {analyticsData.strugglingStudents.map(student => (
-                                  <tr key={student.id}>
-                                    <td>
-                                      <strong>{student.first_name} {student.last_name}</strong>
-                                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{student.student_id}</div>
-                                    </td>
-                                    <td>{student.class_name || '-'}</td>
-                                    <td>{student.gender || '-'}</td>
-                                    <td>
-                                      <span style={{
-                                        color: student.avg_percentage < 30 ? 'var(--error)' :
-                                               student.avg_percentage < 50 ? 'var(--warning)' : 'var(--text)'
-                                      }}>
-                                        {student.avg_percentage}%
-                                      </span>
-                                    </td>
-                                    <td>{student.exam_count}</td>
-                                  </tr>
+                          {/* Frequent Absences */}
+                          {analyticsData.frequentAbsences && analyticsData.frequentAbsences.length > 0 && (
+                            <div className="alert-box warning">
+                              <h4>Frequent Absences This Month</h4>
+                              <div className="alert-list">
+                                {analyticsData.frequentAbsences.slice(0, 3).map(student => (
+                                  <div key={student.id} className="alert-item">
+                                    <strong>{student.first_name} {student.last_name}</strong>
+                                    <span className="alert-badge">{student.absence_count} absences</span>
+                                  </div>
                                 ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Gender Breakdown */}
-                      {analyticsData.genderBreakdown && !analyticsFilterGender && (
-                        <div className="card">
-                          <div className="card-header">Performance by Gender</div>
-                          <div className="card-body">
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--md)' }}>
-                              {analyticsData.genderBreakdown.attendance && analyticsData.genderBreakdown.attendance.map(g => (
-                                <div key={g.gender} style={{ padding: 'var(--md)', background: 'var(--lighter)', borderRadius: 'var(--radius)' }}>
-                                  <div style={{ fontWeight: '600', marginBottom: 'var(--xs)' }}>{g.gender || 'Unknown'}</div>
-                                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{g.student_count} students</div>
-                                  <div style={{ marginTop: 'var(--sm)', display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>Attendance:</span>
-                                    <strong style={{ color: g.attendance_rate >= 80 ? 'var(--success)' : g.attendance_rate >= 70 ? 'var(--warning)' : 'var(--error)' }}>
-                                      {g.attendance_rate || 0}%
-                                    </strong>
-                                  </div>
-                                  {analyticsData.genderBreakdown.exams && (() => {
-                                    const examData = analyticsData.genderBreakdown.exams.find(e => e.gender === g.gender);
-                                    return examData ? (
-                                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span>Exam Avg:</span>
-                                        <strong style={{ color: examData.avg_percentage >= 65 ? 'var(--success)' : examData.avg_percentage >= 50 ? 'var(--warning)' : 'var(--error)' }}>
-                                          {examData.avg_percentage || 0}%
-                                        </strong>
-                                      </div>
-                                    ) : null;
-                                  })()}
-                                </div>
-                              ))}
+                                {analyticsData.frequentAbsences.length > 3 && (
+                                  <div className="alert-more">+{analyticsData.frequentAbsences.length - 3} more</div>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       )}
 
                       {/* No Data State */}
-                      {(!analyticsData.classComparison || analyticsData.classComparison.length === 0) &&
-                       (!analyticsData.atRiskStudents || analyticsData.atRiskStudents.length === 0) &&
-                       (!analyticsData.examBySubject || analyticsData.examBySubject.length === 0) && (
-                        <div className="card">
+                      {analyticsData.summary.overallAttendanceRate === 0 && analyticsData.summary.studentsWithExams === 0 && (
+                        <div className="card" style={{ marginTop: 'var(--md)' }}>
                           <div className="empty">
                             <p>No data yet. Start recording attendance and exams to see insights.</p>
                           </div>
@@ -2659,7 +2394,7 @@ function AdminDashboard() {
                   ) : (
                     <div className="card">
                       <div className="empty">
-                        <p>Unable to load analytics. Please try again.</p>
+                        <p>Unable to load insights. Please try again.</p>
                       </div>
                     </div>
                   )}

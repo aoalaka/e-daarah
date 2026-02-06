@@ -932,7 +932,6 @@ function AdminDashboard() {
   };
 
   const fetchAnalytics = async () => {
-    if (!hasPlusAccess()) return;
     setAnalyticsLoading(true);
     try {
       const params = new URLSearchParams();

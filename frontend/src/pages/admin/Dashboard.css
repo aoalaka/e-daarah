@@ -1628,13 +1628,19 @@
   font-size: 13px;
 }
 
-.stat-label {
+.progress-stat .stat-label {
   color: var(--text);
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: normal;
+  margin-bottom: 0;
 }
 
-.stat-value {
+.progress-stat .stat-value {
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
+  line-height: normal;
 }
 
 .progress-bar {

@@ -2153,7 +2153,7 @@ function AdminDashboard() {
                     onClick={() => setReportSubTab('insights')}
                     className={`report-tab-btn ${reportSubTab === 'insights' ? 'active' : ''}`}
                   >
-                    Insights
+                    Quick Insights
                   </button>
                   <button
                     onClick={() => setReportSubTab('attendance')}
@@ -2325,7 +2325,7 @@ function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Insights Tab - Simple Overview */}
+              {/* Quick Insights Tab - Simple Overview */}
               {reportSubTab === 'insights' && (
                 <>
                   {analyticsLoading ? (
@@ -2365,6 +2365,141 @@ function AdminDashboard() {
                           <div className="summary-label">Struggling</div>
                           <div className="summary-status">Below 50% exam avg</div>
                         </div>
+                      </div>
+
+                      {/* Additional Insights Grid */}
+                      <div className="insights-widgets">
+                        {/* Getting Started Progress */}
+                        {analyticsData.gettingStarted && analyticsData.gettingStarted.totalClasses > 0 && (
+                          <div className="insight-widget">
+                            <h4>Getting Started</h4>
+                            <div className="progress-bar-container">
+                              <div className="progress-stat">
+                                <span className="stat-label">Classes with students</span>
+                                <span className="stat-value">
+                                  {analyticsData.gettingStarted.classesWithStudents} / {analyticsData.gettingStarted.totalClasses}
+                                </span>
+                              </div>
+                              <div className="progress-bar">
+                                <div
+                                  className="progress-fill"
+                                  style={{ width: `${(analyticsData.gettingStarted.classesWithStudents / analyticsData.gettingStarted.totalClasses * 100)}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                            <div className="progress-bar-container" style={{ marginTop: 'var(--sm)' }}>
+                              <div className="progress-stat">
+                                <span className="stat-label">Classes taking attendance</span>
+                                <span className="stat-value">
+                                  {analyticsData.gettingStarted.classesWithAttendance} / {analyticsData.gettingStarted.totalClasses}
+                                </span>
+                              </div>
+                              <div className="progress-bar">
+                                <div
+                                  className="progress-fill"
+                                  style={{ width: `${(analyticsData.gettingStarted.classesWithAttendance / analyticsData.gettingStarted.totalClasses * 100)}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* This Week Summary */}
+                        {analyticsData.thisWeekSummary && (analyticsData.thisWeekSummary.presentCount > 0 || analyticsData.thisWeekSummary.absentCount > 0) && (
+                          <div className="insight-widget">
+                            <h4>This Week</h4>
+                            <div className="week-stats">
+                              <div className="week-stat">
+                                <div className="week-stat-value" style={{ color: 'var(--success)' }}>
+                                  {analyticsData.thisWeekSummary.presentCount}
+                                </div>
+                                <div className="week-stat-label">Students attended</div>
+                              </div>
+                              <div className="week-stat">
+                                <div className="week-stat-value" style={{ color: 'var(--danger)' }}>
+                                  {analyticsData.thisWeekSummary.absentCount}
+                                </div>
+                                <div className="week-stat-label">Students absent</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Attendance Streak */}
+                        {analyticsData.attendanceStreaks && analyticsData.attendanceStreaks.length > 0 && (
+                          <div className="insight-widget">
+                            <h4>Attendance Streak</h4>
+                            {analyticsData.attendanceStreaks.slice(0, 1).map(streak => (
+                              <div key={streak.id} className="streak-highlight">
+                                <div className="streak-class">{streak.class_name}</div>
+                                <div className="streak-info">
+                                  100% attendance for <strong>{streak.streak_weeks} week{streak.streak_weeks !== 1 ? 's' : ''}</strong>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Top Performer */}
+                        {analyticsData.topPerformer && (
+                          <div className="insight-widget">
+                            <h4>Top Performer</h4>
+                            <div className="top-performer">
+                              <div className="performer-name">
+                                {analyticsData.topPerformer.first_name} {analyticsData.topPerformer.last_name}
+                              </div>
+                              <div className="performer-score">{analyticsData.topPerformer.percentage}%</div>
+                              <div className="performer-detail">
+                                {analyticsData.topPerformer.subject} - {analyticsData.topPerformer.exam_name}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Quick Actions */}
+                        {analyticsData.quickActions && (
+                          <div className="insight-widget">
+                            <h4>Quick Actions</h4>
+                            <div className="quick-actions-list">
+                              {!analyticsData.quickActions.attendanceMarkedToday && (
+                                <div className="action-item">
+                                  <span className="action-icon">⚠️</span>
+                                  <span>No attendance marked today</span>
+                                </div>
+                              )}
+                              {analyticsData.quickActions.pendingGrading > 0 && (
+                                <div className="action-item">
+                                  <span className="action-icon">📝</span>
+                                  <span>{analyticsData.quickActions.pendingGrading} exam{analyticsData.quickActions.pendingGrading !== 1 ? 's' : ''} need grading</span>
+                                </div>
+                              )}
+                              {analyticsData.quickActions.attendanceMarkedToday && analyticsData.quickActions.pendingGrading === 0 && (
+                                <div className="action-item all-good">
+                                  <span className="action-icon">✓</span>
+                                  <span>All caught up!</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Month-over-Month */}
+                        {analyticsData.monthOverMonth && analyticsData.monthOverMonth.lastRate > 0 && (
+                          <div className="insight-widget">
+                            <h4>Month Comparison</h4>
+                            <div className="month-comparison">
+                              <div className="comparison-value">
+                                {analyticsData.monthOverMonth.change > 0 ? '+' : ''}{analyticsData.monthOverMonth.change.toFixed(1)}%
+                              </div>
+                              <div className={`comparison-label ${analyticsData.monthOverMonth.change >= 0 ? 'positive' : 'negative'}`}>
+                                {analyticsData.monthOverMonth.change >= 0 ? 'Improved' : 'Decreased'} from last month
+                              </div>
+                              <div className="comparison-detail">
+                                {analyticsData.monthOverMonth.lastRate}% → {analyticsData.monthOverMonth.currentRate}%
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Alerts Section - Only show if there are alerts */}

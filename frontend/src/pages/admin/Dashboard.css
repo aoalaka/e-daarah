@@ -1584,9 +1584,199 @@
   gap: var(--md);
 }
 
+/* Insights Widgets Grid */
+.insights-widgets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--md);
+  margin-bottom: var(--lg);
+}
+
+.insight-widget {
+  background: white;
+  border-radius: var(--radius);
+  padding: var(--md);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border: 1px solid var(--border);
+}
+
+.insight-widget h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 var(--sm) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Getting Started Progress */
+.progress-bar-container {
+  margin-bottom: var(--xs);
+}
+
+.progress-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.stat-label {
+  color: var(--text);
+}
+
+.stat-value {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--lighter);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* This Week Summary */
+.week-stats {
+  display: flex;
+  gap: var(--md);
+}
+
+.week-stat {
+  flex: 1;
+  text-align: center;
+}
+
+.week-stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.week-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Attendance Streak */
+.streak-highlight {
+  padding: var(--sm);
+  background: #f0fdf4;
+  border-radius: var(--radius);
+  border: 1px solid #86efac;
+}
+
+.streak-class {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.streak-info {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Top Performer */
+.top-performer {
+  text-align: center;
+  padding: var(--sm) 0;
+}
+
+.performer-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.performer-score {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.performer-detail {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Quick Actions */
+.quick-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xs);
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  gap: var(--xs);
+  padding: var(--xs);
+  background: #fef2f2;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.action-item.all-good {
+  background: #f0fdf4;
+  color: var(--success);
+}
+
+.action-icon {
+  font-size: 16px;
+}
+
+/* Month Comparison */
+.month-comparison {
+  text-align: center;
+}
+
+.comparison-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.comparison-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.comparison-label.positive {
+  color: var(--success);
+}
+
+.comparison-label.negative {
+  color: var(--danger);
+}
+
+.comparison-detail {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 @media (max-width: 900px) {
   .insights-summary {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .insights-widgets {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   }
 }
 
@@ -1597,6 +1787,10 @@
 
   .summary-value {
     font-size: 28px;
+  }
+
+  .insights-widgets {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -2169,6 +2169,98 @@ router.get('/analytics', async (req, res) => {
       examLabel = 'Fair';
     }
 
+    // 10. Getting Started Progress - setup completion tracking
+    const [totalClasses] = await pool.query(
+      'SELECT COUNT(*) as total FROM classes WHERE madrasah_id = ? AND deleted_at IS NULL',
+      [madrasahId]
+    );
+    const [classesWithStudents] = await pool.query(
+      'SELECT COUNT(DISTINCT c.id) as total FROM classes c INNER JOIN students s ON s.class_id = c.id WHERE c.madrasah_id = ? AND c.deleted_at IS NULL AND s.deleted_at IS NULL',
+      [madrasahId]
+    );
+    const [classesWithAttendance] = await pool.query(
+      'SELECT COUNT(DISTINCT class_id) as total FROM attendance WHERE madrasah_id = ?',
+      [madrasahId]
+    );
+
+    // 11. This Week Summary - attendance for current week
+    const [thisWeekSummary] = await pool.query(`
+      SELECT
+        COUNT(CASE WHEN a.present = 1 THEN 1 END) as present_count,
+        COUNT(CASE WHEN a.present = 0 THEN 1 END) as absent_count
+      FROM attendance a
+      WHERE a.madrasah_id = ?
+        AND YEARWEEK(a.date, 1) = YEARWEEK(NOW(), 1)
+    `, [madrasahId]);
+
+    // 12. Attendance Streak - classes with perfect attendance streaks
+    const [attendanceStreaks] = await pool.query(`
+      SELECT
+        c.id,
+        c.name as class_name,
+        COUNT(DISTINCT YEARWEEK(a.date, 1)) as streak_weeks,
+        MIN(a.date) as streak_start
+      FROM classes c
+      JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?
+      WHERE c.madrasah_id = ?
+        AND c.deleted_at IS NULL
+        AND a.date >= DATE_SUB(NOW(), INTERVAL 12 WEEK)
+      GROUP BY c.id, a.date
+      HAVING AVG(a.present) = 1
+      ORDER BY streak_weeks DESC
+      LIMIT 3
+    `, [madrasahId, madrasahId]);
+
+    // 13. Top Performer - best exam score this semester
+    const [topPerformer] = await pool.query(`
+      SELECT
+        s.first_name,
+        s.last_name,
+        ep.score,
+        ep.max_score,
+        ROUND((ep.score / ep.max_score * 100), 1) as percentage,
+        ep.subject,
+        ep.exam_name
+      FROM exam_performance ep
+      JOIN students s ON ep.student_id = s.id
+      WHERE ep.madrasah_id = ?
+        ${semester_id ? 'AND ep.semester_id = ?' : ''}
+        AND ep.is_absent = 0
+      ORDER BY percentage DESC
+      LIMIT 1
+    `, semester_id ? [madrasahId, semester_id] : [madrasahId]);
+
+    // 14. Quick Actions - pending tasks
+    const today = new Date().toISOString().split('T')[0];
+    const [todayAttendance] = await pool.query(
+      'SELECT COUNT(*) as count FROM attendance WHERE madrasah_id = ? AND date = ?',
+      [madrasahId, today]
+    );
+    const [pendingGrading] = await pool.query(
+      'SELECT COUNT(*) as count FROM exam_performance WHERE madrasah_id = ? AND score IS NULL',
+      [madrasahId]
+    );
+
+    // 15. Month-over-Month Comparison
+    const [currentMonthAttendance] = await pool.query(`
+      SELECT ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate
+      FROM attendance a
+      WHERE a.madrasah_id = ?
+        AND YEAR(a.date) = YEAR(NOW())
+        AND MONTH(a.date) = MONTH(NOW())
+    `, [madrasahId]);
+    const [lastMonthAttendance] = await pool.query(`
+      SELECT ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate
+      FROM attendance a
+      WHERE a.madrasah_id = ?
+        AND YEAR(a.date) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))
+        AND MONTH(a.date) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH))
+    `, [madrasahId]);
+
+    const currentRate = currentMonthAttendance[0]?.rate || 0;
+    const lastRate = lastMonthAttendance[0]?.rate || 0;
+    const monthOverMonthChange = currentRate - lastRate;
+
     res.json({
       summary: {
         // Attendance
@@ -2195,7 +2287,28 @@ router.get('/analytics', async (req, res) => {
       classesWithoutRecentAttendance,
       examBySubject,
       strugglingStudents,
-      genderBreakdown
+      genderBreakdown,
+      // New insights
+      gettingStarted: {
+        totalClasses: totalClasses[0]?.total || 0,
+        classesWithStudents: classesWithStudents[0]?.total || 0,
+        classesWithAttendance: classesWithAttendance[0]?.total || 0
+      },
+      thisWeekSummary: {
+        presentCount: thisWeekSummary[0]?.present_count || 0,
+        absentCount: thisWeekSummary[0]?.absent_count || 0
+      },
+      attendanceStreaks: attendanceStreaks || [],
+      topPerformer: topPerformer[0] || null,
+      quickActions: {
+        attendanceMarkedToday: todayAttendance[0]?.count > 0,
+        pendingGrading: pendingGrading[0]?.count || 0
+      },
+      monthOverMonth: {
+        currentRate,
+        lastRate,
+        change: monthOverMonthChange
+      }
     });
   } catch (error) {
     console.error('Analytics error:', error);

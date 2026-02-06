@@ -9,10 +9,12 @@
 /* Header */
 .landing-header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: row;
   align-items: center;
+  justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid #eee;
+  gap: 32px;
 }
 
 /* Navbar logo now uses register-logo classes for perfect alignment */

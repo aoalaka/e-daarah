@@ -3769,319 +3769,231 @@ function AdminDashboard() {
 
               {/* Individual Student Report Tab */}
               {reportSubTab === 'individual' && studentReport && selectedStudentForReport && (
-                <>
-                  {/* Student Header */}
-                  <div className="report-header">
-                    <h3>{selectedStudentForReport.first_name} {selectedStudentForReport.last_name}</h3>
-                    <p><strong>Student ID:</strong> {selectedStudentForReport.student_id}</p>
-                    <p><strong>Class:</strong> {selectedStudentForReport.class_name || 'Not assigned'}</p>
+                <div className="student-report-card">
+                  {/* Report Card Header */}
+                  <div className="report-card-header">
+                    <div className="report-card-title">
+                      <h2>Student Performance Report</h2>
+                      <div className="report-period">
+                        {reportFilterSession && sessions.find(s => s.id === parseInt(reportFilterSession))?.name}
+                        {reportFilterSemester && ` - ${semesters.find(s => s.id === parseInt(reportFilterSemester))?.name}`}
+                      </div>
+                    </div>
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => window.print()}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 6 2 18 2 18 9"/>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                        <rect x="6" y="14" width="12" height="8"/>
+                      </svg>
+                      Print
+                    </button>
+                  </div>
 
-                    <div className="report-stats">
-                      <div className="report-stat">
-                        <div className="report-stat-value">{studentReport.attendance.totalDays}</div>
-                        <div className="report-stat-label">Total Days</div>
+                  {/* Student Info */}
+                  <div className="report-card-student-info">
+                    <div className="student-info-grid">
+                      <div className="info-item">
+                        <div className="info-label">Student Name</div>
+                        <div className="info-value">{selectedStudentForReport.first_name} {selectedStudentForReport.last_name}</div>
                       </div>
-                      <div className="report-stat">
-                        <div className="report-stat-value success">{studentReport.attendance.presentDays}</div>
-                        <div className="report-stat-label">Present</div>
+                      <div className="info-item">
+                        <div className="info-label">Student ID</div>
+                        <div className="info-value">{selectedStudentForReport.student_id}</div>
                       </div>
-                      <div className="report-stat">
-                        <div className="report-stat-value">
-                          {studentReport.attendance.attendanceRate != null 
-                            ? `${studentReport.attendance.attendanceRate}%` 
-                            : 'N/A'}
-                        </div>
-                        <div className="report-stat-label">Attendance Rate</div>
+                      <div className="info-item">
+                        <div className="info-label">Class</div>
+                        <div className="info-value">{selectedStudentForReport.class_name || 'Not assigned'}</div>
                       </div>
-                      <div className="report-stat">
-                        <div className="report-stat-value danger">
-                          {studentReport.attendance.totalDays != null && studentReport.attendance.presentDays != null
-                            ? studentReport.attendance.totalDays - studentReport.attendance.presentDays
-                            : 0}
-                        </div>
-                        <div className="report-stat-label">Absent</div>
+                      <div className="info-item">
+                        <div className="info-label">Report Date</div>
+                        <div className="info-value">{new Date().toLocaleDateString()}</div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Performance Metrics */}
-                  <h3 className="subsection-title">Performance Metrics</h3>
-                  <div className="metric-grid">
-                    <div className="metric-card">
-                      <div className="metric-label">Average Dressing Grade</div>
-                      <div className="metric-value green">
-                        {studentReport.dressingBehavior?.avgDressing
-                          ? studentReport.dressingBehavior.avgDressing.toFixed(2)
-                          : 'N/A'}
+                  {/* Performance Summary Grid */}
+                  <div className="performance-summary-grid">
+                    {/* Attendance */}
+                    <div className="performance-card">
+                      <div className="performance-card-header">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                          <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span>Attendance</span>
                       </div>
-                      <div className="metric-sub">out of 4.0</div>
-                      {studentReport.dressingBehavior?.avgDressing && (
-                        <span className={`metric-badge ${
-                          studentReport.dressingBehavior.avgDressing >= 3.5 ? 'excellent' :
-                          studentReport.dressingBehavior.avgDressing >= 2.5 ? 'good' : 'needs-improvement'
-                        }`}>
-                          {studentReport.dressingBehavior.avgDressing >= 3.5 ? 'Excellent' :
-                           studentReport.dressingBehavior.avgDressing >= 2.5 ? 'Good' : 'Needs Improvement'}
-                        </span>
-                      )}
+                      <div className="performance-card-body">
+                        <div className="performance-main-stat">
+                          <div className="performance-big-number" style={{ color: parseFloat(studentReport.attendance.attendanceRate) >= 90 ? '#10b981' : parseFloat(studentReport.attendance.attendanceRate) >= 80 ? '#22c55e' : '#f59e0b' }}>
+                            {studentReport.attendance.attendanceRate != null ? `${studentReport.attendance.attendanceRate}%` : 'N/A'}
+                          </div>
+                          <div className="performance-label">Attendance Rate</div>
+                        </div>
+                        <div className="performance-details">
+                          <div className="detail-row">
+                            <span>Present:</span>
+                            <strong style={{ color: '#10b981' }}>{studentReport.attendance.presentDays} days</strong>
+                          </div>
+                          <div className="detail-row">
+                            <span>Absent:</span>
+                            <strong style={{ color: '#ef4444' }}>
+                              {studentReport.attendance.totalDays - studentReport.attendance.presentDays} days
+                            </strong>
+                          </div>
+                          <div className="detail-row">
+                            <span>Total Days:</span>
+                            <strong>{studentReport.attendance.totalDays}</strong>
+                          </div>
+                        </div>
+                        {individualRankings?.rankings.attendance.rank && (
+                          <div className="performance-rank">
+                            Rank #{individualRankings.rankings.attendance.rank} of {individualRankings.rankings.attendance.total_students}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="metric-card">
-                      <div className="metric-label">Average Behavior Grade</div>
-                      <div className="metric-value purple">
-                        {studentReport.dressingBehavior?.avgBehavior
-                          ? studentReport.dressingBehavior.avgBehavior.toFixed(2)
-                          : 'N/A'}
+
+                    {/* Exam Performance */}
+                    <div className="performance-card">
+                      <div className="performance-card-header">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                        <span>Exam Performance</span>
                       </div>
-                      <div className="metric-sub">out of 4.0</div>
-                      {studentReport.dressingBehavior?.avgBehavior && (
-                        <span className={`metric-badge ${
-                          studentReport.dressingBehavior.avgBehavior >= 3.5 ? 'excellent' :
-                          studentReport.dressingBehavior.avgBehavior >= 2.5 ? 'good' : 'needs-improvement'
-                        }`}>
-                          {studentReport.dressingBehavior.avgBehavior >= 3.5 ? 'Excellent' :
-                           studentReport.dressingBehavior.avgBehavior >= 2.5 ? 'Good' : 'Needs Improvement'}
-                        </span>
-                      )}
+                      <div className="performance-card-body">
+                        <div className="performance-main-stat">
+                          <div className="performance-big-number" style={{ color: individualRankings?.rankings.exam.percentage >= 80 ? '#10b981' : individualRankings?.rankings.exam.percentage >= 70 ? '#22c55e' : '#f59e0b' }}>
+                            {individualRankings?.rankings.exam.percentage ? `${individualRankings.rankings.exam.percentage}%` : 'N/A'}
+                          </div>
+                          <div className="performance-label">Overall Score</div>
+                        </div>
+                        <div className="performance-details">
+                          <div className="detail-row">
+                            <span>Exams Taken:</span>
+                            <strong>{studentReport.exams.filter(e => !e.is_absent).length}</strong>
+                          </div>
+                          <div className="detail-row">
+                            <span>Exams Missed:</span>
+                            <strong style={{ color: '#ef4444' }}>{studentReport.exams.filter(e => e.is_absent).length}</strong>
+                          </div>
+                          <div className="detail-row">
+                            <span>Total Exams:</span>
+                            <strong>{studentReport.exams.length}</strong>
+                          </div>
+                        </div>
+                        {individualRankings?.rankings.exam.rank && (
+                          <div className="performance-rank">
+                            Rank #{individualRankings.rankings.exam.rank} of {individualRankings.rankings.exam.total_students}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Madrasah-Wide Rankings */}
-                  {individualRankings && (
-                    <>
-                      <h3 className="subsection-title">Madrasah-Wide Rankings</h3>
-                      <div className="metric-grid">
-                        {/* Exam Rank */}
-                        <div className="metric-card">
-                          <div className="metric-label">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
-                              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                            </svg>
-                            Exam Performance
-                          </div>
-                          <div className="metric-value" style={{ color: '#3b82f6' }}>
-                            {individualRankings.rankings.exam.rank 
-                              ? `Rank ${individualRankings.rankings.exam.rank}`
-                              : 'N/A'}
-                          </div>
-                          <div className="metric-sub">
-                            {individualRankings.rankings.exam.rank && (
-                              <>out of {individualRankings.rankings.exam.total_students} students</>
-                            )}
-                          </div>
-                          {individualRankings.rankings.exam.percentage && (
-                            <span className={`metric-badge ${
-                              parseFloat(individualRankings.rankings.exam.percentage) >= 80 ? 'excellent' :
-                              parseFloat(individualRankings.rankings.exam.percentage) >= 70 ? 'good' : 'needs-improvement'
-                            }`}>
-                              {individualRankings.rankings.exam.percentage}% overall
-                            </span>
-                          )}
-                          {individualRankings.rankings.exam.rank && individualRankings.rankings.exam.rank <= 3 && (
-                            <div style={{ fontSize: '32px', marginTop: '8px' }}>
-                              {individualRankings.rankings.exam.rank === 1 ? '🥇' : 
-                               individualRankings.rankings.exam.rank === 2 ? '🥈' : '🥉'}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Attendance Rank */}
-                        <div className="metric-card">
-                          <div className="metric-label">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
-                              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                              <polyline points="22 4 12 14.01 9 11.01"/>
-                            </svg>
-                            Attendance
-                          </div>
-                          <div className="metric-value" style={{ color: '#10b981' }}>
-                            {individualRankings.rankings.attendance.rank 
-                              ? `Rank ${individualRankings.rankings.attendance.rank}`
-                              : 'N/A'}
-                          </div>
-                          <div className="metric-sub">
-                            {individualRankings.rankings.attendance.rank && (
-                              <>out of {individualRankings.rankings.attendance.total_students} students</>
-                            )}
-                          </div>
-                          {individualRankings.rankings.attendance.rate && (
-                            <span className={`metric-badge ${
-                              parseFloat(individualRankings.rankings.attendance.rate) >= 90 ? 'excellent' :
-                              parseFloat(individualRankings.rankings.attendance.rate) >= 80 ? 'good' : 'needs-improvement'
-                            }`}>
-                              {individualRankings.rankings.attendance.rate}% rate
-                            </span>
-                          )}
-                          {individualRankings.rankings.attendance.rank && individualRankings.rankings.attendance.rank <= 3 && (
-                            <div style={{ fontSize: '32px', marginTop: '8px' }}>
-                              {individualRankings.rankings.attendance.rank === 1 ? '🥇' : 
-                               individualRankings.rankings.attendance.rank === 2 ? '🥈' : '🥉'}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Dressing Rank */}
-                        <div className="metric-card">
-                          <div className="metric-label">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
-                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                              <circle cx="12" cy="7" r="4"/>
-                            </svg>
-                            Dressing Standards
-                          </div>
-                          <div className="metric-value" style={{ color: '#f59e0b' }}>
-                            {individualRankings.rankings.dressing.rank 
-                              ? `Rank ${individualRankings.rankings.dressing.rank}`
-                              : 'N/A'}
-                          </div>
-                          <div className="metric-sub">
-                            {individualRankings.rankings.dressing.rank && (
-                              <>out of {individualRankings.rankings.dressing.total_students} students</>
-                            )}
-                          </div>
-                          {individualRankings.rankings.dressing.score && (
-                            <span className={`metric-badge ${
-                              parseFloat(individualRankings.rankings.dressing.score) >= 3.5 ? 'excellent' :
-                              parseFloat(individualRankings.rankings.dressing.score) >= 2.5 ? 'good' : 'needs-improvement'
-                            }`}>
-                              {individualRankings.rankings.dressing.score}/4.0
-                            </span>
-                          )}
-                          {individualRankings.rankings.dressing.rank && individualRankings.rankings.dressing.rank <= 3 && (
-                            <div style={{ fontSize: '32px', marginTop: '8px' }}>
-                              {individualRankings.rankings.dressing.rank === 1 ? '🥇' : 
-                               individualRankings.rankings.dressing.rank === 2 ? '🥈' : '🥉'}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Behavior Rank */}
-                        <div className="metric-card">
-                          <div className="metric-label">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
-                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                            </svg>
-                            Behavior & Conduct
-                          </div>
-                          <div className="metric-value" style={{ color: '#8b5cf6' }}>
-                            {individualRankings.rankings.behavior.rank 
-                              ? `Rank ${individualRankings.rankings.behavior.rank}`
-                              : 'N/A'}
-                          </div>
-                          <div className="metric-sub">
-                            {individualRankings.rankings.behavior.rank && (
-                              <>out of {individualRankings.rankings.behavior.total_students} students</>
-                            )}
-                          </div>
-                          {individualRankings.rankings.behavior.score && (
-                            <span className={`metric-badge ${
-                              parseFloat(individualRankings.rankings.behavior.score) >= 3.5 ? 'excellent' :
-                              parseFloat(individualRankings.rankings.behavior.score) >= 2.5 ? 'good' : 'needs-improvement'
-                            }`}>
-                              {individualRankings.rankings.behavior.score}/4.0
-                            </span>
-                          )}
-                          {individualRankings.rankings.behavior.rank && individualRankings.rankings.behavior.rank <= 3 && (
-                            <div style={{ fontSize: '32px', marginTop: '8px' }}>
-                              {individualRankings.rankings.behavior.rank === 1 ? '🥇' : 
-                               individualRankings.rankings.behavior.rank === 2 ? '🥈' : '🥉'}
-                            </div>
-                          )}
-                        </div>
+                    {/* Dressing Standards */}
+                    <div className="performance-card">
+                      <div className="performance-card-header">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                          <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        <span>Dressing Standards</span>
                       </div>
-                    </>
-                  )}
+                      <div className="performance-card-body">
+                        <div className="performance-main-stat">
+                          <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgDressing >= 3.5 ? '#10b981' : studentReport.dressingBehavior?.avgDressing >= 2.5 ? '#22c55e' : '#f59e0b' }}>
+                            {studentReport.dressingBehavior?.avgDressing ? studentReport.dressingBehavior.avgDressing.toFixed(1) : 'N/A'}
+                          </div>
+                          <div className="performance-label">Average Grade (out of 4.0)</div>
+                        </div>
+                        <div className="performance-details">
+                          <div className="detail-row">
+                            <span>Grade:</span>
+                            <strong>
+                              {studentReport.dressingBehavior?.avgDressing >= 3.5 ? 'Excellent' :
+                               studentReport.dressingBehavior?.avgDressing >= 2.5 ? 'Good' :
+                               studentReport.dressingBehavior?.avgDressing >= 1.5 ? 'Fair' : 'Needs Improvement'}
+                            </strong>
+                          </div>
+                        </div>
+                        {individualRankings?.rankings.dressing.rank && (
+                          <div className="performance-rank">
+                            Rank #{individualRankings.rankings.dressing.rank} of {individualRankings.rankings.dressing.total_students}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                  {/* Overall Comment */}
-                  <div className="card">
-                    <div className="card-header">Overall Comment</div>
-                    <div className="card-body">
-                      <textarea
-                        className="form-textarea"
-                        rows="4"
-                        value={selectedStudentForReport.notes || ''}
-                        onChange={(e) => {
-                          setSelectedStudentForReport({
-                            ...selectedStudentForReport,
-                            notes: e.target.value
-                          });
-                        }}
-                        placeholder="Add overall comment about student's performance..."
-                      />
-                      <div className="form-actions">
-                        <button
-                          className="btn btn-primary"
-                          onClick={() => updateStudentComment(selectedStudentForReport.id, selectedStudentForReport.notes)}
-                        >
-                          Save Comment
-                        </button>
+                    {/* Behavior & Conduct */}
+                    <div className="performance-card">
+                      <div className="performance-card-header">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <span>Behavior & Conduct</span>
+                      </div>
+                      <div className="performance-card-body">
+                        <div className="performance-main-stat">
+                          <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgBehavior >= 3.5 ? '#10b981' : studentReport.dressingBehavior?.avgBehavior >= 2.5 ? '#22c55e' : '#f59e0b' }}>
+                            {studentReport.dressingBehavior?.avgBehavior ? studentReport.dressingBehavior.avgBehavior.toFixed(1) : 'N/A'}
+                          </div>
+                          <div className="performance-label">Average Grade (out of 4.0)</div>
+                        </div>
+                        <div className="performance-details">
+                          <div className="detail-row">
+                            <span>Grade:</span>
+                            <strong>
+                              {studentReport.dressingBehavior?.avgBehavior >= 3.5 ? 'Excellent' :
+                               studentReport.dressingBehavior?.avgBehavior >= 2.5 ? 'Good' :
+                               studentReport.dressingBehavior?.avgBehavior >= 1.5 ? 'Fair' : 'Needs Improvement'}
+                            </strong>
+                          </div>
+                        </div>
+                        {individualRankings?.rankings.behavior.rank && (
+                          <div className="performance-rank">
+                            Rank #{individualRankings.rankings.behavior.rank} of {individualRankings.rankings.behavior.total_students}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Recent Attendance */}
-                  <div className="card">
-                    <div className="card-header">Recent Attendance</div>
-                    <div className="table-wrap">
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Present</th>
-                            <th>Dressing</th>
-                            <th>Behavior</th>
-                            <th>Notes</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {studentReport.attendance.records.slice(0, 10).map((record, idx) => (
-                            <tr key={idx}>
-                              <td>{new Date(record.date).toLocaleDateString()}</td>
-                              <td>
-                                <span className={`badge ${record.present ? 'badge-success' : 'badge-danger'}`}>
-                                  {record.present ? 'Yes' : 'No'}
-                                </span>
-                              </td>
-                              <td>{record.dressing_grade || '-'}</td>
-                              <td>{record.behavior_grade || '-'}</td>
-                              <td>{record.notes || '-'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  {/* Teacher's Comment */}
+                  <div className="report-card-comment">
+                    <h3>Teacher's Comment</h3>
+                    <textarea
+                      className="comment-textarea"
+                      rows="4"
+                      value={selectedStudentForReport.notes || ''}
+                      onChange={(e) => {
+                        setSelectedStudentForReport({
+                          ...selectedStudentForReport,
+                          notes: e.target.value
+                        });
+                      }}
+                      placeholder="Add overall comment about student's performance..."
+                    />
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => updateStudentComment(selectedStudentForReport.id, selectedStudentForReport.notes)}
+                      style={{ marginTop: '12px' }}
+                    >
+                      Save Comment
+                    </button>
                   </div>
 
-                  {/* Exam Results */}
-                  <div className="card">
-                    <div className="card-header">Exam Results</div>
-                    <div className="table-wrap">
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Score</th>
-                            <th>Notes</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {studentReport.exams.map((exam, idx) => (
-                            <tr key={idx}>
-                              <td>{new Date(exam.exam_date).toLocaleDateString()}</td>
-                              <td>{exam.exam_type}</td>
-                              <td><strong>{exam.score}</strong></td>
-                              <td>{exam.notes || '-'}</td>
-                            </tr>
-                          ))}
-                          {studentReport.exams.length === 0 && (
-                            <tr><td colSpan="4"><div className="empty"><p>No exam records</p></div></td></tr>
-                          )}
-                        </tbody>
-                      </table>
+                  {/* Report Footer */}
+                  <div className="report-card-footer">
+                    <div className="footer-note">
+                      This report provides a summary of the student's performance across key areas. For detailed records, please contact the administration.
                     </div>
                   </div>
-                </>
+                </div>
               )}
 
               {/* Student not selected message */}

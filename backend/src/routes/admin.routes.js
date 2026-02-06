@@ -2219,13 +2219,13 @@ router.get('/analytics', async (req, res) => {
         ep.score,
         ep.max_score,
         ROUND((ep.score / ep.max_score * 100), 1) as percentage,
-        ep.subject,
-        ep.exam_name
+        ep.subject
       FROM exam_performance ep
       JOIN students s ON ep.student_id = s.id
       WHERE ep.madrasah_id = ?
         ${semester_id ? 'AND ep.semester_id = ?' : ''}
         AND ep.is_absent = 0
+        AND ep.score IS NOT NULL
       ORDER BY percentage DESC
       LIMIT 1
     `, semester_id ? [madrasahId, semester_id] : [madrasahId]);

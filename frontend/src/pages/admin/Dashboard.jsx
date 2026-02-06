@@ -2450,7 +2450,7 @@ function AdminDashboard() {
                               </div>
                               <div className="performer-score">{analyticsData.topPerformer.percentage}%</div>
                               <div className="performer-detail">
-                                {analyticsData.topPerformer.subject} - {analyticsData.topPerformer.exam_name}
+                                {analyticsData.topPerformer.subject}
                               </div>
                             </div>
                           </div>

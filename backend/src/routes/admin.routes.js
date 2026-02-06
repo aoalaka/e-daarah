@@ -1303,14 +1303,38 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     examQuery += ` GROUP BY s.id ORDER BY overall_percentage DESC`;
     const [examRankings] = await pool.query(examQuery, examParams);
 
+    // Apply tie-aware ranking for exams
+    let examRankArray = [];
+    let examCurrentRank = 1;
+    let examPreviousPercentage = null;
+    let examStudentsAtCurrentRank = 0;
+    let totalExamStudents = 0;
+    
+    examRankings.forEach((student) => {
+      const percentage = student.overall_percentage ? parseFloat(student.overall_percentage).toFixed(2) : '0.00';
+      
+      if (parseFloat(percentage) > 0) totalExamStudents++;
+      
+      if (examPreviousPercentage !== null && percentage !== examPreviousPercentage) {
+        examCurrentRank += examStudentsAtCurrentRank;
+        examStudentsAtCurrentRank = 0;
+      }
+      
+      examStudentsAtCurrentRank++;
+      examPreviousPercentage = percentage;
+      
+      examRankArray.push({
+        ...student,
+        rank: examCurrentRank
+      });
+    });
+
     // Find student's exam rank
     let examRank = null;
     let examPercentage = null;
-    let totalExamStudents = 0;
-    examRankings.forEach((r, index) => {
-      if (parseFloat(r.overall_percentage) > 0) totalExamStudents++;
+    examRankArray.forEach((r) => {
       if (r.id === parseInt(id)) {
-        examRank = index + 1;
+        examRank = r.rank;
         examPercentage = parseFloat(r.overall_percentage).toFixed(2);
       }
     });
@@ -1342,8 +1366,38 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     attendanceQuery += ` GROUP BY s.id ORDER BY attendance_rate DESC`;
     const [attendanceRankings] = await pool.query(attendanceQuery, attendanceParams);
 
+    // Apply tie-aware ranking for attendance
+    let attendanceRankArray = [];
+    let attendanceCurrentRank = 1;
+    let attendancePreviousRate = null;
+    let attendanceStudentsAtCurrentRank = 0;
+    
+    attendanceRankings.forEach((student) => {
+      const rate = student.attendance_rate ? parseFloat(student.attendance_rate).toFixed(2) : '0.00';
+      
+      if (attendancePreviousRate !== null && rate !== attendancePreviousRate) {
+        attendanceCurrentRank += attendanceStudentsAtCurrentRank;
+        attendanceStudentsAtCurrentRank = 0;
+      }
+      
+      attendanceStudentsAtCurrentRank++;
+      attendancePreviousRate = rate;
+      
+      attendanceRankArray.push({
+        ...student,
+        rank: attendanceCurrentRank
+      });
+    });
+
     let attendanceRank = null;
     let attendanceRate = null;
+    let totalAttendanceStudents = attendanceRankArray.length;
+    attendanceRankArray.forEach((r) => {
+      if (r.id === parseInt(id)) {
+        attendanceRank = r.rank;
+        attendanceRate = parseFloat(r.attendance_rate).toFixed(2);
+      }
+    });
     let totalAttendanceStudents = 0;
     attendanceRankings.forEach((r, index) => {
       if (parseFloat(r.attendance_rate) > 0) totalAttendanceStudents++;
@@ -1385,12 +1439,35 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     dressingQuery += ` GROUP BY s.id HAVING avg_dressing_score IS NOT NULL ORDER BY avg_dressing_score DESC`;
     const [dressingRankings] = await pool.query(dressingQuery, dressingParams);
 
+    // Apply tie-aware ranking for dressing
+    let dressingRankArray = [];
+    let dressingCurrentRank = 1;
+    let dressingPreviousScore = null;
+    let dressingStudentsAtCurrentRank = 0;
+    
+    dressingRankings.forEach((student) => {
+      const score = student.avg_dressing_score ? parseFloat(student.avg_dressing_score).toFixed(2) : '0.00';
+      
+      if (dressingPreviousScore !== null && score !== dressingPreviousScore) {
+        dressingCurrentRank += dressingStudentsAtCurrentRank;
+        dressingStudentsAtCurrentRank = 0;
+      }
+      
+      dressingStudentsAtCurrentRank++;
+      dressingPreviousScore = score;
+      
+      dressingRankArray.push({
+        ...student,
+        rank: dressingCurrentRank
+      });
+    });
+
     let dressingRank = null;
     let dressingScore = null;
-    let totalDressingStudents = dressingRankings.length;
-    dressingRankings.forEach((r, index) => {
+    let totalDressingStudents = dressingRankArray.length;
+    dressingRankArray.forEach((r) => {
       if (r.id === parseInt(id)) {
-        dressingRank = index + 1;
+        dressingRank = r.rank;
         dressingScore = parseFloat(r.avg_dressing_score).toFixed(2);
       }
     });
@@ -1427,12 +1504,35 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     behaviorQuery += ` GROUP BY s.id HAVING avg_behavior_score IS NOT NULL ORDER BY avg_behavior_score DESC`;
     const [behaviorRankings] = await pool.query(behaviorQuery, behaviorParams);
 
+    // Apply tie-aware ranking for behavior
+    let behaviorRankArray = [];
+    let behaviorCurrentRank = 1;
+    let behaviorPreviousScore = null;
+    let behaviorStudentsAtCurrentRank = 0;
+    
+    behaviorRankings.forEach((student) => {
+      const score = student.avg_behavior_score ? parseFloat(student.avg_behavior_score).toFixed(2) : '0.00';
+      
+      if (behaviorPreviousScore !== null && score !== behaviorPreviousScore) {
+        behaviorCurrentRank += behaviorStudentsAtCurrentRank;
+        behaviorStudentsAtCurrentRank = 0;
+      }
+      
+      behaviorStudentsAtCurrentRank++;
+      behaviorPreviousScore = score;
+      
+      behaviorRankArray.push({
+        ...student,
+        rank: behaviorCurrentRank
+      });
+    });
+
     let behaviorRank = null;
     let behaviorScore = null;
-    let totalBehaviorStudents = behaviorRankings.length;
-    behaviorRankings.forEach((r, index) => {
+    let totalBehaviorStudents = behaviorRankArray.length;
+    behaviorRankArray.forEach((r) => {
       if (r.id === parseInt(id)) {
-        behaviorRank = index + 1;
+        behaviorRank = r.rank;
         behaviorScore = parseFloat(r.avg_behavior_score).toFixed(2);
       }
     });

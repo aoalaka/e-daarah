@@ -176,7 +176,7 @@ function AdminDashboard() {
 
   // Fetch rankings based on active ranking sub-tab
   useEffect(() => {
-    if (selectedClassForPerformance && reportSubTab === 'rankings') {
+    if (selectedClassForPerformance && reportSubTab === 'student-reports') {
       if (rankingSubTab === 'exam') {
         fetchStudentReports();
       } else if (rankingSubTab === 'attendance') {

@@ -3735,31 +3735,39 @@ function AdminDashboard() {
                         <span>Attendance</span>
                       </div>
                       <div className="performance-card-body">
-                        <div className="performance-main-stat">
-                          <div className="performance-big-number" style={{ color: parseFloat(studentReport.attendance.attendanceRate) >= 90 ? '#10b981' : parseFloat(studentReport.attendance.attendanceRate) >= 80 ? '#22c55e' : '#f59e0b' }}>
-                            {studentReport.attendance.attendanceRate != null ? `${studentReport.attendance.attendanceRate}%` : 'N/A'}
-                          </div>
-                          <div className="performance-label">Attendance Rate</div>
-                        </div>
-                        <div className="performance-details">
-                          <div className="detail-row">
-                            <span>Present:</span>
-                            <strong style={{ color: '#10b981' }}>{studentReport.attendance.presentDays} days</strong>
-                          </div>
-                          <div className="detail-row">
-                            <span>Absent:</span>
-                            <strong style={{ color: '#ef4444' }}>
-                              {studentReport.attendance.totalDays - studentReport.attendance.presentDays} days
-                            </strong>
-                          </div>
-                          <div className="detail-row">
-                            <span>Total Days:</span>
-                            <strong>{studentReport.attendance.totalDays}</strong>
-                          </div>
-                        </div>
-                        {individualRankings?.rankings.attendance.rank && (
-                          <div className="performance-rank">
-                            Rank #{individualRankings.rankings.attendance.rank} of {individualRankings.rankings.attendance.total_students}
+                        {studentReport.attendance.totalDays > 0 ? (
+                          <>
+                            <div className="performance-main-stat">
+                              <div className="performance-big-number" style={{ color: parseFloat(studentReport.attendance.attendanceRate) >= 90 ? '#10b981' : parseFloat(studentReport.attendance.attendanceRate) >= 80 ? '#22c55e' : '#f59e0b' }}>
+                                {studentReport.attendance.attendanceRate != null ? `${studentReport.attendance.attendanceRate}%` : 'N/A'}
+                              </div>
+                              <div className="performance-label">Attendance Rate</div>
+                            </div>
+                            <div className="performance-details">
+                              <div className="detail-row">
+                                <span>Present:</span>
+                                <strong style={{ color: '#10b981' }}>{studentReport.attendance.presentDays} days</strong>
+                              </div>
+                              <div className="detail-row">
+                                <span>Absent:</span>
+                                <strong style={{ color: '#ef4444' }}>
+                                  {studentReport.attendance.totalDays - studentReport.attendance.presentDays} days
+                                </strong>
+                              </div>
+                              <div className="detail-row">
+                                <span>Total Days:</span>
+                                <strong>{studentReport.attendance.totalDays}</strong>
+                              </div>
+                            </div>
+                            {individualRankings?.rankings.attendance.rank && (
+                              <div className="performance-rank">
+                                Rank #{individualRankings.rankings.attendance.rank} of {individualRankings.rankings.attendance.total_students}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div style={{ textAlign: 'center', padding: 'var(--lg)', color: 'var(--muted)' }}>
+                            <p>No attendance records yet</p>
                           </div>
                         )}
                       </div>
@@ -3775,29 +3783,37 @@ function AdminDashboard() {
                         <span>Exam Performance</span>
                       </div>
                       <div className="performance-card-body">
-                        <div className="performance-main-stat">
-                          <div className="performance-big-number" style={{ color: individualRankings?.rankings.exam.percentage >= 80 ? '#10b981' : individualRankings?.rankings.exam.percentage >= 70 ? '#22c55e' : '#f59e0b' }}>
-                            {individualRankings?.rankings.exam.percentage ? `${individualRankings.rankings.exam.percentage}%` : 'N/A'}
-                          </div>
-                          <div className="performance-label">Overall Score</div>
-                        </div>
-                        <div className="performance-details">
-                          <div className="detail-row">
-                            <span>Exams Taken:</span>
-                            <strong>{studentReport.exams.filter(e => !e.is_absent).length}</strong>
-                          </div>
-                          <div className="detail-row">
-                            <span>Exams Missed:</span>
-                            <strong style={{ color: '#ef4444' }}>{studentReport.exams.filter(e => e.is_absent).length}</strong>
-                          </div>
-                          <div className="detail-row">
-                            <span>Total Exams:</span>
-                            <strong>{studentReport.exams.length}</strong>
-                          </div>
-                        </div>
-                        {individualRankings?.rankings.exam.rank && (
-                          <div className="performance-rank">
-                            Rank #{individualRankings.rankings.exam.rank} of {individualRankings.rankings.exam.total_students}
+                        {studentReport.exams.length > 0 ? (
+                          <>
+                            <div className="performance-main-stat">
+                              <div className="performance-big-number" style={{ color: individualRankings?.rankings.exam.percentage >= 80 ? '#10b981' : individualRankings?.rankings.exam.percentage >= 70 ? '#22c55e' : '#f59e0b' }}>
+                                {individualRankings?.rankings.exam.percentage ? `${individualRankings.rankings.exam.percentage}%` : 'N/A'}
+                              </div>
+                              <div className="performance-label">Overall Score</div>
+                            </div>
+                            <div className="performance-details">
+                              <div className="detail-row">
+                                <span>Exams Taken:</span>
+                                <strong>{studentReport.exams.filter(e => !e.is_absent).length}</strong>
+                              </div>
+                              <div className="detail-row">
+                                <span>Exams Missed:</span>
+                                <strong style={{ color: '#ef4444' }}>{studentReport.exams.filter(e => e.is_absent).length}</strong>
+                              </div>
+                              <div className="detail-row">
+                                <span>Total Exams:</span>
+                                <strong>{studentReport.exams.length}</strong>
+                              </div>
+                            </div>
+                            {individualRankings?.rankings.exam.rank && (
+                              <div className="performance-rank">
+                                Rank #{individualRankings.rankings.exam.rank} of {individualRankings.rankings.exam.total_students}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div style={{ textAlign: 'center', padding: 'var(--lg)', color: 'var(--muted)' }}>
+                            <p>No exams yet</p>
                           </div>
                         )}
                       </div>
@@ -3813,25 +3829,33 @@ function AdminDashboard() {
                         <span>Dressing Standards</span>
                       </div>
                       <div className="performance-card-body">
-                        <div className="performance-main-stat">
-                          <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgDressing >= 3.5 ? '#10b981' : studentReport.dressingBehavior?.avgDressing >= 2.5 ? '#22c55e' : '#f59e0b' }}>
-                            {studentReport.dressingBehavior?.avgDressing ? studentReport.dressingBehavior.avgDressing.toFixed(1) : 'N/A'}
-                          </div>
-                          <div className="performance-label">Average Grade (out of 4.0)</div>
-                        </div>
-                        <div className="performance-details">
-                          <div className="detail-row">
-                            <span>Grade:</span>
-                            <strong>
-                              {studentReport.dressingBehavior?.avgDressing >= 3.5 ? 'Excellent' :
-                               studentReport.dressingBehavior?.avgDressing >= 2.5 ? 'Good' :
-                               studentReport.dressingBehavior?.avgDressing >= 1.5 ? 'Fair' : 'Needs Improvement'}
-                            </strong>
-                          </div>
-                        </div>
-                        {individualRankings?.rankings.dressing.rank && (
-                          <div className="performance-rank">
-                            Rank #{individualRankings.rankings.dressing.rank} of {individualRankings.rankings.dressing.total_students}
+                        {studentReport.dressingBehavior?.avgDressing ? (
+                          <>
+                            <div className="performance-main-stat">
+                              <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgDressing >= 3.5 ? '#10b981' : studentReport.dressingBehavior?.avgDressing >= 2.5 ? '#22c55e' : '#f59e0b' }}>
+                                {studentReport.dressingBehavior.avgDressing.toFixed(1)}
+                              </div>
+                              <div className="performance-label">Average Grade (out of 4.0)</div>
+                            </div>
+                            <div className="performance-details">
+                              <div className="detail-row">
+                                <span>Grade:</span>
+                                <strong>
+                                  {studentReport.dressingBehavior?.avgDressing >= 3.5 ? 'Excellent' :
+                                   studentReport.dressingBehavior?.avgDressing >= 2.5 ? 'Good' :
+                                   studentReport.dressingBehavior?.avgDressing >= 1.5 ? 'Fair' : 'Needs Improvement'}
+                                </strong>
+                              </div>
+                            </div>
+                            {individualRankings?.rankings.dressing.rank && (
+                              <div className="performance-rank">
+                                Rank #{individualRankings.rankings.dressing.rank} of {individualRankings.rankings.dressing.total_students}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div style={{ textAlign: 'center', padding: 'var(--lg)', color: 'var(--muted)' }}>
+                            <p>No dressing records yet</p>
                           </div>
                         )}
                       </div>
@@ -3846,25 +3870,33 @@ function AdminDashboard() {
                         <span>Behavior & Conduct</span>
                       </div>
                       <div className="performance-card-body">
-                        <div className="performance-main-stat">
-                          <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgBehavior >= 3.5 ? '#10b981' : studentReport.dressingBehavior?.avgBehavior >= 2.5 ? '#22c55e' : '#f59e0b' }}>
-                            {studentReport.dressingBehavior?.avgBehavior ? studentReport.dressingBehavior.avgBehavior.toFixed(1) : 'N/A'}
-                          </div>
-                          <div className="performance-label">Average Grade (out of 4.0)</div>
-                        </div>
-                        <div className="performance-details">
-                          <div className="detail-row">
-                            <span>Grade:</span>
-                            <strong>
-                              {studentReport.dressingBehavior?.avgBehavior >= 3.5 ? 'Excellent' :
-                               studentReport.dressingBehavior?.avgBehavior >= 2.5 ? 'Good' :
-                               studentReport.dressingBehavior?.avgBehavior >= 1.5 ? 'Fair' : 'Needs Improvement'}
-                            </strong>
-                          </div>
-                        </div>
-                        {individualRankings?.rankings.behavior.rank && (
-                          <div className="performance-rank">
-                            Rank #{individualRankings.rankings.behavior.rank} of {individualRankings.rankings.behavior.total_students}
+                        {studentReport.dressingBehavior?.avgBehavior ? (
+                          <>
+                            <div className="performance-main-stat">
+                              <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgBehavior >= 3.5 ? '#10b981' : studentReport.dressingBehavior?.avgBehavior >= 2.5 ? '#22c55e' : '#f59e0b' }}>
+                                {studentReport.dressingBehavior.avgBehavior.toFixed(1)}
+                              </div>
+                              <div className="performance-label">Average Grade (out of 4.0)</div>
+                            </div>
+                            <div className="performance-details">
+                              <div className="detail-row">
+                                <span>Grade:</span>
+                                <strong>
+                                  {studentReport.dressingBehavior?.avgBehavior >= 3.5 ? 'Excellent' :
+                                   studentReport.dressingBehavior?.avgBehavior >= 2.5 ? 'Good' :
+                                   studentReport.dressingBehavior?.avgBehavior >= 1.5 ? 'Fair' : 'Needs Improvement'}
+                                </strong>
+                              </div>
+                            </div>
+                            {individualRankings?.rankings.behavior.rank && (
+                              <div className="performance-rank">
+                                Rank #{individualRankings.rankings.behavior.rank} of {individualRankings.rankings.behavior.total_students}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div style={{ textAlign: 'center', padding: 'var(--lg)', color: 'var(--muted)' }}>
+                            <p>No behavior records yet</p>
                           </div>
                         )}
                       </div>

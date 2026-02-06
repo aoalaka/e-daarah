@@ -12,8 +12,10 @@
 
 .pricing-header .header-nav {
   display: flex;
-  gap: 8px;
+  flex-direction: row;
   align-items: center;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .pricing-header .nav-link {

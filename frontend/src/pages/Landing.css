@@ -402,7 +402,11 @@
   }
 
   .header-nav {
-    gap: 4px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
   }
 
   .nav-link {

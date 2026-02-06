@@ -155,8 +155,8 @@ function Landing() {
             <h3>Standard</h3>
             <div className="price">$12<span>/month</span></div>
             <ul>
-              <li>Up to 75 students</li>
-              <li>Up to 5 teachers</li>
+              <li>Up to 100 students</li>
+              <li>Up to 20 teachers</li>
               <li>Attendance tracking</li>
               <li>Tie-aware student ranking</li>
               <li>Exam recording</li>
@@ -171,8 +171,8 @@ function Landing() {
             <h3>Plus</h3>
             <div className="price">$29<span>/month</span></div>
             <ul>
-              <li>Up to 300 students</li>
-              <li>Up to 20 teachers</li>
+              <li>Up to 500 students</li>
+              <li>Up to 50 teachers</li>
               <li>Everything in Standard</li>
               <li>Parent portal</li>
               <li>Advanced reports & exports</li>

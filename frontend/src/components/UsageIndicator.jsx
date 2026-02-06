@@ -2,9 +2,9 @@ import './UsageIndicator.css';
 
 // Plan limits configuration (should match backend)
 const PLAN_LIMITS = {
-  trial: { maxStudents: 75, maxTeachers: 5, maxClasses: 5 },
-  standard: { maxStudents: 75, maxTeachers: 5, maxClasses: 5 },
-  plus: { maxStudents: 300, maxTeachers: 20, maxClasses: 15 },
+  trial: { maxStudents: 500, maxTeachers: 50, maxClasses: Infinity },
+  standard: { maxStudents: 100, maxTeachers: 20, maxClasses: 10 },
+  plus: { maxStudents: 500, maxTeachers: 50, maxClasses: Infinity },
   enterprise: { maxStudents: Infinity, maxTeachers: Infinity, maxClasses: Infinity }
 };
 

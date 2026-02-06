@@ -4602,7 +4602,7 @@ function AdminDashboard() {
                           </span>
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
-                          75 students, 5 teachers
+                          100 students, 20 teachers
                         </div>
                       </div>
 
@@ -4640,7 +4640,7 @@ function AdminDashboard() {
                           </span>
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
-                          300 students, 20 teachers
+                          500 students, 50 teachers
                         </div>
                       </div>
                     </div>

@@ -246,6 +246,11 @@ router.post('/demo-login', async (req, res) => {
       { expiresIn: '4h' }
     );
 
+    // Create server-side session (required for session validation)
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    const userAgent = req.get('user-agent');
+    await createSession(user.id, token, ipAddress, userAgent);
+
     res.json({
       token,
       user: {

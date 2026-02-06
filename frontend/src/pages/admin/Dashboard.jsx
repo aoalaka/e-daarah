@@ -223,12 +223,27 @@ function AdminDashboard() {
         api.get('/admin/students').catch(() => ({ data: [] })),
         api.get('/admin/profile').catch(() => ({ data: null }))
       ]);
-      setSessions(sessionsRes.data || []);
-      setSemesters(semestersRes.data || []);
+      const sessionsData = sessionsRes.data || [];
+      const semestersData = semestersRes.data || [];
+
+      setSessions(sessionsData);
+      setSemesters(semestersData);
       setClasses(classesRes.data || []);
       setTeachers(teachersRes.data || []);
       setStudents(studentsRes.data || []);
       setMadrasahProfile(profileRes.data);
+
+      // Set default filters to active session and semester
+      const activeSession = sessionsData.find(s => s.is_active);
+      const activeSemester = semestersData.find(s => s.is_active);
+
+      if (activeSession) {
+        setReportFilterSession(String(activeSession.id));
+      }
+      if (activeSemester) {
+        setReportSemester(String(activeSemester.id));
+        setReportFilterSemester(String(activeSemester.id));
+      }
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {

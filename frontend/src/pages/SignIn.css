@@ -28,6 +28,12 @@
   justify-content: center;
 }
 
+.signin-logo:hover,
+.signin-logo:focus {
+  text-decoration: none;
+  outline: none;
+}
+
 .signin-logo-img {
   height: 32px;
   width: auto;

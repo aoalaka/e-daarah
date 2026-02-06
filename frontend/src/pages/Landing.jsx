@@ -21,10 +21,10 @@ function Landing() {
 
       {/* Hero */}
       <section className="hero">
-        <p className="hero-arabic">نظام إدارة ذكي للمدارس الدينية</p>
-        <h1 className="hero-title">Smart Madrasah Management</h1>
+        <p className="hero-arabic">نظام إدارة المدارس الدينية</p>
+        <h1 className="hero-title">Run Your Madrasah with Clarity</h1>
         <p className="hero-subtitle">
-          Attendance, reports, and student progress tracking for Islamic schools.
+          Track attendance, record exams, and keep parents informed — all in one place.
         </p>
 
         <div className="hero-actions">
@@ -47,32 +47,32 @@ function Landing() {
 
       {/* Features */}
       <section className="features">
-        <h2 className="section-title">What You Get</h2>
+        <h2 className="section-title">Built for Islamic Schools</h2>
 
         <div className="feature-list">
           <div className="feature">
-            <h3>Attendance Tracking</h3>
-            <p>Daily attendance with behavior and dressing grades</p>
+            <h3>Daily Attendance</h3>
+            <p>Mark attendance and grade dressing and behavior in one step</p>
           </div>
           <div className="feature">
-            <h3>Parent Reports</h3>
-            <p>Parents can view their child's progress anytime</p>
+            <h3>Parent Access</h3>
+            <p>Parents log in to see their child's attendance and grades</p>
           </div>
           <div className="feature">
             <h3>Exam Records</h3>
-            <p>Track Quran memorization and Islamic studies</p>
+            <p>Record scores for Quran memorization, Islamic studies, and more</p>
           </div>
           <div className="feature">
-            <h3>Multi-User Access</h3>
-            <p>Separate portals for admins, teachers, and parents</p>
+            <h3>Role-Based Portals</h3>
+            <p>Admins, teachers, and parents each get their own dashboard</p>
           </div>
         </div>
       </section>
 
       {/* Pricing */}
       <section id="pricing" className="pricing">
-        <h2 className="section-title">Pricing</h2>
-        <p className="section-subtitle">Start with a 14-day free trial. No credit card required.</p>
+        <h2 className="section-title">Simple Pricing</h2>
+        <p className="section-subtitle">14-day free trial. No credit card needed.</p>
 
         <div className="pricing-cards">
           <div className="pricing-card">
@@ -81,7 +81,7 @@ function Landing() {
             <ul>
               <li>Up to 100 students</li>
               <li>Up to 20 teachers</li>
-              <li>Attendance tracking</li>
+              <li>Attendance &amp; grading</li>
               <li>Tie-aware student ranking</li>
               <li>Exam recording</li>
               <li>Email support</li>
@@ -98,8 +98,8 @@ function Landing() {
               <li>Up to 500 students</li>
               <li>Up to 50 teachers</li>
               <li>Everything in Standard</li>
-              <li>Parent portal</li>
-              <li>Advanced reports & exports</li>
+              <li>Parent portal access</li>
+              <li>Reports &amp; data exports</li>
               <li>Priority support</li>
             </ul>
             <button onClick={() => navigate('/register')} className="btn primary">
@@ -129,10 +129,10 @@ function Landing() {
 
         <div className="regional-discount">
           <p className="discount-text">
-            <strong>50% off Plus plan for schools in Australia & New Zealand</strong>
+            <strong>50% off the Plus plan for schools in Australia &amp; New Zealand</strong>
           </p>
           <p className="discount-subtext">
-            Contact us at <a href="mailto:support@e-daarah.com?subject=NZ/AU%20Plus%20Discount%20Request">support@e-daarah.com</a> for your coupon code.
+            Email <a href="mailto:support@e-daarah.com?subject=NZ/AU%20Plus%20Discount%20Request">support@e-daarah.com</a> to get your coupon code.
           </p>
         </div>
       </section>
@@ -145,7 +145,7 @@ function Landing() {
               <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="footer-logo-img" />
               <span className="footer-logo-text">e-daarah</span>
             </div>
-            <p>نظام إدارة المدارس الذكي</p>
+            <p>نظام إدارة المدارس الدينية</p>
           </div>
           <div className="footer-links">
             <Link to="/signin">Sign In</Link>

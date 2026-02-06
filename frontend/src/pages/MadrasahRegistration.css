@@ -33,6 +33,12 @@
   margin-bottom: var(--sm);
 }
 
+.register-logo:hover,
+.register-logo:focus {
+  text-decoration: none;
+  outline: none;
+}
+
 .register-logo-img {
   height: 48px;
   width: auto;

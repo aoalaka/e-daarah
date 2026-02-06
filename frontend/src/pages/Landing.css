@@ -41,10 +41,23 @@
   text-decoration: none;
 }
 
+.logo:hover,
+.logo:focus,
+.logo:active {
+  text-decoration: none;
+  outline: none;
+  box-shadow: none;
+}
+
 .logo:hover .logo-text,
 .logo:hover .logo-img {
   text-decoration: none;
   opacity: 1;
+}
+
+.logo img {
+  outline: none;
+  box-shadow: none;
 }
 
 .footer-logo {
@@ -63,6 +76,7 @@
   font-size: 18px;
   font-weight: 600;
   color: #1a1a1a;
+  text-decoration: none;
 }
 
 .header-nav {
@@ -344,6 +358,7 @@
   color: #666;
   margin-top: 8px;
   direction: rtl;
+  text-align: left;
 }
 
 .footer-links {

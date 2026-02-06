@@ -2352,7 +2352,9 @@ function AdminDashboard() {
                                   <div key={cls.id} className="alert-item">
                                     <strong>{cls.class_name}</strong>
                                     <span className="alert-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
-                                      {cls.weeks_missed === 1 ? '1 week' : `${cls.weeks_missed} weeks`}
+                                      {cls.last_attendance_date
+                                        ? (cls.weeks_missed === 1 ? '1 week' : `${cls.weeks_missed} weeks`)
+                                        : 'Never'}
                                     </span>
                                   </div>
                                 ))}

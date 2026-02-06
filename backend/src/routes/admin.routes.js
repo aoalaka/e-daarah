@@ -1973,22 +1973,31 @@ router.get('/analytics', async (req, res) => {
     trendQuery += ' GROUP BY YEARWEEK(a.date, 1) ORDER BY year_week ASC';
     const [weeklyTrend] = await pool.query(trendQuery, trendParams);
 
-    // 8. Classes that have taken attendance before but missed recent weeks
-    // Only show classes that HAVE recorded attendance at some point but haven't in over 7 days
+    // 8. Classes that should be taking attendance but haven't recently
+    // Show classes that: have students, have an active semester (started), but no recent attendance
     const [classesWithoutRecentAttendance] = await pool.query(`
       SELECT
         c.id,
         c.name as class_name,
-        MAX(a.date) as last_attendance_date,
-        DATEDIFF(NOW(), MAX(a.date)) as days_since_attendance,
-        FLOOR(DATEDIFF(NOW(), MAX(a.date)) / 7) as weeks_missed
+        (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL) as student_count,
+        (SELECT MAX(a.date) FROM attendance a WHERE a.class_id = c.id AND a.madrasah_id = ?) as last_attendance_date,
+        CASE
+          WHEN (SELECT MAX(a.date) FROM attendance a WHERE a.class_id = c.id AND a.madrasah_id = ?) IS NULL
+          THEN FLOOR(DATEDIFF(NOW(), sem.start_date) / 7)
+          ELSE FLOOR(DATEDIFF(NOW(), (SELECT MAX(a.date) FROM attendance a WHERE a.class_id = c.id AND a.madrasah_id = ?)) / 7)
+        END as weeks_missed
       FROM classes c
-      INNER JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?
-      WHERE c.madrasah_id = ? AND c.deleted_at IS NULL
-      GROUP BY c.id
-      HAVING days_since_attendance > 7
-      ORDER BY days_since_attendance DESC
-    `, [madrasahId, madrasahId]);
+      JOIN semesters sem ON sem.madrasah_id = c.madrasah_id
+        AND sem.is_active = 1
+        AND sem.start_date <= CURDATE()
+        AND sem.deleted_at IS NULL
+      WHERE c.madrasah_id = ?
+        AND c.deleted_at IS NULL
+        AND EXISTS (SELECT 1 FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL)
+      GROUP BY c.id, sem.start_date
+      HAVING weeks_missed >= 1
+      ORDER BY weeks_missed DESC
+    `, [madrasahId, madrasahId, madrasahId, madrasahId]);
 
     // 9. Exam performance summary
     let examQuery = `

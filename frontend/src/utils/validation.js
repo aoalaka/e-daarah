@@ -25,9 +25,9 @@ export const isValidStaffId = (staffId) => {
   return staffIdRegex.test(staffId);
 };
 
-// Student ID validation (6 digits)
+// Student ID validation (3-10 digits)
 export const isValidStudentId = (studentId) => {
-  const studentIdRegex = /^\d{6}$/;
+  const studentIdRegex = /^\d{3,10}$/;
   return studentIdRegex.test(studentId);
 };
 
@@ -318,7 +318,7 @@ export const validateStudentForm = (form, isEdit = false) => {
   if (!isEdit && !isRequired(form.student_id)) {
     errors.student_id = 'Student ID is required';
   } else if (!isEdit && !isValidStudentId(form.student_id)) {
-    errors.student_id = 'Student ID must be exactly 6 digits';
+    errors.student_id = 'Student ID must be 3-10 digits';
   }
 
   if (!isRequired(form.gender)) {
@@ -372,7 +372,7 @@ export const validateParentLoginForm = (form) => {
   if (!isRequired(form.studentId)) {
     errors.studentId = 'Student ID is required';
   } else if (!isValidStudentId(form.studentId)) {
-    errors.studentId = 'Student ID must be exactly 6 digits';
+    errors.studentId = 'Student ID must be 3-10 digits';
   }
 
   if (!isRequired(form.surname)) {

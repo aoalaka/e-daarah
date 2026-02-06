@@ -2013,15 +2013,15 @@ function AdminDashboard() {
                           />
                         </div>
                         <div className="form-group">
-                          <label className="form-label">Student ID (6 digits)</label>
+                          <label className="form-label">Student ID (3-10 digits)</label>
                           <input
                             type="text"
                             className="form-input"
                             value={newStudent.student_id}
                             onChange={(e) => setNewStudent({ ...newStudent, student_id: e.target.value })}
-                            pattern="\d{6}"
-                            maxLength="6"
-                            placeholder="123456"
+                            pattern="\d{3,10}"
+                            maxLength="10"
+                            placeholder="001"
                             required
                             disabled={!!editingStudent}
                           />

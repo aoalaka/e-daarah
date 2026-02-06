@@ -21,10 +21,10 @@ export const isValidStaffId = (staffId) => {
   return staffIdRegex.test(staffId);
 };
 
-// Student ID validation (6 digits)
+// Student ID validation (3-10 digits)
 export const isValidStudentId = (studentId) => {
   if (!studentId) return false;
-  const studentIdRegex = /^\d{6}$/;
+  const studentIdRegex = /^\d{3,10}$/;
   return studentIdRegex.test(studentId);
 };
 

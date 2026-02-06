@@ -72,12 +72,12 @@ function Landing() {
       {/* Pricing */}
       <section id="pricing" className="pricing">
         <h2 className="section-title">Simple Pricing</h2>
-        <p className="section-subtitle">14-day free trial. No credit card needed.</p>
+        <p className="section-subtitle">14-day free trial. No credit card needed.<br /><span style={{color:'#888',fontSize:'13px'}}>All prices in USD</span></p>
 
         <div className="pricing-cards">
           <div className="pricing-card">
             <h3>Standard</h3>
-            <div className="price">$12<span>/month</span></div>
+            <div className="price">$12<span>/month USD</span></div>
             <ul>
               <li>Up to 100 students</li>
               <li>Up to 20 teachers</li>
@@ -93,7 +93,7 @@ function Landing() {
 
           <div className="pricing-card featured">
             <h3>Plus</h3>
-            <div className="price">$29<span>/month</span></div>
+            <div className="price">$29<span>/month USD</span></div>
             <ul>
               <li>Up to 500 students</li>
               <li>Up to 50 teachers</li>

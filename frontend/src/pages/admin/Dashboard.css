@@ -777,6 +777,12 @@
   border-color: #0a0a0a;
 }
 
+.quick-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .quick-card h4 {
   font-size: 14px;
   font-weight: 500;

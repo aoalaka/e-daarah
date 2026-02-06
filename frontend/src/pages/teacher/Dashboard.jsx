@@ -70,6 +70,7 @@ function TeacherDashboard() {
   // Settings state
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
+  const [madrasahProfile, setMadrasahProfile] = useState(null);
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
@@ -86,10 +87,23 @@ function TeacherDashboard() {
     setMobileMenuOpen(false);
   };
 
+  // Helper to check if the account is in read-only mode (expired trial or inactive subscription)
+  const isReadOnly = () => {
+    if (!madrasahProfile) return false;
+    const status = madrasahProfile.subscription_status;
+    if (status === 'trialing') {
+      const trialEndsAt = madrasahProfile.trial_ends_at;
+      if (trialEndsAt && new Date(trialEndsAt) <= new Date()) return true;
+    }
+    if (status === 'canceled' || status === 'expired') return true;
+    return false;
+  };
+
   useEffect(() => {
     fetchSessions();
     fetchClasses();
     fetchActiveSessionSemester();
+    fetchMadrasahInfo();
   }, []);
 
   useEffect(() => {
@@ -224,6 +238,15 @@ function TeacherDashboard() {
       setActiveSemester(response.data.semester);
     } catch (error) {
       console.error('Failed to fetch active session/semester:', error);
+    }
+  };
+
+  const fetchMadrasahInfo = async () => {
+    try {
+      const response = await api.get('/teacher/madrasah-info');
+      setMadrasahProfile(response.data);
+    } catch (error) {
+      console.error('Failed to fetch madrasah info:', error);
     }
   };
 
@@ -426,6 +449,7 @@ function TeacherDashboard() {
   };
 
   const saveAttendance = async () => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Contact your administrator.'); return; }
     if (!selectedClass || !selectedSemester || students.length === 0) {
       toast.error('Please select a class and ensure there are students');
       return;
@@ -545,6 +569,7 @@ function TeacherDashboard() {
 
   const handleExamSubmit = async (e) => {
     e.preventDefault();
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Contact your administrator.'); return; }
     
     // Validate form fields
     if (!examForm.subject || examForm.subject.trim() === '') {
@@ -668,6 +693,7 @@ function TeacherDashboard() {
 
   const handleUpdateExam = async (e) => {
     e.preventDefault();
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Contact your administrator.'); return; }
     
     if (!editingExamRecord.is_absent && (editingExamRecord.score === '' || editingExamRecord.score === null)) {
       toast.error('Score is required when student is not absent');
@@ -698,6 +724,7 @@ function TeacherDashboard() {
   };
 
   const handleDeleteExam = async (id) => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Contact your administrator.'); return; }
     try {
       await api.delete(`/teacher/exam-performance/${id}`);
       toast.success('Exam record deleted successfully!');
@@ -727,6 +754,7 @@ function TeacherDashboard() {
 
   const handleUpdateExamBatch = async (e) => {
     e.preventDefault();
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Contact your administrator.'); return; }
     
     try {
       await api.put('/teacher/exam-performance/batch', {
@@ -748,6 +776,7 @@ function TeacherDashboard() {
   };
 
   const handleDeleteExamBatch = async () => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Contact your administrator.'); return; }
     try {
       await api.delete('/teacher/exam-performance/batch', {
         data: { record_ids: deleteExamBatch.record_ids }
@@ -952,6 +981,17 @@ function TeacherDashboard() {
 
         {/* Email Verification Banner */}
         <EmailVerificationBanner />
+
+        {/* Read-Only Warning Banner */}
+        {isReadOnly() && (
+          <div style={{
+            background: '#fef3cd', color: '#856404', padding: '12px 20px',
+            borderBottom: '1px solid #ffc107', textAlign: 'center', fontWeight: 500, fontSize: '14px'
+          }}>
+            ⚠️ Your {madrasahProfile?.subscription_status === 'trialing' ? 'school\'s trial has expired' : 'school\'s subscription is inactive'}. 
+            Your account is in read-only mode. Contact your administrator.
+          </div>
+        )}
 
         {/* Main Content */}
         <main className="main">
@@ -1289,7 +1329,7 @@ function TeacherDashboard() {
                       ))}
 
                       <div className="form-actions form-actions-sticky">
-                        <button onClick={saveAttendance} className="btn btn-primary" disabled={saving}>
+                        <button onClick={saveAttendance} className="btn btn-primary" disabled={saving || isReadOnly()}>
                           {saving ? 'Saving...' : 'Save Attendance'}
                         </button>
                       </div>
@@ -1444,7 +1484,7 @@ function TeacherDashboard() {
               <div className="page-header">
                 <h2 className="page-title">Exam Performance</h2>
                 {selectedClass && students.length > 0 && (
-                  <button onClick={openExamModal} className="btn btn-primary">
+                  <button onClick={openExamModal} className="btn btn-primary" disabled={isReadOnly()}>
                     + Record Exam
                   </button>
                 )}

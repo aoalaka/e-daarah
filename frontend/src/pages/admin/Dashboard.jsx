@@ -122,6 +122,20 @@ function AdminDashboard() {
     return false;
   };
 
+  // Helper to check if the account is in read-only mode (expired trial or inactive subscription)
+  const isReadOnly = () => {
+    if (!madrasahProfile) return false;
+    const status = madrasahProfile.subscription_status;
+    // Expired trial = read-only
+    if (status === 'trialing') {
+      const trialEndsAt = madrasahProfile.trial_ends_at;
+      if (trialEndsAt && new Date(trialEndsAt) <= new Date()) return true;
+    }
+    // Canceled or expired subscription = read-only
+    if (status === 'canceled' || status === 'expired') return true;
+    return false;
+  };
+
   const navItems = [
     { id: 'overview', label: 'Overview' },
     { id: 'sessions', label: 'Sessions' },
@@ -255,6 +269,7 @@ function AdminDashboard() {
 
   const handleCreateSession = async (e) => {
     e.preventDefault();
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     try {
       if (editingSession) {
         await api.put(`/admin/sessions/${editingSession.id}`, newSession);
@@ -282,6 +297,7 @@ function AdminDashboard() {
   };
 
   const handleDeleteSession = async (id) => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     if (!confirm('Are you sure you want to delete this session? This will also delete all associated semesters.')) return;
     try {
       await api.delete(`/admin/sessions/${id}`);
@@ -293,6 +309,7 @@ function AdminDashboard() {
 
   const handleCreateSemester = async (e) => {
     e.preventDefault();
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     try {
       if (editingSemester) {
         await api.put(`/admin/semesters/${editingSemester.id}`, newSemester);
@@ -325,6 +342,7 @@ function AdminDashboard() {
   };
 
   const handleDeleteSemester = async (id) => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     if (!confirm('Are you sure you want to delete this semester? This will also delete all associated attendance records.')) return;
     try {
       await api.delete(`/admin/semesters/${id}`);
@@ -336,6 +354,7 @@ function AdminDashboard() {
 
   const handleCreateClass = async (e) => {
     e.preventDefault();
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     try {
       if (editingClass) {
         await api.put(`/admin/classes/${editingClass.id}`, newClass);
@@ -377,6 +396,7 @@ function AdminDashboard() {
   };
 
   const handleDeleteClass = async (cls) => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     if (!confirm(`Are you sure you want to delete "${cls.name}"? Students in this class will be unassigned.`)) {
       return;
     }
@@ -400,6 +420,7 @@ function AdminDashboard() {
 
   const handleCreateTeacher = async (e) => {
     e.preventDefault();
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     try {
       if (editingTeacher) {
         await api.put(`/admin/teachers/${editingTeacher.id}`, newTeacher);
@@ -448,6 +469,7 @@ function AdminDashboard() {
   };
 
   const handleDeleteTeacher = async (id) => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     if (window.confirm('Are you sure you want to delete this teacher?')) {
       try {
         await api.delete(`/admin/teachers/${id}`);
@@ -460,6 +482,7 @@ function AdminDashboard() {
 
   const handleCreateStudent = async (e) => {
     e.preventDefault();
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     try {
       if (editingStudent) {
         await api.put(`/admin/students/${editingStudent.id}`, newStudent);
@@ -515,6 +538,7 @@ function AdminDashboard() {
   };
 
   const handleDeleteStudent = async (id) => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     if (window.confirm('Are you sure you want to delete this student?')) {
       try {
         await api.delete(`/admin/students/${id}`);
@@ -526,6 +550,7 @@ function AdminDashboard() {
   };
 
   const handleRegenerateAccessCode = async (student) => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     if (window.confirm(`Regenerate parent access code for ${student.first_name} ${student.last_name}? The old code will stop working.`)) {
       try {
         const response = await api.post(`/admin/students/${student.id}/regenerate-access-code`);
@@ -542,6 +567,7 @@ function AdminDashboard() {
 
   const handleBulkUpload = async (e) => {
     e.preventDefault();
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     if (!uploadFile) {
       toast.error('Please select a file');
       return;
@@ -617,6 +643,7 @@ function AdminDashboard() {
   };
 
   const handleAssignTeacher = async () => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     if (!selectedTeacherId) return;
     try {
       await api.post(`/admin/classes/${selectedClass.id}/teachers`, { teacher_id: selectedTeacherId });
@@ -629,6 +656,7 @@ function AdminDashboard() {
   };
 
   const handleRemoveTeacher = async (teacherId) => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     if (window.confirm('Remove this teacher from the class?')) {
       try {
         await api.delete(`/admin/classes/${selectedClass.id}/teachers/${teacherId}`);
@@ -663,6 +691,7 @@ function AdminDashboard() {
   };
 
   const updateStudentComment = async (studentId, comment) => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     try {
       await api.put(`/admin/students/${studentId}/comment`, { notes: comment });
       toast.success('Comment updated successfully');
@@ -1057,6 +1086,17 @@ function AdminDashboard() {
           pricingPlan={madrasahProfile?.pricing_plan}
         />
 
+        {/* Read-Only Warning Banner */}
+        {isReadOnly() && (
+          <div style={{
+            background: '#fef3cd', color: '#856404', padding: '12px 20px',
+            borderBottom: '1px solid #ffc107', textAlign: 'center', fontWeight: 500, fontSize: '14px'
+          }}>
+            ⚠️ Your {madrasahProfile?.subscription_status === 'trialing' ? 'trial has expired' : 'subscription is inactive'}. 
+            Your account is in read-only mode. Please subscribe or renew to make changes.
+          </div>
+        )}
+
         {/* Main Content */}
         <main className="main">
           {/* Overview Tab */}
@@ -1090,19 +1130,19 @@ function AdminDashboard() {
 
               <h3 className="section-title">Quick Actions</h3>
               <div className="quick-grid">
-                <div className="quick-card" onClick={() => { setActiveTab('sessions'); setShowSessionForm(true); }}>
+                <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('sessions'); setShowSessionForm(true); } }}>
                   <h4>New Session</h4>
                   <p>Create a new academic year</p>
                 </div>
-                <div className="quick-card" onClick={() => { setActiveTab('semesters'); setShowSemesterForm(true); }}>
+                <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('semesters'); setShowSemesterForm(true); } }}>
                   <h4>New Semester</h4>
                   <p>Create a new semester</p>
                 </div>
-                <div className="quick-card" onClick={() => { setActiveTab('classes'); setShowClassForm(true); }}>
+                <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('classes'); setShowClassForm(true); } }}>
                   <h4>New Class</h4>
                   <p>Add a new class group</p>
                 </div>
-                <div className="quick-card" onClick={() => { setActiveTab('students'); setShowStudentForm(true); }}>
+                <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('students'); setShowStudentForm(true); } }}>
                   <h4>New Student</h4>
                   <p>Enroll a new student</p>
                 </div>
@@ -1119,7 +1159,7 @@ function AdminDashboard() {
                   setEditingSession(null);
                   setNewSession({ name: '', start_date: '', end_date: '', is_active: false });
                   setShowSessionForm(!showSessionForm);
-                }} className="btn btn-primary">
+                }} className="btn btn-primary" disabled={isReadOnly()}>
                   + New Session
                 </button>
               </div>
@@ -1266,7 +1306,7 @@ function AdminDashboard() {
                   setEditingSemester(null);
                   setNewSemester({ session_id: '', name: '', start_date: '', end_date: '', is_active: false });
                   setShowSemesterForm(!showSemesterForm);
-                }} className="btn btn-primary">
+                }} className="btn btn-primary" disabled={isReadOnly()}>
                   + New Semester
                 </button>
               </div>
@@ -1428,7 +1468,7 @@ function AdminDashboard() {
             <>
               <div className="page-header">
                 <h2 className="page-title">Classes</h2>
-                <button onClick={() => setShowClassForm(!showClassForm)} className="btn btn-primary">
+                <button onClick={() => setShowClassForm(!showClassForm)} className="btn btn-primary" disabled={isReadOnly()}>
                   + New Class
                 </button>
               </div>
@@ -1666,7 +1706,7 @@ function AdminDashboard() {
                   setEditingTeacher(null);
                   setNewTeacher({ first_name: '', last_name: '', staff_id: '', email: '', phone: '' });
                   setShowTeacherForm(!showTeacherForm);
-                }} className="btn btn-primary">
+                }} className="btn btn-primary" disabled={isReadOnly()}>
                   + New Teacher
                 </button>
               </div>
@@ -1871,13 +1911,15 @@ function AdminDashboard() {
                       Export CSV
                     </button>
                   )}
-                  <button onClick={() => {
-                    setShowBulkUpload(!showBulkUpload);
-                    setShowStudentForm(false);
-                    setUploadResults(null);
-                  }} className="btn btn-secondary">
-                    Bulk Upload
-                  </button>
+                  {hasPlusAccess() && (
+                    <button onClick={() => {
+                      setShowBulkUpload(!showBulkUpload);
+                      setShowStudentForm(false);
+                      setUploadResults(null);
+                    }} className="btn btn-secondary">
+                      Bulk Upload
+                    </button>
+                  )}
                   <button onClick={() => {
                     setEditingStudent(null);
                     setNewStudent({
@@ -1886,7 +1928,7 @@ function AdminDashboard() {
                     });
                     setShowStudentForm(!showStudentForm);
                     setShowBulkUpload(false);
-                  }} className="btn btn-primary">
+                  }} className="btn btn-primary" disabled={isReadOnly()}>
                     + New Student
                   </button>
                 </div>
@@ -2233,9 +2275,11 @@ function AdminDashboard() {
                       sortable: false,
                       render: (row) => (
                         <div className="table-actions">
-                          <button onClick={() => handleRegenerateAccessCode(row)} className="btn btn-sm btn-secondary" title="Regenerate parent access code">
-                            🔑
-                          </button>
+                          {hasPlusAccess() && (
+                            <button onClick={() => handleRegenerateAccessCode(row)} className="btn btn-sm btn-secondary" title="Regenerate parent access code">
+                              🔑
+                            </button>
+                          )}
                           <button onClick={() => handleEditStudent(row)} className="btn btn-sm btn-secondary">
                             Edit
                           </button>
@@ -2274,30 +2318,34 @@ function AdminDashboard() {
                   >
                     Quick Insights
                   </button>
-                  <button
-                    onClick={() => setReportSubTab('attendance')}
-                    className={`report-tab-btn ${reportSubTab === 'attendance' ? 'active' : ''}`}
-                  >
-                    Attendance Reports
-                  </button>
-                  <button
-                    onClick={() => setReportSubTab('exams')}
-                    className={`report-tab-btn ${reportSubTab === 'exams' ? 'active' : ''}`}
-                  >
-                    Exam Records
-                  </button>
-                  <button
-                    onClick={() => setReportSubTab('student-reports')}
-                    className={`report-tab-btn ${reportSubTab === 'student-reports' ? 'active' : ''}`}
-                  >
-                    Student Rankings
-                  </button>
-                  <button
-                    onClick={() => setReportSubTab('individual')}
-                    className={`report-tab-btn ${reportSubTab === 'individual' ? 'active' : ''}`}
-                  >
-                    Individual Student
-                  </button>
+                  {hasPlusAccess() && (
+                    <>
+                      <button
+                        onClick={() => setReportSubTab('attendance')}
+                        className={`report-tab-btn ${reportSubTab === 'attendance' ? 'active' : ''}`}
+                      >
+                        Attendance Reports
+                      </button>
+                      <button
+                        onClick={() => setReportSubTab('exams')}
+                        className={`report-tab-btn ${reportSubTab === 'exams' ? 'active' : ''}`}
+                      >
+                        Exam Records
+                      </button>
+                      <button
+                        onClick={() => setReportSubTab('student-reports')}
+                        className={`report-tab-btn ${reportSubTab === 'student-reports' ? 'active' : ''}`}
+                      >
+                        Student Rankings
+                      </button>
+                      <button
+                        onClick={() => setReportSubTab('individual')}
+                        className={`report-tab-btn ${reportSubTab === 'individual' ? 'active' : ''}`}
+                      >
+                        Individual Student
+                      </button>
+                    </>
+                  )}
                 </nav>
               </div>
 

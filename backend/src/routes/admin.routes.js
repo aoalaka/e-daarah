@@ -36,7 +36,7 @@ router.get('/sessions', async (req, res) => {
 });
 
 // Create session (scoped to madrasah)
-router.post('/sessions', async (req, res) => {
+router.post('/sessions', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { name, start_date, end_date, is_active } = req.body;
@@ -57,7 +57,7 @@ router.post('/sessions', async (req, res) => {
 });
 
 // Update session (scoped to madrasah)
-router.put('/sessions/:id', async (req, res) => {
+router.put('/sessions/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -88,7 +88,7 @@ router.put('/sessions/:id', async (req, res) => {
 });
 
 // Delete session (soft delete, scoped to madrasah)
-router.delete('/sessions/:id', async (req, res) => {
+router.delete('/sessions/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -121,7 +121,7 @@ router.get('/semesters', async (req, res) => {
 });
 
 // Create semester (scoped to madrasah via session)
-router.post('/semesters', async (req, res) => {
+router.post('/semesters', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { session_id, name, start_date, end_date, is_active } = req.body;
@@ -199,7 +199,7 @@ router.post('/semesters', async (req, res) => {
 });
 
 // Update semester (scoped to madrasah via session)
-router.put('/semesters/:id', async (req, res) => {
+router.put('/semesters/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -277,7 +277,7 @@ router.put('/semesters/:id', async (req, res) => {
 });
 
 // Delete semester (scoped to madrasah via session)
-router.delete('/semesters/:id', async (req, res) => {
+router.delete('/semesters/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -316,7 +316,7 @@ router.post('/classes', requireActiveSubscription, enforceClassLimit, async (req
 });
 
 // Update class (scoped to madrasah)
-router.put('/classes/:id', async (req, res) => {
+router.put('/classes/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -343,7 +343,7 @@ router.put('/classes/:id', async (req, res) => {
 });
 
 // Delete class (soft delete, scoped to madrasah)
-router.delete('/classes/:id', async (req, res) => {
+router.delete('/classes/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -399,7 +399,7 @@ router.get('/classes/:classId/teachers', async (req, res) => {
 });
 
 // Assign teacher to class (scoped to madrasah)
-router.post('/classes/:classId/teachers', async (req, res) => {
+router.post('/classes/:classId/teachers', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
@@ -444,7 +444,7 @@ router.post('/classes/:classId/teachers', async (req, res) => {
 });
 
 // Remove teacher from class (scoped to madrasah)
-router.delete('/classes/:classId/teachers/:teacherId', async (req, res) => {
+router.delete('/classes/:classId/teachers/:teacherId', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId, teacherId } = req.params;
@@ -516,7 +516,7 @@ router.post('/teachers', requireActiveSubscription, enforceTeacherLimit, async (
 });
 
 // Update teacher (scoped to madrasah)
-router.put('/teachers/:id', async (req, res) => {
+router.put('/teachers/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -554,7 +554,7 @@ router.put('/teachers/:id', async (req, res) => {
 });
 
 // Delete teacher (soft delete, scoped to madrasah)
-router.delete('/teachers/:id', async (req, res) => {
+router.delete('/teachers/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -639,7 +639,7 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
 });
 
 // Update student (scoped to madrasah)
-router.put('/students/:id', async (req, res) => {
+router.put('/students/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -695,7 +695,7 @@ router.put('/students/:id', async (req, res) => {
 });
 
 // Delete student (soft delete, scoped to madrasah)
-router.delete('/students/:id', async (req, res) => {
+router.delete('/students/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -709,8 +709,8 @@ router.delete('/students/:id', async (req, res) => {
   }
 });
 
-// Regenerate parent access code for a student (scoped to madrasah)
-router.post('/students/:id/regenerate-access-code', async (req, res) => {
+// Regenerate parent access code for a student (scoped to madrasah, Plus only)
+router.post('/students/:id/regenerate-access-code', requireActiveSubscription, requirePlusPlan('Parent access codes'), async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -1766,7 +1766,7 @@ router.get('/students/:id/report', async (req, res) => {
 });
 
 // Update student overall comment (scoped to madrasah)
-router.put('/students/:id/comment', async (req, res) => {
+router.put('/students/:id/comment', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;

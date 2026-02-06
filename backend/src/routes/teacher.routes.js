@@ -1,6 +1,7 @@
 import express from 'express';
 import pool from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
+import { requireActiveSubscription } from '../middleware/plan-limits.middleware.js';
 
 const router = express.Router();
 
@@ -148,7 +149,7 @@ router.get('/classes/:classId/attendance/:date', async (req, res) => {
 });
 
 // Record or update attendance (scoped to madrasah)
-router.post('/classes/:classId/attendance', async (req, res) => {
+router.post('/classes/:classId/attendance', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
@@ -215,7 +216,7 @@ router.post('/classes/:classId/attendance', async (req, res) => {
 });
 
 // Bulk record attendance (scoped to madrasah)
-router.post('/classes/:classId/attendance/bulk', async (req, res) => {
+router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
@@ -376,7 +377,7 @@ router.get('/classes/:classId/attendance-history', async (req, res) => {
 });
 
 // Add student to class (scoped to madrasah)
-router.post('/classes/:classId/students', async (req, res) => {
+router.post('/classes/:classId/students', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
@@ -459,7 +460,7 @@ router.get('/classes/:classId/exam-performance', async (req, res) => {
 });
 
 // Record bulk exam performance (scoped to madrasah)
-router.post('/classes/:classId/exam-performance/bulk', async (req, res) => {
+router.post('/classes/:classId/exam-performance/bulk', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
@@ -563,7 +564,7 @@ router.post('/classes/:classId/exam-performance/bulk', async (req, res) => {
 });
 
 // Update exam batch (multiple records) - MUST come before /:id route
-router.put('/exam-performance/batch', async (req, res) => {
+router.put('/exam-performance/batch', requireActiveSubscription, async (req, res) => {
   console.log('==================== BATCH UPDATE START ====================');
   console.error('==================== BATCH UPDATE START ====================');
   
@@ -678,7 +679,7 @@ router.put('/exam-performance/batch', async (req, res) => {
 });
 
 // Delete exam batch (multiple records) - MUST come before /:id route
-router.delete('/exam-performance/batch', async (req, res) => {
+router.delete('/exam-performance/batch', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { record_ids } = req.body;
@@ -711,7 +712,7 @@ router.delete('/exam-performance/batch', async (req, res) => {
 });
 
 // Update individual exam performance record (scoped to madrasah)
-router.put('/exam-performance/:id', async (req, res) => {
+router.put('/exam-performance/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -768,7 +769,7 @@ router.put('/exam-performance/:id', async (req, res) => {
 });
 
 // Delete exam performance record (scoped to madrasah)
-router.delete('/exam-performance/:id', async (req, res) => {
+router.delete('/exam-performance/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -893,6 +894,27 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
   } catch (error) {
     console.error('Get student reports error:', error);
     res.status(500).json({ error: 'Failed to fetch student reports' });
+  }
+});
+
+// Get madrasah plan info for teacher dashboard (scoped to madrasah)
+router.get('/madrasah-info', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [madrasahs] = await pool.query(
+      `SELECT pricing_plan, subscription_status, trial_ends_at
+       FROM madrasahs WHERE id = ?`,
+      [madrasahId]
+    );
+
+    if (madrasahs.length === 0) {
+      return res.status(404).json({ error: 'Madrasah not found' });
+    }
+
+    res.json(madrasahs[0]);
+  } catch (error) {
+    console.error('Failed to fetch madrasah info:', error);
+    res.status(500).json({ error: 'Failed to fetch madrasah info' });
   }
 });
 

@@ -162,10 +162,11 @@ router.post('/semesters', async (req, res) => {
        )`,
       [session_id, start_date, start_date, end_date, end_date, start_date, end_date]
     );
-    
+
     if (overlapping.length > 0) {
-      return res.status(400).json({ 
-        error: `Semester dates overlap with existing semester: ${overlapping[0].name}` 
+      console.error('Overlapping semester found:', overlapping[0]);
+      return res.status(400).json({
+        error: `Semester dates overlap with existing semester: ${overlapping[0].name}`
       });
     }
 

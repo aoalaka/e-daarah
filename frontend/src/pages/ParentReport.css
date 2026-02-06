@@ -384,6 +384,13 @@
   line-height: 1.6;
 }
 
+/* iOS Safari: 16px font-size prevents auto-zoom on focus */
+@media (max-width: 768px) {
+  .filter-card select {
+    font-size: 16px;
+  }
+}
+
 /* Mobile */
 @media (max-width: 640px) {
   .parent-header {
@@ -419,5 +426,35 @@
 
   .stat-item .value {
     font-size: 22px;
+  }
+
+  .student-card {
+    padding: var(--md);
+  }
+
+  .section-header {
+    padding: var(--sm) var(--md);
+    font-size: 13px;
+  }
+
+  .section-body {
+    padding: var(--md);
+  }
+
+  .exam-score {
+    font-size: 18px;
+  }
+
+  .subject-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .exam-row {
+    padding: var(--sm) var(--md);
+  }
+
+  .comment-box {
+    font-size: 13px;
   }
 }

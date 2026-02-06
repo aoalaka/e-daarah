@@ -530,6 +530,13 @@
   }
 }
 
+/* iOS Safari: 16px font-size prevents auto-zoom on focus */
+@media (max-width: 768px) {
+  .finder-input {
+    font-size: 16px;
+  }
+}
+
 /* Small mobile screens */
 @media (max-width: 480px) {
   .landing-header {
@@ -551,5 +558,54 @@
   .nav-link {
     padding: 8px 10px;
     font-size: 13px;
+  }
+
+  .hero {
+    padding: 32px 16px 28px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+  }
+
+  .hero-subtitle {
+    font-size: 15px;
+  }
+
+  .hero-arabic {
+    font-size: 16px;
+  }
+
+  .finder {
+    padding: 24px 16px;
+  }
+
+  .features {
+    padding: 32px 16px;
+  }
+
+  .pricing {
+    padding: 32px 16px;
+  }
+
+  .pricing-card {
+    padding: 24px 16px;
+  }
+
+  .price {
+    font-size: 28px;
+  }
+
+  .regional-discount {
+    padding: 16px;
+  }
+
+  .footer {
+    padding: 32px 16px 20px;
+  }
+
+  .footer-links {
+    gap: 16px;
+    flex-wrap: wrap;
   }
 }

@@ -295,10 +295,24 @@
   text-decoration: underline;
 }
 
-/* Responsive - Tablet */
+/* iOS Safari: 16px font-size prevents auto-zoom on focus */
 @media (max-width: 768px) {
   .register-container {
     max-width: 540px;
+  }
+
+  .register-field input,
+  .register-field select {
+    font-size: 16px;
+  }
+
+  .url-input-group input {
+    font-size: 16px;
+  }
+
+  .phone-input-group select,
+  .phone-input-group input {
+    font-size: 16px;
   }
 }
 

@@ -179,6 +179,17 @@
   font-size: 13px;
 }
 
+/* iOS Safari: 16px font-size prevents auto-zoom on focus */
+@media (max-width: 768px) {
+  .table-search-input {
+    font-size: 16px;
+  }
+
+  .page-size-select {
+    font-size: 16px;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .sortable-table .sort-icon {

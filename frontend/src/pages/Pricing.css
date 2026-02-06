@@ -141,6 +141,7 @@
   align-items: center;
   gap: 0.5rem;
   transition: all 0.2s;
+  min-height: 44px;
 }
 
 .toggle-btn.active {
@@ -394,4 +395,46 @@
   border-top: 1px solid var(--light);
   color: var(--gray);
   font-size: 0.85rem;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .pricing-main {
+    padding: 2rem 1rem;
+  }
+
+  .pricing-title {
+    font-size: 1.5rem;
+  }
+
+  .billing-toggle {
+    width: 100%;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .save-badge {
+    display: none;
+  }
+
+  .plan-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .plan-btn {
+    min-height: 48px;
+  }
+
+  .regional-discount {
+    padding: 1rem;
+  }
+
+  .pricing-faq h2 {
+    font-size: 1.25rem;
+  }
 }

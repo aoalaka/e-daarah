@@ -489,6 +489,16 @@
   margin: 0;
 }
 
+/* iOS Safari: 16px font-size prevents auto-zoom on focus */
+@media (max-width: 768px) {
+  .login-form input,
+  .login-form select,
+  .form-group input,
+  .form-group select {
+    font-size: 16px;
+  }
+}
+
 /* Mobile */
 @media (max-width: 480px) {
   .login-card,
@@ -512,8 +522,26 @@
     font-size: 20px;
   }
 
+  .login-header h1 {
+    font-size: 20px;
+  }
+
+  .submit-btn,
+  .login-btn {
+    min-height: 48px;
+  }
+
+  .role-toggle button {
+    min-height: 44px;
+  }
+
   .demo-info .credentials {
     flex-direction: column;
     gap: var(--sm);
+  }
+
+  .demo-hint code {
+    font-size: 0.85em;
+    word-break: break-all;
   }
 }

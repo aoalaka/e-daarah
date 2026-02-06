@@ -3741,11 +3741,11 @@ function AdminDashboard() {
                         <span>Attendance</span>
                       </div>
                       <div className="performance-card-body">
-                        {individualRankings?.rankings?.attendance?.rank || studentReport.attendance.totalDays > 0 ? (
+                        {individualRankings?.rankings?.attendance?.rank ? (
                           <>
                             <div className="performance-main-stat">
                               <div className="performance-big-number" style={{ color: parseFloat(studentReport.attendance.attendanceRate) >= 90 ? '#10b981' : parseFloat(studentReport.attendance.attendanceRate) >= 80 ? '#22c55e' : '#f59e0b' }}>
-                                {studentReport.attendance.attendanceRate != null ? `${studentReport.attendance.attendanceRate}%` : 'No attendance yet'}
+                                {studentReport.attendance.attendanceRate}%
                               </div>
                               <div className="performance-label">Attendance Rate</div>
                             </div>

@@ -625,7 +625,9 @@ function AdminDashboard() {
         params.semesterId = reportFilterSemester;
       }
       
+      console.log('fetchStudentReport params:', params, 'filters:', { reportFilterSession, reportFilterSemester });
       const response = await api.get(`/admin/students/${studentId}/report`, { params });
+      console.log('fetchStudentReport response:', response.data);
       setStudentReport(response.data);
       setSelectedStudentForReport(students.find(s => s.id === studentId));
       // Fetch madrasah-wide rankings for the student
@@ -844,7 +846,9 @@ function AdminDashboard() {
         params.semesterId = reportFilterSemester;
       }
       
+      console.log('fetchIndividualRankings params:', params, 'filters:', { reportFilterSession, reportFilterSemester });
       const response = await api.get(`/admin/students/${studentId}/all-rankings`, { params });
+      console.log('fetchIndividualRankings response:', response.data);
       setIndividualRankings(response.data);
     } catch (error) {
       console.error('Failed to fetch individual rankings:', error);
@@ -2205,9 +2209,9 @@ function AdminDashboard() {
                       <label className="form-label">Filter by Semester</label>
                       <select
                         className="form-select"
-                        value={reportSubTab === 'student-reports' ? reportFilterSemester : reportSemester}
+                        value={reportSubTab === 'student-reports' || reportSubTab === 'individual' ? reportFilterSemester : reportSemester}
                         onChange={(e) => {
-                          if (reportSubTab === 'student-reports') {
+                          if (reportSubTab === 'student-reports' || reportSubTab === 'individual') {
                             setReportFilterSemester(e.target.value);
                           } else {
                             setReportSemester(e.target.value);

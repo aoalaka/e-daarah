@@ -649,7 +649,7 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       `SELECT sem.id, sem.name, sem.session_id, sem.is_active, ses.name as session_name
        FROM semesters sem
        JOIN sessions ses ON sem.session_id = ses.id
-       WHERE sem.madrasah_id = ?
+       WHERE ses.madrasah_id = ?
        ORDER BY ses.start_date DESC, sem.start_date ASC`,
       [madrasahId]
     );

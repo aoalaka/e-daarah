@@ -141,11 +141,11 @@ function Landing() {
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-brand">
-            <div className="footer-logo">
-              <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="footer-logo-img" />
-              <span className="footer-logo-text">e-daarah</span>
+            <div className="register-logo" style={{ marginBottom: 0 }}>
+              <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="register-logo-img" />
+              <span className="register-logo-text">e-daarah</span>
             </div>
-            <p>نظام إدارة المدارس الدينية</p>
+            <p style={{ marginTop: 4 }}>{'نظام إدارة المدارس الدينية'}</p>
           </div>
           <div className="footer-links">
             <Link to="/signin">Sign In</Link>

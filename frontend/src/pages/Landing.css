@@ -63,23 +63,7 @@
   width: auto;
 }
 
-.footer-logo-text {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
-  text-decoration: none;
-}
-
-.header-nav {
-  display: flex;
-  gap: 8px;
-}
-
-.nav-link {
-  padding: 10px 14px;
-  font-size: 14px;
-  color: #666;
-  text-decoration: none;
+/* Footer logo now uses register-logo classes for perfect alignment */
   border-radius: 6px;
   white-space: nowrap;
 }

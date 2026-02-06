@@ -1,15 +1,15 @@
-/* Parent Report - Minimal Design */
+/* Parent Report - Report Card Design */
 
 .parent-portal {
   min-height: 100vh;
-  background: var(--lighter);
+  background: #f5f5f5;
 }
 
 /* Header */
 .parent-header {
-  background: var(--white);
-  border-bottom: var(--border);
-  padding: var(--md) var(--lg);
+  background: #fff;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -21,25 +21,25 @@
 .parent-header h1 {
   font-size: 18px;
   font-weight: 600;
-  color: var(--black);
+  color: #0a0a0a;
   margin: 0;
 }
 
 .parent-header .logout-btn {
-  padding: var(--sm) var(--md);
+  padding: 8px 16px;
   background: none;
-  border: var(--border);
-  border-radius: var(--radius);
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--gray);
+  color: #737373;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .parent-header .logout-btn:hover {
-  background: var(--lighter);
-  color: var(--dark);
+  background: #fafafa;
+  color: #0a0a0a;
 }
 
 /* Loading */
@@ -48,245 +48,312 @@
   align-items: center;
   justify-content: center;
   min-height: 60vh;
-  color: var(--muted);
+  color: #a3a3a3;
   font-size: 14px;
 }
 
 /* Main Content */
 .parent-content {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: var(--lg);
+  padding: 24px 20px;
 }
 
-/* Student Card */
-.student-card {
-  background: var(--white);
-  border: var(--border);
-  border-radius: var(--radius);
-  padding: var(--lg);
-  margin-bottom: var(--lg);
+/* Report Card Container */
+.report-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.student-name {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--black);
-  margin: 0 0 var(--sm) 0;
-}
-
-.student-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--md);
-  margin-top: var(--md);
-}
-
-.student-meta-item {
-  font-size: 13px;
-}
-
-.student-meta-item span:first-child {
-  color: var(--muted);
-  margin-right: var(--xs);
-}
-
-.student-meta-item span:last-child {
-  font-weight: 500;
-  color: var(--dark);
-}
-
-.position-badge {
-  background: var(--primary);
-  color: white;
-  padding: 2px 8px;
-  border-radius: var(--radius);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* Semester Filter */
-.filter-card {
-  background: var(--white);
-  border: var(--border);
-  border-radius: var(--radius);
-  padding: var(--md) var(--lg);
-  margin-bottom: var(--lg);
-  display: flex;
-  align-items: center;
-  gap: var(--md);
-}
-
-.filter-card label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--gray);
-  white-space: nowrap;
-}
-
-.filter-card select {
-  flex: 1;
-  padding: var(--sm) var(--md);
-  border: var(--border);
-  border-radius: var(--radius);
-  font-size: 14px;
-  color: var(--dark);
-  background: var(--white);
-  max-width: 300px;
-}
-
-.filter-card select:focus {
-  outline: none;
-  border-color: var(--dark);
-}
-
-/* Stats Grid */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--md);
-  margin-bottom: var(--lg);
-}
-
-@media (min-width: 640px) {
-  .stats-row {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.stat-item {
-  background: var(--white);
-  border: var(--border);
-  border-radius: var(--radius);
-  padding: var(--md);
+/* Print Header (hidden on screen) */
+.print-header {
+  display: none;
   text-align: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #0a0a0a;
 }
 
-.stat-item .value {
+.print-logo {
+  height: 48px;
+  margin-bottom: 8px;
+}
+
+.madrasah-name {
   font-size: 28px;
-  font-weight: 600;
-  color: var(--accent);
-  line-height: 1;
+  font-weight: 700;
+  color: #0a0a0a;
+  margin: 0 0 4px 0;
 }
 
-.stat-item .value.success { color: #10b981; }
-.stat-item .value.danger { color: #ef4444; }
-
-.stat-item .label {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: var(--sm);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-/* Section */
-.report-section {
-  background: var(--white);
-  border: var(--border);
-  border-radius: var(--radius);
-  margin-bottom: var(--lg);
-}
-
-.section-header {
-  padding: var(--md) var(--lg);
-  border-bottom: var(--border);
+.report-subtitle {
   font-size: 14px;
-  font-weight: 600;
-  color: var(--dark);
-}
-
-.section-body {
-  padding: var(--lg);
-}
-
-/* Grade Pills */
-.grade-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sm);
-}
-
-.grade-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sm);
-  padding: var(--sm) var(--md);
-  background: var(--lighter);
-  border-radius: 20px;
-  font-size: 13px;
-}
-
-.grade-pill .grade-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.grade-pill .grade-dot.excellent { background: #10b981; }
-.grade-pill .grade-dot.good { background: #3b82f6; }
-.grade-pill .grade-dot.fair { background: #f59e0b; }
-.grade-pill .grade-dot.poor { background: #ef4444; }
-
-.grade-pill .grade-name {
+  color: #737373;
   font-weight: 500;
-  color: var(--dark);
 }
 
-.grade-pill .grade-count {
-  color: var(--muted);
+/* Report Card Header */
+.report-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e5e5e5;
 }
 
-.no-data {
-  color: var(--muted);
+.report-card-title h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0a0a0a;
+  margin: 0 0 6px 0;
+}
+
+.report-period {
+  color: #737373;
+  font-size: 14px;
+}
+
+.print-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  background: #fff;
   font-size: 13px;
+  font-weight: 500;
+  color: #525252;
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
-/* Exam List */
-.exam-by-subject {
+.print-btn:hover {
+  background: #fafafa;
+  border-color: #d4d4d4;
+}
+
+/* Filters */
+.report-filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.filter-group {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--lg);
+  gap: 6px;
 }
 
-.subject-exam-section {
-  border: var(--border);
-  border-radius: var(--radius);
+.filter-group label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #737373;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-group select {
+  padding: 10px 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #0a0a0a;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.filter-group select:focus {
+  outline: none;
+  border-color: #0a0a0a;
+}
+
+/* Student Info Section */
+.student-info-section {
+  background: #fafafa;
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.student-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #737373;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a0a0a;
+}
+
+/* Performance Grid - 4 Cards */
+.performance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.perf-card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
   overflow: hidden;
-  background: var(--white);
+}
+
+.perf-card-header {
+  background: #fafafa;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #0a0a0a;
+}
+
+.perf-card-body {
+  padding: 20px 16px;
+}
+
+.perf-main {
+  text-align: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.perf-number {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.perf-label {
+  font-size: 12px;
+  color: #737373;
+  font-weight: 500;
+}
+
+.perf-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.perf-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.perf-row span {
+  color: #737373;
+}
+
+.perf-row strong {
+  color: #0a0a0a;
+}
+
+.perf-rank {
+  background: #fafafa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #525252;
+  border: 1px solid #e5e5e5;
+}
+
+.perf-empty {
+  text-align: center;
+  padding: 24px;
+  color: #a3a3a3;
+  font-size: 13px;
+}
+
+/* Exam Detail Section */
+.exam-detail-section {
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0a0a0a;
+  margin: 0 0 16px 0;
+}
+
+.exam-subjects {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.subject-block {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .subject-header {
-  background: var(--lighter);
-  padding: var(--md);
+  background: #fafafa;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--sm);
-  border-bottom: var(--border);
+  gap: 8px;
+  border-bottom: 1px solid #e5e5e5;
 }
 
 .subject-name {
   font-size: 15px;
   font-weight: 600;
-  color: var(--dark);
+  color: #0a0a0a;
   margin: 0;
 }
 
 .subject-stats {
   display: flex;
-  gap: var(--sm);
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .stat-badge {
   font-size: 12px;
-  padding: 4px 8px;
-  background: var(--white);
-  border: var(--border);
+  padding: 3px 8px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
   border-radius: 4px;
-  color: var(--gray);
+  color: #737373;
 }
 
 .stat-badge.success {
@@ -296,105 +363,128 @@
 }
 
 .stat-badge strong {
-  color: var(--dark);
   font-weight: 600;
+  color: inherit;
 }
 
-.exam-list {
-  display: flex;
-  flex-direction: column;
+/* Exam Table */
+.exam-table {
+  width: 100%;
 }
 
-.exam-row {
-  display: flex;
-  justify-content: space-between;
+.exam-table-header {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 1fr;
+  padding: 10px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #e5e5e5;
+  font-size: 11px;
+  font-weight: 600;
+  color: #737373;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.exam-table-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 1fr;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f5f5f5;
   align-items: center;
-  padding: var(--md);
-  border-bottom: 1px solid var(--light);
+  font-size: 13px;
 }
 
-.exam-row:last-child {
+.exam-table-row:last-child {
   border-bottom: none;
 }
 
-.exam-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.exam-type-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 2px 6px;
-  background: var(--lighter);
-  border-radius: 3px;
-  color: var(--gray);
-  text-transform: uppercase;
-}
-
 .exam-date {
-  font-size: 13px;
-  color: var(--gray);
+  color: #525252;
 }
 
-.exam-notes {
+.exam-type {
+  color: #737373;
   font-size: 12px;
-  color: var(--muted);
-  font-style: italic;
-  margin-top: 2px;
 }
 
-.exam-score-section {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
+.exam-score-cell {
   font-weight: 600;
+  color: #0a0a0a;
 }
 
-.exam-score {
-  font-size: 20px;
-  color: var(--accent);
+.score-max {
+  font-weight: 400;
+  color: #a3a3a3;
 }
 
-.exam-max-score {
-  font-size: 14px;
-  color: var(--muted);
-}
-
-.exam-absent {
+.exam-pct {
+  font-weight: 600;
   font-size: 13px;
+}
+
+.exam-absent-tag {
+  font-size: 12px;
   font-weight: 500;
-  color: var(--error);
-  padding: 4px 8px;
-  background: #fee2e2;
+  color: #ef4444;
+  background: #fef2f2;
+  padding: 2px 8px;
   border-radius: 4px;
 }
 
-/* Comments */
-.comment-box {
-  background: #fefce8;
-  border-left: 3px solid #eab308;
-  padding: var(--md);
-  border-radius: 0 var(--radius) var(--radius) 0;
+/* School Overall Comment */
+.overall-comment {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.overall-comment h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0a0a0a;
+  margin: 0 0 12px 0;
+}
+
+.comment-display {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  padding: 12px;
   font-size: 14px;
-  color: #713f12;
   line-height: 1.6;
+  color: #404040;
+  min-height: 60px;
+  white-space: pre-wrap;
+}
+
+/* Report Footer */
+.report-footer {
+  padding-top: 20px;
+  border-top: 2px solid #e5e5e5;
+}
+
+.powered-by {
+  text-align: center;
+  padding: 16px 0 0;
+}
+
+.footer-logo {
+  height: 36px;
+  width: auto;
 }
 
 /* iOS Safari: 16px font-size prevents auto-zoom on focus */
 @media (max-width: 768px) {
-  .filter-card select {
+  .filter-group select {
     font-size: 16px;
   }
 }
 
-/* Mobile */
+/* Mobile Responsive */
 @media (max-width: 640px) {
   .parent-header {
-    padding: var(--sm) var(--md);
+    padding: 10px 16px;
   }
 
   .parent-header h1 {
@@ -402,47 +492,59 @@
   }
 
   .parent-content {
-    padding: var(--md);
+    padding: 16px 12px;
   }
 
-  .student-name {
-    font-size: 18px;
+  .report-card {
+    padding: 20px 16px;
+    border-radius: 6px;
   }
 
-  .student-meta {
+  .report-card-header {
     flex-direction: column;
-    gap: var(--xs);
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
   }
 
-  .filter-card {
+  .report-card-title h2 {
+    font-size: 20px;
+  }
+
+  .print-btn {
+    align-self: flex-start;
+  }
+
+  .report-filters {
     flex-direction: column;
-    align-items: stretch;
-    gap: var(--sm);
+    gap: 12px;
   }
 
-  .filter-card select {
-    max-width: none;
+  .student-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 
-  .stat-item .value {
-    font-size: 22px;
+  .student-info-section {
+    padding: 16px;
   }
 
-  .student-card {
-    padding: var(--md);
+  .performance-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
-  .section-header {
-    padding: var(--sm) var(--md);
+  .perf-number {
+    font-size: 32px;
+  }
+
+  .perf-card-header {
+    padding: 12px 14px;
     font-size: 13px;
   }
 
-  .section-body {
-    padding: var(--md);
-  }
-
-  .exam-score {
-    font-size: 18px;
+  .perf-card-body {
+    padding: 16px 14px;
   }
 
   .subject-header {
@@ -450,11 +552,187 @@
     align-items: flex-start;
   }
 
-  .exam-row {
-    padding: var(--sm) var(--md);
+  .exam-table-header,
+  .exam-table-row {
+    grid-template-columns: 1.5fr 1fr 1fr 0.8fr;
+    padding: 8px 12px;
+    font-size: 12px;
   }
 
-  .comment-box {
-    font-size: 13px;
+  .exam-table-header {
+    font-size: 10px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  .overall-comment {
+    padding: 16px;
+  }
+
+  .overall-comment h3 {
+    font-size: 16px;
+  }
+}
+
+/* Print Styles */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .parent-portal {
+    background: #fff;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-header {
+    display: block !important;
+  }
+
+  .parent-content {
+    padding: 0;
+    max-width: none;
+  }
+
+  .report-card {
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .report-card-header {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+
+  .no-print-border {
+    border-bottom: none;
+  }
+
+  .student-info-section {
+    margin-bottom: 12px;
+    padding: 12px;
+  }
+
+  .student-info-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px;
+  }
+
+  .info-label {
+    font-size: 9px;
+  }
+
+  .info-value {
+    font-size: 12px;
+  }
+
+  .performance-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .perf-card {
+    page-break-inside: avoid;
+  }
+
+  .perf-number {
+    font-size: 24px;
+  }
+
+  .perf-label {
+    font-size: 9px;
+  }
+
+  .perf-card-header {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+
+  .perf-card-header svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .perf-card-body {
+    padding: 12px 10px;
+  }
+
+  .perf-row {
+    font-size: 10px;
+  }
+
+  .perf-rank {
+    font-size: 9px;
+    padding: 4px 8px;
+  }
+
+  .exam-detail-section {
+    page-break-before: auto;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .subject-block {
+    page-break-inside: avoid;
+    margin-bottom: 6px;
+  }
+
+  .subject-header {
+    padding: 6px 10px;
+  }
+
+  .subject-name {
+    font-size: 12px;
+  }
+
+  .exam-table-header,
+  .exam-table-row {
+    padding: 4px 10px;
+    font-size: 10px;
+  }
+
+  .exam-table-header {
+    font-size: 8px;
+  }
+
+  .overall-comment {
+    page-break-inside: avoid;
+    margin-bottom: 12px;
+    padding: 12px;
+  }
+
+  .overall-comment h3 {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .comment-display {
+    font-size: 10px;
+    padding: 8px;
+    min-height: auto;
+  }
+
+  .report-footer {
+    padding-top: 8px;
+  }
+
+  .footer-logo {
+    height: 24px;
   }
 }

@@ -625,6 +625,7 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
 
     const studentId = req.user.studentId;
     const madrasahId = req.user.madrasahId;
+    const { semester_id, session_id } = req.query;
 
     // Get student details WITH madrasah_id verification (tenant isolation)
     const [students] = await pool.query(
@@ -638,17 +639,62 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
 
     const student = students[0];
 
-    // Get attendance records (tenant isolated)
-    const [attendance] = await pool.query(
-      'SELECT * FROM attendance WHERE student_id = ? AND madrasah_id = ? ORDER BY date DESC',
-      [studentId, madrasahId]
+    // Get sessions and semesters for filters (tenant isolated)
+    const [sessions] = await pool.query(
+      'SELECT id, name, start_date, end_date, is_active FROM sessions WHERE madrasah_id = ? ORDER BY start_date DESC',
+      [madrasahId]
     );
 
-    // Get exam performance (tenant isolated)
-    const [exams] = await pool.query(
-      'SELECT * FROM exam_performance WHERE student_id = ? AND madrasah_id = ? ORDER BY exam_date DESC',
-      [studentId, madrasahId]
+    const [semesters] = await pool.query(
+      `SELECT sem.id, sem.name, sem.session_id, sem.is_active, ses.name as session_name
+       FROM semesters sem
+       JOIN sessions ses ON sem.session_id = ses.id
+       WHERE sem.madrasah_id = ?
+       ORDER BY ses.start_date DESC, sem.start_date ASC`,
+      [madrasahId]
     );
+
+    // Get madrasah profile for report header
+    const [madrasahProfile] = await pool.query(
+      'SELECT name, logo_url FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+
+    // Build attendance query with optional session/semester filter
+    let attendanceQuery = `
+      SELECT a.* FROM attendance a
+      LEFT JOIN semesters sem ON a.semester_id = sem.id
+      WHERE a.student_id = ? AND a.madrasah_id = ?`;
+    const attendanceParams = [studentId, madrasahId];
+
+    if (semester_id) {
+      attendanceQuery += ' AND a.semester_id = ?';
+      attendanceParams.push(semester_id);
+    } else if (session_id) {
+      attendanceQuery += ' AND sem.session_id = ?';
+      attendanceParams.push(session_id);
+    }
+
+    attendanceQuery += ' ORDER BY a.date DESC';
+    const [attendance] = await pool.query(attendanceQuery, attendanceParams);
+
+    // Build exam query with optional session/semester filter
+    let examQuery = `
+      SELECT ep.* FROM exam_performance ep
+      LEFT JOIN semesters sem ON ep.semester_id = sem.id
+      WHERE ep.student_id = ? AND ep.madrasah_id = ?`;
+    const examParams = [studentId, madrasahId];
+
+    if (semester_id) {
+      examQuery += ' AND ep.semester_id = ?';
+      examParams.push(semester_id);
+    } else if (session_id) {
+      examQuery += ' AND sem.session_id = ?';
+      examParams.push(session_id);
+    }
+
+    examQuery += ' ORDER BY ep.exam_date DESC';
+    const [exams] = await pool.query(examQuery, examParams);
 
     // Calculate attendance statistics
     const totalDays = attendance.length;
@@ -676,37 +722,165 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       ? behaviorGrades.reduce((a, b) => a + b, 0) / behaviorGrades.length
       : null;
 
-    // Calculate class position based on average exam scores (tenant isolated)
-    let classPosition = null;
-    let totalStudents = null;
+    // Calculate rankings (madrasah-wide, filtered by session/semester)
+    const rankings = { attendance: {}, exam: {}, dressing: {}, behavior: {} };
 
     if (student.class_id) {
-      // Get all students in the class with their average exam scores (tenant isolated)
-      const [classRankings] = await pool.query(
-        `SELECT
-          s.id,
-          s.student_id,
-          AVG(CASE WHEN ep.is_absent = 0 AND ep.score IS NOT NULL
-              THEN (ep.score / ep.max_score * 100)
-              ELSE NULL END) as avg_score
-         FROM students s
-         LEFT JOIN exam_performance ep ON s.id = ep.student_id AND ep.madrasah_id = ?
-         WHERE s.class_id = ? AND s.madrasah_id = ?
-         GROUP BY s.id, s.student_id
-         HAVING avg_score IS NOT NULL
-         ORDER BY avg_score DESC`,
-        [madrasahId, student.class_id, madrasahId]
-      );
+      // Exam ranking
+      let examRankQuery = `
+        SELECT s.id,
+          CASE WHEN SUM(ep.max_score) > 0
+            THEN (SUM(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE 0 END) / SUM(ep.max_score)) * 100
+            ELSE 0 END as overall_percentage
+        FROM students s
+        LEFT JOIN exam_performance ep ON s.id = ep.student_id AND ep.madrasah_id = ?
+        LEFT JOIN semesters sem ON ep.semester_id = sem.id
+        WHERE s.madrasah_id = ? AND s.deleted_at IS NULL`;
+      const examRankParams = [madrasahId, madrasahId];
 
-      totalStudents = classRankings.length;
-      const studentRank = classRankings.findIndex(r => r.id === studentId);
-      if (studentRank !== -1) {
-        classPosition = studentRank + 1;
+      if (semester_id) {
+        examRankQuery += ' AND ep.semester_id = ?';
+        examRankParams.push(semester_id);
+      } else if (session_id) {
+        examRankQuery += ' AND sem.session_id = ?';
+        examRankParams.push(session_id);
       }
+
+      examRankQuery += ' GROUP BY s.id ORDER BY overall_percentage DESC';
+      const [examRankings] = await pool.query(examRankQuery, examRankParams);
+
+      // Tie-aware exam ranking
+      let currentRank = 1;
+      let prevPercentage = null;
+      let studentsAtRank = 0;
+      examRankings.forEach((r) => {
+        const pct = parseFloat(r.overall_percentage || 0).toFixed(2);
+        if (prevPercentage !== null && pct !== prevPercentage) {
+          currentRank += studentsAtRank;
+          studentsAtRank = 0;
+        }
+        studentsAtRank++;
+        prevPercentage = pct;
+        if (r.id === studentId && parseFloat(pct) > 0) {
+          rankings.exam = { rank: currentRank, total_students: examRankings.filter(e => parseFloat(e.overall_percentage) > 0).length, percentage: parseFloat(pct) };
+        }
+      });
+
+      // Attendance ranking
+      let attRankQuery = `
+        SELECT s.id,
+          CASE WHEN COUNT(a.id) > 0
+            THEN (SUM(CASE WHEN a.present = TRUE THEN 1 ELSE 0 END) / COUNT(a.id)) * 100
+            ELSE 0 END as attendance_rate
+        FROM students s
+        LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?
+        LEFT JOIN semesters sem ON a.semester_id = sem.id
+        WHERE s.madrasah_id = ? AND s.deleted_at IS NULL`;
+      const attRankParams = [madrasahId, madrasahId];
+
+      if (semester_id) {
+        attRankQuery += ' AND a.semester_id = ?';
+        attRankParams.push(semester_id);
+      } else if (session_id) {
+        attRankQuery += ' AND sem.session_id = ?';
+        attRankParams.push(session_id);
+      }
+
+      attRankQuery += ' GROUP BY s.id ORDER BY attendance_rate DESC';
+      const [attRankings] = await pool.query(attRankQuery, attRankParams);
+
+      currentRank = 1; prevPercentage = null; studentsAtRank = 0;
+      attRankings.forEach((r) => {
+        const rate = parseFloat(r.attendance_rate || 0).toFixed(2);
+        if (prevPercentage !== null && rate !== prevPercentage) {
+          currentRank += studentsAtRank;
+          studentsAtRank = 0;
+        }
+        studentsAtRank++;
+        prevPercentage = rate;
+        if (r.id === studentId && parseFloat(rate) > 0) {
+          rankings.attendance = { rank: currentRank, total_students: attRankings.filter(a => parseFloat(a.attendance_rate) > 0).length };
+        }
+      });
+
+      // Dressing ranking
+      let dressRankQuery = `
+        SELECT s.id,
+          AVG(CASE a.dressing_grade
+            WHEN 'Excellent' THEN 4 WHEN 'Good' THEN 3 WHEN 'Fair' THEN 2 WHEN 'Poor' THEN 1 ELSE NULL END) as avg_dressing
+        FROM students s
+        LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?
+        LEFT JOIN semesters sem ON a.semester_id = sem.id
+        WHERE s.madrasah_id = ? AND s.deleted_at IS NULL`;
+      const dressRankParams = [madrasahId, madrasahId];
+
+      if (semester_id) {
+        dressRankQuery += ' AND a.semester_id = ?';
+        dressRankParams.push(semester_id);
+      } else if (session_id) {
+        dressRankQuery += ' AND sem.session_id = ?';
+        dressRankParams.push(session_id);
+      }
+
+      dressRankQuery += ' GROUP BY s.id HAVING avg_dressing IS NOT NULL ORDER BY avg_dressing DESC';
+      const [dressRankings] = await pool.query(dressRankQuery, dressRankParams);
+
+      currentRank = 1; prevPercentage = null; studentsAtRank = 0;
+      dressRankings.forEach((r) => {
+        const avg = parseFloat(r.avg_dressing || 0).toFixed(2);
+        if (prevPercentage !== null && avg !== prevPercentage) {
+          currentRank += studentsAtRank;
+          studentsAtRank = 0;
+        }
+        studentsAtRank++;
+        prevPercentage = avg;
+        if (r.id === studentId) {
+          rankings.dressing = { rank: currentRank, total_students: dressRankings.length };
+        }
+      });
+
+      // Behavior ranking
+      let behavRankQuery = `
+        SELECT s.id,
+          AVG(CASE a.behavior_grade
+            WHEN 'Excellent' THEN 4 WHEN 'Good' THEN 3 WHEN 'Fair' THEN 2 WHEN 'Poor' THEN 1 ELSE NULL END) as avg_behavior
+        FROM students s
+        LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?
+        LEFT JOIN semesters sem ON a.semester_id = sem.id
+        WHERE s.madrasah_id = ? AND s.deleted_at IS NULL`;
+      const behavRankParams = [madrasahId, madrasahId];
+
+      if (semester_id) {
+        behavRankQuery += ' AND a.semester_id = ?';
+        behavRankParams.push(semester_id);
+      } else if (session_id) {
+        behavRankQuery += ' AND sem.session_id = ?';
+        behavRankParams.push(session_id);
+      }
+
+      behavRankQuery += ' GROUP BY s.id HAVING avg_behavior IS NOT NULL ORDER BY avg_behavior DESC';
+      const [behavRankings] = await pool.query(behavRankQuery, behavRankParams);
+
+      currentRank = 1; prevPercentage = null; studentsAtRank = 0;
+      behavRankings.forEach((r) => {
+        const avg = parseFloat(r.avg_behavior || 0).toFixed(2);
+        if (prevPercentage !== null && avg !== prevPercentage) {
+          currentRank += studentsAtRank;
+          studentsAtRank = 0;
+        }
+        studentsAtRank++;
+        prevPercentage = avg;
+        if (r.id === studentId) {
+          rankings.behavior = { rank: currentRank, total_students: behavRankings.length };
+        }
+      });
     }
 
     res.json({
       student,
+      madrasah: madrasahProfile[0] || {},
+      sessions,
+      semesters,
       attendance: {
         records: attendance,
         totalDays,
@@ -718,9 +892,10 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         avgBehavior
       },
       exams,
+      rankings,
       classPosition: {
-        position: classPosition,
-        totalStudents: totalStudents
+        position: rankings.exam?.rank || null,
+        totalStudents: rankings.exam?.total_students || null
       }
     });
   } catch (error) {

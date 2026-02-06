@@ -357,7 +357,7 @@
 }
 
 .stat-badge.success {
-  background: #dcfce7;
+  background: #f5f5f5;
   border-color: #86efac;
   color: #166534;
 }
@@ -425,7 +425,7 @@
 .exam-absent-tag {
   font-size: 12px;
   font-weight: 500;
-  color: #ef4444;
+  color: #0a0a0a;
   background: #fef2f2;
   padding: 2px 8px;
   border-radius: 4px;

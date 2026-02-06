@@ -114,15 +114,15 @@ function ParentReport() {
   };
 
   const getStatColor = (value, thresholds = { high: 90, mid: 80 }) => {
-    if (value >= thresholds.high) return '#10b981';
-    if (value >= thresholds.mid) return '#22c55e';
-    return '#f59e0b';
+    if (value >= thresholds.high) return '#404040';
+    if (value >= thresholds.mid) return '#525252';
+    return '#737373';
   };
 
   const getGradeColor = (avg) => {
-    if (avg >= 3.5) return '#10b981';
-    if (avg >= 2.5) return '#22c55e';
-    return '#f59e0b';
+    if (avg >= 3.5) return '#404040';
+    if (avg >= 2.5) return '#525252';
+    return '#737373';
   };
 
   if (loading) {
@@ -258,11 +258,11 @@ function ParentReport() {
                     <div className="perf-details">
                       <div className="perf-row">
                         <span>Present:</span>
-                        <strong style={{ color: '#10b981' }}>{attendance.presentDays} days</strong>
+                        <strong style={{ color: '#404040' }}>{attendance.presentDays} days</strong>
                       </div>
                       <div className="perf-row">
                         <span>Absent:</span>
-                        <strong style={{ color: '#ef4444' }}>{attendance.totalDays - attendance.presentDays} days</strong>
+                        <strong style={{ color: '#0a0a0a' }}>{attendance.totalDays - attendance.presentDays} days</strong>
                       </div>
                       <div className="perf-row">
                         <span>Total Days:</span>
@@ -306,7 +306,7 @@ function ParentReport() {
                       </div>
                       <div className="perf-row">
                         <span>Exams Missed:</span>
-                        <strong style={{ color: '#ef4444' }}>{exams.filter(e => e.is_absent).length}</strong>
+                        <strong style={{ color: '#0a0a0a' }}>{exams.filter(e => e.is_absent).length}</strong>
                       </div>
                       <div className="perf-row">
                         <span>Total Exams:</span>
@@ -442,8 +442,8 @@ function ParentReport() {
                                 {exam.score}<span className="score-max">/{exam.max_score}</span>
                               </span>
                               <span className="exam-pct" style={{
-                                color: ((exam.score / exam.max_score) * 100) >= 70 ? '#10b981' :
-                                       ((exam.score / exam.max_score) * 100) >= 50 ? '#f59e0b' : '#ef4444'
+                                color: ((exam.score / exam.max_score) * 100) >= 70 ? '#404040' :
+                                       ((exam.score / exam.max_score) * 100) >= 50 ? '#737373' : '#0a0a0a'
                               }}>
                                 {((exam.score / exam.max_score) * 100).toFixed(1)}%
                               </span>

@@ -16,7 +16,7 @@
 
 .usage-fill {
   height: 100%;
-  background: #10b981;
+  background: #404040;
   border-radius: 2px;
   transition: width 0.3s ease;
 }
@@ -29,7 +29,7 @@
 
 /* Near limit state (80%+) */
 .usage-indicator.near-limit .usage-fill {
-  background: #f59e0b;
+  background: #737373;
 }
 
 .usage-indicator.near-limit .usage-text {
@@ -39,7 +39,7 @@
 
 /* At limit state (100%) */
 .usage-indicator.at-limit .usage-fill {
-  background: #ef4444;
+  background: #0a0a0a;
 }
 
 .usage-indicator.at-limit .usage-text {

@@ -991,8 +991,8 @@ function TeacherDashboard() {
         {/* Read-Only Warning Banner */}
         {isReadOnly() && (
           <div style={{
-            background: '#fef3cd', color: '#856404', padding: '12px 20px',
-            borderBottom: '1px solid #ffc107', textAlign: 'center', fontWeight: 500, fontSize: '14px'
+            background: '#f5f5f5', color: '#525252', padding: '12px 20px',
+            borderBottom: '1px solid #e5e5e5', textAlign: 'center', fontWeight: 500, fontSize: '14px'
           }}>
             ⚠️ Your {madrasahProfile?.subscription_status === 'trialing' ? 'school\'s trial has expired' : 'school\'s subscription is inactive'}. 
             Your account is in read-only mode. Contact your administrator.
@@ -1757,7 +1757,7 @@ function TeacherDashboard() {
                                     fontWeight: '700',
                                     fontSize: 'var(--text-lg)',
                                     color: percentage >= 80 ? 'var(--success)' : 
-                                           percentage >= 70 ? '#10b981' :
+                                           percentage >= 70 ? '#404040' :
                                            percentage >= 50 ? 'var(--warning)' : 
                                            'var(--error)'
                                   }}>
@@ -2134,8 +2134,8 @@ function TeacherDashboard() {
                                   </div>
                                   <div className="percentage-badge" style={{
                                     color: student.is_absent ? '#a3a3a3' :
-                                      calculatePercentage(student.score, examForm.max_score) >= 70 ? '#10b981' :
-                                      calculatePercentage(student.score, examForm.max_score) >= 50 ? '#f59e0b' : '#ef4444'
+                                      calculatePercentage(student.score, examForm.max_score) >= 70 ? '#404040' :
+                                      calculatePercentage(student.score, examForm.max_score) >= 50 ? '#737373' : '#0a0a0a'
                                   }}>
                                     {student.is_absent ? 'Absent' : `${calculatePercentage(student.score, examForm.max_score)}%`}
                                   </div>
@@ -2345,10 +2345,10 @@ function TeacherDashboard() {
                           <span style={{
                             fontWeight: '700',
                             fontSize: '18px',
-                            color: row.overall_percentage >= 80 ? '#10b981' : 
-                                   row.overall_percentage >= 70 ? '#22c55e' :
-                                   row.overall_percentage >= 50 ? '#f59e0b' : 
-                                   '#ef4444'
+                            color: row.overall_percentage >= 80 ? '#404040' : 
+                                   row.overall_percentage >= 70 ? '#525252' :
+                                   row.overall_percentage >= 50 ? '#737373' : 
+                                   '#0a0a0a'
                           }}>
                             {row.overall_percentage}%
                           </span>
@@ -2416,8 +2416,8 @@ function TeacherDashboard() {
                                 borderRadius: '4px',
                                 fontSize: '12px',
                                 fontWeight: '600',
-                                backgroundColor: '#dcfce7',
-                                color: '#166534'
+                                backgroundColor: '#f5f5f5',
+                                color: '#404040'
                               }}>
                                 Excellent
                               </span>
@@ -2429,8 +2429,8 @@ function TeacherDashboard() {
                                 borderRadius: '4px',
                                 fontSize: '12px',
                                 fontWeight: '600',
-                                backgroundColor: '#fef3c7',
-                                color: '#92400e'
+                                backgroundColor: '#f5f5f5',
+                                color: '#525252'
                               }}>
                                 Good
                               </span>
@@ -2442,8 +2442,8 @@ function TeacherDashboard() {
                                 borderRadius: '4px',
                                 fontSize: '12px',
                                 fontWeight: '600',
-                                backgroundColor: '#fff7ed',
-                                color: '#b86e00'
+                                backgroundColor: '#f5f5f5',
+                                color: '#737373'
                               }}>
                                 Average
                               </span>
@@ -2455,8 +2455,8 @@ function TeacherDashboard() {
                                 borderRadius: '4px',
                                 fontSize: '12px',
                                 fontWeight: '600',
-                                backgroundColor: '#fef2f2',
-                                color: '#dc2626'
+                                backgroundColor: '#f5f5f5',
+                                color: '#0a0a0a'
                               }}>
                                 Needs Attention
                               </span>
@@ -2477,9 +2477,9 @@ function TeacherDashboard() {
                       .map((row) => {
                         const percentage = parseFloat(row.overall_percentage);
                         const statusLabel = percentage >= 80 ? 'Excellent' : percentage >= 70 ? 'Good' : percentage >= 50 ? 'Average' : 'Needs Attention';
-                        const statusColor = percentage >= 80 ? '#166534' : percentage >= 70 ? '#92400e' : percentage >= 50 ? '#b86e00' : '#dc2626';
-                        const statusBg = percentage >= 80 ? '#dcfce7' : percentage >= 70 ? '#fef3c7' : percentage >= 50 ? '#fff7ed' : '#fef2f2';
-                        const percentColor = percentage >= 80 ? '#10b981' : percentage >= 70 ? '#22c55e' : percentage >= 50 ? '#f59e0b' : '#ef4444';
+                        const statusColor = percentage >= 80 ? '#404040' : percentage >= 70 ? '#525252' : percentage >= 50 ? '#737373' : '#0a0a0a';
+                        const statusBg = percentage >= 80 ? '#f5f5f5' : percentage >= 70 ? '#f5f5f5' : percentage >= 50 ? '#f5f5f5' : '#f5f5f5';
+                        const percentColor = percentage >= 80 ? '#404040' : percentage >= 70 ? '#525252' : percentage >= 50 ? '#737373' : '#0a0a0a';
                         return (
                           <div key={row.student_id} className="ranking-card">
                             <div className="ranking-card-top">
@@ -2510,7 +2510,7 @@ function TeacherDashboard() {
                               {row.exams_absent > 0 && (
                                 <div className="ranking-detail">
                                   <span className="ranking-detail-label">Absent</span>
-                                  <span className="ranking-detail-value" style={{ color: '#ef4444' }}>{row.exams_absent}</span>
+                                  <span className="ranking-detail-value" style={{ color: '#0a0a0a' }}>{row.exams_absent}</span>
                                 </div>
                               )}
                               <div className="ranking-detail">
@@ -2797,8 +2797,8 @@ function TeacherDashboard() {
             </div>
             <form onSubmit={handleUpdateExamBatch}>
               <div className="modal-body">
-                <div style={{ padding: 'var(--md)', backgroundColor: '#fff3cd', borderRadius: 'var(--radius)', marginBottom: 'var(--md)', border: '1px solid #ffc107' }}>
-                  <p style={{ margin: 0, fontSize: '14px', color: '#856404' }}>
+                <div style={{ padding: 'var(--md)', backgroundColor: '#f5f5f5', borderRadius: 'var(--radius)', marginBottom: 'var(--md)', border: '1px solid #e5e5e5' }}>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#525252' }}>
                     <strong>⚠️ Batch Edit:</strong> This will update {editingExamBatch.student_count} student record{editingExamBatch.student_count !== 1 ? 's' : ''}.
                   </p>
                 </div>

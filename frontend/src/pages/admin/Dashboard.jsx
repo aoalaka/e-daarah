@@ -1094,8 +1094,8 @@ function AdminDashboard() {
         {/* Read-Only Warning Banner */}
         {isReadOnly() && (
           <div style={{
-            background: '#fef3cd', color: '#856404', padding: '12px 20px',
-            borderBottom: '1px solid #ffc107', textAlign: 'center', fontWeight: 500, fontSize: '14px'
+            background: '#f5f5f5', color: '#525252', padding: '12px 20px',
+            borderBottom: '1px solid #e5e5e5', textAlign: 'center', fontWeight: 500, fontSize: '14px'
           }}>
             ⚠️ Your {madrasahProfile?.subscription_status === 'trialing' ? 'trial has expired' : 'subscription is inactive'}. 
             Your account is in read-only mode. Please subscribe or renew to make changes.
@@ -2006,7 +2006,7 @@ function AdminDashboard() {
                         {uploadResults.results.success.length > 0 && (
                           <details open>
                             <summary>Successful Uploads ({uploadResults.results.success.length})</summary>
-                            <p style={{ fontSize: '0.85em', color: 'var(--danger)', margin: '8px 0' }}>
+                            <p style={{ fontSize: '0.85em', color: '#0a0a0a', margin: '8px 0' }}>
                               ⚠️ Save these access codes now — they cannot be retrieved later.
                             </p>
                             <ul>
@@ -2582,13 +2582,13 @@ function AdminDashboard() {
                             <h4>This Week</h4>
                             <div className="week-stats">
                               <div className="week-stat">
-                                <div className="week-stat-value" style={{ color: 'var(--success)' }}>
+                                <div className="week-stat-value" style={{ color: '#404040' }}>
                                   {analyticsData.thisWeekSummary.presentCount}
                                 </div>
                                 <div className="week-stat-label">Students attended</div>
                               </div>
                               <div className="week-stat">
-                                <div className="week-stat-value" style={{ color: 'var(--danger)' }}>
+                                <div className="week-stat-value" style={{ color: '#0a0a0a' }}>
                                   {analyticsData.thisWeekSummary.absentCount}
                                 </div>
                                 <div className="week-stat-label">Students absent</div>
@@ -2688,7 +2688,7 @@ function AdminDashboard() {
                                 {analyticsData.classesWithoutRecentAttendance.slice(0, 3).map(cls => (
                                   <div key={cls.id} className="alert-item">
                                     <strong>{cls.class_name}</strong>
-                                    <span className="alert-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
+                                    <span className="alert-badge" style={{ background: '#f5f5f5', color: '#525252' }}>
                                       {cls.last_attendance_date
                                         ? (cls.weeks_missed === 1 ? '1 week' : `${cls.weeks_missed} weeks`)
                                         : 'Never'}
@@ -2849,17 +2849,17 @@ function AdminDashboard() {
                                         <td><strong>{student.student_id}</strong></td>
                                         <td>{student.first_name} {student.last_name}</td>
                                         <td>
-                                          <strong style={{ color: student.attendance_rate != null && student.attendance_rate < 70 ? 'var(--error)' : 'var(--success)' }}>
+                                          <strong style={{ color: student.attendance_rate != null && student.attendance_rate < 70 ? '#0a0a0a' : '#404040' }}>
                                             {student.attendance_rate != null ? `${Number(student.attendance_rate).toFixed(1)}%` : '-'}
                                           </strong>
                                         </td>
                                         <td>
-                                          <strong style={{ color: student.avg_dressing != null && student.avg_dressing < 2.5 ? 'var(--error)' : student.avg_dressing != null ? 'var(--success)' : 'var(--muted)' }}>
+                                          <strong style={{ color: student.avg_dressing != null && student.avg_dressing < 2.5 ? '#0a0a0a' : student.avg_dressing != null ? '#404040' : 'var(--muted)' }}>
                                             {student.avg_dressing != null ? Number(student.avg_dressing).toFixed(2) : '-'}
                                           </strong>
                                         </td>
                                         <td>
-                                          <strong style={{ color: student.avg_behavior != null && student.avg_behavior < 2.5 ? 'var(--error)' : student.avg_behavior != null ? 'var(--success)' : 'var(--muted)' }}>
+                                          <strong style={{ color: student.avg_behavior != null && student.avg_behavior < 2.5 ? '#0a0a0a' : student.avg_behavior != null ? '#404040' : 'var(--muted)' }}>
                                             {student.avg_behavior != null ? Number(student.avg_behavior).toFixed(2) : '-'}
                                           </strong>
                                         </td>
@@ -2894,19 +2894,19 @@ function AdminDashboard() {
                                     <div className="at-risk-card-stats">
                                       <div className="at-risk-stat">
                                         <span className="at-risk-stat-label">Attend.</span>
-                                        <span className="at-risk-stat-value" style={{ color: student.attendance_rate != null && student.attendance_rate < 70 ? '#ef4444' : '#10b981' }}>
+                                        <span className="at-risk-stat-value" style={{ color: student.attendance_rate != null && student.attendance_rate < 70 ? '#0a0a0a' : '#404040' }}>
                                           {student.attendance_rate != null ? `${Number(student.attendance_rate).toFixed(1)}%` : '-'}
                                         </span>
                                       </div>
                                       <div className="at-risk-stat">
                                         <span className="at-risk-stat-label">Dressing</span>
-                                        <span className="at-risk-stat-value" style={{ color: student.avg_dressing != null && student.avg_dressing < 2.5 ? '#ef4444' : '#10b981' }}>
+                                        <span className="at-risk-stat-value" style={{ color: student.avg_dressing != null && student.avg_dressing < 2.5 ? '#0a0a0a' : '#404040' }}>
                                           {student.avg_dressing != null ? Number(student.avg_dressing).toFixed(2) : '-'}
                                         </span>
                                       </div>
                                       <div className="at-risk-stat">
                                         <span className="at-risk-stat-label">Behavior</span>
-                                        <span className="at-risk-stat-value" style={{ color: student.avg_behavior != null && student.avg_behavior < 2.5 ? '#ef4444' : '#10b981' }}>
+                                        <span className="at-risk-stat-value" style={{ color: student.avg_behavior != null && student.avg_behavior < 2.5 ? '#0a0a0a' : '#404040' }}>
                                           {student.avg_behavior != null ? Number(student.avg_behavior).toFixed(2) : '-'}
                                         </span>
                                       </div>
@@ -3178,10 +3178,10 @@ function AdminDashboard() {
                                       <span style={{
                                         fontWeight: '700',
                                         fontSize: 'var(--text-lg)',
-                                        color: percentage >= 80 ? 'var(--success)' :
-                                               percentage >= 70 ? '#10b981' :
-                                               percentage >= 50 ? 'var(--warning)' :
-                                               'var(--error)'
+                                        color: percentage >= 80 ? '#404040' :
+                                               percentage >= 70 ? '#525252' :
+                                               percentage >= 50 ? '#737373' :
+                                               '#0a0a0a'
                                       }}>
                                         {percentage}%
                                       </span>
@@ -3215,8 +3215,8 @@ function AdminDashboard() {
                                           borderRadius: 'var(--radius)',
                                           fontSize: 'var(--text-sm)',
                                           fontWeight: '600',
-                                          backgroundColor: '#dcfce7',
-                                          color: 'var(--success)'
+                                          backgroundColor: '#f5f5f5',
+                                          color: '#404040'
                                         }}>
                                           ✓ Passed
                                         </span>
@@ -3228,8 +3228,8 @@ function AdminDashboard() {
                                         borderRadius: 'var(--radius)',
                                         fontSize: 'var(--text-sm)',
                                         fontWeight: '600',
-                                        backgroundColor: '#fee2e2',
-                                        color: 'var(--error)'
+                                        backgroundColor: '#f5f5f5',
+                                        color: '#0a0a0a'
                                       }}>
                                         ✗ Failed
                                       </span>
@@ -3335,7 +3335,7 @@ function AdminDashboard() {
                               <span style={{ 
                                 fontWeight: '700', 
                                 fontSize: '16px',
-                                color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : 'var(--text)'
+                                color: 'var(--text)'
                               }}>
                                 {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
                               </span>
@@ -3362,10 +3362,10 @@ function AdminDashboard() {
                             <span style={{
                               fontWeight: '700',
                               fontSize: '18px',
-                              color: row.overall_percentage >= 80 ? '#10b981' : 
-                                     row.overall_percentage >= 70 ? '#22c55e' :
-                                     row.overall_percentage >= 50 ? '#f59e0b' : 
-                                     '#ef4444'
+                              color: row.overall_percentage >= 80 ? '#404040' : 
+                                     row.overall_percentage >= 70 ? '#525252' :
+                                     row.overall_percentage >= 50 ? '#737373' : 
+                                     '#0a0a0a'
                             }}>
                               {row.overall_percentage}%
                             </span>
@@ -3433,8 +3433,8 @@ function AdminDashboard() {
                                   borderRadius: '4px',
                                   fontSize: '12px',
                                   fontWeight: '600',
-                                  backgroundColor: '#dcfce7',
-                                  color: '#166534'
+                                  backgroundColor: '#f5f5f5',
+                                  color: '#404040'
                                 }}>
                                   Excellent
                                 </span>
@@ -3446,8 +3446,8 @@ function AdminDashboard() {
                                   borderRadius: '4px',
                                   fontSize: '12px',
                                   fontWeight: '600',
-                                  backgroundColor: '#fef3c7',
-                                  color: '#92400e'
+                                  backgroundColor: '#f5f5f5',
+                                  color: '#525252'
                                 }}>
                                   Good
                                 </span>
@@ -3459,8 +3459,8 @@ function AdminDashboard() {
                                   borderRadius: '4px',
                                   fontSize: '12px',
                                   fontWeight: '600',
-                                  backgroundColor: '#fff7ed',
-                                  color: '#b86e00'
+                                  backgroundColor: '#f5f5f5',
+                                  color: '#737373'
                                 }}>
                                   Average
                                 </span>
@@ -3472,8 +3472,8 @@ function AdminDashboard() {
                                   borderRadius: '4px',
                                   fontSize: '12px',
                                   fontWeight: '600',
-                                  backgroundColor: '#fef2f2',
-                                  color: '#dc2626'
+                                  backgroundColor: '#f5f5f5',
+                                  color: '#0a0a0a'
                                 }}>
                                   Needs Attention
                                 </span>
@@ -3501,7 +3501,7 @@ function AdminDashboard() {
                                 <div className="ranking-card-name">{row.first_name} {row.last_name}</div>
                                 <div className="ranking-card-id">{row.student_id}</div>
                               </div>
-                              <div className="ranking-card-score" style={{ color: pct >= 80 ? '#10b981' : pct >= 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444' }}>
+                              <div className="ranking-card-score" style={{ color: pct >= 80 ? '#404040' : pct >= 70 ? '#525252' : pct >= 50 ? '#737373' : '#0a0a0a' }}>
                                 {row.overall_percentage}%
                               </div>
                             </div>
@@ -3509,7 +3509,7 @@ function AdminDashboard() {
                               <div className="ranking-detail"><span className="ranking-detail-label">Score</span><span className="ranking-detail-value">{row.total_score}/{row.total_max_score}</span></div>
                               <div className="ranking-detail"><span className="ranking-detail-label">Subjects</span><span className="ranking-detail-value">{row.subject_count}</span></div>
                               <div className="ranking-detail"><span className="ranking-detail-label">Taken</span><span className="ranking-detail-value">{row.exams_taken}</span></div>
-                              <div className="ranking-detail"><span className="ranking-detail-label">Absent</span><span className="ranking-detail-value" style={{ color: row.exams_absent > 0 ? '#ef4444' : 'inherit' }}>{row.exams_absent}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Absent</span><span className="ranking-detail-value" style={{ color: row.exams_absent > 0 ? '#0a0a0a' : 'inherit' }}>{row.exams_absent}</span></div>
                             </div>
                           </div>
                         );
@@ -3534,7 +3534,7 @@ function AdminDashboard() {
                               <span style={{ 
                                 fontWeight: '700', 
                                 fontSize: '16px',
-                                color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : 'var(--text)'
+                                color: 'var(--text)'
                               }}>
                                 {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
                               </span>
@@ -3561,10 +3561,10 @@ function AdminDashboard() {
                             <span style={{
                               fontWeight: '700',
                               fontSize: '18px',
-                              color: row.attendance_rate >= 90 ? '#10b981' : 
-                                     row.attendance_rate >= 80 ? '#22c55e' :
-                                     row.attendance_rate >= 70 ? '#f59e0b' : 
-                                     '#ef4444'
+                              color: row.attendance_rate >= 90 ? '#404040' : 
+                                     row.attendance_rate >= 80 ? '#525252' :
+                                     row.attendance_rate >= 70 ? '#737373' : 
+                                     '#0a0a0a'
                             }}>
                               {row.attendance_rate}%
                             </span>
@@ -3576,7 +3576,7 @@ function AdminDashboard() {
                           sortable: true,
                           sortType: 'number',
                           render: (row) => (
-                            <span style={{ color: '#10b981', fontWeight: '600' }}>
+                            <span style={{ color: '#404040', fontWeight: '600' }}>
                               {row.days_present}
                             </span>
                           )
@@ -3587,7 +3587,7 @@ function AdminDashboard() {
                           sortable: true,
                           sortType: 'number',
                           render: (row) => (
-                            <span style={{ color: row.days_absent > 0 ? '#ef4444' : 'var(--muted)' }}>
+                            <span style={{ color: row.days_absent > 0 ? '#0a0a0a' : 'var(--muted)' }}>
                               {row.days_absent}
                             </span>
                           )
@@ -3611,8 +3611,8 @@ function AdminDashboard() {
                                   borderRadius: '4px',
                                   fontSize: '12px',
                                   fontWeight: '600',
-                                  backgroundColor: '#dcfce7',
-                                  color: '#166534'
+                                  backgroundColor: '#f5f5f5',
+                                  color: '#404040'
                                 }}>
                                   Excellent
                                 </span>
@@ -3624,8 +3624,8 @@ function AdminDashboard() {
                                   borderRadius: '4px',
                                   fontSize: '12px',
                                   fontWeight: '600',
-                                  backgroundColor: '#fef3c7',
-                                  color: '#92400e'
+                                  backgroundColor: '#f5f5f5',
+                                  color: '#525252'
                                 }}>
                                   Good
                                 </span>
@@ -3637,8 +3637,8 @@ function AdminDashboard() {
                                   borderRadius: '4px',
                                   fontSize: '12px',
                                   fontWeight: '600',
-                                  backgroundColor: '#fff7ed',
-                                  color: '#b86e00'
+                                  backgroundColor: '#f5f5f5',
+                                  color: '#737373'
                                 }}>
                                   Needs Attention
                                 </span>
@@ -3650,8 +3650,8 @@ function AdminDashboard() {
                                   borderRadius: '4px',
                                   fontSize: '12px',
                                   fontWeight: '600',
-                                  backgroundColor: '#fef2f2',
-                                  color: '#dc2626'
+                                  backgroundColor: '#f5f5f5',
+                                  color: '#0a0a0a'
                                 }}>
                                   Urgent Intervention
                                 </span>
@@ -3678,13 +3678,13 @@ function AdminDashboard() {
                                 <div className="ranking-card-name">{row.first_name} {row.last_name}</div>
                                 <div className="ranking-card-id">{row.student_id}</div>
                               </div>
-                              <div className="ranking-card-score" style={{ color: rate >= 90 ? '#10b981' : rate >= 80 ? '#22c55e' : rate >= 70 ? '#f59e0b' : '#ef4444' }}>
+                              <div className="ranking-card-score" style={{ color: rate >= 90 ? '#404040' : rate >= 80 ? '#525252' : rate >= 70 ? '#737373' : '#0a0a0a' }}>
                                 {row.attendance_rate}%
                               </div>
                             </div>
                             <div className="ranking-card-details">
-                              <div className="ranking-detail"><span className="ranking-detail-label">Present</span><span className="ranking-detail-value" style={{ color: '#10b981' }}>{row.days_present}</span></div>
-                              <div className="ranking-detail"><span className="ranking-detail-label">Absent</span><span className="ranking-detail-value" style={{ color: row.days_absent > 0 ? '#ef4444' : 'inherit' }}>{row.days_absent}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Present</span><span className="ranking-detail-value" style={{ color: '#404040' }}>{row.days_present}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Absent</span><span className="ranking-detail-value" style={{ color: row.days_absent > 0 ? '#0a0a0a' : 'inherit' }}>{row.days_absent}</span></div>
                               <div className="ranking-detail"><span className="ranking-detail-label">Total</span><span className="ranking-detail-value">{row.total_days}</span></div>
                             </div>
                           </div>
@@ -3711,7 +3711,7 @@ function AdminDashboard() {
                               <span style={{ 
                                 fontWeight: '700', 
                                 fontSize: '16px',
-                                color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : 'var(--text)'
+                                color: 'var(--text)'
                               }}>
                                 {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
                               </span>
@@ -3736,10 +3736,10 @@ function AdminDashboard() {
                           render: (row) => {
                             const grade = row.avg_dressing_grade || 'N/A';
                             let color = 'var(--muted)';
-                            if (grade === 'Excellent') color = '#10b981';
-                            else if (grade === 'Good') color = '#22c55e';
-                            else if (grade === 'Fair') color = '#f59e0b';
-                            else if (grade === 'Poor') color = '#ef4444';
+                            if (grade === 'Excellent') color = '#404040';
+                            else if (grade === 'Good') color = '#525252';
+                            else if (grade === 'Fair') color = '#737373';
+                            else if (grade === 'Poor') color = '#0a0a0a';
                             
                             return (
                               <span style={{ fontWeight: '700', fontSize: '16px', color }}>
@@ -3754,7 +3754,7 @@ function AdminDashboard() {
                           sortable: true,
                           sortType: 'number',
                           render: (row) => (
-                            <span style={{ color: '#10b981', fontWeight: '600' }}>
+                            <span style={{ color: '#404040', fontWeight: '600' }}>
                               {row.excellent_count}
                             </span>
                           )
@@ -3765,7 +3765,7 @@ function AdminDashboard() {
                           sortable: true,
                           sortType: 'number',
                           render: (row) => (
-                            <span style={{ color: '#22c55e', fontWeight: '600' }}>
+                            <span style={{ color: '#525252', fontWeight: '600' }}>
                               {row.good_count}
                             </span>
                           )
@@ -3776,7 +3776,7 @@ function AdminDashboard() {
                           sortable: true,
                           sortType: 'number',
                           render: (row) => (
-                            <span style={{ color: '#f59e0b', fontWeight: '600' }}>
+                            <span style={{ color: '#737373', fontWeight: '600' }}>
                               {row.fair_count}
                             </span>
                           )
@@ -3787,7 +3787,7 @@ function AdminDashboard() {
                           sortable: true,
                           sortType: 'number',
                           render: (row) => (
-                            <span style={{ color: '#ef4444', fontWeight: '600' }}>
+                            <span style={{ color: '#0a0a0a', fontWeight: '600' }}>
                               {row.poor_count}
                             </span>
                           )
@@ -3808,10 +3808,10 @@ function AdminDashboard() {
                         const rank = row.rank || '-';
                         const grade = row.avg_dressing_grade || 'N/A';
                         let color = '#888';
-                        if (grade === 'Excellent') color = '#10b981';
-                        else if (grade === 'Good') color = '#22c55e';
-                        else if (grade === 'Fair') color = '#f59e0b';
-                        else if (grade === 'Poor') color = '#ef4444';
+                        if (grade === 'Excellent') color = '#404040';
+                        else if (grade === 'Good') color = '#525252';
+                        else if (grade === 'Fair') color = '#737373';
+                        else if (grade === 'Poor') color = '#0a0a0a';
                         return (
                           <div key={row.student_id} className="ranking-card">
                             <div className="ranking-card-top">
@@ -3825,10 +3825,10 @@ function AdminDashboard() {
                               <div className="ranking-card-score" style={{ color }}>{grade}</div>
                             </div>
                             <div className="ranking-card-details">
-                              <div className="ranking-detail"><span className="ranking-detail-label">Excellent</span><span className="ranking-detail-value" style={{ color: '#10b981' }}>{row.excellent_count}</span></div>
-                              <div className="ranking-detail"><span className="ranking-detail-label">Good</span><span className="ranking-detail-value" style={{ color: '#22c55e' }}>{row.good_count}</span></div>
-                              <div className="ranking-detail"><span className="ranking-detail-label">Fair</span><span className="ranking-detail-value" style={{ color: '#f59e0b' }}>{row.fair_count}</span></div>
-                              <div className="ranking-detail"><span className="ranking-detail-label">Poor</span><span className="ranking-detail-value" style={{ color: '#ef4444' }}>{row.poor_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Excellent</span><span className="ranking-detail-value" style={{ color: '#404040' }}>{row.excellent_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Good</span><span className="ranking-detail-value" style={{ color: '#525252' }}>{row.good_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Fair</span><span className="ranking-detail-value" style={{ color: '#737373' }}>{row.fair_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Poor</span><span className="ranking-detail-value" style={{ color: '#0a0a0a' }}>{row.poor_count}</span></div>
                             </div>
                           </div>
                         );
@@ -3854,7 +3854,7 @@ function AdminDashboard() {
                               <span style={{ 
                                 fontWeight: '700', 
                                 fontSize: '16px',
-                                color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : 'var(--text)'
+                                color: 'var(--text)'
                               }}>
                                 {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
                               </span>
@@ -3879,10 +3879,10 @@ function AdminDashboard() {
                           render: (row) => {
                             const grade = row.avg_behavior_grade || 'N/A';
                             let color = 'var(--muted)';
-                            if (grade === 'Excellent') color = '#10b981';
-                            else if (grade === 'Good') color = '#22c55e';
-                            else if (grade === 'Fair') color = '#f59e0b';
-                            else if (grade === 'Poor') color = '#ef4444';
+                            if (grade === 'Excellent') color = '#404040';
+                            else if (grade === 'Good') color = '#525252';
+                            else if (grade === 'Fair') color = '#737373';
+                            else if (grade === 'Poor') color = '#0a0a0a';
                             
                             return (
                               <span style={{ fontWeight: '700', fontSize: '16px', color }}>
@@ -3897,7 +3897,7 @@ function AdminDashboard() {
                           sortable: true,
                           sortType: 'number',
                           render: (row) => (
-                            <span style={{ color: '#10b981', fontWeight: '600' }}>
+                            <span style={{ color: '#404040', fontWeight: '600' }}>
                               {row.excellent_count}
                             </span>
                           )
@@ -3908,7 +3908,7 @@ function AdminDashboard() {
                           sortable: true,
                           sortType: 'number',
                           render: (row) => (
-                            <span style={{ color: '#22c55e', fontWeight: '600' }}>
+                            <span style={{ color: '#525252', fontWeight: '600' }}>
                               {row.good_count}
                             </span>
                           )
@@ -3919,7 +3919,7 @@ function AdminDashboard() {
                           sortable: true,
                           sortType: 'number',
                           render: (row) => (
-                            <span style={{ color: '#f59e0b', fontWeight: '600' }}>
+                            <span style={{ color: '#737373', fontWeight: '600' }}>
                               {row.fair_count}
                             </span>
                           )
@@ -3930,7 +3930,7 @@ function AdminDashboard() {
                           sortable: true,
                           sortType: 'number',
                           render: (row) => (
-                            <span style={{ color: '#ef4444', fontWeight: '600' }}>
+                            <span style={{ color: '#0a0a0a', fontWeight: '600' }}>
                               {row.poor_count}
                             </span>
                           )
@@ -3951,10 +3951,10 @@ function AdminDashboard() {
                         const rank = row.rank || '-';
                         const grade = row.avg_behavior_grade || 'N/A';
                         let color = '#888';
-                        if (grade === 'Excellent') color = '#10b981';
-                        else if (grade === 'Good') color = '#22c55e';
-                        else if (grade === 'Fair') color = '#f59e0b';
-                        else if (grade === 'Poor') color = '#ef4444';
+                        if (grade === 'Excellent') color = '#404040';
+                        else if (grade === 'Good') color = '#525252';
+                        else if (grade === 'Fair') color = '#737373';
+                        else if (grade === 'Poor') color = '#0a0a0a';
                         return (
                           <div key={row.student_id} className="ranking-card">
                             <div className="ranking-card-top">
@@ -3968,10 +3968,10 @@ function AdminDashboard() {
                               <div className="ranking-card-score" style={{ color }}>{grade}</div>
                             </div>
                             <div className="ranking-card-details">
-                              <div className="ranking-detail"><span className="ranking-detail-label">Excellent</span><span className="ranking-detail-value" style={{ color: '#10b981' }}>{row.excellent_count}</span></div>
-                              <div className="ranking-detail"><span className="ranking-detail-label">Good</span><span className="ranking-detail-value" style={{ color: '#22c55e' }}>{row.good_count}</span></div>
-                              <div className="ranking-detail"><span className="ranking-detail-label">Fair</span><span className="ranking-detail-value" style={{ color: '#f59e0b' }}>{row.fair_count}</span></div>
-                              <div className="ranking-detail"><span className="ranking-detail-label">Poor</span><span className="ranking-detail-value" style={{ color: '#ef4444' }}>{row.poor_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Excellent</span><span className="ranking-detail-value" style={{ color: '#404040' }}>{row.excellent_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Good</span><span className="ranking-detail-value" style={{ color: '#525252' }}>{row.good_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Fair</span><span className="ranking-detail-value" style={{ color: '#737373' }}>{row.fair_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Poor</span><span className="ranking-detail-value" style={{ color: '#0a0a0a' }}>{row.poor_count}</span></div>
                             </div>
                           </div>
                         );
@@ -4090,7 +4090,7 @@ function AdminDashboard() {
                         {individualRankings?.rankings?.attendance?.rank ? (
                           <>
                             <div className="performance-main-stat">
-                              <div className="performance-big-number" style={{ color: parseFloat(studentReport.attendance.attendanceRate) >= 90 ? '#10b981' : parseFloat(studentReport.attendance.attendanceRate) >= 80 ? '#22c55e' : '#f59e0b' }}>
+                              <div className="performance-big-number" style={{ color: parseFloat(studentReport.attendance.attendanceRate) >= 90 ? '#404040' : parseFloat(studentReport.attendance.attendanceRate) >= 80 ? '#525252' : '#737373' }}>
                                 {studentReport.attendance.attendanceRate}%
                               </div>
                               <div className="performance-label">Attendance Rate</div>
@@ -4098,11 +4098,11 @@ function AdminDashboard() {
                             <div className="performance-details">
                               <div className="detail-row">
                                 <span>Present:</span>
-                                <strong style={{ color: '#10b981' }}>{studentReport.attendance.presentDays} days</strong>
+                                <strong style={{ color: '#404040' }}>{studentReport.attendance.presentDays} days</strong>
                               </div>
                               <div className="detail-row">
                                 <span>Absent:</span>
-                                <strong style={{ color: '#ef4444' }}>
+                                <strong style={{ color: '#0a0a0a' }}>
                                   {studentReport.attendance.totalDays - studentReport.attendance.presentDays} days
                                 </strong>
                               </div>
@@ -4138,7 +4138,7 @@ function AdminDashboard() {
                         {individualRankings?.rankings?.exam?.rank ? (
                           <>
                             <div className="performance-main-stat">
-                              <div className="performance-big-number" style={{ color: individualRankings?.rankings.exam.percentage >= 80 ? '#10b981' : individualRankings?.rankings.exam.percentage >= 70 ? '#22c55e' : '#f59e0b' }}>
+                              <div className="performance-big-number" style={{ color: individualRankings?.rankings.exam.percentage >= 80 ? '#404040' : individualRankings?.rankings.exam.percentage >= 70 ? '#525252' : '#737373' }}>
                                 {individualRankings.rankings.exam.percentage}%
                               </div>
                               <div className="performance-label">Overall Score</div>
@@ -4150,7 +4150,7 @@ function AdminDashboard() {
                               </div>
                               <div className="detail-row">
                                 <span>Exams Missed:</span>
-                                <strong style={{ color: '#ef4444' }}>{studentReport.exams.filter(e => e.is_absent).length}</strong>
+                                <strong style={{ color: '#0a0a0a' }}>{studentReport.exams.filter(e => e.is_absent).length}</strong>
                               </div>
                               <div className="detail-row">
                                 <span>Total Exams:</span>
@@ -4184,7 +4184,7 @@ function AdminDashboard() {
                         {individualRankings?.rankings?.dressing?.rank ? (
                           <>
                             <div className="performance-main-stat">
-                              <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgDressing >= 3.5 ? '#10b981' : studentReport.dressingBehavior?.avgDressing >= 2.5 ? '#22c55e' : '#f59e0b' }}>
+                              <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgDressing >= 3.5 ? '#404040' : studentReport.dressingBehavior?.avgDressing >= 2.5 ? '#525252' : '#737373' }}>
                                 {studentReport.dressingBehavior?.avgDressing ? studentReport.dressingBehavior.avgDressing.toFixed(1) : '0.0'}
                               </div>
                               <div className="performance-label">Average Grade (out of 4.0)</div>
@@ -4225,7 +4225,7 @@ function AdminDashboard() {
                         {individualRankings?.rankings?.behavior?.rank ? (
                           <>
                             <div className="performance-main-stat">
-                              <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgBehavior >= 3.5 ? '#10b981' : studentReport.dressingBehavior?.avgBehavior >= 2.5 ? '#22c55e' : '#f59e0b' }}>
+                              <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgBehavior >= 3.5 ? '#404040' : studentReport.dressingBehavior?.avgBehavior >= 2.5 ? '#525252' : '#737373' }}>
                                 {studentReport.dressingBehavior?.avgBehavior ? studentReport.dressingBehavior.avgBehavior.toFixed(1) : '0.0'}
                               </div>
                               <div className="performance-label">Average Grade (out of 4.0)</div>
@@ -4460,10 +4460,10 @@ function AdminDashboard() {
                           borderRadius: '4px',
                           fontSize: '12px',
                           fontWeight: '500',
-                          backgroundColor: madrasahProfile.verification_status === 'fully_verified' ? '#dcfce7' :
-                            madrasahProfile.verification_status === 'basic_verified' ? '#dbeafe' : '#fef3c7',
-                          color: madrasahProfile.verification_status === 'fully_verified' ? '#166534' :
-                            madrasahProfile.verification_status === 'basic_verified' ? '#1e40af' : '#92400e'
+                          backgroundColor: madrasahProfile.verification_status === 'fully_verified' ? '#f5f5f5' :
+                            madrasahProfile.verification_status === 'basic_verified' ? '#f5f5f5' : '#f5f5f5',
+                          color: madrasahProfile.verification_status === 'fully_verified' ? '#404040' :
+                            madrasahProfile.verification_status === 'basic_verified' ? '#525252' : '#737373'
                         }}>
                           {madrasahProfile.verification_status?.replace(/_/g, ' ') || 'Unverified'}
                         </span>
@@ -4521,12 +4521,12 @@ function AdminDashboard() {
                         borderRadius: '4px',
                         fontSize: '12px',
                         fontWeight: '500',
-                        backgroundColor: madrasahProfile?.subscription_status === 'active' ? '#dcfce7' :
-                          madrasahProfile?.subscription_status === 'trialing' ? '#dbeafe' :
-                          madrasahProfile?.subscription_status === 'past_due' ? '#fef3c7' : '#fee2e2',
-                        color: madrasahProfile?.subscription_status === 'active' ? '#166534' :
-                          madrasahProfile?.subscription_status === 'trialing' ? '#1e40af' :
-                          madrasahProfile?.subscription_status === 'past_due' ? '#92400e' : '#991b1b'
+                        backgroundColor: madrasahProfile?.subscription_status === 'active' ? '#f5f5f5' :
+                          madrasahProfile?.subscription_status === 'trialing' ? '#f5f5f5' :
+                          madrasahProfile?.subscription_status === 'past_due' ? '#f5f5f5' : '#f5f5f5',
+                        color: madrasahProfile?.subscription_status === 'active' ? '#404040' :
+                          madrasahProfile?.subscription_status === 'trialing' ? '#525252' :
+                          madrasahProfile?.subscription_status === 'past_due' ? '#737373' : '#525252'
                       }}>
                         {madrasahProfile?.subscription_status || 'trialing'}
                       </span>
@@ -4730,7 +4730,7 @@ function AdminDashboard() {
               }}>
                 {accessCodeModal.accessCode}
               </div>
-              <p style={{ fontSize: '13px', color: 'var(--danger)', margin: '12px 0' }}>
+              <p style={{ fontSize: '13px', color: '#0a0a0a', margin: '12px 0' }}>
                 ⚠️ Save this code now — it cannot be retrieved later.
                 <br />Share it with the parent/guardian for portal access.
               </p>

@@ -2020,6 +2020,16 @@
 
 /* Print styles for report card */
 @media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   .dashboard {
     display: block;
   }
@@ -2028,7 +2038,9 @@
   .header,
   .report-tab-btn,
   .btn,
-  .no-print {
+  .no-print,
+  .section-header,
+  .card.no-print {
     display: none !important;
   }
 
@@ -2044,58 +2056,129 @@
 
   .student-report-card {
     box-shadow: none;
-    padding: 30px 20px;
+    padding: 10px 0;
+    margin: 0;
   }
 
   .report-card-header {
     page-break-after: avoid;
-    margin-bottom: 30px;
+    margin-bottom: 15px;
+  }
+
+  .print-header {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+  }
+
+  .madrasah-name {
+    font-size: 24px !important;
+    margin: 0 0 5px 0 !important;
+  }
+
+  .report-subtitle {
+    font-size: 14px !important;
   }
 
   .student-info-grid {
     page-break-after: avoid;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+    gap: 8px !important;
+  }
+
+  .info-item {
+    padding: 6px !important;
+  }
+
+  .info-label {
+    font-size: 11px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .info-value {
+    font-size: 13px !important;
   }
 
   .performance-summary-grid {
     page-break-inside: avoid;
+    gap: 10px !important;
+    margin-bottom: 15px !important;
   }
 
   .performance-card {
     page-break-inside: avoid;
-    margin-bottom: 15px;
+    margin-bottom: 0 !important;
+    padding: 10px !important;
+  }
+
+  .performance-card-header {
+    font-size: 13px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .performance-card-header svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .performance-big-number {
+    font-size: 28px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .performance-label {
+    font-size: 11px !important;
+  }
+
+  .performance-details {
+    margin-top: 8px !important;
+  }
+
+  .detail-row {
+    font-size: 12px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .performance-rank {
+    font-size: 11px !important;
+    margin-top: 8px !important;
+    padding: 4px 8px !important;
   }
 
   /* Make comment textarea look like static text when printing */
-  .comment-textarea {
-    border: 1px solid #ddd !important;
-    background: #f9f9f9 !important;
-    padding: 12px !important;
-    resize: none !important;
-    pointer-events: none !important;
-    color: #000 !important;
-    font-size: 14px !important;
-    line-height: 1.6 !important;
-    min-height: 100px !important;
+  .report-card-comment {
+    margin-bottom: 15px !important;
   }
 
   .report-card-comment h3 {
-    margin-bottom: 12px;
-    font-size: 16px;
+    margin-bottom: 8px !important;
+    font-size: 14px !important;
     font-weight: 600;
     color: #333;
   }
 
+  .comment-textarea {
+    border: 1px solid #ddd !important;
+    background: #f9f9f9 !important;
+    padding: 8px !important;
+    resize: none !important;
+    pointer-events: none !important;
+    color: #000 !important;
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    min-height: 60px !important;
+    max-height: 80px !important;
+  }
+
   /* Footer styling for print */
   .report-card-footer {
-    margin-top: 40px;
+    margin-top: 15px !important;
     page-break-inside: avoid;
   }
 
   .powered-by {
-    border-top: 2px solid var(--border);
-    padding-top: 20px;
-    font-size: 12px;
+    border-top: 1px solid #ddd !important;
+    padding-top: 10px !important;
+    font-size: 10px !important;
     color: #666;
   }
 }

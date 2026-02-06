@@ -2163,7 +2163,7 @@ function AdminDashboard() {
               </div>
 
               {/* Filters */}
-              <div className="card">
+              <div className="card no-print">
                 <div className="card-body">
                   <div className="form-grid">
                     <div className="form-group">

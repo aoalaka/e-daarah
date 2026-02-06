@@ -730,11 +730,11 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       ? behaviorGrades.reduce((a, b) => a + b, 0) / behaviorGrades.length
       : null;
 
-    // Calculate rankings (madrasah-wide, filtered by session/semester)
+    // Calculate rankings (class-scoped, filtered by session/semester)
     const rankings = { attendance: {}, exam: {}, dressing: {}, behavior: {} };
 
     if (student.class_id) {
-      // Exam ranking
+      // Exam ranking (class-scoped, total = students in class)
       let examRankQuery = `
         SELECT s.id,
           CASE WHEN SUM(ep.max_score) > 0
@@ -743,8 +743,8 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         FROM students s
         LEFT JOIN exam_performance ep ON s.id = ep.student_id AND ep.madrasah_id = ?
         LEFT JOIN semesters sem ON ep.semester_id = sem.id
-        WHERE s.madrasah_id = ? AND s.deleted_at IS NULL`;
-      const examRankParams = [madrasahId, madrasahId];
+        WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL`;
+      const examRankParams = [madrasahId, madrasahId, student.class_id];
 
       if (semester_id) {
         examRankQuery += ' AND ep.semester_id = ?';
@@ -770,11 +770,11 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         studentsAtRank++;
         prevPercentage = pct;
         if (r.id === studentId && parseFloat(pct) > 0) {
-          rankings.exam = { rank: currentRank, total_students: examRankings.filter(e => parseFloat(e.overall_percentage) > 0).length, percentage: parseFloat(pct) };
+          rankings.exam = { rank: currentRank, total_students: examRankings.length, percentage: parseFloat(pct) };
         }
       });
 
-      // Attendance ranking
+      // Attendance ranking (class-scoped, total = students in class)
       let attRankQuery = `
         SELECT s.id,
           CASE WHEN COUNT(a.id) > 0
@@ -783,8 +783,8 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         FROM students s
         LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?
         LEFT JOIN semesters sem ON a.semester_id = sem.id
-        WHERE s.madrasah_id = ? AND s.deleted_at IS NULL`;
-      const attRankParams = [madrasahId, madrasahId];
+        WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL`;
+      const attRankParams = [madrasahId, madrasahId, student.class_id];
 
       if (semester_id) {
         attRankQuery += ' AND a.semester_id = ?';
@@ -807,11 +807,11 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         studentsAtRank++;
         prevPercentage = rate;
         if (r.id === studentId && parseFloat(rate) > 0) {
-          rankings.attendance = { rank: currentRank, total_students: attRankings.filter(a => parseFloat(a.attendance_rate) > 0).length };
+          rankings.attendance = { rank: currentRank, total_students: attRankings.length };
         }
       });
 
-      // Dressing ranking
+      // Dressing ranking (class-scoped, total = students present)
       let dressRankQuery = `
         SELECT s.id,
           AVG(CASE a.dressing_grade
@@ -819,8 +819,8 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         FROM students s
         LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?
         LEFT JOIN semesters sem ON a.semester_id = sem.id
-        WHERE s.madrasah_id = ? AND s.deleted_at IS NULL`;
-      const dressRankParams = [madrasahId, madrasahId];
+        WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL`;
+      const dressRankParams = [madrasahId, madrasahId, student.class_id];
 
       if (semester_id) {
         dressRankQuery += ' AND a.semester_id = ?';
@@ -847,7 +847,7 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         }
       });
 
-      // Behavior ranking
+      // Behavior ranking (class-scoped, total = students present)
       let behavRankQuery = `
         SELECT s.id,
           AVG(CASE a.behavior_grade
@@ -855,8 +855,8 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         FROM students s
         LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?
         LEFT JOIN semesters sem ON a.semester_id = sem.id
-        WHERE s.madrasah_id = ? AND s.deleted_at IS NULL`;
-      const behavRankParams = [madrasahId, madrasahId];
+        WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL`;
+      const behavRankParams = [madrasahId, madrasahId, student.class_id];
 
       if (semester_id) {
         behavRankQuery += ' AND a.semester_id = ?';

@@ -1316,7 +1316,7 @@ router.get('/classes/:classId/behavior-rankings', async (req, res) => {
   }
 });
 
-// Get all rankings for a specific student (madrasah-wide)
+// Get all rankings for a specific student (class-scoped)
 router.get('/students/:id/all-rankings', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
@@ -1333,7 +1333,7 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     }
     const student = studentCheck[0];
 
-    // Get exam ranking (madrasah-wide)
+    // Get exam ranking (class-scoped, total = students in class)
     let examQuery = `
       SELECT 
         s.id,
@@ -1345,9 +1345,9 @@ router.get('/students/:id/all-rankings', async (req, res) => {
       FROM students s
       LEFT JOIN exam_performance ep ON s.id = ep.student_id AND ep.madrasah_id = ?
       LEFT JOIN semesters sem ON ep.semester_id = sem.id
-      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+      WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL
     `;
-    const examParams = [madrasahId, madrasahId];
+    const examParams = [madrasahId, madrasahId, student.class_id];
 
     if (sessionId) {
       examQuery += ` AND sem.session_id = ?`;
@@ -1366,12 +1366,10 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     let examCurrentRank = 1;
     let examPreviousPercentage = null;
     let examStudentsAtCurrentRank = 0;
-    let totalExamStudents = 0;
+    const totalExamStudents = examRankings.length;
     
     examRankings.forEach((student) => {
       const percentage = student.overall_percentage ? parseFloat(student.overall_percentage).toFixed(2) : '0.00';
-      
-      if (parseFloat(percentage) > 0) totalExamStudents++;
       
       if (examPreviousPercentage !== null && percentage !== examPreviousPercentage) {
         examCurrentRank += examStudentsAtCurrentRank;
@@ -1400,7 +1398,7 @@ router.get('/students/:id/all-rankings', async (req, res) => {
       }
     });
 
-    // Get attendance ranking (madrasah-wide)
+    // Get attendance ranking (class-scoped, total = students in class)
     let attendanceQuery = `
       SELECT 
         s.id,
@@ -1411,9 +1409,9 @@ router.get('/students/:id/all-rankings', async (req, res) => {
       FROM students s
       LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?
       LEFT JOIN semesters sem ON a.semester_id = sem.id
-      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+      WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL
     `;
-    const attendanceParams = [madrasahId, madrasahId];
+    const attendanceParams = [madrasahId, madrasahId, student.class_id];
 
     if (sessionId) {
       attendanceQuery += ` AND sem.session_id = ?`;
@@ -1463,7 +1461,7 @@ router.get('/students/:id/all-rankings', async (req, res) => {
       }
     });
 
-    // Get dressing ranking (madrasah-wide)
+    // Get dressing ranking (class-scoped, total = students present)
     let dressingQuery = `
       SELECT 
         s.id,
@@ -1479,9 +1477,9 @@ router.get('/students/:id/all-rankings', async (req, res) => {
       FROM students s
       LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ? AND a.dressing_grade IS NOT NULL
       LEFT JOIN semesters sem ON a.semester_id = sem.id
-      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+      WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL
     `;
-    const dressingParams = [madrasahId, madrasahId];
+    const dressingParams = [madrasahId, madrasahId, student.class_id];
 
     if (sessionId) {
       dressingQuery += ` AND sem.session_id = ?`;
@@ -1531,7 +1529,7 @@ router.get('/students/:id/all-rankings', async (req, res) => {
       }
     });
 
-    // Get behavior ranking (madrasah-wide)
+    // Get behavior ranking (class-scoped, total = students present)
     let behaviorQuery = `
       SELECT 
         s.id,
@@ -1547,9 +1545,9 @@ router.get('/students/:id/all-rankings', async (req, res) => {
       FROM students s
       LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ? AND a.behavior_grade IS NOT NULL
       LEFT JOIN semesters sem ON a.semester_id = sem.id
-      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+      WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL
     `;
-    const behaviorParams = [madrasahId, madrasahId];
+    const behaviorParams = [madrasahId, madrasahId, student.class_id];
 
     if (sessionId) {
       behaviorQuery += ` AND sem.session_id = ?`;

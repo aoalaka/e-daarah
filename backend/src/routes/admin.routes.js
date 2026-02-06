@@ -979,10 +979,10 @@ router.get('/classes/:classId/attendance-rankings', async (req, res) => {
         s.last_name,
         c.name as class_name,
         COUNT(a.id) as total_days,
-        SUM(CASE WHEN a.is_present = TRUE THEN 1 ELSE 0 END) as days_present,
-        SUM(CASE WHEN a.is_present = FALSE THEN 1 ELSE 0 END) as days_absent,
+        SUM(CASE WHEN a.present = TRUE THEN 1 ELSE 0 END) as days_present,
+        SUM(CASE WHEN a.present = FALSE THEN 1 ELSE 0 END) as days_absent,
         CASE 
-          WHEN COUNT(a.id) > 0 THEN (SUM(CASE WHEN a.is_present = TRUE THEN 1 ELSE 0 END) / COUNT(a.id)) * 100
+          WHEN COUNT(a.id) > 0 THEN (SUM(CASE WHEN a.present = TRUE THEN 1 ELSE 0 END) / COUNT(a.id)) * 100
           ELSE 0
         END as attendance_rate
       FROM students s
@@ -1320,7 +1320,7 @@ router.get('/students/:id/all-rankings', async (req, res) => {
       SELECT 
         s.id,
         CASE 
-          WHEN COUNT(a.id) > 0 THEN (SUM(CASE WHEN a.is_present = TRUE THEN 1 ELSE 0 END) / COUNT(a.id)) * 100
+          WHEN COUNT(a.id) > 0 THEN (SUM(CASE WHEN a.present = TRUE THEN 1 ELSE 0 END) / COUNT(a.id)) * 100
           ELSE 0
         END as attendance_rate
       FROM students s

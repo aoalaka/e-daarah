@@ -2107,6 +2107,12 @@
   font-weight: 600;
 }
 
+.footer-logo {
+  height: 40px;
+  width: auto;
+  display: inline-block;
+}
+
 /* Print styles for report card */
 @media print {
   @page {
@@ -2296,6 +2302,11 @@
     padding-top: 8px !important;
     font-size: 8px !important;
     color: #666;
+  }
+
+  .footer-logo {
+    height: 30px !important;
+    width: auto !important;
   }
 }
 

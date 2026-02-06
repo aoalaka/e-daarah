@@ -2352,7 +2352,7 @@ function AdminDashboard() {
                                   <div key={cls.id} className="alert-item">
                                     <strong>{cls.class_name}</strong>
                                     <span className="alert-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
-                                      {cls.last_attendance_date ? `${cls.days_since_attendance} days` : 'Never'}
+                                      {cls.weeks_missed === 1 ? '1 week' : `${cls.weeks_missed} weeks`}
                                     </span>
                                   </div>
                                 ))}
@@ -3510,7 +3510,7 @@ function AdminDashboard() {
                   <div className="report-card-header">
                     {/* Print Header (only visible when printing) */}
                     <div className="print-header">
-                      <h1 className="madrasah-name">{user?.madrasah_name || 'Madrasah Name'}</h1>
+                      <h1 className="madrasah-name">{madrasahProfile?.name || 'Madrasah Name'}</h1>
                       <div className="report-subtitle">Student Performance Report</div>
                     </div>
                     
@@ -3760,7 +3760,7 @@ function AdminDashboard() {
                   {/* Report Footer */}
                   <div className="report-card-footer">
                     <div className="powered-by">
-                      Powered by <strong>e-daarah</strong>
+                      <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="footer-logo" />
                     </div>
                   </div>
                 </div>

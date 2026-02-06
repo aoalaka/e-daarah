@@ -1973,18 +1973,20 @@ router.get('/analytics', async (req, res) => {
     trendQuery += ' GROUP BY YEARWEEK(a.date, 1) ORDER BY year_week ASC';
     const [weeklyTrend] = await pool.query(trendQuery, trendParams);
 
-    // 8. Classes not taking attendance recently (last 7 days)
+    // 8. Classes that have taken attendance before but missed recent weeks
+    // Only show classes that HAVE recorded attendance at some point but haven't in over 7 days
     const [classesWithoutRecentAttendance] = await pool.query(`
       SELECT
         c.id,
         c.name as class_name,
         MAX(a.date) as last_attendance_date,
-        DATEDIFF(NOW(), MAX(a.date)) as days_since_attendance
+        DATEDIFF(NOW(), MAX(a.date)) as days_since_attendance,
+        FLOOR(DATEDIFF(NOW(), MAX(a.date)) / 7) as weeks_missed
       FROM classes c
-      LEFT JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?
+      INNER JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?
       WHERE c.madrasah_id = ? AND c.deleted_at IS NULL
       GROUP BY c.id
-      HAVING last_attendance_date IS NULL OR days_since_attendance > 7
+      HAVING days_since_attendance > 7
       ORDER BY days_since_attendance DESC
     `, [madrasahId, madrasahId]);
 

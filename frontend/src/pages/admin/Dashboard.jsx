@@ -85,6 +85,8 @@ function AdminDashboard() {
   const [individualRankings, setIndividualRankings] = useState(null); // Madrasah-wide rankings for individual student
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Access code state
+  const [accessCodeModal, setAccessCodeModal] = useState(null); // { studentName, studentId, accessCode }
   // Settings state
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -463,7 +465,15 @@ function AdminDashboard() {
         await api.put(`/admin/students/${editingStudent.id}`, newStudent);
         setEditingStudent(null);
       } else {
-        await api.post('/admin/students', newStudent);
+        const response = await api.post('/admin/students', newStudent);
+        // Show the generated access code to admin
+        if (response.data.access_code) {
+          setAccessCodeModal({
+            studentName: `${newStudent.first_name} ${newStudent.last_name}`,
+            studentId: response.data.student_id,
+            accessCode: response.data.access_code
+          });
+        }
       }
       setShowStudentForm(false);
       setNewStudent({
@@ -511,6 +521,21 @@ function AdminDashboard() {
         loadData();
       } catch (error) {
         toast.error('Failed to delete student');
+      }
+    }
+  };
+
+  const handleRegenerateAccessCode = async (student) => {
+    if (window.confirm(`Regenerate parent access code for ${student.first_name} ${student.last_name}? The old code will stop working.`)) {
+      try {
+        const response = await api.post(`/admin/students/${student.id}/regenerate-access-code`);
+        setAccessCodeModal({
+          studentName: response.data.student_name,
+          studentId: response.data.student_id,
+          accessCode: response.data.access_code
+        });
+      } catch (error) {
+        toast.error('Failed to regenerate access code');
       }
     }
   };
@@ -1932,11 +1957,14 @@ function AdminDashboard() {
                         </p>
 
                         {uploadResults.results.success.length > 0 && (
-                          <details>
+                          <details open>
                             <summary>Successful Uploads ({uploadResults.results.success.length})</summary>
+                            <p style={{ fontSize: '0.85em', color: 'var(--danger)', margin: '8px 0' }}>
+                              ⚠️ Save these access codes now — they cannot be retrieved later.
+                            </p>
                             <ul>
                               {uploadResults.results.success.map((s, i) => (
-                                <li key={i}>{s.name} - ID: {s.student_id}</li>
+                                <li key={i}>{s.name} — ID: {s.student_id} — Access Code: <strong>{s.access_code}</strong></li>
                               ))}
                             </ul>
                           </details>
@@ -2205,6 +2233,9 @@ function AdminDashboard() {
                       sortable: false,
                       render: (row) => (
                         <div className="table-actions">
+                          <button onClick={() => handleRegenerateAccessCode(row)} className="btn btn-sm btn-secondary" title="Regenerate parent access code">
+                            🔑
+                          </button>
                           <button onClick={() => handleEditStudent(row)} className="btn btn-sm btn-secondary">
                             Edit
                           </button>
@@ -4606,6 +4637,55 @@ function AdminDashboard() {
           )}
         </main>
       </div>
+
+      {/* Parent Access Code Modal */}
+      {accessCodeModal && (
+        <div className="modal-overlay" onClick={() => setAccessCodeModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Parent Access Code</h3>
+              <button onClick={() => setAccessCodeModal(null)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body" style={{ textAlign: 'center' }}>
+              <p style={{ marginBottom: '12px' }}>
+                <strong>{accessCodeModal.studentName}</strong>
+                <br />
+                <span style={{ color: 'var(--muted)' }}>Student ID: {accessCodeModal.studentId}</span>
+              </p>
+              <div style={{
+                background: 'var(--bg)', 
+                border: '2px dashed var(--accent)',
+                borderRadius: '8px', 
+                padding: '16px',
+                margin: '12px 0',
+                fontSize: '28px',
+                fontWeight: '700',
+                letterSpacing: '6px',
+                fontFamily: 'monospace'
+              }}>
+                {accessCodeModal.accessCode}
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--danger)', margin: '12px 0' }}>
+                ⚠️ Save this code now — it cannot be retrieved later.
+                <br />Share it with the parent/guardian for portal access.
+              </p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(accessCodeModal.accessCode);
+                  toast.success('Access code copied to clipboard');
+                }}
+                className="btn btn-secondary"
+                style={{ marginRight: '8px' }}
+              >
+                📋 Copy Code
+              </button>
+              <button onClick={() => setAccessCodeModal(null)} className="btn btn-primary">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

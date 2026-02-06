@@ -8,7 +8,7 @@ function ParentLogin() {
   const { madrasahSlug } = useParams();
   const { madrasah } = useMadrasah();
   const [studentId, setStudentId] = useState('');
-  const [surname, setSurname] = useState('');
+  const [accessCode, setAccessCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -19,10 +19,10 @@ function ParentLogin() {
     setLoading(true);
 
     try {
-      await authService.parentLogin(madrasahSlug, studentId, surname);
+      await authService.parentLogin(madrasahSlug, studentId, accessCode);
       navigate(`/${madrasahSlug}/parent`);
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid student ID or surname');
+      setError(err.response?.data?.error || 'Invalid student ID or access code');
     } finally {
       setLoading(false);
     }
@@ -41,9 +41,9 @@ function ParentLogin() {
             <strong>Demo Credentials:</strong>
             <div style={{ marginTop: '8px', fontSize: '0.9em' }}>
               <div>Student ID: <code>100001</code></div>
-              <div>Surname: <code>Khan</code></div>
+              <div>Access Code: <code>123456</code></div>
               <div style={{ marginTop: '4px', fontSize: '0.85em', opacity: 0.8 }}>
-                (Try any student ID from 100001-100012 with their surnames)
+                (All demo students use access code 123456)
               </div>
             </div>
           </div>
@@ -67,13 +67,15 @@ function ParentLogin() {
           </div>
 
           <div className="field">
-            <label htmlFor="surname">Surname</label>
+            <label htmlFor="accessCode">Access Code</label>
             <input
-              id="surname"
-              type="password"
-              value={surname}
-              onChange={(e) => setSurname(e.target.value)}
-              placeholder="Student's last name"
+              id="accessCode"
+              type="text"
+              inputMode="numeric"
+              value={accessCode}
+              onChange={(e) => setAccessCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="6-digit code from your school"
+              maxLength="6"
               required
               autoComplete="current-password"
             />
@@ -94,12 +96,12 @@ function ParentLogin() {
           <h4>How to Login</h4>
           <div className="credentials">
             <div className="cred">
-              <div className="cred-label">Username</div>
-              <div className="cred-value">Student ID (e.g., 001)</div>
+              <div className="cred-label">Student ID</div>
+              <div className="cred-value">Provided by the school</div>
             </div>
             <div className="cred">
-              <div className="cred-label">Password</div>
-              <div className="cred-value">Student's surname</div>
+              <div className="cred-label">Access Code</div>
+              <div className="cred-value">6-digit code from the school</div>
             </div>
           </div>
         </div>

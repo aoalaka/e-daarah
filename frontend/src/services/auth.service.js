@@ -13,10 +13,10 @@ export const authService = {
   },
 
   // Parent login (scoped to madrasah with tenant isolation)
-  parentLogin: async (madrasahSlug, studentId, surname) => {
+  parentLogin: async (madrasahSlug, studentId, accessCode) => {
     const response = await api.post('/auth/parent-login', {
       studentId,
-      surname,
+      accessCode,
       madrasahSlug
     });
     if (response.data.token) {

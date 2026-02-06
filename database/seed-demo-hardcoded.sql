@@ -36,26 +36,27 @@ INSERT INTO class_teachers (class_id, user_id) VALUES
 (9994, 9993); -- Ahmed teaches Islamic Studies
 
 -- Insert Demo Students (12 students across 4 classes)
-INSERT INTO students (id, madrasah_id, student_id, first_name, last_name, class_id, gender, next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, next_of_kin_phone_country_code, street, city, state, country) VALUES
+-- All demo students use parent access code: 123456
+INSERT INTO students (id, madrasah_id, student_id, first_name, last_name, class_id, gender, next_of_kin_name, next_of_kin_relationship, next_of_kin_phone, next_of_kin_phone_country_code, street, city, state, country, parent_access_code) VALUES
 -- Boys Quran Class (3 students)
-(99901, 999, '100001', 'Yusuf', 'Khan', 9991, 'Male', 'Sarah Khan', 'Mother', '21111111', '+64', '15 Kauri Road', 'Auckland', 'Auckland Region', 'New Zealand'),
-(99902, 999, '100002', 'Ibrahim', 'Ahmed', 9991, 'Male', 'Fatima Ahmed', 'Mother', '21222222', '+64', '22 Rimu Avenue', 'Auckland', 'Auckland Region', 'New Zealand'),
-(99903, 999, '100003', 'Omar', 'Ali', 9991, 'Male', 'Aisha Ali', 'Mother', '21333333', '+64', '8 Pohutukawa Drive', 'Auckland', 'Auckland Region', 'New Zealand'),
+(99901, 999, '100001', 'Yusuf', 'Khan', 9991, 'Male', 'Sarah Khan', 'Mother', '21111111', '+64', '15 Kauri Road', 'Auckland', 'Auckland Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK'),
+(99902, 999, '100002', 'Ibrahim', 'Ahmed', 9991, 'Male', 'Fatima Ahmed', 'Mother', '21222222', '+64', '22 Rimu Avenue', 'Auckland', 'Auckland Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK'),
+(99903, 999, '100003', 'Omar', 'Ali', 9991, 'Male', 'Aisha Ali', 'Mother', '21333333', '+64', '8 Pohutukawa Drive', 'Auckland', 'Auckland Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK'),
 
 -- Girls Hifz Class (3 students)
-(99904, 999, '100004', 'Maryam', 'Hassan', 9992, 'Female', 'Khadija Hassan', 'Mother', '21444444', '+64', '12 Totara Lane', 'Wellington', 'Wellington Region', 'New Zealand'),
-(99905, 999, '100005', 'Aisha', 'Rahman', 9992, 'Female', 'Layla Rahman', 'Mother', '21555555', '+64', '34 Nikau Street', 'Wellington', 'Wellington Region', 'New Zealand'),
-(99906, 999, '100006', 'Fatima', 'Mahmoud', 9992, 'Female', 'Amina Mahmoud', 'Mother', '21666666', '+64', '56 Manuka Road', 'Christchurch', 'Canterbury Region', 'New Zealand'),
+(99904, 999, '100004', 'Maryam', 'Hassan', 9992, 'Female', 'Khadija Hassan', 'Mother', '21444444', '+64', '12 Totara Lane', 'Wellington', 'Wellington Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK'),
+(99905, 999, '100005', 'Aisha', 'Rahman', 9992, 'Female', 'Layla Rahman', 'Mother', '21555555', '+64', '34 Nikau Street', 'Wellington', 'Wellington Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK'),
+(99906, 999, '100006', 'Fatima', 'Mahmoud', 9992, 'Female', 'Amina Mahmoud', 'Mother', '21666666', '+64', '56 Manuka Road', 'Christchurch', 'Canterbury Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK'),
 
 -- Arabic Fundamentals (3 students)
-(99907, 999, '100007', 'Zayd', 'Hussain', 9993, 'Male', 'Mariam Hussain', 'Mother', '21777777', '+64', '78 Rata Avenue', 'Hamilton', 'Waikato Region', 'New Zealand'),
-(99908, 999, '100008', 'Bilal', 'Malik', 9993, 'Male', 'Halima Malik', 'Mother', '21888888', '+64', '90 Karaka Drive', 'Tauranga', 'Bay of Plenty Region', 'New Zealand'),
-(99909, 999, '100009', 'Hamza', 'Farooq', 9993, 'Male', 'Zainab Farooq', 'Mother', '21999999', '+64', '11 Kowhai Street', 'Rotorua', 'Bay of Plenty Region', 'New Zealand'),
+(99907, 999, '100007', 'Zayd', 'Hussain', 9993, 'Male', 'Mariam Hussain', 'Mother', '21777777', '+64', '78 Rata Avenue', 'Hamilton', 'Waikato Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK'),
+(99908, 999, '100008', 'Bilal', 'Malik', 9993, 'Male', 'Halima Malik', 'Mother', '21888888', '+64', '90 Karaka Drive', 'Tauranga', 'Bay of Plenty Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK'),
+(99909, 999, '100009', 'Hamza', 'Farooq', 9993, 'Male', 'Zainab Farooq', 'Mother', '21999999', '+64', '11 Kowhai Street', 'Rotorua', 'Bay of Plenty Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK'),
 
 -- Islamic Studies (3 students)
-(99910, 999, '100010', 'Hafsa', 'Siddiqui', 9994, 'Female', 'Ruqayya Siddiqui', 'Mother', '22000000', '+64', '23 Puriri Road', 'Dunedin', 'Otago Region', 'New Zealand'),
-(99911, 999, '100011', 'Zainab', 'Nasir', 9994, 'Female', 'Safiya Nasir', 'Mother', '22111111', '+64', '45 Matai Lane', 'Napier', 'Hawke\'s Bay Region', 'New Zealand'),
-(99912, 999, '100012', 'Khadija', 'Iqbal', 9994, 'Female', 'Sumaya Iqbal', 'Mother', '22222222', '+64', '67 Kahikatea Avenue', 'Palmerston North', 'Manawatu-Wanganui Region', 'New Zealand');
+(99910, 999, '100010', 'Hafsa', 'Siddiqui', 9994, 'Female', 'Ruqayya Siddiqui', 'Mother', '22000000', '+64', '23 Puriri Road', 'Dunedin', 'Otago Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK'),
+(99911, 999, '100011', 'Zainab', 'Nasir', 9994, 'Female', 'Safiya Nasir', 'Mother', '22111111', '+64', '45 Matai Lane', 'Napier', 'Hawke\'s Bay Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK'),
+(99912, 999, '100012', 'Khadija', 'Iqbal', 9994, 'Female', 'Sumaya Iqbal', 'Mother', '22222222', '+64', '67 Kahikatea Avenue', 'Palmerston North', 'Manawatu-Wanganui Region', 'New Zealand', '$2a$10$zaR/kNnRkpA9bzscO4h9Su3WD1eWlDklgpjb7iedGw7x400B5aPgK');
 
 -- Insert Attendance Records (20 records across January 2026)
 INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, user_id, date, present, dressing_grade, behavior_grade, notes) VALUES

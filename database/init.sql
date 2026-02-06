@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS students (
     next_of_kin_relationship VARCHAR(50),
     next_of_kin_phone VARCHAR(20),
     notes TEXT,
+    parent_access_code VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,

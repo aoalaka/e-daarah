@@ -1,4 +1,5 @@
 import express from 'express';
+import bcrypt from 'bcryptjs';
 import pool from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
 import { validateTeacher, validateStudent, validateSession, validateSemester, validateClass } from '../utils/validation.js';
@@ -11,6 +12,11 @@ import {
 } from '../middleware/plan-limits.middleware.js';
 
 const router = express.Router();
+
+// Generate a random 6-digit numeric PIN for parent access
+function generateAccessCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 // All routes require authentication and admin role
 router.use(authenticateToken, requireRole('admin'));
@@ -609,16 +615,20 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
       }
     }
 
+    // Generate parent access code (PIN)
+    const accessCode = generateAccessCode();
+    const hashedAccessCode = await bcrypt.hash(accessCode, 10);
+
     const [result] = await pool.query(
       `INSERT INTO students (madrasah_id, first_name, last_name, student_id, gender, email, class_id,
        student_phone, student_phone_country_code, street, city, state, country, date_of_birth,
-       parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes, parent_access_code)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [madrasahId, first_name, last_name, student_id, gender, email, class_id || null,
        student_phone, student_phone_country_code, street, city, state, country, date_of_birth,
-       parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes]
+       parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes, hashedAccessCode]
     );
-    res.status(201).json({ id: result.insertId, first_name, last_name, student_id });
+    res.status(201).json({ id: result.insertId, first_name, last_name, student_id, access_code: accessCode });
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'Student ID already exists in this madrasah' });
@@ -696,6 +706,42 @@ router.delete('/students/:id', async (req, res) => {
     res.json({ message: 'Student deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete student' });
+  }
+});
+
+// Regenerate parent access code for a student (scoped to madrasah)
+router.post('/students/:id/regenerate-access-code', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+
+    // Verify student belongs to this madrasah
+    const [students] = await pool.query(
+      'SELECT id, first_name, last_name, student_id FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
+    if (students.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const accessCode = generateAccessCode();
+    const hashedAccessCode = await bcrypt.hash(accessCode, 10);
+
+    await pool.query(
+      'UPDATE students SET parent_access_code = ? WHERE id = ? AND madrasah_id = ?',
+      [hashedAccessCode, id, madrasahId]
+    );
+
+    const student = students[0];
+    res.json({
+      message: 'Parent access code regenerated successfully',
+      student_id: student.student_id,
+      student_name: `${student.first_name} ${student.last_name}`,
+      access_code: accessCode
+    });
+  } catch (error) {
+    console.error('Failed to regenerate access code:', error);
+    res.status(500).json({ error: 'Failed to regenerate access code' });
   }
 });
 

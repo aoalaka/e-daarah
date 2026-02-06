@@ -522,25 +522,20 @@ router.post('/register-teacher', async (req, res) => {
   }
 });
 
-// Parent login (using student_id, last_name, and madrasah slug for tenant isolation)
+// Parent login (using student_id and access code for secure authentication)
 router.post('/parent-login', async (req, res) => {
   console.log('Parent login request');
 
   try {
-    const { studentId, surname, madrasahSlug } = req.body;
+    const { studentId, accessCode, madrasahSlug } = req.body;
 
-    if (!studentId || !surname || !madrasahSlug) {
-      return res.status(400).json({ error: 'Student ID, surname, and madrasah are required' });
+    if (!studentId || !accessCode || !madrasahSlug) {
+      return res.status(400).json({ error: 'Student ID, access code, and madrasah are required' });
     }
 
     // Validate student ID format
     if (!isValidStudentId(studentId)) {
       return res.status(400).json({ error: 'Student ID must be exactly 6 digits' });
-    }
-
-    // Validate surname
-    if (!isValidName(surname)) {
-      return res.status(400).json({ error: 'Invalid surname format' });
     }
 
     // Get madrasah by slug first (tenant isolation)
@@ -555,17 +550,28 @@ router.post('/parent-login', async (req, res) => {
 
     const madrasahId = madrasahs[0].id;
 
-    // Find student by student_id, last_name, AND madrasah_id (tenant isolated)
+    // Find student by student_id AND madrasah_id (tenant isolated)
     const [students] = await pool.query(
-      'SELECT id, first_name, last_name, student_id, class_id, madrasah_id FROM students WHERE student_id = ? AND LOWER(last_name) = LOWER(?) AND madrasah_id = ?',
-      [studentId, surname, madrasahId]
+      'SELECT id, first_name, last_name, student_id, class_id, madrasah_id, parent_access_code FROM students WHERE student_id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [studentId, madrasahId]
     );
 
     if (students.length === 0) {
-      return res.status(401).json({ error: 'Invalid student ID or surname' });
+      return res.status(401).json({ error: 'Invalid student ID or access code' });
     }
 
     const student = students[0];
+
+    // Check if access code has been set
+    if (!student.parent_access_code) {
+      return res.status(401).json({ error: 'Parent access has not been set up for this student. Please contact the school administrator.' });
+    }
+
+    // Verify access code against bcrypt hash
+    const isCodeValid = await bcrypt.compare(accessCode, student.parent_access_code);
+    if (!isCodeValid) {
+      return res.status(401).json({ error: 'Invalid student ID or access code' });
+    }
 
     // Generate JWT for parent with madrasah context
     const token = jwt.sign(
@@ -600,6 +606,11 @@ router.post('/parent-login', async (req, res) => {
     res.status(500).json({ error: 'Login failed' });
   }
 });
+
+// Generate a random 6-digit numeric PIN
+function generateAccessCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 // Get parent report (authenticated with tenant isolation)
 router.get('/parent/report', authenticateToken, async (req, res) => {

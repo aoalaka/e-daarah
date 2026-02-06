@@ -1288,7 +1288,7 @@ function TeacherDashboard() {
                         </div>
                       ))}
 
-                      <div className="form-actions" style={{ padding: 'var(--md)', borderTop: 'var(--border)' }}>
+                      <div className="form-actions form-actions-sticky">
                         <button onClick={saveAttendance} className="btn btn-primary" disabled={saving}>
                           {saving ? 'Saving...' : 'Save Attendance'}
                         </button>
@@ -1452,7 +1452,7 @@ function TeacherDashboard() {
 
               <div className="card">
                 <div className="card-body">
-                  <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--md)' }}>
+                  <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
                     <div className="form-group">
                       <label className="form-label">Select Class</label>
                       <select
@@ -1538,18 +1538,18 @@ function TeacherDashboard() {
                     {/* Subject Pagination Controls */}
                     {totalPages > 1 && (
                       <div className="card" style={{ marginBottom: 'var(--md)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="subject-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ color: 'var(--muted)', fontSize: '14px' }}>
-                            Showing subject {startIndex + 1} of {totalSubjects}
+                            Subject {startIndex + 1} of {totalSubjects}
                           </div>
-                          <div style={{ display: 'flex', gap: 'var(--sm)' }}>
+                          <div className="subject-pagination-btns" style={{ display: 'flex', gap: 'var(--sm)' }}>
                             <button
                               onClick={() => setCurrentSubjectPage(prev => Math.max(1, prev - 1))}
                               disabled={currentSubjectPage === 1}
                               className="btn-sm"
                               style={{ opacity: currentSubjectPage === 1 ? 0.5 : 1 }}
                             >
-                              ← Previous Subject
+                              ← Prev
                             </button>
                             <div style={{ 
                               padding: '8px 16px', 
@@ -1567,7 +1567,7 @@ function TeacherDashboard() {
                               className="btn-sm"
                               style={{ opacity: currentSubjectPage === totalPages ? 0.5 : 1 }}
                             >
-                              Next Subject →
+                              Next →
                             </button>
                           </div>
                         </div>
@@ -1835,7 +1835,7 @@ function TeacherDashboard() {
                     <form onSubmit={handleExamSubmit}>
                       <div className="modal-body">
                         {/* Session and Semester (Selectable with active highlighted) */}
-                        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', marginBottom: 'var(--md)' }}>
+                        <div className="form-grid form-grid-2" style={{ marginBottom: 'var(--md)' }}>
                           <div className="form-group">
                             <label className="form-label">Session *</label>
                             <select
@@ -1878,7 +1878,7 @@ function TeacherDashboard() {
                         </div>
 
                         {/* Exam Details */}
-                        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 'var(--md)' }}>
+                        <div className="form-grid form-grid-3" style={{ marginBottom: 'var(--md)' }}>
                           <div className="form-group">
                             <label className="form-label">Subject *</label>
                             <input
@@ -1938,14 +1938,14 @@ function TeacherDashboard() {
                             <h4 style={{ fontSize: 'var(--text-lg)', fontWeight: '600', margin: 0 }}>
                               Student Scores
                             </h4>
-                            <div style={{ position: 'relative', width: '300px' }}>
+                            <div style={{ position: 'relative' }} className="exam-search-container">
                               <input
                                 type="text"
                                 className="form-input"
-                                placeholder="Search by name or student ID..."
+                                placeholder="Search by name or ID..."
                                 value={examStudentSearch}
                                 onChange={(e) => setExamStudentSearch(e.target.value)}
-                                style={{ paddingLeft: '32px' }}
+                                style={{ paddingLeft: '32px', fontSize: '16px' }}
                               />
                               <svg
                                 style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: '#666' }}
@@ -1957,8 +1957,8 @@ function TeacherDashboard() {
                               </svg>
                             </div>
                           </div>
-                          <div style={{ overflowX: 'auto', maxHeight: '400px', border: 'var(--border)', borderRadius: 'var(--radius)' }}>
-                            <table className="table" style={{ minWidth: '100%' }}>
+                          <div className="exam-modal-table" style={{ overflowX: 'auto', maxHeight: '400px', border: 'var(--border)', borderRadius: 'var(--radius)' }}>
+                            <table className="table exam-scores-table" style={{ minWidth: '100%' }}>
                               <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--gray-50)', zIndex: 1 }}>
                                 <tr>
                                   <th style={{ width: '40px' }}>#</th>
@@ -2066,6 +2066,88 @@ function TeacherDashboard() {
                                 ))}
                               </tbody>
                             </table>
+                          </div>
+
+                          {/* Mobile Card View for Exam Scores */}
+                          <div className="exam-modal-mobile-cards" style={{ display: 'none' }}>
+                            {examForm.students
+                              .filter(student => {
+                                if (!examStudentSearch.trim()) return true;
+                                const searchLower = examStudentSearch.toLowerCase();
+                                return (
+                                  student.student_name.toLowerCase().includes(searchLower) ||
+                                  student.student_number.toLowerCase().includes(searchLower)
+                                );
+                              })
+                              .map((student, index) => (
+                              <div key={student.student_id} className="exam-student-card">
+                                <div className="student-header">
+                                  <div>
+                                    <div className="student-name">{index + 1}. {student.student_name}</div>
+                                    <div className="student-id">{student.student_number}</div>
+                                  </div>
+                                  <div className="percentage-badge" style={{
+                                    color: student.is_absent ? '#a3a3a3' :
+                                      calculatePercentage(student.score, examForm.max_score) >= 70 ? '#10b981' :
+                                      calculatePercentage(student.score, examForm.max_score) >= 50 ? '#f59e0b' : '#ef4444'
+                                  }}>
+                                    {student.is_absent ? 'Absent' : `${calculatePercentage(student.score, examForm.max_score)}%`}
+                                  </div>
+                                </div>
+
+                                {!student.is_absent && (
+                                  <div className="score-row">
+                                    <input
+                                      type="number"
+                                      className="score-input"
+                                      value={student.score}
+                                      onChange={(e) => updateStudentExamData(student.student_id, 'score', e.target.value)}
+                                      onBlur={(e) => {
+                                        if (e.target.value !== '') {
+                                          const score = parseFloat(e.target.value);
+                                          const maxScore = parseFloat(examForm.max_score);
+                                          if (isNaN(score) || score < 0) {
+                                            updateStudentExamData(student.student_id, 'score', '0');
+                                          } else if (score > maxScore) {
+                                            updateStudentExamData(student.student_id, 'score', maxScore.toString());
+                                          }
+                                        }
+                                      }}
+                                      min="0"
+                                      max={examForm.max_score}
+                                      step="0.1"
+                                      placeholder={`Score / ${examForm.max_score}`}
+                                    />
+                                  </div>
+                                )}
+
+                                <div className="absent-row">
+                                  <label>
+                                    <input
+                                      type="checkbox"
+                                      checked={student.is_absent}
+                                      onChange={(e) => updateStudentExamData(student.student_id, 'is_absent', e.target.checked)}
+                                    />
+                                    <span>Absent</span>
+                                  </label>
+                                </div>
+
+                                {student.is_absent && (
+                                  <div className="absence-reason-row">
+                                    <select
+                                      value={student.absence_reason}
+                                      onChange={(e) => updateStudentExamData(student.student_id, 'absence_reason', e.target.value)}
+                                    >
+                                      <option value="">Absence reason...</option>
+                                      <option value="Sick">Sick</option>
+                                      <option value="Parent Request">Parent Request</option>
+                                      <option value="School Not Notified">School Not Notified</option>
+                                      <option value="Other">Other</option>
+                                    </select>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>

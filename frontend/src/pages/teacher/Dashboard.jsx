@@ -1075,7 +1075,7 @@ function TeacherDashboard() {
                   </div>
 
                   {selectedClass && selectedSemester && students.length > 0 && (
-                    <div className="card">
+                    <div className="card attendance-recording-card">
                       {/* Desktop Table View */}
                       <div className="table-wrap">
                         <table className="table">

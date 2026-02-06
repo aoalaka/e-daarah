@@ -1873,8 +1873,8 @@
 }
 
 @media (max-width: 768px) {
-  /* Hide table on mobile for attendance */
-  .table-wrap table.table {
+  /* Hide table on mobile for attendance recording only */
+  .attendance-recording-card .table-wrap {
     display: none;
   }
 

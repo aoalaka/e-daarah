@@ -1335,8 +1335,11 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     let examPercentage = null;
     examRankArray.forEach((r) => {
       if (r.id === parseInt(id)) {
-        examRank = r.rank;
-        examPercentage = parseFloat(r.overall_percentage).toFixed(2);
+        // Only set rank if student has actual exam data (percentage > 0)
+        if (parseFloat(r.overall_percentage) > 0) {
+          examRank = r.rank;
+          examPercentage = parseFloat(r.overall_percentage).toFixed(2);
+        }
       }
     });
 
@@ -1395,8 +1398,11 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     let totalAttendanceStudents = attendanceRankArray.length;
     attendanceRankArray.forEach((r) => {
       if (r.id === parseInt(id)) {
-        attendanceRank = r.rank;
-        attendanceRate = parseFloat(r.attendance_rate).toFixed(2);
+        // Only set rank if student has actual attendance data (rate > 0)
+        if (parseFloat(r.attendance_rate) > 0) {
+          attendanceRank = r.rank;
+          attendanceRate = parseFloat(r.attendance_rate).toFixed(2);
+        }
       }
     });
 
@@ -1460,8 +1466,11 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     let totalDressingStudents = dressingRankArray.length;
     dressingRankArray.forEach((r) => {
       if (r.id === parseInt(id)) {
-        dressingRank = r.rank;
-        dressingScore = parseFloat(r.avg_dressing_score).toFixed(2);
+        // Only set rank if student has actual dressing data
+        if (r.avg_dressing_score && parseFloat(r.avg_dressing_score) > 0) {
+          dressingRank = r.rank;
+          dressingScore = parseFloat(r.avg_dressing_score).toFixed(2);
+        }
       }
     });
 
@@ -1525,8 +1534,11 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     let totalBehaviorStudents = behaviorRankArray.length;
     behaviorRankArray.forEach((r) => {
       if (r.id === parseInt(id)) {
-        behaviorRank = r.rank;
-        behaviorScore = parseFloat(r.avg_behavior_score).toFixed(2);
+        // Only set rank if student has actual behavior data
+        if (r.avg_behavior_score && parseFloat(r.avg_behavior_score) > 0) {
+          behaviorRank = r.rank;
+          behaviorScore = parseFloat(r.avg_behavior_score).toFixed(2);
+        }
       }
     });
 

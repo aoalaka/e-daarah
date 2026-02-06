@@ -238,7 +238,7 @@ router.post('/login', async (req, res) => {
 
     // Query users table with role check (include email_verified status, exclude deleted)
     const [users] = await pool.query(
-      'SELECT u.id, u.madrasah_id, u.first_name, u.last_name, u.email, u.password, u.role, u.staff_id, u.email_verified, m.slug as madrasah_slug FROM users u JOIN madrasahs m ON u.madrasah_id = m.id WHERE u.email = ? AND u.role = ? AND u.deleted_at IS NULL AND m.deleted_at IS NULL',
+      'SELECT u.id, u.madrasah_id, u.first_name, u.last_name, u.email, u.password, u.role, u.staff_id, u.email_verified, m.slug as madrasah_slug, m.name as madrasah_name FROM users u JOIN madrasahs m ON u.madrasah_id = m.id WHERE u.email = ? AND u.role = ? AND u.deleted_at IS NULL AND m.deleted_at IS NULL',
       [email, role]
     );
 
@@ -313,11 +313,13 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role,
         staffId: user.staff_id || null,
-        emailVerified: Boolean(user.email_verified)
+        emailVerified: Boolean(user.email_verified),
+        madrasah_name: user.madrasah_name
       },
       madrasah: {
         id: user.madrasah_id,
-        slug: user.madrasah_slug
+        slug: user.madrasah_slug,
+        name: user.madrasah_name
       }
     });
   } catch (error) {

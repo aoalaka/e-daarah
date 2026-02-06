@@ -3772,7 +3772,14 @@ function AdminDashboard() {
                 <div className="student-report-card">
                   {/* Report Card Header */}
                   <div className="report-card-header">
-                    <div className="report-card-title">
+                    {/* Print Header (only visible when printing) */}
+                    <div className="print-header">
+                      <h1 className="madrasah-name">{user?.madrasah_name || 'Madrasah Name'}</h1>
+                      <div className="report-subtitle">Student Performance Report</div>
+                    </div>
+                    
+                    {/* Screen Header (hidden when printing) */}
+                    <div className="report-card-title no-print">
                       <h2>Student Performance Report</h2>
                       <div className="report-period">
                         {reportFilterSession && sessions.find(s => s.id === parseInt(reportFilterSession))?.name}
@@ -3780,7 +3787,7 @@ function AdminDashboard() {
                       </div>
                     </div>
                     <button 
-                      className="btn btn-secondary btn-sm" 
+                      className="btn btn-secondary btn-sm no-print" 
                       onClick={() => window.print()}
                       style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
@@ -3963,9 +3970,9 @@ function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Teacher's Comment */}
+                  {/* School Overall Comment */}
                   <div className="report-card-comment">
-                    <h3>Teacher's Comment</h3>
+                    <h3>School Overall Comment</h3>
                     <textarea
                       className="comment-textarea"
                       rows="4"
@@ -3979,7 +3986,7 @@ function AdminDashboard() {
                       placeholder="Add overall comment about student's performance..."
                     />
                     <button
-                      className="btn btn-primary btn-sm"
+                      className="btn btn-primary btn-sm no-print"
                       onClick={() => updateStudentComment(selectedStudentForReport.id, selectedStudentForReport.notes)}
                       style={{ marginTop: '12px' }}
                     >
@@ -3989,8 +3996,8 @@ function AdminDashboard() {
 
                   {/* Report Footer */}
                   <div className="report-card-footer">
-                    <div className="footer-note">
-                      This report provides a summary of the student's performance across key areas. For detailed records, please contact the administration.
+                    <div className="powered-by">
+                      Powered by <strong>e-daarah</strong>
                     </div>
                   </div>
                 </div>

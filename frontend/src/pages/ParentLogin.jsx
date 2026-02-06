@@ -59,8 +59,7 @@ function ParentLogin() {
               type="text"
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
-              placeholder="e.g., 123456"
-              maxLength="6"
+              placeholder="e.g., 001"
               required
               autoComplete="username"
             />

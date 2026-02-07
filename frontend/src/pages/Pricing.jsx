@@ -84,7 +84,7 @@ function Pricing() {
           <span className="logo-text">e-daarah</span>
         </Link>
         <nav className="header-nav">
-          <Link to="/demo/login" className="nav-link">Demo</Link>
+          <Link to="/demo" className="nav-link">Demo</Link>
           <Link to="/register" className="nav-link primary">Get Started</Link>
         </nav>
       </header>

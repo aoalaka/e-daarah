@@ -15,6 +15,57 @@
   border-bottom: 1px solid #eee;
 }
 
+.demo-header .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+  color: #1a1a1a;
+}
+
+.demo-header .logo:hover {
+  text-decoration: none;
+  filter: none;
+}
+
+.demo-header .logo-img {
+  height: 48px;
+  width: auto;
+  display: block;
+}
+
+.demo-header .logo-text {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.demo-header .header-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.demo-header .nav-link {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #666;
+  text-decoration: none;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.demo-header .nav-link:hover {
+  color: #1a1a1a;
+}
+
+.demo-header .nav-link.primary {
+  background: #1a1a1a;
+  color: #fff;
+}
+
 /* Hero */
 .demo-hero {
   padding: 48px 20px 32px;
@@ -223,6 +274,30 @@
 .demo-footer p {
   font-size: 13px;
   color: #999;
+}
+
+/* Small mobile screens */
+@media (max-width: 480px) {
+  .demo-header {
+    padding: 10px 12px;
+  }
+
+  .demo-header .logo-img {
+    height: 40px;
+  }
+
+  .demo-header .logo-text {
+    font-size: 18px;
+  }
+
+  .demo-header .header-nav {
+    gap: 4px;
+  }
+
+  .demo-header .nav-link {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
 }
 
 /* Tablet+ */

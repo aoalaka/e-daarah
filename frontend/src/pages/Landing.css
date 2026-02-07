@@ -16,19 +16,12 @@
 }
 
 .logo {
-  /* text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  cursor: pointer;
-  color: #1a1a1a; */
-
   display: inline-flex;
   align-items: center;
   gap: 8px;
   text-decoration: none;
-  margin-bottom: var(--sm);
+  flex-shrink: 0;
+  color: #1a1a1a;
 }
 
 .logo:hover,
@@ -37,8 +30,8 @@
 .logo:focus-visible {
   text-decoration: none;
   outline: none;
-  box-shadow: none;
   color: #1a1a1a;
+  filter: none;
 }
 
 .logo:hover .logo-text,
@@ -63,16 +56,11 @@
 }
 
 .footer-logo {
-  /* display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px; */
-
   display: inline-flex;
   align-items: center;
   gap: 8px;
   text-decoration: none;
-  margin-bottom: var(--sm);
+  margin-bottom: 8px;
 }
 
 .footer-logo-img {

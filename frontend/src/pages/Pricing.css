@@ -14,22 +14,17 @@
 }
 
 .pricing-header .logo {
-  /* text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  cursor: pointer; */
   display: inline-flex;
   align-items: center;
   gap: 8px;
   text-decoration: none;
-  margin-bottom: var(--sm);
+  flex-shrink: 0;
 }
 
 .pricing-header .logo:hover {
   text-decoration: none;
   outline: none;
+  filter: none;
 }
 
 .pricing-header .logo:hover .logo-text,

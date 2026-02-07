@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
+import SEO from '../components/SEO';
 import './SignIn.css';
 
 function SignIn() {
@@ -64,6 +65,10 @@ function SignIn() {
 
   return (
     <div className="signin-page">
+      <SEO
+        title="Sign In — e-daarah"
+        description="Sign in to your madrasah's admin portal. Find your school and access attendance, exams, and reports."
+      />
       <div className="signin-card">
         <Link to="/" className="signin-logo">
           <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="signin-logo-img" />

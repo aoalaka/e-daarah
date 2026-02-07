@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { authService } from '../services/auth.service';
+import SEO from '../components/SEO';
 import './MadrasahRegistration.css';
 
 function MadrasahRegistration() {
@@ -119,6 +120,10 @@ function MadrasahRegistration() {
 
   return (
     <div className="register-page">
+      <SEO
+        title="Register Your School — e-daarah"
+        description="Set up your madrasah on e-daarah in minutes. 14-day free trial, no credit card required. Manage attendance, exams, and parent communication."
+      />
       <div className="register-container">
         <div className="register-header">
           <Link to="/" className="register-logo">

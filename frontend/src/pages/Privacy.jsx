@@ -1,9 +1,14 @@
 import { Link } from 'react-router-dom';
+import SEO from '../components/SEO';
 import './Legal.css';
 
 function Privacy() {
   return (
     <div className="legal-page">
+      <SEO
+        title="Privacy Policy — e-daarah"
+        description="Privacy policy for e-daarah. Learn how we protect your school's data and your students' information."
+      />
       <div className="legal-container">
         <Link to="/" className="legal-back">Back to Home</Link>
 

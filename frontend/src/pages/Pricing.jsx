@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import SEO from '../components/SEO';
 import './Pricing.css';
 
 function Pricing() {
@@ -72,6 +73,10 @@ function Pricing() {
 
   return (
     <div className="pricing-page">
+      <SEO
+        title="Pricing — School Management Plans from $12/mo"
+        description="Simple, transparent pricing for madrasah and school management. Standard plan from $12/mo, Plus from $29/mo. 14-day free trial, no credit card needed."
+      />
       {/* Header */}
       <header className="pricing-header">
         <Link to="/" className="logo">
@@ -86,7 +91,7 @@ function Pricing() {
 
       {/* Main Content */}
       <main className="pricing-main">
-        <h1 className="pricing-title">Simple, Transparent Pricing</h1>
+        <h1 className="pricing-title">Simple Pricing for School Management</h1>
         <p className="pricing-subtitle">
           Start with a 14-day free trial. No credit card required.<br />
           <span style={{color:'#888',fontSize:'13px'}}>All prices in USD</span>

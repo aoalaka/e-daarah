@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /*/admin/
+Disallow: /*/teacher/
+Disallow: /*/parent
+Disallow: /*/login
+Disallow: /superadmin/
+
+Sitemap: https://e-daarah.com/sitemap.xml

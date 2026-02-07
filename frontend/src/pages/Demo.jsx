@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/auth.service';
+import SEO from '../components/SEO';
 import './Demo.css';
 
 const DEMO_PLANS = [
@@ -60,6 +61,10 @@ function Demo() {
 
   return (
     <div className="demo-page">
+      <SEO
+        title="Try the Demo — e-daarah"
+        description="Explore e-daarah with a fully-loaded demo. See attendance tracking, exam recording, and parent reports in action. No account needed."
+      />
       <header className="demo-header">
         <Link to="/" className="logo">
           <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="logo-img" />

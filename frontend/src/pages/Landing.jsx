@@ -1,4 +1,5 @@
 import { useNavigate, Link } from 'react-router-dom';
+import SEO from '../components/SEO';
 import './Landing.css';
 
 function Landing() {
@@ -6,6 +7,10 @@ function Landing() {
 
   return (
     <div className="landing">
+      <SEO
+        title="e-daarah — School Management for Madrasahs & Islamic Schools"
+        description="Simple admin system for madrasahs, Islamic schools, and weekend programs. Track attendance, record exams, grade conduct, and keep parents informed."
+      />
       {/* Header */}
       <header className="landing-header">
         <Link to="/" className="logo">
@@ -24,7 +29,8 @@ function Landing() {
         <p className="hero-arabic">نظام إدارة المدارس الدينية</p>
         <h1 className="hero-title">Run Your Madrasah with Clarity</h1>
         <p className="hero-subtitle">
-          Track attendance, record exams, and keep parents informed — all in one place.
+          The simple admin system for madrasahs, weekend schools, and community learning centers.
+          Track attendance, record exams, and keep parents informed.
         </p>
 
         <div className="hero-actions">
@@ -47,24 +53,24 @@ function Landing() {
 
       {/* Features */}
       <section className="features">
-        <h2 className="section-title">Built for Islamic Schools</h2>
+        <h2 className="section-title">Built for Islamic Schools. Ready for Any School.</h2>
 
         <div className="feature-list">
           <div className="feature">
             <h3>Daily Attendance</h3>
-            <p>Mark attendance and grade dressing and behavior in one step</p>
+            <p>Mark attendance, grade dressing, behavior, and punctuality — all in one step</p>
           </div>
           <div className="feature">
             <h3>Parent Access</h3>
-            <p>Parents log in to see their child's attendance and grades</p>
+            <p>Parents log in to see their child's attendance, grades, and performance reports</p>
           </div>
           <div className="feature">
             <h3>Exam Records</h3>
-            <p>Record scores for Quran memorization, Islamic studies, and more</p>
+            <p>Record scores for Quran, Islamic studies, Arabic, and any custom subject</p>
           </div>
           <div className="feature">
             <h3>Role-Based Portals</h3>
-            <p>Admins, teachers, and parents each get their own dashboard</p>
+            <p>Admins, teachers, and parents each get their own secure dashboard</p>
           </div>
         </div>
       </section>
@@ -146,6 +152,7 @@ function Landing() {
               <span className="footer-logo-text">e-daarah</span>
             </div>
             <p style={{ marginTop: 4 }}>{'نظام إدارة المدارس الدينية'}</p>
+            <p style={{ fontSize: 12, color: '#999', marginTop: 2 }}>Designed for madrasahs. Ready for any school.</p>
           </div>
           <div className="footer-links">
             <Link to="/signin">Sign In</Link>

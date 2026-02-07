@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import SEO from '../components/SEO';
 import './Help.css';
 
 const faqs = [
@@ -124,6 +125,10 @@ function Help() {
 
   return (
     <div className="help-page">
+      <SEO
+        title="Help & FAQ — e-daarah"
+        description="Get help with e-daarah. Frequently asked questions about attendance tracking, exam recording, parent access, and school management."
+      />
       <div className="help-container">
         <Link to="/" className="help-back">← Back to Home</Link>
 

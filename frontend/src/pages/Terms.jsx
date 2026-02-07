@@ -1,9 +1,14 @@
 import { Link } from 'react-router-dom';
+import SEO from '../components/SEO';
 import './Legal.css';
 
 function Terms() {
   return (
     <div className="legal-page">
+      <SEO
+        title="Terms of Service — e-daarah"
+        description="Terms of service for e-daarah school management platform."
+      />
       <div className="legal-container">
         <Link to="/" className="legal-back">Back to Home</Link>
 

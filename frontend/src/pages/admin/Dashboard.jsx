@@ -4433,58 +4433,66 @@ function AdminDashboard() {
                   Choose which grading fields teachers see when recording attendance.
                 </p>
                 <div style={{ display: 'grid', gap: '16px', maxWidth: '400px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false}
-                      onChange={async (e) => {
-                        setSavingSettings(true);
-                        try {
-                          const res = await api.put('/admin/settings', { enable_dressing_grade: e.target.checked });
-                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
-                          toast.success(e.target.checked ? 'Dressing grade enabled' : 'Dressing grade disabled');
-                        } catch (error) {
-                          toast.error('Failed to update setting');
-                        } finally {
-                          setSavingSettings(false);
-                        }
-                      }}
-                      disabled={savingSettings}
-                      style={{ width: '18px', height: '18px' }}
-                    />
-                    <div>
-                      <span style={{ fontWeight: '500' }}>Dressing Grade</span>
-                      <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0 0' }}>
+                  <div className="setting-toggle-row">
+                    <div className="setting-toggle-info">
+                      <span className="setting-toggle-label">Dressing Grade</span>
+                      <p className="setting-toggle-desc">
                         Teachers grade student dressing (Excellent / Good / Fair / Poor)
                       </p>
                     </div>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false}
-                      onChange={async (e) => {
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false}
+                      className={`setting-switch ${(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) ? 'on' : ''}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        const newValue = !(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false);
                         setSavingSettings(true);
                         try {
-                          const res = await api.put('/admin/settings', { enable_behavior_grade: e.target.checked });
+                          const res = await api.put('/admin/settings', { enable_dressing_grade: newValue });
                           setMadrasahProfile(prev => ({ ...prev, ...res.data }));
-                          toast.success(e.target.checked ? 'Behavior grade enabled' : 'Behavior grade disabled');
+                          toast.success(`Dressing grade ${newValue ? 'enabled' : 'disabled'}`);
                         } catch (error) {
                           toast.error('Failed to update setting');
                         } finally {
                           setSavingSettings(false);
                         }
                       }}
-                      disabled={savingSettings}
-                      style={{ width: '18px', height: '18px' }}
-                    />
-                    <div>
-                      <span style={{ fontWeight: '500' }}>Behavior Grade</span>
-                      <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0 0' }}>
+                    >
+                      <span className="setting-switch-thumb" />
+                    </button>
+                  </div>
+                  <div className="setting-toggle-row">
+                    <div className="setting-toggle-info">
+                      <span className="setting-toggle-label">Behavior Grade</span>
+                      <p className="setting-toggle-desc">
                         Teachers grade student behavior (Excellent / Good / Fair / Poor)
                       </p>
                     </div>
-                  </label>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false}
+                      className={`setting-switch ${(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) ? 'on' : ''}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        const newValue = !(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false);
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/admin/settings', { enable_behavior_grade: newValue });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(`Behavior grade ${newValue ? 'enabled' : 'disabled'}`);
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                    >
+                      <span className="setting-switch-thumb" />
+                    </button>
+                  </div>
                 </div>
               </div>
 

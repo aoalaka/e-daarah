@@ -1798,7 +1798,8 @@ router.get('/profile', async (req, res) => {
     const [madrasahs] = await pool.query(
       `SELECT id, name, slug, logo_url, street, city, region, country, phone, email,
        institution_type, verification_status, trial_ends_at, created_at,
-       pricing_plan, subscription_status, current_period_end, stripe_customer_id
+       pricing_plan, subscription_status, current_period_end, stripe_customer_id,
+       enable_dressing_grade, enable_behavior_grade
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -1834,6 +1835,47 @@ router.get('/profile', async (req, res) => {
   } catch (error) {
     console.error('Failed to fetch madrasah profile:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+// Update madrasah feature settings
+router.put('/settings', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { enable_dressing_grade, enable_behavior_grade } = req.body;
+
+    const updates = [];
+    const params = [];
+
+    if (typeof enable_dressing_grade === 'boolean') {
+      updates.push('enable_dressing_grade = ?');
+      params.push(enable_dressing_grade);
+    }
+    if (typeof enable_behavior_grade === 'boolean') {
+      updates.push('enable_behavior_grade = ?');
+      params.push(enable_behavior_grade);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No valid settings provided' });
+    }
+
+    params.push(madrasahId);
+    await pool.query(
+      `UPDATE madrasahs SET ${updates.join(', ')} WHERE id = ?`,
+      params
+    );
+
+    // Return updated settings
+    const [updated] = await pool.query(
+      'SELECT enable_dressing_grade, enable_behavior_grade FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+
+    res.json(updated[0]);
+  } catch (error) {
+    console.error('Failed to update settings:', error);
+    res.status(500).json({ error: 'Failed to update settings' });
   }
 });
 

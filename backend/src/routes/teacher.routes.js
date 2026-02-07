@@ -164,12 +164,20 @@ router.post('/classes/:classId/attendance', requireActiveSubscription, async (re
       return res.status(400).json({ error: 'Cannot record attendance for future dates' });
     }
 
+    // Fetch madrasah grading settings
+    const [madrasahSettings] = await pool.query(
+      'SELECT enable_dressing_grade, enable_behavior_grade FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+    const enableDressing = madrasahSettings[0]?.enable_dressing_grade !== 0;
+    const enableBehavior = madrasahSettings[0]?.enable_behavior_grade !== 0;
+
     // Validate required fields for present students
     if (present === true || present === 1) {
-      if (!dressing_grade || dressing_grade === '') {
+      if (enableDressing && (!dressing_grade || dressing_grade === '')) {
         return res.status(400).json({ error: 'Dressing grade is required for present students' });
       }
-      if (!behavior_grade || behavior_grade === '') {
+      if (enableBehavior && (!behavior_grade || behavior_grade === '')) {
         return res.status(400).json({ error: 'Behavior grade is required for present students' });
       }
     }
@@ -255,13 +263,21 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
       return res.status(400).json({ error: 'All students must be marked as either present or absent' });
     }
 
+    // Fetch madrasah grading settings
+    const [madrasahSettings] = await pool.query(
+      'SELECT enable_dressing_grade, enable_behavior_grade FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+    const enableDressing = madrasahSettings[0]?.enable_dressing_grade !== 0;
+    const enableBehavior = madrasahSettings[0]?.enable_behavior_grade !== 0;
+
     // Validate required fields for present students
     for (const record of records) {
       if (record.present === true || record.present === 1) {
-        if (!record.dressing_grade || record.dressing_grade === '') {
+        if (enableDressing && (!record.dressing_grade || record.dressing_grade === '')) {
           return res.status(400).json({ error: 'Dressing grade is required for all present students' });
         }
-        if (!record.behavior_grade || record.behavior_grade === '') {
+        if (enableBehavior && (!record.behavior_grade || record.behavior_grade === '')) {
           return res.status(400).json({ error: 'Behavior grade is required for all present students' });
         }
       }
@@ -902,7 +918,8 @@ router.get('/madrasah-info', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const [madrasahs] = await pool.query(
-      `SELECT pricing_plan, subscription_status, trial_ends_at
+      `SELECT pricing_plan, subscription_status, trial_ends_at,
+       enable_dressing_grade, enable_behavior_grade
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );

@@ -89,6 +89,14 @@ export const attendanceColumns = [
   { key: 'semester_name', label: 'Semester' },
 ];
 
+export const getAttendanceColumns = (enableDressing = true, enableBehavior = true) => {
+  return attendanceColumns.filter(col => {
+    if (col.key === 'dressing_grade' && !enableDressing) return false;
+    if (col.key === 'behavior_grade' && !enableBehavior) return false;
+    return true;
+  });
+};
+
 export const examColumns = [
   { key: 'exam_date', label: 'Exam Date' },
   { key: 'student_id', label: 'Student ID' },

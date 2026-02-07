@@ -324,6 +324,7 @@ function ParentReport() {
             </div>
 
             {/* Dressing Standards Card */}
+            {(madrasah?.enable_dressing_grade !== 0 && madrasah?.enable_dressing_grade !== false) && (
             <div className="perf-card">
               <div className="perf-card-header">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -358,8 +359,10 @@ function ParentReport() {
                 )}
               </div>
             </div>
+            )}
 
             {/* Behavior & Conduct Card */}
+            {(madrasah?.enable_behavior_grade !== 0 && madrasah?.enable_behavior_grade !== false) && (
             <div className="perf-card">
               <div className="perf-card-header">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -393,6 +396,7 @@ function ParentReport() {
                 )}
               </div>
             </div>
+            )}
           </div>
 
           {/* Detailed Exam Scores by Subject */}

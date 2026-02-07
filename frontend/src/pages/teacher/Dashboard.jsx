@@ -478,13 +478,16 @@ function TeacherDashboard() {
       return;
     }
 
-    // Validate that all present students have dressing and behavior grades
+    // Validate that all present students have dressing and behavior grades (if enabled)
+    const enableDressing = madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false;
+    const enableBehavior = madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false;
+
     const studentsWithIncompleteGrades = students.filter(student => {
       const record = attendanceRecords[student.id];
       const isPresent = record?.present === true;
       if (isPresent) {
-        const hasDressing = record?.dressing_grade && record.dressing_grade !== '';
-        const hasBehavior = record?.behavior_grade && record.behavior_grade !== '';
+        const hasDressing = !enableDressing || (record?.dressing_grade && record.dressing_grade !== '');
+        const hasBehavior = !enableBehavior || (record?.behavior_grade && record.behavior_grade !== '');
         return !hasDressing || !hasBehavior;
       }
       return false;
@@ -494,8 +497,8 @@ function TeacherDashboard() {
       const firstInvalid = studentsWithIncompleteGrades[0];
       const record = attendanceRecords[firstInvalid.id];
       const missingFields = [];
-      if (!record?.dressing_grade || record.dressing_grade === '') missingFields.push('Dressing');
-      if (!record?.behavior_grade || record.behavior_grade === '') missingFields.push('Behavior');
+      if (enableDressing && (!record?.dressing_grade || record.dressing_grade === '')) missingFields.push('Dressing');
+      if (enableBehavior && (!record?.behavior_grade || record.behavior_grade === '')) missingFields.push('Behavior');
       toast.error(`Please select ${missingFields.join(' and ')} grade for ${firstInvalid.first_name} ${firstInvalid.last_name}`);
       return;
     }
@@ -1131,8 +1134,8 @@ function TeacherDashboard() {
                               <th>Name</th>
                               <th style={{ minWidth: '140px' }}>Attendance</th>
                               <th>Absence Reason</th>
-                              <th>Dressing</th>
-                              <th>Behavior</th>
+                              {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && <th>Dressing</th>}
+                              {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && <th>Behavior</th>}
                               <th>Notes</th>
                             </tr>
                           </thead>
@@ -1187,6 +1190,7 @@ function TeacherDashboard() {
                                     <option value="Other">Other</option>
                                   </select>
                                 </td>
+                                {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
                                 <td>
                                   <select
                                     value={attendanceRecords[student.id]?.dressing_grade || ''}
@@ -1202,6 +1206,8 @@ function TeacherDashboard() {
                                     <option value="Poor">Poor</option>
                                   </select>
                                 </td>
+                                )}
+                                {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && (
                                 <td>
                                   <select
                                     value={attendanceRecords[student.id]?.behavior_grade || ''}
@@ -1217,6 +1223,7 @@ function TeacherDashboard() {
                                     <option value="Poor">Poor</option>
                                   </select>
                                 </td>
+                                )}
                                 <td>
                                   <input
                                     type="text"
@@ -1292,6 +1299,7 @@ function TeacherDashboard() {
 
                           {attendanceRecords[student.id]?.present === true && (
                             <>
+                              {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
                               <div className="form-section">
                                 <label className="form-label">Dressing</label>
                                 <select
@@ -1305,7 +1313,9 @@ function TeacherDashboard() {
                                   <option value="Poor">Poor</option>
                                 </select>
                               </div>
+                              )}
 
+                              {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && (
                               <div className="form-section">
                                 <label className="form-label">Behavior</label>
                                 <select
@@ -1319,6 +1329,7 @@ function TeacherDashboard() {
                                   <option value="Poor">Poor</option>
                                 </select>
                               </div>
+                              )}
                             </>
                           )}
 
@@ -1444,18 +1455,18 @@ function TeacherDashboard() {
                             sortable: true,
                             render: (row) => row.absence_reason || '-'
                           },
-                          {
+                          ...((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) ? [{
                             key: 'dressing_grade',
                             label: 'Dressing',
                             sortable: true,
                             render: (row) => row.dressing_grade || '-'
-                          },
-                          {
+                          }] : []),
+                          ...((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) ? [{
                             key: 'behavior_grade',
                             label: 'Behavior',
                             sortable: true,
                             render: (row) => row.behavior_grade || '-'
-                          },
+                          }] : []),
                           {
                             key: 'semester_name',
                             label: 'Semester',

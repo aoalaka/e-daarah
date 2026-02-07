@@ -11,7 +11,7 @@ import DemoBanner from '../../components/DemoBanner';
 import TrialBanner from '../../components/TrialBanner';
 import UsageIndicator from '../../components/UsageIndicator';
 import { handleApiError } from '../../utils/errorHandler';
-import { downloadCSV, studentColumns, attendanceColumns, examColumns, getDateSuffix } from '../../utils/csvExport';
+import { downloadCSV, studentColumns, attendanceColumns, getAttendanceColumns, examColumns, getDateSuffix } from '../../utils/csvExport';
 import './Dashboard.css';
 
 function AdminDashboard() {
@@ -91,6 +91,7 @@ function AdminDashboard() {
   // Settings state
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
   // Billing state
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [selectedPlan, setSelectedPlan] = useState('plus');
@@ -2768,6 +2769,7 @@ function AdminDashboard() {
                             </div>
                           )}
                         </div>
+                        {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
                         <div className="kpi-card green">
                           <div className="kpi-label">Avg Dressing</div>
                           <div className="kpi-value">
@@ -2788,6 +2790,8 @@ function AdminDashboard() {
                             </div>
                           )}
                         </div>
+                        )}
+                        {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && (
                         <div className="kpi-card yellow">
                           <div className="kpi-label">Avg Behavior</div>
                           <div className="kpi-value">
@@ -2808,15 +2812,16 @@ function AdminDashboard() {
                             </div>
                           )}
                         </div>
+                        )}
                       </div>
 
                       {/* High Risk Students (Attendance) */}
                       {classKpis.highRiskStudents && classKpis.highRiskStudents.filter(s =>
-                        s.attendance_rate < 70 || s.avg_dressing < 2.5 || s.avg_behavior < 2.5
+                        s.attendance_rate < 70 || ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && s.avg_dressing < 2.5) || ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && s.avg_behavior < 2.5)
                       ).length > 0 && (
                         <div className="alert-box danger">
                           <h4>At-Risk Students</h4>
-                          <p>Students with attendance below 70% or grades below 2.5/4.0</p>
+                          <p>Students with attendance below 70%{(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) || (madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) ? ' or grades below 2.5/4.0' : ''}</p>
                           <div className="table-wrap">
                             <table className="table">
                               <thead>
@@ -2824,23 +2829,23 @@ function AdminDashboard() {
                                   <th>Student ID</th>
                                   <th>Name</th>
                                   <th>Attendance</th>
-                                  <th>Dressing</th>
-                                  <th>Behavior</th>
+                                  {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && <th>Dressing</th>}
+                                  {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && <th>Behavior</th>}
                                   <th>Areas Needing Attention</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {classKpis.highRiskStudents
-                                  .filter(s => s.attendance_rate < 70 || s.avg_dressing < 2.5 || s.avg_behavior < 2.5)
+                                  .filter(s => s.attendance_rate < 70 || ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && s.avg_dressing < 2.5) || ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && s.avg_behavior < 2.5))
                                   .map(student => {
                                     const areasNeedingAttention = [];
                                     if (student.attendance_rate != null && student.attendance_rate < 70) {
                                       areasNeedingAttention.push('Attendance Needs Improvement');
                                     }
-                                    if (student.avg_dressing != null && student.avg_dressing < 2.5) {
+                                    if ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && student.avg_dressing != null && student.avg_dressing < 2.5) {
                                       areasNeedingAttention.push('Dressing Needs Attention');
                                     }
-                                    if (student.avg_behavior != null && student.avg_behavior < 2.5) {
+                                    if ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && student.avg_behavior != null && student.avg_behavior < 2.5) {
                                       areasNeedingAttention.push('Behavior Needs Guidance');
                                     }
 
@@ -2853,16 +2858,20 @@ function AdminDashboard() {
                                             {student.attendance_rate != null ? `${Number(student.attendance_rate).toFixed(1)}%` : '-'}
                                           </strong>
                                         </td>
+                                        {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
                                         <td>
                                           <strong style={{ color: student.avg_dressing != null && student.avg_dressing < 2.5 ? '#0a0a0a' : student.avg_dressing != null ? '#404040' : 'var(--muted)' }}>
                                             {student.avg_dressing != null ? Number(student.avg_dressing).toFixed(2) : '-'}
                                           </strong>
                                         </td>
+                                        )}
+                                        {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && (
                                         <td>
                                           <strong style={{ color: student.avg_behavior != null && student.avg_behavior < 2.5 ? '#0a0a0a' : student.avg_behavior != null ? '#404040' : 'var(--muted)' }}>
                                             {student.avg_behavior != null ? Number(student.avg_behavior).toFixed(2) : '-'}
                                           </strong>
                                         </td>
+                                        )}
                                         <td>
                                           {areasNeedingAttention.map((area, idx) => (
                                             <span key={idx} className="risk-badge">{area}</span>
@@ -2877,12 +2886,12 @@ function AdminDashboard() {
                           {/* Mobile cards for at-risk students */}
                           <div className="at-risk-mobile-cards">
                             {classKpis.highRiskStudents
-                              .filter(s => s.attendance_rate < 70 || s.avg_dressing < 2.5 || s.avg_behavior < 2.5)
+                              .filter(s => s.attendance_rate < 70 || ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && s.avg_dressing < 2.5) || ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && s.avg_behavior < 2.5))
                               .map(student => {
                                 const areas = [];
                                 if (student.attendance_rate != null && student.attendance_rate < 70) areas.push('Attendance');
-                                if (student.avg_dressing != null && student.avg_dressing < 2.5) areas.push('Dressing');
-                                if (student.avg_behavior != null && student.avg_behavior < 2.5) areas.push('Behavior');
+                                if ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && student.avg_dressing != null && student.avg_dressing < 2.5) areas.push('Dressing');
+                                if ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && student.avg_behavior != null && student.avg_behavior < 2.5) areas.push('Behavior');
                                 return (
                                   <div key={student.id} className="at-risk-card">
                                     <div className="at-risk-card-header">
@@ -2898,18 +2907,22 @@ function AdminDashboard() {
                                           {student.attendance_rate != null ? `${Number(student.attendance_rate).toFixed(1)}%` : '-'}
                                         </span>
                                       </div>
+                                      {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
                                       <div className="at-risk-stat">
                                         <span className="at-risk-stat-label">Dressing</span>
                                         <span className="at-risk-stat-value" style={{ color: student.avg_dressing != null && student.avg_dressing < 2.5 ? '#0a0a0a' : '#404040' }}>
                                           {student.avg_dressing != null ? Number(student.avg_dressing).toFixed(2) : '-'}
                                         </span>
                                       </div>
+                                      )}
+                                      {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && (
                                       <div className="at-risk-stat">
                                         <span className="at-risk-stat-label">Behavior</span>
                                         <span className="at-risk-stat-value" style={{ color: student.avg_behavior != null && student.avg_behavior < 2.5 ? '#0a0a0a' : '#404040' }}>
                                           {student.avg_behavior != null ? Number(student.avg_behavior).toFixed(2) : '-'}
                                         </span>
                                       </div>
+                                      )}
                                     </div>
                                     <div className="at-risk-card-badges">
                                       {areas.map((a, i) => <span key={i} className="risk-badge">{a}</span>)}
@@ -2931,7 +2944,10 @@ function AdminDashboard() {
                         <button
                           onClick={() => downloadCSV(
                             classAttendance.map(r => ({ ...r, class_name: classes.find(c => c.id === selectedClassForPerformance)?.name })),
-                            attendanceColumns,
+                            getAttendanceColumns(
+                              madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false,
+                              madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false
+                            ),
                             `attendance-${getDateSuffix()}`
                           )}
                           className="btn btn-secondary btn-sm"
@@ -2971,18 +2987,18 @@ function AdminDashboard() {
                             </span>
                           )
                         },
-                        {
+                        ...((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) ? [{
                           key: 'dressing_grade',
                           label: 'Dressing',
                           sortable: true,
                           render: (row) => row.dressing_grade || '-'
-                        },
-                        {
+                        }] : []),
+                        ...((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) ? [{
                           key: 'behavior_grade',
                           label: 'Behavior',
                           sortable: true,
                           render: (row) => row.behavior_grade || '-'
-                        },
+                        }] : []),
                         {
                           key: 'semester_name',
                           label: 'Semester',
@@ -3298,6 +3314,7 @@ function AdminDashboard() {
                       </svg>
                       Attendance
                     </button>
+                    {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
                     <button
                       className={`subtab-btn ${rankingSubTab === 'dressing' ? 'active' : ''}`}
                       onClick={() => setRankingSubTab('dressing')}
@@ -3308,6 +3325,8 @@ function AdminDashboard() {
                       </svg>
                       Dressing
                     </button>
+                    )}
+                    {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && (
                     <button
                       className={`subtab-btn ${rankingSubTab === 'behavior' ? 'active' : ''}`}
                       onClick={() => setRankingSubTab('behavior')}
@@ -3317,6 +3336,7 @@ function AdminDashboard() {
                       </svg>
                       Behavior
                     </button>
+                    )}
                   </div>
 
                   {/* Exam Rankings */}
@@ -4172,6 +4192,7 @@ function AdminDashboard() {
                     </div>
 
                     {/* Dressing Standards */}
+                    {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
                     <div className="performance-card">
                       <div className="performance-card-header">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -4212,8 +4233,10 @@ function AdminDashboard() {
                         )}
                       </div>
                     </div>
+                    )}
 
                     {/* Behavior & Conduct */}
+                    {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && (
                     <div className="performance-card">
                       <div className="performance-card-header">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -4253,6 +4276,7 @@ function AdminDashboard() {
                         )}
                       </div>
                     </div>
+                    )}
                   </div>
 
                   {/* School Overall Comment */}
@@ -4400,6 +4424,68 @@ function AdminDashboard() {
                     {changingPassword ? 'Changing...' : 'Change Password'}
                   </button>
                 </form>
+              </div>
+
+              {/* Attendance Features */}
+              <div className="card" style={{ marginTop: '20px' }}>
+                <h3>Attendance Features</h3>
+                <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
+                  Choose which grading fields teachers see when recording attendance.
+                </p>
+                <div style={{ display: 'grid', gap: '16px', maxWidth: '400px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false}
+                      onChange={async (e) => {
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/admin/settings', { enable_dressing_grade: e.target.checked });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(e.target.checked ? 'Dressing grade enabled' : 'Dressing grade disabled');
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                      disabled={savingSettings}
+                      style={{ width: '18px', height: '18px' }}
+                    />
+                    <div>
+                      <span style={{ fontWeight: '500' }}>Dressing Grade</span>
+                      <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0 0' }}>
+                        Teachers grade student dressing (Excellent / Good / Fair / Poor)
+                      </p>
+                    </div>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false}
+                      onChange={async (e) => {
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/admin/settings', { enable_behavior_grade: e.target.checked });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(e.target.checked ? 'Behavior grade enabled' : 'Behavior grade disabled');
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                      disabled={savingSettings}
+                      style={{ width: '18px', height: '18px' }}
+                    />
+                    <div>
+                      <span style={{ fontWeight: '500' }}>Behavior Grade</span>
+                      <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0 0' }}>
+                        Teachers grade student behavior (Excellent / Good / Fair / Poor)
+                      </p>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               {/* Account Info */}

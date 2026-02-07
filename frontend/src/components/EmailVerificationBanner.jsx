@@ -39,8 +39,10 @@ function EmailVerificationBanner() {
     }
   };
 
-  // Don't show banner if loading, verified, or dismissed
-  if (loading || emailVerified || dismissed) {
+  // Don't show banner if loading, verified, dismissed, or demo account
+  const userStr = localStorage.getItem('user');
+  const isDemo = userStr ? JSON.parse(userStr)?.isDemo : false;
+  if (loading || emailVerified || dismissed || isDemo) {
     return null;
   }
 

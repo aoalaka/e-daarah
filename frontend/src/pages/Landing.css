@@ -41,8 +41,13 @@
   color: #1a1a1a;
 }
 
+.logo:hover .logo-text,
+.logo:focus .logo-text {
+  text-decoration: none;
+}
+
 .logo-img {
-  height: 36px;
+  height: 48px;
   width: auto;
   display: block;
   outline: none;
@@ -50,7 +55,7 @@
 }
 
 .logo-text {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
   color: #1a1a1a;
   white-space: nowrap;
@@ -71,12 +76,12 @@
 }
 
 .footer-logo-img {
-  height: 36px;
+  height: 48px;
   width: auto;
 }
 
 .footer-logo-text {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
   color: #1a1a1a;
   text-decoration: none;
@@ -456,11 +461,11 @@
   }
 
   .logo-img {
-    height: 32px;
+    height: 40px;
   }
 
   .logo-text {
-    font-size: 16px;
+    font-size: 18px;
   }
 
   .header-nav {

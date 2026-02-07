@@ -39,12 +39,12 @@
 }
 
 .pricing-header .logo-img {
-  height: 36px;
+  height: 48px;
   width: auto;
 }
 
 .pricing-header .logo-text {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
   color: var(--black);
   white-space: nowrap;
@@ -86,11 +86,11 @@
   }
 
   .pricing-header .logo-img {
-    height: 32px;
+    height: 40px;
   }
 
   .pricing-header .logo-text {
-    font-size: 16px;
+    font-size: 18px;
   }
 
   .pricing-header .nav-link {

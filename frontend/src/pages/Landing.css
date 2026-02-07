@@ -17,8 +17,8 @@
 
 .logo {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 4px;
   text-decoration: none;
   flex-shrink: 0;
   color: #1a1a1a;
@@ -40,15 +40,16 @@
 }
 
 .logo-img {
-  height: 48px;
+  height: 28px;
   width: auto;
   display: block;
   outline: none;
   border: none;
+  margin-top: 1px;
 }
 
 .logo-text {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 600;
   color: #1a1a1a;
   white-space: nowrap;
@@ -57,19 +58,20 @@
 
 .footer-logo {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 3px;
   text-decoration: none;
   margin-bottom: 4px;
 }
 
 .footer-logo-img {
-  height: 32px;
+  height: 22px;
   width: auto;
+  margin-top: 1px;
 }
 
 .footer-logo-text {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: #1a1a1a;
   text-decoration: none;
@@ -464,11 +466,11 @@
   }
 
   .logo-img {
-    height: 40px;
+    height: 22px;
   }
 
   .logo-text {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .header-nav {

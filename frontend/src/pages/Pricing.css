@@ -15,8 +15,8 @@
 
 .pricing-header .logo {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 4px;
   text-decoration: none;
   flex-shrink: 0;
 }
@@ -34,12 +34,13 @@
 }
 
 .pricing-header .logo-img {
-  height: 48px;
+  height: 28px;
   width: auto;
+  margin-top: 1px;
 }
 
 .pricing-header .logo-text {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 600;
   color: var(--black);
   white-space: nowrap;
@@ -81,11 +82,11 @@
   }
 
   .pricing-header .logo-img {
-    height: 40px;
+    height: 22px;
   }
 
   .pricing-header .logo-text {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .pricing-header .nav-link {

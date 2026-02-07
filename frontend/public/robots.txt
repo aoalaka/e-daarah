@@ -6,4 +6,4 @@ Disallow: /*/parent
 Disallow: /*/login
 Disallow: /superadmin/
 
-Sitemap: https://e-daarah.com/sitemap.xml
+Sitemap: https://www.e-daarah.com/sitemap.xml

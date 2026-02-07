@@ -741,7 +741,7 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
 
     // Get madrasah profile for report header
     const [madrasahProfile] = await pool.query(
-      'SELECT name, logo_url, enable_dressing_grade, enable_behavior_grade FROM madrasahs WHERE id = ?',
+      'SELECT name, logo_url, enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
 
@@ -799,6 +799,7 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
 
     const dressingGrades = attendance.filter(a => a.dressing_grade).map(a => gradeToNumber(a.dressing_grade));
     const behaviorGrades = attendance.filter(a => a.behavior_grade).map(a => gradeToNumber(a.behavior_grade));
+    const punctualityGrades = attendance.filter(a => a.punctuality_grade).map(a => gradeToNumber(a.punctuality_grade));
 
     const avgDressing = dressingGrades.length > 0
       ? dressingGrades.reduce((a, b) => a + b, 0) / dressingGrades.length
@@ -806,9 +807,12 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
     const avgBehavior = behaviorGrades.length > 0
       ? behaviorGrades.reduce((a, b) => a + b, 0) / behaviorGrades.length
       : null;
+    const avgPunctuality = punctualityGrades.length > 0
+      ? punctualityGrades.reduce((a, b) => a + b, 0) / punctualityGrades.length
+      : null;
 
     // Calculate rankings (class-scoped, filtered by session/semester)
-    const rankings = { attendance: {}, exam: {}, dressing: {}, behavior: {} };
+    const rankings = { attendance: {}, exam: {}, dressing: {}, behavior: {}, punctuality: {} };
 
     if (student.class_id) {
       // Exam ranking (class-scoped, total = students in class)
@@ -959,6 +963,42 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
           rankings.behavior = { rank: currentRank, total_students: behavRankings.length };
         }
       });
+
+      // Punctuality ranking (class-scoped, total = students present)
+      let punctRankQuery = `
+        SELECT s.id,
+          AVG(CASE a.punctuality_grade
+            WHEN 'Excellent' THEN 4 WHEN 'Good' THEN 3 WHEN 'Fair' THEN 2 WHEN 'Poor' THEN 1 ELSE NULL END) as avg_punctuality
+        FROM students s
+        LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?
+        LEFT JOIN semesters sem ON a.semester_id = sem.id
+        WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL`;
+      const punctRankParams = [madrasahId, madrasahId, student.class_id];
+
+      if (semester_id) {
+        punctRankQuery += ' AND a.semester_id = ?';
+        punctRankParams.push(semester_id);
+      } else if (session_id) {
+        punctRankQuery += ' AND sem.session_id = ?';
+        punctRankParams.push(session_id);
+      }
+
+      punctRankQuery += ' GROUP BY s.id HAVING avg_punctuality IS NOT NULL ORDER BY avg_punctuality DESC';
+      const [punctRankings] = await pool.query(punctRankQuery, punctRankParams);
+
+      currentRank = 1; prevPercentage = null; studentsAtRank = 0;
+      punctRankings.forEach((r) => {
+        const avg = parseFloat(r.avg_punctuality || 0).toFixed(2);
+        if (prevPercentage !== null && avg !== prevPercentage) {
+          currentRank += studentsAtRank;
+          studentsAtRank = 0;
+        }
+        studentsAtRank++;
+        prevPercentage = avg;
+        if (r.id === studentId) {
+          rankings.punctuality = { rank: currentRank, total_students: punctRankings.length };
+        }
+      });
     }
 
     res.json({
@@ -974,7 +1014,8 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       },
       dressingBehavior: {
         avgDressing,
-        avgBehavior
+        avgBehavior,
+        avgPunctuality
       },
       exams,
       rankings,

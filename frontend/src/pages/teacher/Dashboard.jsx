@@ -321,6 +321,7 @@ function TeacherDashboard() {
             present: record.present,
             dressing_grade: record.dressing_grade || '',
             behavior_grade: record.behavior_grade || '',
+            punctuality_grade: record.punctuality_grade || '',
             notes: record.notes || ''
           };
         });
@@ -481,6 +482,7 @@ function TeacherDashboard() {
     // Validate that all present students have dressing and behavior grades (if enabled)
     const enableDressing = madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false;
     const enableBehavior = madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false;
+    const enablePunctuality = madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false;
 
     const studentsWithIncompleteGrades = students.filter(student => {
       const record = attendanceRecords[student.id];
@@ -488,7 +490,8 @@ function TeacherDashboard() {
       if (isPresent) {
         const hasDressing = !enableDressing || (record?.dressing_grade && record.dressing_grade !== '');
         const hasBehavior = !enableBehavior || (record?.behavior_grade && record.behavior_grade !== '');
-        return !hasDressing || !hasBehavior;
+        const hasPunctuality = !enablePunctuality || (record?.punctuality_grade && record.punctuality_grade !== '');
+        return !hasDressing || !hasBehavior || !hasPunctuality;
       }
       return false;
     });
@@ -499,6 +502,7 @@ function TeacherDashboard() {
       const missingFields = [];
       if (enableDressing && (!record?.dressing_grade || record.dressing_grade === '')) missingFields.push('Dressing');
       if (enableBehavior && (!record?.behavior_grade || record.behavior_grade === '')) missingFields.push('Behavior');
+      if (enablePunctuality && (!record?.punctuality_grade || record.punctuality_grade === '')) missingFields.push('Punctuality');
       toast.error(`Please select ${missingFields.join(' and ')} grade for ${firstInvalid.first_name} ${firstInvalid.last_name}`);
       return;
     }
@@ -543,6 +547,7 @@ function TeacherDashboard() {
         absence_reason: attendanceRecords[student.id]?.absence_reason || null,
         dressing_grade: attendanceRecords[student.id]?.dressing_grade || '',
         behavior_grade: attendanceRecords[student.id]?.behavior_grade || '',
+        punctuality_grade: attendanceRecords[student.id]?.punctuality_grade || '',
         notes: attendanceRecords[student.id]?.notes || ''
       }));
 
@@ -1136,6 +1141,7 @@ function TeacherDashboard() {
                               <th>Absence Reason</th>
                               {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && <th>Dressing</th>}
                               {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && <th>Behavior</th>}
+                              {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && <th>Punctuality</th>}
                               <th>Notes</th>
                             </tr>
                           </thead>
@@ -1168,6 +1174,7 @@ function TeacherDashboard() {
                                           updateAttendanceRecord(student.id, 'present', false);
                                           updateAttendanceRecord(student.id, 'dressing_grade', '');
                                           updateAttendanceRecord(student.id, 'behavior_grade', '');
+                                          updateAttendanceRecord(student.id, 'punctuality_grade', '');
                                         }}
                                         style={{ width: '16px', height: '16px' }}
                                       />
@@ -1212,6 +1219,23 @@ function TeacherDashboard() {
                                   <select
                                     value={attendanceRecords[student.id]?.behavior_grade || ''}
                                     onChange={(e) => updateAttendanceRecord(student.id, 'behavior_grade', e.target.value)}
+                                    className="form-select"
+                                    style={{ minWidth: '100px' }}
+                                    disabled={attendanceRecords[student.id]?.present !== true}
+                                  >
+                                    <option value="">Select...</option>
+                                    <option value="Excellent">Excellent</option>
+                                    <option value="Good">Good</option>
+                                    <option value="Fair">Fair</option>
+                                    <option value="Poor">Poor</option>
+                                  </select>
+                                </td>
+                                )}
+                                {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && (
+                                <td>
+                                  <select
+                                    value={attendanceRecords[student.id]?.punctuality_grade || ''}
+                                    onChange={(e) => updateAttendanceRecord(student.id, 'punctuality_grade', e.target.value)}
                                     className="form-select"
                                     style={{ minWidth: '100px' }}
                                     disabled={attendanceRecords[student.id]?.present !== true}
@@ -1274,6 +1298,7 @@ function TeacherDashboard() {
                                     updateAttendanceRecord(student.id, 'present', false);
                                     updateAttendanceRecord(student.id, 'dressing_grade', '');
                                     updateAttendanceRecord(student.id, 'behavior_grade', '');
+                                    updateAttendanceRecord(student.id, 'punctuality_grade', '');
                                   }}
                                 />
                                 <span>Absent</span>
@@ -1321,6 +1346,22 @@ function TeacherDashboard() {
                                 <select
                                   value={attendanceRecords[student.id]?.behavior_grade || ''}
                                   onChange={(e) => updateAttendanceRecord(student.id, 'behavior_grade', e.target.value)}
+                                >
+                                  <option value="">Select...</option>
+                                  <option value="Excellent">Excellent</option>
+                                  <option value="Good">Good</option>
+                                  <option value="Fair">Fair</option>
+                                  <option value="Poor">Poor</option>
+                                </select>
+                              </div>
+                              )}
+
+                              {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && (
+                              <div className="form-section">
+                                <label className="form-label">Punctuality</label>
+                                <select
+                                  value={attendanceRecords[student.id]?.punctuality_grade || ''}
+                                  onChange={(e) => updateAttendanceRecord(student.id, 'punctuality_grade', e.target.value)}
                                 >
                                   <option value="">Select...</option>
                                   <option value="Excellent">Excellent</option>
@@ -1466,6 +1507,12 @@ function TeacherDashboard() {
                             label: 'Behavior',
                             sortable: true,
                             render: (row) => row.behavior_grade || '-'
+                          }] : []),
+                          ...((madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) ? [{
+                            key: 'punctuality_grade',
+                            label: 'Punctuality',
+                            sortable: true,
+                            render: (row) => row.punctuality_grade || '-'
                           }] : []),
                           {
                             key: 'semester_name',

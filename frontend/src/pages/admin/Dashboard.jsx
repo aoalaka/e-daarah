@@ -79,10 +79,11 @@ function AdminDashboard() {
   const [isEditingComment, setIsEditingComment] = useState(false);
   const [reportAvailableSubjects, setReportAvailableSubjects] = useState([]);
   const [studentReports, setStudentReports] = useState([]);
-  const [rankingSubTab, setRankingSubTab] = useState('exam'); // Sub-tab for rankings (exam, attendance, dressing, behavior)
+  const [rankingSubTab, setRankingSubTab] = useState('exam'); // Sub-tab for rankings (exam, attendance, dressing, behavior, punctuality)
   const [attendanceRankings, setAttendanceRankings] = useState([]);
   const [dressingRankings, setDressingRankings] = useState([]);
   const [behaviorRankings, setBehaviorRankings] = useState([]);
+  const [punctualityRankings, setPunctualityRankings] = useState([]);
   const [individualRankings, setIndividualRankings] = useState(null); // Madrasah-wide rankings for individual student
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -204,6 +205,8 @@ function AdminDashboard() {
         fetchDressingRankings();
       } else if (rankingSubTab === 'behavior') {
         fetchBehaviorRankings();
+      } else if (rankingSubTab === 'punctuality') {
+        fetchPunctualityRankings();
       }
     }
   }, [selectedClassForPerformance, reportFilterSession, reportFilterSemester, reportSubTab, rankingSubTab]);
@@ -887,6 +890,27 @@ function AdminDashboard() {
     } catch (error) {
       console.error('Failed to fetch behavior rankings:', error);
       setBehaviorRankings([]);
+    }
+  };
+
+  const fetchPunctualityRankings = async () => {
+    if (!selectedClassForPerformance) return;
+    try {
+      const params = {};
+      
+      if (reportFilterSession) {
+        params.sessionId = reportFilterSession;
+      }
+      if (reportFilterSemester) {
+        params.semesterId = reportFilterSemester;
+      }
+      
+      const classId = selectedClassForPerformance.id || selectedClassForPerformance;
+      const response = await api.get(`/admin/classes/${classId}/punctuality-rankings`, { params });
+      setPunctualityRankings(response.data);
+    } catch (error) {
+      console.error('Failed to fetch punctuality rankings:', error);
+      setPunctualityRankings([]);
     }
   };
 
@@ -2813,15 +2837,37 @@ function AdminDashboard() {
                           )}
                         </div>
                         )}
+                        {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && (
+                        <div className="kpi-card purple">
+                          <div className="kpi-label">Avg Punctuality</div>
+                          <div className="kpi-value">
+                            {(classKpis.classStats?.avg_punctuality_score != null && !isNaN(classKpis.classStats.avg_punctuality_score))
+                              ? Number(classKpis.classStats.avg_punctuality_score).toFixed(2)
+                              : 'N/A'}
+                          </div>
+                          <div className="kpi-sub">out of 4.0</div>
+                          {classKpis.classStats?.avg_punctuality_score != null && !isNaN(classKpis.classStats.avg_punctuality_score) && (
+                            <div className="kpi-insight">
+                              {Number(classKpis.classStats.avg_punctuality_score) >= 3.5
+                                ? 'Excellent punctuality! Students arrive on time.'
+                                : Number(classKpis.classStats.avg_punctuality_score) >= 3.0
+                                ? 'Good punctuality overall. Keep it up.'
+                                : Number(classKpis.classStats.avg_punctuality_score) >= 2.5
+                                ? 'Punctuality needs improvement. Encourage timeliness.'
+                                : 'Punctuality requires immediate attention.'}
+                            </div>
+                          )}
+                        </div>
+                        )}
                       </div>
 
                       {/* High Risk Students (Attendance) */}
                       {classKpis.highRiskStudents && classKpis.highRiskStudents.filter(s =>
-                        s.attendance_rate < 70 || ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && s.avg_dressing < 2.5) || ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && s.avg_behavior < 2.5)
+                        s.attendance_rate < 70 || ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && s.avg_dressing < 2.5) || ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && s.avg_behavior < 2.5) || ((madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && s.avg_punctuality < 2.5)
                       ).length > 0 && (
                         <div className="alert-box danger">
                           <h4>At-Risk Students</h4>
-                          <p>Students with attendance below 70%{(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) || (madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) ? ' or grades below 2.5/4.0' : ''}</p>
+                          <p>Students with attendance below 70%{(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) || (madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) || (madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) ? ' or grades below 2.5/4.0' : ''}</p>
                           <div className="table-wrap">
                             <table className="table">
                               <thead>
@@ -2831,12 +2877,13 @@ function AdminDashboard() {
                                   <th>Attendance</th>
                                   {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && <th>Dressing</th>}
                                   {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && <th>Behavior</th>}
+                                  {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && <th>Punctuality</th>}
                                   <th>Areas Needing Attention</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {classKpis.highRiskStudents
-                                  .filter(s => s.attendance_rate < 70 || ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && s.avg_dressing < 2.5) || ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && s.avg_behavior < 2.5))
+                                  .filter(s => s.attendance_rate < 70 || ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && s.avg_dressing < 2.5) || ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && s.avg_behavior < 2.5) || ((madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && s.avg_punctuality < 2.5))
                                   .map(student => {
                                     const areasNeedingAttention = [];
                                     if (student.attendance_rate != null && student.attendance_rate < 70) {
@@ -2847,6 +2894,9 @@ function AdminDashboard() {
                                     }
                                     if ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && student.avg_behavior != null && student.avg_behavior < 2.5) {
                                       areasNeedingAttention.push('Behavior Needs Guidance');
+                                    }
+                                    if ((madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && student.avg_punctuality != null && student.avg_punctuality < 2.5) {
+                                      areasNeedingAttention.push('Punctuality Needs Improvement');
                                     }
 
                                     return (
@@ -2872,6 +2922,13 @@ function AdminDashboard() {
                                           </strong>
                                         </td>
                                         )}
+                                        {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && (
+                                        <td>
+                                          <strong style={{ color: student.avg_punctuality != null && student.avg_punctuality < 2.5 ? '#0a0a0a' : student.avg_punctuality != null ? '#404040' : 'var(--muted)' }}>
+                                            {student.avg_punctuality != null ? Number(student.avg_punctuality).toFixed(2) : '-'}
+                                          </strong>
+                                        </td>
+                                        )}
                                         <td>
                                           {areasNeedingAttention.map((area, idx) => (
                                             <span key={idx} className="risk-badge">{area}</span>
@@ -2886,12 +2943,13 @@ function AdminDashboard() {
                           {/* Mobile cards for at-risk students */}
                           <div className="at-risk-mobile-cards">
                             {classKpis.highRiskStudents
-                              .filter(s => s.attendance_rate < 70 || ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && s.avg_dressing < 2.5) || ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && s.avg_behavior < 2.5))
+                              .filter(s => s.attendance_rate < 70 || ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && s.avg_dressing < 2.5) || ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && s.avg_behavior < 2.5) || ((madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && s.avg_punctuality < 2.5))
                               .map(student => {
                                 const areas = [];
                                 if (student.attendance_rate != null && student.attendance_rate < 70) areas.push('Attendance');
                                 if ((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && student.avg_dressing != null && student.avg_dressing < 2.5) areas.push('Dressing');
                                 if ((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && student.avg_behavior != null && student.avg_behavior < 2.5) areas.push('Behavior');
+                                if ((madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && student.avg_punctuality != null && student.avg_punctuality < 2.5) areas.push('Punctuality');
                                 return (
                                   <div key={student.id} className="at-risk-card">
                                     <div className="at-risk-card-header">
@@ -2923,6 +2981,14 @@ function AdminDashboard() {
                                         </span>
                                       </div>
                                       )}
+                                      {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && (
+                                      <div className="at-risk-stat">
+                                        <span className="at-risk-stat-label">Punctuality</span>
+                                        <span className="at-risk-stat-value" style={{ color: student.avg_punctuality != null && student.avg_punctuality < 2.5 ? '#0a0a0a' : '#404040' }}>
+                                          {student.avg_punctuality != null ? Number(student.avg_punctuality).toFixed(2) : '-'}
+                                        </span>
+                                      </div>
+                                      )}
                                     </div>
                                     <div className="at-risk-card-badges">
                                       {areas.map((a, i) => <span key={i} className="risk-badge">{a}</span>)}
@@ -2946,7 +3012,8 @@ function AdminDashboard() {
                             classAttendance.map(r => ({ ...r, class_name: classes.find(c => c.id === selectedClassForPerformance)?.name })),
                             getAttendanceColumns(
                               madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false,
-                              madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false
+                              madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false,
+                              madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false
                             ),
                             `attendance-${getDateSuffix()}`
                           )}
@@ -2998,6 +3065,12 @@ function AdminDashboard() {
                           label: 'Behavior',
                           sortable: true,
                           render: (row) => row.behavior_grade || '-'
+                        }] : []),
+                        ...((madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) ? [{
+                          key: 'punctuality_grade',
+                          label: 'Punctuality',
+                          sortable: true,
+                          render: (row) => row.punctuality_grade || '-'
                         }] : []),
                         {
                           key: 'semester_name',
@@ -3335,6 +3408,18 @@ function AdminDashboard() {
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                       </svg>
                       Behavior
+                    </button>
+                    )}
+                    {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && (
+                    <button
+                      className={`subtab-btn ${rankingSubTab === 'punctuality' ? 'active' : ''}`}
+                      onClick={() => setRankingSubTab('punctuality')}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                      </svg>
+                      Punctuality
                     </button>
                     )}
                   </div>
@@ -4021,6 +4106,155 @@ function AdminDashboard() {
                       <p>No behavior data available for this class.</p>
                     </div>
                   )}
+
+                  {/* Punctuality Rankings */}
+                  {rankingSubTab === 'punctuality' && punctualityRankings.length > 0 && (
+                    <>
+                    <div className="rankings-desktop">
+                    <SortableTable
+                      columns={[
+                        {
+                          key: 'rank',
+                          label: 'Rank',
+                          sortable: false,
+                          render: (row) => {
+                            const rank = row.rank || '-';
+                            if (rank === '-') return <span style={{ color: 'var(--muted)' }}>N/A</span>;
+                            return (
+                              <span style={{ 
+                                fontWeight: '700', 
+                                fontSize: '16px',
+                                color: 'var(--text)'
+                              }}>
+                                {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+                              </span>
+                            );
+                          }
+                        },
+                        {
+                          key: 'name',
+                          label: 'Student',
+                          sortable: true,
+                          render: (row) => (
+                            <div>
+                              <strong>{row.first_name} {row.last_name}</strong>
+                              <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{row.student_id}</div>
+                            </div>
+                          )
+                        },
+                        {
+                          key: 'avg_punctuality_grade',
+                          label: 'Average Grade',
+                          sortable: true,
+                          render: (row) => {
+                            const grade = row.avg_punctuality_grade || 'N/A';
+                            let color = 'var(--muted)';
+                            if (grade === 'Excellent') color = '#404040';
+                            else if (grade === 'Good') color = '#525252';
+                            else if (grade === 'Fair') color = '#737373';
+                            else if (grade === 'Poor') color = '#0a0a0a';
+                            
+                            return (
+                              <span style={{ fontWeight: '700', fontSize: '16px', color }}>
+                                {grade}
+                              </span>
+                            );
+                          }
+                        },
+                        {
+                          key: 'excellent_count',
+                          label: 'Excellent',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#404040', fontWeight: '600' }}>
+                              {row.excellent_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'good_count',
+                          label: 'Good',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#525252', fontWeight: '600' }}>
+                              {row.good_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'fair_count',
+                          label: 'Fair',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#737373', fontWeight: '600' }}>
+                              {row.fair_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'poor_count',
+                          label: 'Poor',
+                          sortable: true,
+                          sortType: 'number',
+                          render: (row) => (
+                            <span style={{ color: '#0a0a0a', fontWeight: '600' }}>
+                              {row.poor_count}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'total_records',
+                          label: 'Total Records',
+                          sortable: true,
+                          sortType: 'number'
+                        }
+                      ]}
+                      data={punctualityRankings}
+                      defaultSort={{ key: 'avg_punctuality_score', direction: 'desc' }}
+                    />
+                    </div>
+                    <div className="rankings-mobile">
+                      {punctualityRankings.map(row => {
+                        const rank = row.rank || '-';
+                        const grade = row.avg_punctuality_grade || 'N/A';
+                        let color = '#888';
+                        if (grade === 'Excellent') color = '#404040';
+                        else if (grade === 'Good') color = '#525252';
+                        else if (grade === 'Fair') color = '#737373';
+                        else if (grade === 'Poor') color = '#0a0a0a';
+                        return (
+                          <div key={row.student_id} className="ranking-card">
+                            <div className="ranking-card-top">
+                              <span className="ranking-card-rank">
+                                {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank === '-' ? '-' : `#${rank}`}
+                              </span>
+                              <div className="ranking-card-info">
+                                <div className="ranking-card-name">{row.first_name} {row.last_name}</div>
+                                <div className="ranking-card-id">{row.student_id}</div>
+                              </div>
+                              <div className="ranking-card-score" style={{ color }}>{grade}</div>
+                            </div>
+                            <div className="ranking-card-details">
+                              <div className="ranking-detail"><span className="ranking-detail-label">Excellent</span><span className="ranking-detail-value" style={{ color: '#404040' }}>{row.excellent_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Good</span><span className="ranking-detail-value" style={{ color: '#525252' }}>{row.good_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Fair</span><span className="ranking-detail-value" style={{ color: '#737373' }}>{row.fair_count}</span></div>
+                              <div className="ranking-detail"><span className="ranking-detail-label">Poor</span><span className="ranking-detail-value" style={{ color: '#0a0a0a' }}>{row.poor_count}</span></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    </>
+                  )}
+
+                  {rankingSubTab === 'punctuality' && punctualityRankings.length === 0 && (
+                    <div className="empty">
+                      <p>No punctuality data available for this class.</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -4277,6 +4511,50 @@ function AdminDashboard() {
                       </div>
                     </div>
                     )}
+
+                    {/* Punctuality */}
+                    {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && (
+                    <div className="performance-card">
+                      <div className="performance-card-header">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/>
+                          <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <span>Punctuality</span>
+                      </div>
+                      <div className="performance-card-body">
+                        {individualRankings?.rankings?.punctuality?.rank ? (
+                          <>
+                            <div className="performance-main-stat">
+                              <div className="performance-big-number" style={{ color: studentReport.dressingBehavior?.avgPunctuality >= 3.5 ? '#404040' : studentReport.dressingBehavior?.avgPunctuality >= 2.5 ? '#525252' : '#737373' }}>
+                                {studentReport.dressingBehavior?.avgPunctuality ? studentReport.dressingBehavior.avgPunctuality.toFixed(1) : '0.0'}
+                              </div>
+                              <div className="performance-label">Average Grade (out of 4.0)</div>
+                            </div>
+                            <div className="performance-details">
+                              <div className="detail-row">
+                                <span>Grade:</span>
+                                <strong>
+                                  {studentReport.dressingBehavior?.avgPunctuality >= 3.5 ? 'Excellent' :
+                                   studentReport.dressingBehavior?.avgPunctuality >= 2.5 ? 'Good' :
+                                   studentReport.dressingBehavior?.avgPunctuality >= 1.5 ? 'Fair' : 'Needs Improvement'}
+                                </strong>
+                              </div>
+                            </div>
+                            {individualRankings?.rankings.punctuality.rank && (
+                              <div className="performance-rank">
+                                Rank #{individualRankings.rankings.punctuality.rank} of {individualRankings.rankings.punctuality.total_students}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div style={{ textAlign: 'center', padding: 'var(--lg)', color: 'var(--muted)' }}>
+                            <p>No punctuality records yet</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    )}
                   </div>
 
                   {/* School Overall Comment */}
@@ -4483,6 +4761,36 @@ function AdminDashboard() {
                           const res = await api.put('/admin/settings', { enable_behavior_grade: newValue });
                           setMadrasahProfile(prev => ({ ...prev, ...res.data }));
                           toast.success(`Behavior grade ${newValue ? 'enabled' : 'disabled'}`);
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                    >
+                      <span className="setting-switch-thumb" />
+                    </button>
+                  </div>
+                  <div className="setting-toggle-row">
+                    <div className="setting-toggle-info">
+                      <span className="setting-toggle-label">Punctuality Grade</span>
+                      <p className="setting-toggle-desc">
+                        Teachers grade student punctuality (Excellent / Good / Fair / Poor)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false}
+                      className={`setting-switch ${(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) ? 'on' : ''}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        const newValue = !(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false);
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/admin/settings', { enable_punctuality_grade: newValue });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(`Punctuality grade ${newValue ? 'enabled' : 'disabled'}`);
                         } catch (error) {
                           toast.error('Failed to update setting');
                         } finally {

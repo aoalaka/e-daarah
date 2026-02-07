@@ -153,7 +153,7 @@ router.post('/classes/:classId/attendance', requireActiveSubscription, async (re
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { student_id, semester_id, date, present, dressing_grade, behavior_grade, notes, timezone } = req.body;
+    const { student_id, semester_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes, timezone } = req.body;
 
     // Validate date is not in the future using client's timezone
     const clientTimezone = timezone || 'UTC';
@@ -166,11 +166,12 @@ router.post('/classes/:classId/attendance', requireActiveSubscription, async (re
 
     // Fetch madrasah grading settings
     const [madrasahSettings] = await pool.query(
-      'SELECT enable_dressing_grade, enable_behavior_grade FROM madrasahs WHERE id = ?',
+      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
     const enableDressing = madrasahSettings[0]?.enable_dressing_grade !== 0;
     const enableBehavior = madrasahSettings[0]?.enable_behavior_grade !== 0;
+    const enablePunctuality = madrasahSettings[0]?.enable_punctuality_grade !== 0;
 
     // Validate required fields for present students
     if (present === true || present === 1) {
@@ -179,6 +180,9 @@ router.post('/classes/:classId/attendance', requireActiveSubscription, async (re
       }
       if (enableBehavior && (!behavior_grade || behavior_grade === '')) {
         return res.status(400).json({ error: 'Behavior grade is required for present students' });
+      }
+      if (enablePunctuality && (!punctuality_grade || punctuality_grade === '')) {
+        return res.status(400).json({ error: 'Punctuality grade is required for present students' });
       }
     }
 
@@ -205,15 +209,16 @@ router.post('/classes/:classId/attendance', requireActiveSubscription, async (re
 
     // Insert or update attendance
     await pool.query(
-      `INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, user_id, date, present, dressing_grade, behavior_grade, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, user_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
          present = VALUES(present),
          dressing_grade = VALUES(dressing_grade),
          behavior_grade = VALUES(behavior_grade),
+         punctuality_grade = VALUES(punctuality_grade),
          notes = VALUES(notes),
          updated_at = CURRENT_TIMESTAMP`,
-      [madrasahId, student_id, classId, semester_id, req.user.id, date, present, dressing_grade, behavior_grade, notes]
+      [madrasahId, student_id, classId, semester_id, req.user.id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes]
     );
 
     res.json({ message: 'Attendance recorded successfully' });
@@ -265,11 +270,12 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
 
     // Fetch madrasah grading settings
     const [madrasahSettings] = await pool.query(
-      'SELECT enable_dressing_grade, enable_behavior_grade FROM madrasahs WHERE id = ?',
+      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
     const enableDressing = madrasahSettings[0]?.enable_dressing_grade !== 0;
     const enableBehavior = madrasahSettings[0]?.enable_behavior_grade !== 0;
+    const enablePunctuality = madrasahSettings[0]?.enable_punctuality_grade !== 0;
 
     // Validate required fields for present students
     for (const record of records) {
@@ -279,6 +285,9 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
         }
         if (enableBehavior && (!record.behavior_grade || record.behavior_grade === '')) {
           return res.status(400).json({ error: 'Behavior grade is required for all present students' });
+        }
+        if (enablePunctuality && (!record.punctuality_grade || record.punctuality_grade === '')) {
+          return res.status(400).json({ error: 'Punctuality grade is required for all present students' });
         }
       }
     }
@@ -315,13 +324,14 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
     // Insert/update all records
     for (const record of records) {
       await pool.query(
-        `INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, user_id, date, present, absence_reason, dressing_grade, behavior_grade, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, user_id, date, present, absence_reason, dressing_grade, behavior_grade, punctuality_grade, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
            present = VALUES(present),
            absence_reason = VALUES(absence_reason),
            dressing_grade = VALUES(dressing_grade),
            behavior_grade = VALUES(behavior_grade),
+           punctuality_grade = VALUES(punctuality_grade),
            notes = VALUES(notes),
            updated_at = CURRENT_TIMESTAMP`,
         [
@@ -335,6 +345,7 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
           record.absence_reason || null,
           record.dressing_grade || null,
           record.behavior_grade || null,
+          record.punctuality_grade || null,
           record.notes || ''
         ]
       );
@@ -919,7 +930,7 @@ router.get('/madrasah-info', async (req, res) => {
     const madrasahId = req.madrasahId;
     const [madrasahs] = await pool.query(
       `SELECT pricing_plan, subscription_status, trial_ends_at,
-       enable_dressing_grade, enable_behavior_grade
+       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );

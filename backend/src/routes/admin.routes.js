@@ -790,7 +790,9 @@ router.get('/classes/:classId/kpis', async (req, res) => {
         SUM(CASE WHEN a.dressing_grade = 'Excellent' THEN 4 WHEN a.dressing_grade = 'Good' THEN 3 WHEN a.dressing_grade = 'Fair' THEN 2 WHEN a.dressing_grade = 'Poor' THEN 1 ELSE 0 END) /
           NULLIF(SUM(CASE WHEN a.dressing_grade IS NOT NULL THEN 1 ELSE 0 END), 0) as avg_dressing_score,
         SUM(CASE WHEN a.behavior_grade = 'Excellent' THEN 4 WHEN a.behavior_grade = 'Good' THEN 3 WHEN a.behavior_grade = 'Fair' THEN 2 WHEN a.behavior_grade = 'Poor' THEN 1 ELSE 0 END) /
-          NULLIF(SUM(CASE WHEN a.behavior_grade IS NOT NULL THEN 1 ELSE 0 END), 0) as avg_behavior_score
+          NULLIF(SUM(CASE WHEN a.behavior_grade IS NOT NULL THEN 1 ELSE 0 END), 0) as avg_behavior_score,
+        SUM(CASE WHEN a.punctuality_grade = 'Excellent' THEN 4 WHEN a.punctuality_grade = 'Good' THEN 3 WHEN a.punctuality_grade = 'Fair' THEN 2 WHEN a.punctuality_grade = 'Poor' THEN 1 ELSE 0 END) /
+          NULLIF(SUM(CASE WHEN a.punctuality_grade IS NOT NULL THEN 1 ELSE 0 END), 0) as avg_punctuality_score
       FROM attendance a
       WHERE a.class_id = ? AND a.madrasah_id = ?${semesterFilter}
     `, params);
@@ -819,6 +821,7 @@ router.get('/classes/:classId/kpis', async (req, res) => {
         (SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT a.date), 0) * 100) as attendance_rate,
         AVG(CASE WHEN a.dressing_grade = 'Excellent' THEN 4 WHEN a.dressing_grade = 'Good' THEN 3 WHEN a.dressing_grade = 'Fair' THEN 2 WHEN a.dressing_grade = 'Poor' THEN 1 ELSE NULL END) as avg_dressing,
         AVG(CASE WHEN a.behavior_grade = 'Excellent' THEN 4 WHEN a.behavior_grade = 'Good' THEN 3 WHEN a.behavior_grade = 'Fair' THEN 2 WHEN a.behavior_grade = 'Poor' THEN 1 ELSE NULL END) as avg_behavior,
+        AVG(CASE WHEN a.punctuality_grade = 'Excellent' THEN 4 WHEN a.punctuality_grade = 'Good' THEN 3 WHEN a.punctuality_grade = 'Fair' THEN 2 WHEN a.punctuality_grade = 'Poor' THEN 1 ELSE NULL END) as avg_punctuality,
         (SELECT AVG(ep.score) FROM exam_performance ep WHERE ep.student_id = s.id AND ep.madrasah_id = ?) as avg_exam_score
       FROM students s
       LEFT JOIN attendance a ON s.id = a.student_id AND a.class_id = ? AND a.madrasah_id = ?${semesterFilter}
@@ -828,6 +831,7 @@ router.get('/classes/:classId/kpis', async (req, res) => {
         attendance_rate < 70
         OR avg_dressing < 2.5
         OR avg_behavior < 2.5
+        OR avg_punctuality < 2.5
         OR avg_exam_score < 50
       ORDER BY attendance_rate ASC, avg_exam_score ASC
     `, semester_id
@@ -1316,6 +1320,114 @@ router.get('/classes/:classId/behavior-rankings', async (req, res) => {
   }
 });
 
+// Get punctuality rankings for a class (scoped to madrasah)
+router.get('/classes/:classId/punctuality-rankings', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { classId } = req.params;
+    const { sessionId, semesterId } = req.query;
+
+    // Verify class belongs to this madrasah
+    const [classCheck] = await pool.query(
+      'SELECT id FROM classes WHERE id = ? AND madrasah_id = ?',
+      [classId, madrasahId]
+    );
+    if (classCheck.length === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+
+    // Build query with filters (Excellent=4, Good=3, Fair=2, Poor=1)
+    let query = `
+      SELECT 
+        s.id,
+        s.student_id,
+        s.first_name,
+        s.last_name,
+        c.name as class_name,
+        COUNT(a.id) as total_records,
+        AVG(
+          CASE a.punctuality_grade
+            WHEN 'Excellent' THEN 4
+            WHEN 'Good' THEN 3
+            WHEN 'Fair' THEN 2
+            WHEN 'Poor' THEN 1
+            ELSE NULL
+          END
+        ) as avg_punctuality_score,
+        SUM(CASE WHEN a.punctuality_grade = 'Excellent' THEN 1 ELSE 0 END) as excellent_count,
+        SUM(CASE WHEN a.punctuality_grade = 'Good' THEN 1 ELSE 0 END) as good_count,
+        SUM(CASE WHEN a.punctuality_grade = 'Fair' THEN 1 ELSE 0 END) as fair_count,
+        SUM(CASE WHEN a.punctuality_grade = 'Poor' THEN 1 ELSE 0 END) as poor_count
+      FROM students s
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ? AND a.punctuality_grade IS NOT NULL
+      LEFT JOIN semesters sem ON a.semester_id = sem.id
+      LEFT JOIN classes c ON s.class_id = c.id
+      WHERE s.class_id = ? AND s.deleted_at IS NULL
+    `;
+    
+    const queryParams = [madrasahId, classId];
+
+    if (sessionId) {
+      query += ` AND sem.session_id = ?`;
+      queryParams.push(sessionId);
+    }
+
+    if (semesterId) {
+      query += ` AND a.semester_id = ?`;
+      queryParams.push(semesterId);
+    }
+
+    query += ` GROUP BY s.id ORDER BY avg_punctuality_score DESC`;
+
+    const [rankings] = await pool.query(query, queryParams);
+
+    // Format the results and add rank (handle ties properly)
+    let currentRank = 1;
+    let previousScore = null;
+    let studentsAtCurrentRank = 0;
+    
+    const formattedRankings = rankings.map((student) => {
+      const score = student.avg_punctuality_score ? parseFloat(student.avg_punctuality_score).toFixed(2) : null;
+      
+      // If this is a different score than the previous student, update rank
+      if (previousScore !== null && score !== previousScore) {
+        currentRank += studentsAtCurrentRank;
+        studentsAtCurrentRank = 0;
+      }
+      
+      studentsAtCurrentRank++;
+      previousScore = score;
+      
+      // Convert score back to grade label
+      let gradeLabel = 'N/A';
+      if (score !== null) {
+        const scoreNum = parseFloat(score);
+        if (scoreNum >= 3.5) gradeLabel = 'Excellent';
+        else if (scoreNum >= 2.5) gradeLabel = 'Good';
+        else if (scoreNum >= 1.5) gradeLabel = 'Fair';
+        else gradeLabel = 'Poor';
+      }
+      
+      return {
+        ...student,
+        rank: score !== null ? currentRank : null,
+        avg_punctuality_score: score,
+        avg_punctuality_grade: gradeLabel,
+        total_records: parseInt(student.total_records) || 0,
+        excellent_count: parseInt(student.excellent_count) || 0,
+        good_count: parseInt(student.good_count) || 0,
+        fair_count: parseInt(student.fair_count) || 0,
+        poor_count: parseInt(student.poor_count) || 0
+      };
+    });
+
+    res.json(formattedRankings);
+  } catch (error) {
+    console.error('Get punctuality rankings error:', error);
+    res.status(500).json({ error: 'Failed to fetch punctuality rankings' });
+  }
+});
+
 // Get all rankings for a specific student (class-scoped)
 router.get('/students/:id/all-rankings', async (req, res) => {
   try {
@@ -1597,6 +1709,74 @@ router.get('/students/:id/all-rankings', async (req, res) => {
       }
     });
 
+    // Get punctuality ranking (class-scoped, total = students present)
+    let punctualityQuery = `
+      SELECT 
+        s.id,
+        AVG(
+          CASE a.punctuality_grade
+            WHEN 'Excellent' THEN 4
+            WHEN 'Good' THEN 3
+            WHEN 'Fair' THEN 2
+            WHEN 'Poor' THEN 1
+            ELSE NULL
+          END
+        ) as avg_punctuality_score
+      FROM students s
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ? AND a.punctuality_grade IS NOT NULL
+      LEFT JOIN semesters sem ON a.semester_id = sem.id
+      WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL
+    `;
+    const punctualityParams = [madrasahId, madrasahId, student.class_id];
+
+    if (sessionId) {
+      punctualityQuery += ` AND sem.session_id = ?`;
+      punctualityParams.push(sessionId);
+    }
+    if (semesterId) {
+      punctualityQuery += ` AND a.semester_id = ?`;
+      punctualityParams.push(semesterId);
+    }
+
+    punctualityQuery += ` GROUP BY s.id HAVING avg_punctuality_score IS NOT NULL ORDER BY avg_punctuality_score DESC`;
+    const [punctualityRankings] = await pool.query(punctualityQuery, punctualityParams);
+
+    // Apply tie-aware ranking for punctuality
+    let punctualityRankArray = [];
+    let punctualityCurrentRank = 1;
+    let punctualityPreviousScore = null;
+    let punctualityStudentsAtCurrentRank = 0;
+    
+    punctualityRankings.forEach((student) => {
+      const score = student.avg_punctuality_score ? parseFloat(student.avg_punctuality_score).toFixed(2) : '0.00';
+      
+      if (punctualityPreviousScore !== null && score !== punctualityPreviousScore) {
+        punctualityCurrentRank += punctualityStudentsAtCurrentRank;
+        punctualityStudentsAtCurrentRank = 0;
+      }
+      
+      punctualityStudentsAtCurrentRank++;
+      punctualityPreviousScore = score;
+      
+      punctualityRankArray.push({
+        ...student,
+        rank: punctualityCurrentRank
+      });
+    });
+
+    let punctualityRank = null;
+    let punctualityScore = null;
+    let totalPunctualityStudents = punctualityRankArray.length;
+    punctualityRankArray.forEach((r) => {
+      if (r.id === parseInt(id)) {
+        // Only set rank if student has actual punctuality data
+        if (r.avg_punctuality_score && parseFloat(r.avg_punctuality_score) > 0) {
+          punctualityRank = r.rank;
+          punctualityScore = parseFloat(r.avg_punctuality_score).toFixed(2);
+        }
+      }
+    });
+
     res.json({
       student: {
         id: student.id,
@@ -1625,6 +1805,11 @@ router.get('/students/:id/all-rankings', async (req, res) => {
           rank: behaviorRank,
           score: behaviorScore,
           total_students: totalBehaviorStudents
+        },
+        punctuality: {
+          rank: punctualityRank,
+          score: punctualityScore,
+          total_students: totalPunctualityStudents
         }
       }
     });
@@ -1799,7 +1984,7 @@ router.get('/profile', async (req, res) => {
       `SELECT id, name, slug, logo_url, street, city, region, country, phone, email,
        institution_type, verification_status, trial_ends_at, created_at,
        pricing_plan, subscription_status, current_period_end, stripe_customer_id,
-       enable_dressing_grade, enable_behavior_grade
+       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -1842,7 +2027,7 @@ router.get('/profile', async (req, res) => {
 router.put('/settings', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { enable_dressing_grade, enable_behavior_grade } = req.body;
+    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade } = req.body;
 
     const updates = [];
     const params = [];
@@ -1854,6 +2039,10 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
     if (typeof enable_behavior_grade === 'boolean') {
       updates.push('enable_behavior_grade = ?');
       params.push(enable_behavior_grade);
+    }
+    if (typeof enable_punctuality_grade === 'boolean') {
+      updates.push('enable_punctuality_grade = ?');
+      params.push(enable_punctuality_grade);
     }
 
     if (updates.length === 0) {
@@ -1868,7 +2057,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
 
     // Return updated settings
     const [updated] = await pool.query(
-      'SELECT enable_dressing_grade, enable_behavior_grade FROM madrasahs WHERE id = ?',
+      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
 

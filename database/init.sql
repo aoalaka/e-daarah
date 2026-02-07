@@ -48,6 +48,10 @@ CREATE TABLE IF NOT EXISTS madrasahs (
     verification_notes TEXT,
     verified_at TIMESTAMP NULL,
     verified_by INT NULL,
+    -- Grade toggles
+    enable_dressing_grade BOOLEAN NOT NULL DEFAULT TRUE,
+    enable_behavior_grade BOOLEAN NOT NULL DEFAULT TRUE,
+    enable_punctuality_grade BOOLEAN NOT NULL DEFAULT TRUE,
     -- Soft delete
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -239,6 +243,7 @@ CREATE TABLE IF NOT EXISTS attendance (
     absence_reason ENUM('Sick', 'Parent Request', 'School Not Notified', 'Other') DEFAULT NULL,
     dressing_grade ENUM('Excellent', 'Good', 'Fair', 'Poor') DEFAULT NULL,
     behavior_grade ENUM('Excellent', 'Good', 'Fair', 'Poor') DEFAULT NULL,
+    punctuality_grade ENUM('Excellent', 'Good', 'Fair', 'Poor') DEFAULT NULL,
     notes TEXT,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

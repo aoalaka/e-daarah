@@ -86,13 +86,15 @@ export const attendanceColumns = [
   { key: 'present', label: 'Present' },
   { key: 'dressing_grade', label: 'Dressing' },
   { key: 'behavior_grade', label: 'Behavior' },
+  { key: 'punctuality_grade', label: 'Punctuality' },
   { key: 'semester_name', label: 'Semester' },
 ];
 
-export const getAttendanceColumns = (enableDressing = true, enableBehavior = true) => {
+export const getAttendanceColumns = (enableDressing = true, enableBehavior = true, enablePunctuality = true) => {
   return attendanceColumns.filter(col => {
     if (col.key === 'dressing_grade' && !enableDressing) return false;
     if (col.key === 'behavior_grade' && !enableBehavior) return false;
+    if (col.key === 'punctuality_grade' && !enablePunctuality) return false;
     return true;
   });
 };

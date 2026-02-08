@@ -14,6 +14,8 @@ function SuperAdminDashboard() {
   const [madrasahs, setMadrasahs] = useState([]);
   const [recentRegistrations, setRecentRegistrations] = useState([]);
   const [securityEvents, setSecurityEvents] = useState([]);
+  const [engagement, setEngagement] = useState(null);
+  const [revenue, setRevenue] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ status: '', plan: '', search: '' });
   const [page, setPage] = useState(1);
@@ -32,6 +34,8 @@ function SuperAdminDashboard() {
     fetchDashboard();
     fetchMadrasahs();
     fetchRecentRegistrations();
+    fetchEngagement();
+    fetchRevenue();
   }, []);
 
   useEffect(() => {
@@ -97,6 +101,24 @@ function SuperAdminDashboard() {
     }
   };
 
+  const fetchEngagement = async () => {
+    try {
+      const response = await api.get('/superadmin/engagement', getAuthHeader());
+      setEngagement(response.data);
+    } catch (error) {
+      console.error('Failed to fetch engagement:', error);
+    }
+  };
+
+  const fetchRevenue = async () => {
+    try {
+      const response = await api.get('/superadmin/revenue', getAuthHeader());
+      setRevenue(response.data);
+    } catch (error) {
+      console.error('Failed to fetch revenue:', error);
+    }
+  };
+
   const handleSuspend = async (id, name) => {
     if (!confirm(`Suspend ${name}? Users will not be able to log in.`)) return;
 
@@ -150,6 +172,20 @@ function SuperAdminDashboard() {
     return types[type] || type;
   };
 
+  const daysSince = (dateStr) => {
+    if (!dateStr) return Infinity;
+    return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  const formatTimeAgo = (dateStr) => {
+    const days = daysSince(dateStr);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return `${Math.floor(days / 30)}mo ago`;
+  };
+
   return (
     <div className="superadmin">
       <header className="superadmin-header">
@@ -177,12 +213,20 @@ function SuperAdminDashboard() {
               <div className="stat-label">Active</div>
             </div>
             <div className="stat-card">
-              <div className="stat-value">{stats.totalStudents}</div>
+              <div className="stat-value">{stats.totalStudents?.toLocaleString()}</div>
               <div className="stat-label">Total Students</div>
             </div>
             <div className="stat-card">
               <div className="stat-value">{stats.totalUsers}</div>
               <div className="stat-label">Total Users</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">${stats.mrr || 0}</div>
+              <div className="stat-label">MRR</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{stats.activeThisWeek || 0}</div>
+              <div className="stat-label">Active This Week</div>
             </div>
             <div className="stat-card highlight" onClick={() => setActiveTab('review')} style={{ cursor: 'pointer' }}>
               <div className="stat-value">{stats.recentRegistrations}</div>
@@ -200,6 +244,18 @@ function SuperAdminDashboard() {
             All Madrasahs
           </button>
           <button
+            className={`tab ${activeTab === 'engagement' ? 'active' : ''}`}
+            onClick={() => setActiveTab('engagement')}
+          >
+            Engagement
+          </button>
+          <button
+            className={`tab ${activeTab === 'revenue' ? 'active' : ''}`}
+            onClick={() => setActiveTab('revenue')}
+          >
+            Revenue
+          </button>
+          <button
             className={`tab ${activeTab === 'review' ? 'active' : ''}`}
             onClick={() => setActiveTab('review')}
           >
@@ -209,7 +265,7 @@ function SuperAdminDashboard() {
             className={`tab ${activeTab === 'security' ? 'active' : ''}`}
             onClick={() => setActiveTab('security')}
           >
-            Security Events
+            Security
           </button>
         </div>
 
@@ -332,6 +388,174 @@ function SuperAdminDashboard() {
               )}
             </section>
           </>
+        )}
+
+        {/* Engagement Tab */}
+        {activeTab === 'engagement' && (
+          <section className="table-section">
+            <h2>Engagement Overview</h2>
+            <p className="section-desc">Track how actively each madrasah is using the platform.</p>
+
+            {engagement?.summary && (
+              <div className="engagement-summary">
+                <div className="mini-stat">
+                  <span className="mini-value">{engagement.summary.activeThisWeek}</span>
+                  <span className="mini-label">Active this week</span>
+                </div>
+                <div className="mini-stat">
+                  <span className="mini-value">{engagement.summary.activeThisMonth}</span>
+                  <span className="mini-label">Active this month</span>
+                </div>
+                <div className="mini-stat warning">
+                  <span className="mini-value">{engagement.summary.dormantCount}</span>
+                  <span className="mini-label">Dormant (30d+)</span>
+                </div>
+                <div className="mini-stat">
+                  <span className="mini-value">{engagement.summary.attendanceThisWeek}</span>
+                  <span className="mini-label">Attendance records (7d)</span>
+                </div>
+                <div className="mini-stat">
+                  <span className="mini-value">{engagement.summary.examsThisWeek}</span>
+                  <span className="mini-label">Exam records (7d)</span>
+                </div>
+              </div>
+            )}
+
+            {engagement?.engagement?.length > 0 ? (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Madrasah</th>
+                    <th>Plan</th>
+                    <th>Users</th>
+                    <th>Students</th>
+                    <th>Activity (7d)</th>
+                    <th>Attendance (30d)</th>
+                    <th>Exams (30d)</th>
+                    <th>Last Active</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {engagement.engagement.map((m) => (
+                    <tr key={m.id} className={!m.last_login || daysSince(m.last_login) > 30 ? 'warning-row' : ''}>
+                      <td>
+                        <Link to={`${getBasePath()}/madrasahs/${m.id}`} className="madrasah-link">
+                          {m.name}
+                        </Link>
+                      </td>
+                      <td>
+                        <span className={`plan-badge ${m.pricing_plan || 'trial'}`}>
+                          {m.pricing_plan || 'trial'}
+                        </span>
+                      </td>
+                      <td>{m.user_count}</td>
+                      <td>{m.student_count}</td>
+                      <td>
+                        <span className={`activity-count ${m.activity_7d > 0 ? 'active' : 'none'}`}>
+                          {m.activity_7d}
+                        </span>
+                      </td>
+                      <td>{m.attendance_30d}</td>
+                      <td>{m.exams_30d}</td>
+                      <td>
+                        {m.last_login ? (
+                          <span className={daysSince(m.last_login) > 14 ? 'text-warning' : ''}>
+                            {formatTimeAgo(m.last_login)}
+                          </span>
+                        ) : (
+                          <span className="text-muted">Never</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="empty-state">No engagement data available yet.</p>
+            )}
+          </section>
+        )}
+
+        {/* Revenue Tab */}
+        {activeTab === 'revenue' && (
+          <section className="table-section">
+            <h2>Revenue & Growth</h2>
+            <p className="section-desc">Monthly recurring revenue, plan distribution, and growth trends.</p>
+
+            {revenue && (
+              <>
+                <div className="revenue-cards">
+                  <div className="revenue-card primary">
+                    <div className="revenue-value">${revenue.mrr}</div>
+                    <div className="revenue-label">Monthly Recurring Revenue</div>
+                  </div>
+                  <div className="revenue-card">
+                    <div className="revenue-value">{revenue.payingCustomers}</div>
+                    <div className="revenue-label">Paying Customers</div>
+                  </div>
+                  <div className="revenue-card">
+                    <div className="revenue-value">{revenue.trialCount}</div>
+                    <div className="revenue-label">On Trial</div>
+                  </div>
+                  <div className="revenue-card">
+                    <div className="revenue-value">{revenue.conversionRate}%</div>
+                    <div className="revenue-label">Trial Conversion</div>
+                  </div>
+                  {revenue.pastDueCount > 0 && (
+                    <div className="revenue-card danger">
+                      <div className="revenue-value">{revenue.pastDueCount}</div>
+                      <div className="revenue-label">Past Due</div>
+                    </div>
+                  )}
+                  {revenue.canceledCount > 0 && (
+                    <div className="revenue-card">
+                      <div className="revenue-value">{revenue.canceledCount}</div>
+                      <div className="revenue-label">Canceled</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Growth Trend */}
+                {revenue.growthTrend?.length > 0 && (
+                  <div className="growth-section">
+                    <h3>Signups by Month</h3>
+                    <div className="growth-chart">
+                      {revenue.growthTrend.map((item) => {
+                        const max = Math.max(...revenue.growthTrend.map(g => g.signups), 1);
+                        return (
+                          <div key={item.month} className="growth-bar-wrapper">
+                            <div className="growth-count">{item.signups}</div>
+                            <div
+                              className="growth-bar"
+                              style={{ height: `${Math.max((item.signups / max) * 120, 4)}px` }}
+                            />
+                            <div className="growth-month">{item.month.slice(5)}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Plan Distribution */}
+                <div className="plan-distribution">
+                  <h3>Plan Distribution</h3>
+                  <div className="plan-dist-grid">
+                    {['trial', 'standard', 'plus', 'enterprise'].map(plan => {
+                      const items = revenue.planDistribution?.filter(p => p.pricing_plan === plan) || [];
+                      const total = items.reduce((sum, i) => sum + i.count, 0);
+                      return (
+                        <div key={plan} className="plan-dist-item">
+                          <span className={`plan-badge ${plan}`}>{plan}</span>
+                          <span className="plan-dist-count">{total}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
         )}
 
         {/* Review Queue Tab */}

@@ -80,7 +80,7 @@ function MadrasahDetail() {
   if (loading) return <div className="superadmin"><p>Loading...</p></div>;
   if (!data) return <div className="superadmin"><p>Madrasah not found</p></div>;
 
-  const { madrasah, users, studentCount, recentActivity } = data;
+  const { madrasah, users, studentCount, recentActivity, usageStats } = data;
 
   return (
     <div className="superadmin">
@@ -181,6 +181,49 @@ function MadrasahDetail() {
           </div>
         </section>
 
+        {/* Usage Stats */}
+        {usageStats && (
+          <section className="detail-section">
+            <h2>Usage Statistics</h2>
+            <div className="usage-stats-grid">
+              <div className="usage-stat">
+                <div className="usage-stat-value">{usageStats.totalAttendance?.toLocaleString() || 0}</div>
+                <div className="usage-stat-label">Attendance Records</div>
+                <div className="usage-stat-sub">{usageStats.attendance30d || 0} last 30 days</div>
+              </div>
+              <div className="usage-stat">
+                <div className="usage-stat-value">{usageStats.totalExams?.toLocaleString() || 0}</div>
+                <div className="usage-stat-label">Exam Records</div>
+                <div className="usage-stat-sub">{usageStats.exams30d || 0} last 30 days</div>
+              </div>
+              <div className="usage-stat">
+                <div className="usage-stat-value">{usageStats.totalClasses || 0}</div>
+                <div className="usage-stat-label">Classes</div>
+              </div>
+              <div className="usage-stat">
+                <div className="usage-stat-value">{usageStats.totalSessions || 0}</div>
+                <div className="usage-stat-label">Sessions</div>
+              </div>
+              <div className="usage-stat">
+                <div className="usage-stat-value">
+                  {usageStats.lastAttendanceDate
+                    ? new Date(usageStats.lastAttendanceDate).toLocaleDateString()
+                    : '—'}
+                </div>
+                <div className="usage-stat-label">Last Attendance</div>
+              </div>
+              <div className="usage-stat">
+                <div className="usage-stat-value">
+                  {usageStats.lastActiveAt
+                    ? new Date(usageStats.lastActiveAt).toLocaleDateString()
+                    : '—'}
+                </div>
+                <div className="usage-stat-label">Last Active</div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Users */}
         <section className="detail-section">
           <h2>Users ({users.length})</h2>
@@ -190,6 +233,7 @@ function MadrasahDetail() {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
+                <th>Last Login</th>
                 <th>Created</th>
               </tr>
             </thead>
@@ -199,6 +243,11 @@ function MadrasahDetail() {
                   <td>{user.first_name} {user.last_name}</td>
                   <td>{user.email}</td>
                   <td><span className={`role-badge ${user.role}`}>{user.role}</span></td>
+                  <td>
+                    {user.last_login_at
+                      ? new Date(user.last_login_at).toLocaleDateString()
+                      : <span className="text-muted">Never</span>}
+                  </td>
                   <td>{new Date(user.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}
@@ -210,7 +259,7 @@ function MadrasahDetail() {
         <section className="detail-section">
           <h2>Recent Activity</h2>
           {recentActivity.length === 0 ? (
-            <p className="empty">No recent activity</p>
+            <p className="empty">No recent activity recorded yet. Activity will appear here as admins and teachers use the platform.</p>
           ) : (
             <table className="data-table">
               <thead>
@@ -218,15 +267,31 @@ function MadrasahDetail() {
                   <th>Action</th>
                   <th>Resource</th>
                   <th>User Type</th>
+                  <th>Details</th>
                   <th>Time</th>
                 </tr>
               </thead>
               <tbody>
                 {recentActivity.map((log) => (
                   <tr key={log.id}>
-                    <td>{log.action}</td>
-                    <td>{log.resource}</td>
-                    <td>{log.user_type}</td>
+                    <td>
+                      <span className={`activity-action ${log.action?.toLowerCase()}`}>
+                        {log.action}
+                      </span>
+                    </td>
+                    <td>{log.resource}{log.resource_id ? ` #${log.resource_id}` : ''}</td>
+                    <td><span className={`role-badge ${log.user_type}`}>{log.user_type}</span></td>
+                    <td>
+                      {log.details && typeof log.details === 'object' && Object.keys(log.details).length > 0 && (
+                        <span className="details-preview">
+                          {Object.entries(log.details)
+                            .filter(([, v]) => v !== undefined && v !== null)
+                            .slice(0, 3)
+                            .map(([k, v]) => `${k}: ${v}`)
+                            .join(', ')}
+                        </span>
+                      )}
+                    </td>
                     <td>{new Date(log.created_at).toLocaleString()}</td>
                   </tr>
                 ))}

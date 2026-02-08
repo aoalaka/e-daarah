@@ -14,6 +14,7 @@ import attendanceRoutes from './routes/attendance.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import superadminRoutes from './routes/superadmin.routes.js';
 import billingRoutes from './routes/billing.routes.js';
+import { activityLogger } from './middleware/activityLog.middleware.js';
 import { startScheduler } from './services/scheduler.service.js';
 
 dotenv.config();
@@ -134,8 +135,8 @@ app.use('/api/auth/madrasahs/search', searchLimiter);
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/password', passwordRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/teacher', teacherRoutes);
+app.use('/api/admin', activityLogger, adminRoutes);
+app.use('/api/teacher', activityLogger, teacherRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/upload', uploadRoutes);

@@ -28,14 +28,15 @@ const authenticateSuperAdmin = async (req, res, next) => {
 };
 
 // Audit log helper
-const logAudit = async (req, action, resource, resourceId, details = {}) => {
+const logAudit = async (req, action, resource, resourceId, details = {}, madrasahId = null) => {
   try {
     await pool.query(
-      `INSERT INTO audit_logs (request_id, user_type, user_id, action, resource, resource_id, details, ip_address, user_agent)
-       VALUES (?, 'super_admin', ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO audit_logs (request_id, user_type, user_id, madrasah_id, action, resource, resource_id, details, ip_address, user_agent)
+       VALUES (?, 'super_admin', ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.requestId,
         req.superAdmin?.id,
+        madrasahId,
         action,
         resource,
         resourceId,
@@ -104,35 +105,55 @@ router.get('/dashboard', authenticateSuperAdmin, async (req, res) => {
   try {
     // Total madrasahs
     const [[{ totalMadrasahs }]] = await pool.query(
-      'SELECT COUNT(*) as totalMadrasahs FROM madrasahs'
+      'SELECT COUNT(*) as totalMadrasahs FROM madrasahs WHERE deleted_at IS NULL'
     );
 
     // Active madrasahs
     const [[{ activeMadrasahs }]] = await pool.query(
-      'SELECT COUNT(*) as activeMadrasahs FROM madrasahs WHERE is_active = TRUE AND suspended_at IS NULL'
+      'SELECT COUNT(*) as activeMadrasahs FROM madrasahs WHERE is_active = TRUE AND suspended_at IS NULL AND deleted_at IS NULL'
     );
 
     // Total users
     const [[{ totalUsers }]] = await pool.query(
-      'SELECT COUNT(*) as totalUsers FROM users'
+      'SELECT COUNT(*) as totalUsers FROM users WHERE deleted_at IS NULL'
     );
 
     // Total students
     const [[{ totalStudents }]] = await pool.query(
-      'SELECT COUNT(*) as totalStudents FROM students'
+      'SELECT COUNT(*) as totalStudents FROM students WHERE deleted_at IS NULL'
     );
 
     // Recent registrations (last 7 days)
     const [[{ recentRegistrations }]] = await pool.query(
-      'SELECT COUNT(*) as recentRegistrations FROM madrasahs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)'
+      'SELECT COUNT(*) as recentRegistrations FROM madrasahs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND deleted_at IS NULL'
     );
 
     // Madrasahs by plan
     const [planStats] = await pool.query(
       `SELECT pricing_plan, COUNT(*) as count
        FROM madrasahs
+       WHERE deleted_at IS NULL
        GROUP BY pricing_plan`
     );
+
+    // MRR quick calculation
+    const [[{ mrr }]] = await pool.query(`
+      SELECT COALESCE(SUM(CASE
+        WHEN pricing_plan = 'standard' AND subscription_status = 'active' THEN 12
+        WHEN pricing_plan = 'plus' AND subscription_status = 'active' THEN 29
+        ELSE 0
+      END), 0) as mrr
+      FROM madrasahs WHERE deleted_at IS NULL
+    `);
+
+    // Active this week (at least one user logged in last 7 days)
+    const [[{ activeThisWeek }]] = await pool.query(`
+      SELECT COUNT(DISTINCT m.id) as activeThisWeek
+      FROM madrasahs m
+      JOIN users u ON u.madrasah_id = m.id
+      WHERE u.last_login_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        AND m.deleted_at IS NULL
+    `);
 
     await logAudit(req, 'VIEW', 'dashboard', null);
 
@@ -142,7 +163,9 @@ router.get('/dashboard', authenticateSuperAdmin, async (req, res) => {
       totalUsers,
       totalStudents,
       recentRegistrations,
-      planStats
+      planStats,
+      mrr,
+      activeThisWeek
     });
   } catch (error) {
     console.error('Dashboard error:', error);
@@ -224,15 +247,15 @@ router.get('/madrasahs/:id', authenticateSuperAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Madrasah not found' });
     }
 
-    // Get users
+    // Get users with last login info
     const [users] = await pool.query(
-      'SELECT id, first_name, last_name, email, role, created_at FROM users WHERE madrasah_id = ?',
+      'SELECT id, first_name, last_name, email, role, last_login_at, created_at FROM users WHERE madrasah_id = ? AND deleted_at IS NULL',
       [id]
     );
 
     // Get student count
     const [[{ studentCount }]] = await pool.query(
-      'SELECT COUNT(*) as studentCount FROM students WHERE madrasah_id = ?',
+      'SELECT COUNT(*) as studentCount FROM students WHERE madrasah_id = ? AND deleted_at IS NULL',
       [id]
     );
 
@@ -245,13 +268,27 @@ router.get('/madrasahs/:id', authenticateSuperAdmin, async (req, res) => {
       [id]
     );
 
-    await logAudit(req, 'VIEW', 'madrasah', id);
+    // Get usage stats
+    const [[usageStats]] = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM attendance WHERE madrasah_id = ? AND deleted_at IS NULL) as totalAttendance,
+        (SELECT COUNT(*) FROM exam_performance WHERE madrasah_id = ? AND deleted_at IS NULL) as totalExams,
+        (SELECT COUNT(*) FROM classes WHERE madrasah_id = ? AND deleted_at IS NULL) as totalClasses,
+        (SELECT COUNT(*) FROM sessions WHERE madrasah_id = ? AND deleted_at IS NULL) as totalSessions,
+        (SELECT MAX(a.date) FROM attendance a WHERE a.madrasah_id = ? AND a.deleted_at IS NULL) as lastAttendanceDate,
+        (SELECT MAX(u.last_login_at) FROM users u WHERE u.madrasah_id = ? AND u.deleted_at IS NULL) as lastActiveAt,
+        (SELECT COUNT(*) FROM attendance WHERE madrasah_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND deleted_at IS NULL) as attendance30d,
+        (SELECT COUNT(*) FROM exam_performance WHERE madrasah_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND deleted_at IS NULL) as exams30d
+    `, [id, id, id, id, id, id, id, id]);
+
+    await logAudit(req, 'VIEW', 'madrasah', id, {}, parseInt(id));
 
     res.json({
       madrasah: madrasahs[0],
       users,
       studentCount,
-      recentActivity
+      recentActivity,
+      usageStats
     });
   } catch (error) {
     console.error('Get madrasah error:', error);
@@ -270,7 +307,7 @@ router.post('/madrasahs/:id/suspend', authenticateSuperAdmin, async (req, res) =
       [reason || 'No reason provided', id]
     );
 
-    await logAudit(req, 'SUSPEND', 'madrasah', id, { reason });
+    await logAudit(req, 'SUSPEND', 'madrasah', id, { reason }, parseInt(id));
 
     res.json({ message: 'Madrasah suspended successfully' });
   } catch (error) {
@@ -289,7 +326,7 @@ router.post('/madrasahs/:id/reactivate', authenticateSuperAdmin, async (req, res
       [id]
     );
 
-    await logAudit(req, 'REACTIVATE', 'madrasah', id);
+    await logAudit(req, 'REACTIVATE', 'madrasah', id, {}, parseInt(id));
 
     res.json({ message: 'Madrasah reactivated successfully' });
   } catch (error) {
@@ -328,7 +365,7 @@ router.patch('/madrasahs/:id/plan', authenticateSuperAdmin, async (req, res) => 
 
     await pool.query(query, params);
 
-    await logAudit(req, 'UPDATE_PLAN', 'madrasah', id, { plan, subscriptionStatus });
+    await logAudit(req, 'UPDATE_PLAN', 'madrasah', id, { plan, subscriptionStatus }, parseInt(id));
 
     res.json({ message: 'Plan updated successfully' });
   } catch (error) {
@@ -510,7 +547,7 @@ router.patch('/madrasahs/:id/verify', authenticateSuperAdmin, async (req, res) =
       }
     }
 
-    await logAudit(req, 'VERIFY', 'madrasah', id, { status, notes });
+    await logAudit(req, 'VERIFY', 'madrasah', id, { status, notes }, parseInt(id));
 
     res.json({ message: 'Verification status updated' });
   } catch (error) {
@@ -547,6 +584,127 @@ router.patch('/settings/:key', authenticateSuperAdmin, async (req, res) => {
   } catch (error) {
     console.error('Update setting error:', error);
     res.status(500).json({ error: 'Failed to update setting' });
+  }
+});
+
+// =====================================================
+// Engagement & Revenue Endpoints
+// =====================================================
+
+// Get engagement metrics — per-madrasah activity & usage stats
+router.get('/engagement', authenticateSuperAdmin, async (req, res) => {
+  try {
+    // Per-madrasah engagement: last login, activity count (7d), attendance count (30d), exam count (30d)
+    const [engagement] = await pool.query(`
+      SELECT
+        m.id,
+        m.name,
+        m.slug,
+        m.pricing_plan,
+        m.created_at,
+        (SELECT MAX(u.last_login_at) FROM users u WHERE u.madrasah_id = m.id AND u.deleted_at IS NULL) as last_login,
+        (SELECT COUNT(*) FROM audit_logs al WHERE al.madrasah_id = m.id AND al.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as activity_7d,
+        (SELECT COUNT(*) FROM attendance a WHERE a.madrasah_id = m.id AND a.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND a.deleted_at IS NULL) as attendance_30d,
+        (SELECT COUNT(*) FROM exam_performance ep WHERE ep.madrasah_id = m.id AND ep.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND ep.deleted_at IS NULL) as exams_30d,
+        (SELECT COUNT(*) FROM students s WHERE s.madrasah_id = m.id AND s.deleted_at IS NULL) as student_count,
+        (SELECT COUNT(*) FROM users u WHERE u.madrasah_id = m.id AND u.deleted_at IS NULL) as user_count
+      FROM madrasahs m
+      WHERE m.deleted_at IS NULL
+      ORDER BY last_login DESC
+    `);
+
+    // Summary metrics
+    const [[summary]] = await pool.query(`
+      SELECT
+        (SELECT COUNT(DISTINCT m.id) FROM madrasahs m
+         JOIN users u ON u.madrasah_id = m.id
+         WHERE u.last_login_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND m.deleted_at IS NULL) as activeThisWeek,
+        (SELECT COUNT(DISTINCT m.id) FROM madrasahs m
+         JOIN users u ON u.madrasah_id = m.id
+         WHERE u.last_login_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND m.deleted_at IS NULL) as activeThisMonth,
+        (SELECT COUNT(*) FROM madrasahs m
+         LEFT JOIN users u ON u.madrasah_id = m.id
+         WHERE (u.last_login_at IS NULL OR u.last_login_at < DATE_SUB(NOW(), INTERVAL 30 DAY))
+         AND m.deleted_at IS NULL AND m.is_active = TRUE AND m.suspended_at IS NULL) as dormantCount,
+        (SELECT COUNT(*) FROM attendance WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND deleted_at IS NULL) as attendanceThisWeek,
+        (SELECT COUNT(*) FROM exam_performance WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND deleted_at IS NULL) as examsThisWeek
+    `);
+
+    res.json({ engagement, summary });
+  } catch (error) {
+    console.error('Engagement metrics error:', error);
+    res.status(500).json({ error: 'Failed to fetch engagement metrics' });
+  }
+});
+
+// Get revenue overview — MRR, plan distribution, growth
+router.get('/revenue', authenticateSuperAdmin, async (req, res) => {
+  try {
+    // Plan distribution with counts
+    const [planDistribution] = await pool.query(`
+      SELECT
+        pricing_plan,
+        COUNT(*) as count,
+        subscription_status
+      FROM madrasahs
+      WHERE deleted_at IS NULL
+      GROUP BY pricing_plan, subscription_status
+      ORDER BY pricing_plan
+    `);
+
+    // Calculate MRR (Monthly Recurring Revenue)
+    const [[mrr]] = await pool.query(`
+      SELECT
+        COALESCE(SUM(CASE
+          WHEN pricing_plan = 'standard' AND subscription_status = 'active' THEN 12
+          WHEN pricing_plan = 'plus' AND subscription_status = 'active' THEN 29
+          ELSE 0
+        END), 0) as mrr,
+        COUNT(CASE WHEN subscription_status = 'active' AND pricing_plan IN ('standard', 'plus') THEN 1 END) as payingCustomers,
+        COUNT(CASE WHEN pricing_plan = 'trial' OR subscription_status = 'trialing' THEN 1 END) as trialCount,
+        COUNT(CASE WHEN subscription_status = 'canceled' THEN 1 END) as canceledCount,
+        COUNT(CASE WHEN subscription_status = 'past_due' THEN 1 END) as pastDueCount
+      FROM madrasahs
+      WHERE deleted_at IS NULL
+    `);
+
+    // Growth trend — new signups per month (last 6 months)
+    const [growthTrend] = await pool.query(`
+      SELECT
+        DATE_FORMAT(created_at, '%Y-%m') as month,
+        COUNT(*) as signups
+      FROM madrasahs
+      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        AND deleted_at IS NULL
+      GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+      ORDER BY month
+    `);
+
+    // Trial conversion rate
+    const [[conversion]] = await pool.query(`
+      SELECT
+        COUNT(CASE WHEN pricing_plan != 'trial' AND subscription_status = 'active' THEN 1 END) as converted,
+        COUNT(*) as total
+      FROM madrasahs
+      WHERE deleted_at IS NULL
+        AND created_at < DATE_SUB(NOW(), INTERVAL 14 DAY)
+    `);
+
+    res.json({
+      mrr: mrr.mrr,
+      payingCustomers: mrr.payingCustomers,
+      trialCount: mrr.trialCount,
+      canceledCount: mrr.canceledCount,
+      pastDueCount: mrr.pastDueCount,
+      planDistribution,
+      growthTrend,
+      conversionRate: conversion.total > 0
+        ? Math.round((conversion.converted / conversion.total) * 100)
+        : 0
+    });
+  } catch (error) {
+    console.error('Revenue metrics error:', error);
+    res.status(500).json({ error: 'Failed to fetch revenue metrics' });
   }
 });
 

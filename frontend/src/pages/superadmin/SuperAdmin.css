@@ -678,6 +678,275 @@
   }
 }
 
+/* Engagement Summary */
+.engagement-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.mini-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  min-width: 120px;
+}
+
+.mini-stat.warning {
+  background: #fff8e1;
+}
+
+.mini-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.mini-stat.warning .mini-value {
+  color: #f57c00;
+}
+
+.mini-label {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.activity-count {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.activity-count.active {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.activity-count.none {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.text-warning {
+  color: #f57c00;
+}
+
+.text-muted {
+  color: #999;
+  font-style: italic;
+}
+
+.madrasah-link {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.madrasah-link:hover {
+  text-decoration: underline;
+}
+
+/* Revenue Cards */
+.revenue-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.revenue-card {
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.revenue-card.primary {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.revenue-card.danger {
+  background: #ffebee;
+}
+
+.revenue-value {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.revenue-card.danger .revenue-value {
+  color: #c62828;
+}
+
+.revenue-label {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.revenue-card.primary .revenue-label {
+  color: #ccc;
+}
+
+/* Growth Chart */
+.growth-section {
+  margin-bottom: 32px;
+}
+
+.growth-section h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.growth-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  min-height: 160px;
+}
+
+.growth-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  gap: 6px;
+}
+
+.growth-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.growth-bar {
+  width: 100%;
+  max-width: 48px;
+  background: #1a1a1a;
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  transition: height 0.3s ease;
+}
+
+.growth-month {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Plan Distribution */
+.plan-distribution h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.plan-dist-grid {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.plan-dist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.plan-dist-count {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* Usage Stats (MadrasahDetail) */
+.usage-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+}
+
+.usage-stat {
+  text-align: center;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.usage-stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.usage-stat-label {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.usage-stat-sub {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
+}
+
+/* Activity action badges */
+.activity-action {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.activity-action.create,
+.activity-action.record_attendance,
+.activity-action.record_exam,
+.activity-action.add_student {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.activity-action.update,
+.activity-action.update_comment,
+.activity-action.update_exam,
+.activity-action.assign_teacher {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.activity-action.delete,
+.activity-action.delete_exam,
+.activity-action.remove_teacher {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.activity-action.view,
+.activity-action.suspend,
+.activity-action.reactivate,
+.activity-action.verify,
+.activity-action.update_plan {
+  background: #f5f5f5;
+  color: #666;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .superadmin-header {
@@ -780,6 +1049,42 @@
   .pagination button {
     padding: 6px 12px;
     font-size: 13px;
+  }
+
+  /* Engagement responsive */
+  .engagement-summary {
+    gap: 8px;
+  }
+
+  .mini-stat {
+    padding: 10px 14px;
+    min-width: 100px;
+    flex: 1;
+  }
+
+  .mini-value {
+    font-size: 20px;
+  }
+
+  /* Revenue responsive */
+  .revenue-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .revenue-value {
+    font-size: 22px;
+  }
+
+  .growth-chart {
+    gap: 8px;
+    padding: 12px;
+  }
+
+  /* Usage stats responsive */
+  .usage-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
 }
 

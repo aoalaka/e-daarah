@@ -35,6 +35,7 @@ api.interceptors.request.use((config) => {
 const AUTH_ENDPOINTS = [
   '/auth/login',
   '/auth/parent-login',
+  '/auth/parent/report',
   '/auth/register',
   '/auth/register-madrasah',
   '/auth/register-teacher',
@@ -84,6 +85,20 @@ api.interceptors.response.use(
     // For 401 (unauthorized/session expired), redirect to login
     // Don't redirect on 403 - it may be a permission issue that doesn't require logout
     if (error.response?.status === 401) {
+      const isParentRoute = window.location.pathname.includes('/parent');
+
+      // Parent portal: only clear parent tokens, redirect to parent login
+      if (isParentRoute) {
+        const pathParts = window.location.pathname.split('/');
+        const slug = pathParts[1] || '';
+        localStorage.removeItem('parentToken');
+        localStorage.removeItem('parentStudent');
+        if (slug) {
+          window.location.href = `/${slug}/parent-login`;
+        }
+        return Promise.reject(error);
+      }
+
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const isDemo = user?.isDemo;
       const madrasah = JSON.parse(localStorage.getItem('madrasah') || '{}');

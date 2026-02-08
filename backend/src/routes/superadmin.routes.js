@@ -625,10 +625,14 @@ router.get('/engagement', authenticateSuperAdmin, async (req, res) => {
         (SELECT COUNT(DISTINCT m.id) FROM madrasahs m
          JOIN users u ON u.madrasah_id = m.id
          WHERE u.last_login_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND m.deleted_at IS NULL) as activeThisMonth,
-        (SELECT COUNT(DISTINCT m.id) FROM madrasahs m
-         LEFT JOIN users u ON u.madrasah_id = m.id
-         WHERE (u.last_login_at IS NULL OR u.last_login_at < DATE_SUB(NOW(), INTERVAL 30 DAY))
-         AND m.deleted_at IS NULL AND m.is_active = TRUE) as dormantCount,
+        (SELECT COUNT(*) FROM (
+           SELECT m.id
+           FROM madrasahs m
+           LEFT JOIN users u ON u.madrasah_id = m.id AND u.deleted_at IS NULL
+           WHERE m.deleted_at IS NULL AND m.is_active = TRUE
+           GROUP BY m.id
+           HAVING MAX(u.last_login_at) IS NULL OR MAX(u.last_login_at) < DATE_SUB(NOW(), INTERVAL 30 DAY)
+         ) dormant) as dormantCount,
         (SELECT COUNT(*) FROM attendance WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND deleted_at IS NULL) as attendanceThisWeek,
         (SELECT COUNT(*) FROM exam_performance WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND deleted_at IS NULL) as examsThisWeek
     `);

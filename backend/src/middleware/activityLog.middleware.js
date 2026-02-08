@@ -27,6 +27,7 @@ const ROUTE_MAP = [
   { method: 'PUT',    pattern: /\/students\/(\d+)$/,               action: 'UPDATE', resource: 'student' },
   { method: 'DELETE', pattern: /\/students\/(\d+)$/,               action: 'DELETE', resource: 'student' },
   { method: 'PUT',    pattern: /\/students\/(\d+)\/comment$/,      action: 'UPDATE_COMMENT', resource: 'student' },
+  { method: 'POST',   pattern: /\/students\/(\d+)\/regenerate-access-code$/, action: 'REGENERATE_ACCESS_CODE', resource: 'student' },
   { method: 'PUT',    pattern: /\/settings$/,                      action: 'UPDATE', resource: 'settings' },
 
   // Teacher actions

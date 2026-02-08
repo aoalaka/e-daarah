@@ -136,14 +136,14 @@ router.get('/dashboard', authenticateSuperAdmin, async (req, res) => {
        GROUP BY pricing_plan`
     );
 
-    // MRR quick calculation
+    // MRR quick calculation — exclude demo madrasahs
     const [[{ mrr }]] = await pool.query(`
       SELECT COALESCE(SUM(CASE
         WHEN pricing_plan = 'standard' AND subscription_status = 'active' THEN 12
         WHEN pricing_plan = 'plus' AND subscription_status = 'active' THEN 29
         ELSE 0
       END), 0) as mrr
-      FROM madrasahs WHERE deleted_at IS NULL
+      FROM madrasahs WHERE deleted_at IS NULL AND slug NOT LIKE '%-demo'
     `);
 
     // Active this week (at least one user logged in last 7 days)
@@ -622,7 +622,7 @@ router.get('/engagement', authenticateSuperAdmin, async (req, res) => {
         (SELECT COUNT(DISTINCT m.id) FROM madrasahs m
          JOIN users u ON u.madrasah_id = m.id
          WHERE u.last_login_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND m.deleted_at IS NULL) as activeThisMonth,
-        (SELECT COUNT(*) FROM madrasahs m
+        (SELECT COUNT(DISTINCT m.id) FROM madrasahs m
          LEFT JOIN users u ON u.madrasah_id = m.id
          WHERE (u.last_login_at IS NULL OR u.last_login_at < DATE_SUB(NOW(), INTERVAL 30 DAY))
          AND m.deleted_at IS NULL AND m.is_active = TRUE AND m.suspended_at IS NULL) as dormantCount,
@@ -652,7 +652,7 @@ router.get('/revenue', authenticateSuperAdmin, async (req, res) => {
       ORDER BY pricing_plan
     `);
 
-    // Calculate MRR (Monthly Recurring Revenue)
+    // Calculate MRR (Monthly Recurring Revenue) — exclude demo madrasahs
     const [[mrr]] = await pool.query(`
       SELECT
         COALESCE(SUM(CASE
@@ -665,7 +665,7 @@ router.get('/revenue', authenticateSuperAdmin, async (req, res) => {
         COUNT(CASE WHEN subscription_status = 'canceled' THEN 1 END) as canceledCount,
         COUNT(CASE WHEN subscription_status = 'past_due' THEN 1 END) as pastDueCount
       FROM madrasahs
-      WHERE deleted_at IS NULL
+      WHERE deleted_at IS NULL AND slug NOT LIKE '%-demo'
     `);
 
     // Growth trend — new signups per month (last 6 months)
@@ -680,13 +680,13 @@ router.get('/revenue', authenticateSuperAdmin, async (req, res) => {
       ORDER BY month
     `);
 
-    // Trial conversion rate
+    // Trial conversion rate — exclude demo madrasahs
     const [[conversion]] = await pool.query(`
       SELECT
         COUNT(CASE WHEN pricing_plan != 'trial' AND subscription_status = 'active' THEN 1 END) as converted,
         COUNT(*) as total
       FROM madrasahs
-      WHERE deleted_at IS NULL
+      WHERE deleted_at IS NULL AND slug NOT LIKE '%-demo'
         AND created_at < DATE_SUB(NOW(), INTERVAL 14 DAY)
     `);
 

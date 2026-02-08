@@ -203,6 +203,15 @@ function MadrasahDetail() {
               <div className="usage-stat">
                 <div className="usage-stat-value">{usageStats.totalSessions || 0}</div>
                 <div className="usage-stat-label">Sessions</div>
+                <div className="usage-stat-sub">{usageStats.totalSemesters || 0} semesters</div>
+              </div>
+              <div className="usage-stat">
+                <div className="usage-stat-value">{usageStats.attendanceDays || 0}</div>
+                <div className="usage-stat-label">Attendance Days</div>
+              </div>
+              <div className="usage-stat">
+                <div className="usage-stat-value">{usageStats.assignedTeachers || 0}</div>
+                <div className="usage-stat-label">Teachers Assigned</div>
               </div>
               <div className="usage-stat">
                 <div className="usage-stat-value">
@@ -220,6 +229,29 @@ function MadrasahDetail() {
                 </div>
                 <div className="usage-stat-label">Last Active</div>
               </div>
+            </div>
+
+            {/* Feature Adoption */}
+            <h3 style={{ fontSize: '14px', fontWeight: 600, margin: '20px 0 12px', color: '#333' }}>Feature Adoption</h3>
+            <div className="feature-adoption">
+              <span className={`feature-indicator ${(usageStats.totalSessions || 0) > 0 ? 'adopted' : 'not-adopted'}`}>
+                {(usageStats.totalSessions || 0) > 0 ? '✓' : '○'} Sessions Setup
+              </span>
+              <span className={`feature-indicator ${(usageStats.totalClasses || 0) > 0 ? 'adopted' : 'not-adopted'}`}>
+                {(usageStats.totalClasses || 0) > 0 ? '✓' : '○'} Classes Created
+              </span>
+              <span className={`feature-indicator ${(usageStats.assignedTeachers || 0) > 0 ? 'adopted' : 'not-adopted'}`}>
+                {(usageStats.assignedTeachers || 0) > 0 ? '✓' : '○'} Teachers Assigned
+              </span>
+              <span className={`feature-indicator ${(usageStats.totalAttendance || 0) > 0 ? 'adopted' : 'not-adopted'}`}>
+                {(usageStats.totalAttendance || 0) > 0 ? '✓' : '○'} Attendance Tracking
+              </span>
+              <span className={`feature-indicator ${(usageStats.totalExams || 0) > 0 ? 'adopted' : 'not-adopted'}`}>
+                {(usageStats.totalExams || 0) > 0 ? '✓' : '○'} Exam Recording
+              </span>
+              <span className={`feature-indicator ${users.length > 1 ? 'adopted' : 'not-adopted'}`}>
+                {users.length > 1 ? '✓' : '○'} Multiple Users
+              </span>
             </div>
           </section>
         )}

@@ -278,8 +278,11 @@ router.get('/madrasahs/:id', authenticateSuperAdmin, async (req, res) => {
         (SELECT MAX(a.date) FROM attendance a WHERE a.madrasah_id = ? AND a.deleted_at IS NULL) as lastAttendanceDate,
         (SELECT MAX(u.last_login_at) FROM users u WHERE u.madrasah_id = ? AND u.deleted_at IS NULL) as lastActiveAt,
         (SELECT COUNT(*) FROM attendance WHERE madrasah_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND deleted_at IS NULL) as attendance30d,
-        (SELECT COUNT(*) FROM exam_performance WHERE madrasah_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND deleted_at IS NULL) as exams30d
-    `, [id, id, id, id, id, id, id, id]);
+        (SELECT COUNT(*) FROM exam_performance WHERE madrasah_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND deleted_at IS NULL) as exams30d,
+        (SELECT COUNT(DISTINCT teacher_id) FROM class_teachers ct JOIN classes c ON ct.class_id = c.id WHERE c.madrasah_id = ? AND c.deleted_at IS NULL) as assignedTeachers,
+        (SELECT COUNT(*) FROM semesters WHERE madrasah_id = ? AND deleted_at IS NULL) as totalSemesters,
+        (SELECT COUNT(DISTINCT date) FROM attendance WHERE madrasah_id = ? AND deleted_at IS NULL) as attendanceDays
+    `, [id, id, id, id, id, id, id, id, id, id, id]);
 
     await logAudit(req, 'VIEW', 'madrasah', id, {}, parseInt(id));
 
@@ -743,6 +746,261 @@ router.post('/change-password', authenticateSuperAdmin, async (req, res) => {
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
+// =====================================================
+// Churn Risk Alerts
+// =====================================================
+
+// Get at-risk madrasahs (no attendance in 14d, or no login in 14d, on paid plans)
+router.get('/churn-risks', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const [risks] = await pool.query(`
+      SELECT
+        m.id,
+        m.name,
+        m.slug,
+        m.pricing_plan,
+        m.subscription_status,
+        m.created_at,
+        m.email,
+        (SELECT MAX(u.last_login_at) FROM users u WHERE u.madrasah_id = m.id AND u.deleted_at IS NULL) as last_login,
+        (SELECT MAX(a.date) FROM attendance a WHERE a.madrasah_id = m.id AND a.deleted_at IS NULL) as last_attendance,
+        (SELECT COUNT(*) FROM students s WHERE s.madrasah_id = m.id AND s.deleted_at IS NULL) as student_count,
+        (SELECT COUNT(*) FROM users u WHERE u.madrasah_id = m.id AND u.deleted_at IS NULL) as user_count,
+        DATEDIFF(NOW(), (SELECT MAX(u.last_login_at) FROM users u WHERE u.madrasah_id = m.id AND u.deleted_at IS NULL)) as days_since_login,
+        DATEDIFF(NOW(), (SELECT MAX(a.date) FROM attendance a WHERE a.madrasah_id = m.id AND a.deleted_at IS NULL)) as days_since_attendance
+      FROM madrasahs m
+      WHERE m.deleted_at IS NULL
+        AND m.is_active = TRUE
+        AND m.suspended_at IS NULL
+        AND m.slug NOT LIKE '%-demo'
+        AND m.pricing_plan != 'trial'
+        AND m.subscription_status = 'active'
+      HAVING days_since_login > 7 OR days_since_login IS NULL
+      ORDER BY days_since_login DESC
+    `);
+
+    // Categorize risk level
+    const categorized = risks.map(r => {
+      let riskLevel = 'low';
+      if (r.days_since_login > 30 || r.days_since_login === null) riskLevel = 'critical';
+      else if (r.days_since_login > 14) riskLevel = 'high';
+      else if (r.days_since_login > 7) riskLevel = 'medium';
+      return { ...r, risk_level: riskLevel };
+    });
+
+    res.json({ risks: categorized });
+  } catch (error) {
+    console.error('Churn risks error:', error);
+    res.status(500).json({ error: 'Failed to fetch churn risks' });
+  }
+});
+
+// =====================================================
+// Announcements CRUD
+// =====================================================
+
+// List announcements
+router.get('/announcements', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const [announcements] = await pool.query(`
+      SELECT a.*,
+        (SELECT COUNT(*) FROM announcement_dismissals ad WHERE ad.announcement_id = a.id) as dismiss_count,
+        (SELECT COUNT(*) FROM madrasahs m WHERE m.deleted_at IS NULL AND m.is_active = TRUE) as total_madrasahs
+      FROM announcements a
+      ORDER BY a.created_at DESC
+      LIMIT 50
+    `);
+    res.json({ announcements });
+  } catch (error) {
+    console.error('List announcements error:', error);
+    res.status(500).json({ error: 'Failed to fetch announcements' });
+  }
+});
+
+// Create announcement
+router.post('/announcements', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { title, message, type, target_plans, expires_at } = req.body;
+
+    if (!title || !message) {
+      return res.status(400).json({ error: 'Title and message are required' });
+    }
+
+    const [result] = await pool.query(
+      `INSERT INTO announcements (title, message, type, target_plans, expires_at, created_by)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [title, message, type || 'info', target_plans ? JSON.stringify(target_plans) : null,
+       expires_at || null, req.superAdmin.id]
+    );
+
+    await logAudit(req, 'CREATE', 'announcement', result.insertId);
+    res.status(201).json({ id: result.insertId, message: 'Announcement created' });
+  } catch (error) {
+    console.error('Create announcement error:', error);
+    res.status(500).json({ error: 'Failed to create announcement' });
+  }
+});
+
+// Update announcement
+router.put('/announcements/:id', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { title, message, type, target_plans, is_active, expires_at } = req.body;
+
+    await pool.query(
+      `UPDATE announcements SET title = ?, message = ?, type = ?, target_plans = ?,
+       is_active = ?, expires_at = ? WHERE id = ?`,
+      [title, message, type, target_plans ? JSON.stringify(target_plans) : null,
+       is_active !== undefined ? is_active : true, expires_at || null, req.params.id]
+    );
+
+    await logAudit(req, 'UPDATE', 'announcement', parseInt(req.params.id));
+    res.json({ message: 'Announcement updated' });
+  } catch (error) {
+    console.error('Update announcement error:', error);
+    res.status(500).json({ error: 'Failed to update announcement' });
+  }
+});
+
+// Delete announcement
+router.delete('/announcements/:id', authenticateSuperAdmin, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM announcements WHERE id = ?', [req.params.id]);
+    await logAudit(req, 'DELETE', 'announcement', parseInt(req.params.id));
+    res.json({ message: 'Announcement deleted' });
+  } catch (error) {
+    console.error('Delete announcement error:', error);
+    res.status(500).json({ error: 'Failed to delete announcement' });
+  }
+});
+
+// =====================================================
+// Support Tickets
+// =====================================================
+
+// List all tickets (superadmin view)
+router.get('/tickets', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { status, page = 1 } = req.query;
+    const limit = 20;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT t.*, m.name as madrasah_name, m.slug as madrasah_slug,
+        u.first_name, u.last_name, u.email as user_email,
+        (SELECT COUNT(*) FROM ticket_messages tm WHERE tm.ticket_id = t.id) as message_count,
+        (SELECT tm.created_at FROM ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY tm.created_at DESC LIMIT 1) as last_message_at,
+        (SELECT tm.sender_type FROM ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY tm.created_at DESC LIMIT 1) as last_sender
+      FROM support_tickets t
+      JOIN madrasahs m ON t.madrasah_id = m.id
+      JOIN users u ON t.user_id = u.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (status) {
+      query += ' AND t.status = ?';
+      params.push(status);
+    }
+
+    query += ' ORDER BY FIELD(t.status, "open", "in_progress", "resolved", "closed"), t.updated_at DESC';
+    query += ' LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const [tickets] = await pool.query(query, params);
+
+    const [[{ total }]] = await pool.query(
+      'SELECT COUNT(*) as total FROM support_tickets' + (status ? ' WHERE status = ?' : ''),
+      status ? [status] : []
+    );
+
+    const [[{ openCount }]] = await pool.query(
+      'SELECT COUNT(*) as openCount FROM support_tickets WHERE status IN ("open", "in_progress")'
+    );
+
+    res.json({
+      tickets,
+      openCount,
+      pagination: { total, page: parseInt(page), pages: Math.ceil(total / limit) }
+    });
+  } catch (error) {
+    console.error('List tickets error:', error);
+    res.status(500).json({ error: 'Failed to fetch tickets' });
+  }
+});
+
+// Get single ticket with messages
+router.get('/tickets/:id', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const [[ticket]] = await pool.query(`
+      SELECT t.*, m.name as madrasah_name, m.slug as madrasah_slug,
+        u.first_name, u.last_name, u.email as user_email
+      FROM support_tickets t
+      JOIN madrasahs m ON t.madrasah_id = m.id
+      JOIN users u ON t.user_id = u.id
+      WHERE t.id = ?
+    `, [req.params.id]);
+
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    const [messages] = await pool.query(
+      'SELECT * FROM ticket_messages WHERE ticket_id = ? ORDER BY created_at ASC',
+      [req.params.id]
+    );
+
+    res.json({ ticket, messages });
+  } catch (error) {
+    console.error('Get ticket error:', error);
+    res.status(500).json({ error: 'Failed to fetch ticket' });
+  }
+});
+
+// Reply to ticket (superadmin)
+router.post('/tickets/:id/reply', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    await pool.query(
+      'INSERT INTO ticket_messages (ticket_id, sender_type, sender_id, message) VALUES (?, "super_admin", ?, ?)',
+      [req.params.id, req.superAdmin.id, message]
+    );
+
+    // Update ticket status to in_progress if it was open
+    await pool.query(
+      'UPDATE support_tickets SET status = "in_progress" WHERE id = ? AND status = "open"',
+      [req.params.id]
+    );
+
+    await logAudit(req, 'REPLY', 'ticket', parseInt(req.params.id));
+    res.json({ message: 'Reply sent' });
+  } catch (error) {
+    console.error('Reply to ticket error:', error);
+    res.status(500).json({ error: 'Failed to send reply' });
+  }
+});
+
+// Update ticket status
+router.patch('/tickets/:id/status', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const validStatuses = ['open', 'in_progress', 'resolved', 'closed'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    await pool.query('UPDATE support_tickets SET status = ? WHERE id = ?', [status, req.params.id]);
+    await logAudit(req, 'UPDATE_STATUS', 'ticket', parseInt(req.params.id), { status });
+    res.json({ message: 'Status updated' });
+  } catch (error) {
+    console.error('Update ticket status error:', error);
+    res.status(500).json({ error: 'Failed to update ticket status' });
   }
 });
 

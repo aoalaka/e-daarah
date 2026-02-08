@@ -9,6 +9,7 @@ import SortableTable from '../../components/SortableTable';
 import EmailVerificationBanner from '../../components/EmailVerificationBanner';
 import DemoBanner from '../../components/DemoBanner';
 import TrialBanner from '../../components/TrialBanner';
+import AnnouncementBanner from '../../components/AnnouncementBanner';
 import UsageIndicator from '../../components/UsageIndicator';
 import { handleApiError } from '../../utils/errorHandler';
 import { downloadCSV, studentColumns, attendanceColumns, getAttendanceColumns, examColumns, getDateSuffix } from '../../utils/csvExport';
@@ -99,6 +100,13 @@ function AdminDashboard() {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [selectedPlan, setSelectedPlan] = useState('plus');
   const [madrasahProfile, setMadrasahProfile] = useState(null);
+  // Support tickets state
+  const [supportTickets, setSupportTickets] = useState([]);
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [newTicket, setNewTicket] = useState({ subject: '', message: '', priority: 'normal' });
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [ticketMessages, setTicketMessages] = useState([]);
+  const [ticketReply, setTicketReply] = useState('');
   const user = authService.getCurrentUser();
   const navigate = useNavigate();
   const { madrasahSlug } = useParams();
@@ -148,7 +156,8 @@ function AdminDashboard() {
     { id: 'classes', label: 'Classes' },
     { id: 'teachers', label: 'Teachers' },
     { id: 'students', label: 'Students' },
-    { id: 'reports', label: 'Reports' }
+    { id: 'reports', label: 'Reports' },
+    { id: 'support', label: 'Support' }
   ];
 
   useEffect(() => {
@@ -226,6 +235,13 @@ function AdminDashboard() {
       fetchAnalytics();
     }
   }, [activeTab, reportSubTab, reportSemester, madrasahProfile]);
+
+  // Fetch tickets when Support tab is active
+  useEffect(() => {
+    if (activeTab === 'support') {
+      fetchTickets();
+    }
+  }, [activeTab]);
 
   // Re-fetch individual student report when filters or student changes
   useEffect(() => {
@@ -998,6 +1014,52 @@ function AdminDashboard() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Support ticket functions
+  const fetchTickets = async () => {
+    try {
+      const response = await api.get('/admin/tickets');
+      setSupportTickets(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch tickets:', error);
+    }
+  };
+
+  const handleCreateTicket = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/admin/tickets', newTicket);
+      setNewTicket({ subject: '', message: '', priority: 'normal' });
+      setShowTicketForm(false);
+      fetchTickets();
+      toast.success('Ticket submitted successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to create ticket');
+    }
+  };
+
+  const handleViewTicket = async (id) => {
+    try {
+      const response = await api.get(`/admin/tickets/${id}`);
+      setSelectedTicket(response.data.ticket);
+      setTicketMessages(response.data.messages || []);
+      setTicketReply('');
+    } catch (error) {
+      toast.error('Failed to load ticket');
+    }
+  };
+
+  const handleReplyToTicket = async () => {
+    if (!ticketReply.trim()) return;
+    try {
+      await api.post(`/admin/tickets/${selectedTicket.id}/reply`, { message: ticketReply });
+      setTicketReply('');
+      handleViewTicket(selectedTicket.id);
+      fetchTickets();
+    } catch (error) {
+      toast.error('Failed to send reply');
+    }
+  };
+
   const getNavIcon = (id) => {
     const iconProps = {
       width: "18",
@@ -1026,6 +1088,8 @@ function AdminDashboard() {
         return <svg {...iconProps}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
       case 'reports':
         return <svg {...iconProps}><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>;
+      case 'support':
+        return <svg {...iconProps}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>;
       default:
         return null;
     }
@@ -1151,6 +1215,9 @@ function AdminDashboard() {
           subscriptionStatus={madrasahProfile?.subscription_status}
           pricingPlan={madrasahProfile?.pricing_plan}
         />
+
+        {/* Platform Announcements */}
+        <AnnouncementBanner />
 
         {/* Read-Only Warning Banner */}
         {isReadOnly() && (
@@ -4659,6 +4726,156 @@ function AdminDashboard() {
                   <div className="empty">
                     <p>Select a student to view their report</p>
                   </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Support Tab */}
+          {activeTab === 'support' && (
+            <>
+              <div className="section-header">
+                <h2>Support</h2>
+                <button className="btn-primary" onClick={() => setShowTicketForm(!showTicketForm)}>
+                  {showTicketForm ? 'Cancel' : '+ New Ticket'}
+                </button>
+              </div>
+
+              <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+                Need help? Submit a support ticket and our team will get back to you.
+              </p>
+
+              {showTicketForm && (
+                <div className="card" style={{ marginBottom: '24px' }}>
+                  <form onSubmit={handleCreateTicket}>
+                    <div className="form-group">
+                      <label>Subject</label>
+                      <input
+                        type="text"
+                        value={newTicket.subject}
+                        onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
+                        placeholder="Brief description of your issue"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Priority</label>
+                      <select
+                        value={newTicket.priority}
+                        onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value })}
+                      >
+                        <option value="low">Low</option>
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Message</label>
+                      <textarea
+                        value={newTicket.message}
+                        onChange={(e) => setNewTicket({ ...newTicket, message: e.target.value })}
+                        placeholder="Describe your issue in detail..."
+                        rows={5}
+                        required
+                      />
+                    </div>
+                    <button type="submit" className="btn-primary">Submit Ticket</button>
+                  </form>
+                </div>
+              )}
+
+              {selectedTicket ? (
+                <div className="card">
+                  <button className="btn-secondary" onClick={() => setSelectedTicket(null)} style={{ marginBottom: '16px' }}>
+                    ← Back to tickets
+                  </button>
+                  <h3 style={{ marginBottom: '8px' }}>{selectedTicket.subject}</h3>
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', fontSize: '13px', color: '#666', flexWrap: 'wrap' }}>
+                    <span style={{
+                      padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 500,
+                      background: selectedTicket.status === 'open' ? '#e3f2fd' : selectedTicket.status === 'in_progress' ? '#fff8e1' : '#e8f5e9',
+                      color: selectedTicket.status === 'open' ? '#1976d2' : selectedTicket.status === 'in_progress' ? '#f57c00' : '#2e7d32'
+                    }}>
+                      {selectedTicket.status.replace('_', ' ')}
+                    </span>
+                    <span>{new Date(selectedTicket.created_at).toLocaleString()}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                    {ticketMessages.map((msg) => (
+                      <div key={msg.id} style={{
+                        padding: '14px', borderRadius: '8px', maxWidth: '85%',
+                        background: msg.sender_type === 'super_admin' ? '#e3f2fd' : '#f5f5f5',
+                        alignSelf: msg.sender_type === 'super_admin' ? 'flex-end' : 'flex-start'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '6px', fontSize: '12px', color: '#666' }}>
+                          <strong style={{ color: '#333' }}>{msg.sender_type === 'super_admin' ? 'Support Team' : 'You'}</strong>
+                          <span>{new Date(msg.created_at).toLocaleString()}</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{msg.message}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedTicket.status !== 'closed' && (
+                    <div style={{ borderTop: '1px solid #eee', paddingTop: '16px' }}>
+                      <textarea
+                        value={ticketReply}
+                        onChange={(e) => setTicketReply(e.target.value)}
+                        placeholder="Type your reply..."
+                        rows={3}
+                        style={{ width: '100%', marginBottom: '12px' }}
+                      />
+                      <button className="btn-primary" onClick={handleReplyToTicket} disabled={!ticketReply.trim()}>
+                        Send Reply
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : supportTickets.length === 0 ? (
+                <div className="card" style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+                  <p>No support tickets yet.</p>
+                  <p style={{ fontSize: '14px' }}>Click "+ New Ticket" to submit your first support request.</p>
+                </div>
+              ) : (
+                <div className="card">
+                  <table className="data-table" style={{ width: '100%' }}>
+                    <thead>
+                      <tr>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Messages</th>
+                        <th>Updated</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {supportTickets.map((t) => (
+                        <tr key={t.id}>
+                          <td><strong>{t.subject}</strong></td>
+                          <td>
+                            <span style={{
+                              display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 500,
+                              background: t.status === 'open' ? '#e3f2fd' : t.status === 'in_progress' ? '#fff8e1' : t.status === 'resolved' ? '#e8f5e9' : '#f5f5f5',
+                              color: t.status === 'open' ? '#1976d2' : t.status === 'in_progress' ? '#f57c00' : t.status === 'resolved' ? '#2e7d32' : '#666'
+                            }}>
+                              {t.status.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td style={{ textTransform: 'capitalize', fontSize: '13px' }}>{t.priority}</td>
+                          <td>{t.message_count}</td>
+                          <td style={{ fontSize: '13px', color: '#666' }}>{new Date(t.updated_at).toLocaleDateString()}</td>
+                          <td>
+                            <button className="btn-secondary" onClick={() => handleViewTicket(t.id)} style={{ fontSize: '13px' }}>
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </>

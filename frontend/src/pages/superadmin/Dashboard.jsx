@@ -22,6 +22,16 @@ function SuperAdminDashboard() {
   const [pagination, setPagination] = useState(null);
   const [securityPage, setSecurityPage] = useState(1);
   const [securityPagination, setSecurityPagination] = useState(null);
+  const [churnRisks, setChurnRisks] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [ticketOpenCount, setTicketOpenCount] = useState(0);
+  const [ticketFilter, setTicketFilter] = useState('open');
+  const [announcementForm, setAnnouncementForm] = useState({ title: '', message: '', type: 'info', target_plans: [], expires_at: '' });
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [ticketMessages, setTicketMessages] = useState([]);
+  const [ticketReply, setTicketReply] = useState('');
 
   const superAdmin = JSON.parse(localStorage.getItem('superAdmin') || '{}');
 
@@ -36,6 +46,9 @@ function SuperAdminDashboard() {
     fetchRecentRegistrations();
     fetchEngagement();
     fetchRevenue();
+    fetchChurnRisks();
+    fetchAnnouncements();
+    fetchTickets();
   }, []);
 
   useEffect(() => {
@@ -47,6 +60,12 @@ function SuperAdminDashboard() {
       fetchSecurityEvents();
     }
   }, [activeTab, securityPage]);
+
+  useEffect(() => {
+    if (activeTab === 'tickets') {
+      fetchTickets();
+    }
+  }, [ticketFilter]);
 
   const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` }
@@ -116,6 +135,104 @@ function SuperAdminDashboard() {
       setRevenue(response.data);
     } catch (error) {
       console.error('Failed to fetch revenue:', error);
+    }
+  };
+
+  const fetchChurnRisks = async () => {
+    try {
+      const response = await api.get('/superadmin/churn-risks', getAuthHeader());
+      setChurnRisks(response.data.atRisk || []);
+    } catch (error) {
+      console.error('Failed to fetch churn risks:', error);
+    }
+  };
+
+  const fetchAnnouncements = async () => {
+    try {
+      const response = await api.get('/superadmin/announcements', getAuthHeader());
+      setAnnouncements(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch announcements:', error);
+    }
+  };
+
+  const fetchTickets = async () => {
+    try {
+      const response = await api.get(`/superadmin/tickets?status=${ticketFilter}`, getAuthHeader());
+      setTickets(response.data.tickets || []);
+      setTicketOpenCount(response.data.openCount || 0);
+    } catch (error) {
+      console.error('Failed to fetch tickets:', error);
+    }
+  };
+
+  const handleCreateAnnouncement = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/superadmin/announcements', {
+        ...announcementForm,
+        target_plans: announcementForm.target_plans.length > 0 ? announcementForm.target_plans : null,
+        expires_at: announcementForm.expires_at || null
+      }, getAuthHeader());
+      setAnnouncementForm({ title: '', message: '', type: 'info', target_plans: [], expires_at: '' });
+      setShowAnnouncementForm(false);
+      fetchAnnouncements();
+    } catch (error) {
+      alert('Failed to create announcement');
+    }
+  };
+
+  const handleToggleAnnouncement = async (id, isActive) => {
+    try {
+      await api.put(`/superadmin/announcements/${id}`, { is_active: !isActive }, getAuthHeader());
+      fetchAnnouncements();
+    } catch (error) {
+      alert('Failed to update announcement');
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    if (!confirm('Delete this announcement?')) return;
+    try {
+      await api.delete(`/superadmin/announcements/${id}`, getAuthHeader());
+      fetchAnnouncements();
+    } catch (error) {
+      alert('Failed to delete announcement');
+    }
+  };
+
+  const handleViewTicket = async (id) => {
+    try {
+      const response = await api.get(`/superadmin/tickets/${id}`, getAuthHeader());
+      setSelectedTicket(response.data.ticket);
+      setTicketMessages(response.data.messages || []);
+      setTicketReply('');
+    } catch (error) {
+      alert('Failed to load ticket');
+    }
+  };
+
+  const handleReplyTicket = async () => {
+    if (!ticketReply.trim()) return;
+    try {
+      await api.post(`/superadmin/tickets/${selectedTicket.id}/reply`, { message: ticketReply }, getAuthHeader());
+      setTicketReply('');
+      handleViewTicket(selectedTicket.id);
+      fetchTickets();
+    } catch (error) {
+      alert('Failed to send reply');
+    }
+  };
+
+  const handleCloseTicket = async (id) => {
+    try {
+      await api.patch(`/superadmin/tickets/${id}/status`, { status: 'resolved' }, getAuthHeader());
+      if (selectedTicket?.id === id) {
+        setSelectedTicket({ ...selectedTicket, status: 'resolved' });
+      }
+      fetchTickets();
+    } catch (error) {
+      alert('Failed to close ticket');
     }
   };
 
@@ -256,10 +373,28 @@ function SuperAdminDashboard() {
             Revenue
           </button>
           <button
+            className={`tab ${activeTab === 'churn' ? 'active' : ''}`}
+            onClick={() => setActiveTab('churn')}
+          >
+            Churn Risk {churnRisks.length > 0 && <span className="badge warning-badge">{churnRisks.length}</span>}
+          </button>
+          <button
+            className={`tab ${activeTab === 'announcements' ? 'active' : ''}`}
+            onClick={() => setActiveTab('announcements')}
+          >
+            Announcements
+          </button>
+          <button
+            className={`tab ${activeTab === 'tickets' ? 'active' : ''}`}
+            onClick={() => setActiveTab('tickets')}
+          >
+            Tickets {ticketOpenCount > 0 && <span className="badge">{ticketOpenCount}</span>}
+          </button>
+          <button
             className={`tab ${activeTab === 'review' ? 'active' : ''}`}
             onClick={() => setActiveTab('review')}
           >
-            Review Queue {recentRegistrations.length > 0 && <span className="badge">{recentRegistrations.length}</span>}
+            Review Queue {recentRegistrations.filter(r => r.verification_status !== 'verified').length > 0 && <span className="badge">{recentRegistrations.filter(r => r.verification_status !== 'verified').length}</span>}
           </button>
           <button
             className={`tab ${activeTab === 'security' ? 'active' : ''}`}
@@ -554,6 +689,299 @@ function SuperAdminDashboard() {
                   </div>
                 </div>
               </>
+            )}
+          </section>
+        )}
+
+        {/* Churn Risk Tab */}
+        {activeTab === 'churn' && (
+          <section className="table-section">
+            <h2>Churn Risk Alerts</h2>
+            <p className="section-desc">Paid madrasahs showing signs of disengagement. Consider proactive outreach.</p>
+
+            {churnRisks.length === 0 ? (
+              <p className="empty-state">No at-risk madrasahs detected. All paid customers are active.</p>
+            ) : (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Madrasah</th>
+                    <th>Plan</th>
+                    <th>Risk Level</th>
+                    <th>Last Login</th>
+                    <th>Last Attendance</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {churnRisks.map((r) => (
+                    <tr key={r.id} className={r.risk_level === 'critical' ? 'warning-row' : ''}>
+                      <td>
+                        <Link to={`${getBasePath()}/madrasahs/${r.id}`} className="madrasah-link">
+                          {r.name}
+                        </Link>
+                      </td>
+                      <td>
+                        <span className={`plan-badge ${r.pricing_plan}`}>{r.pricing_plan}</span>
+                      </td>
+                      <td>
+                        <span className={`risk-badge ${r.risk_level}`}>{r.risk_level}</span>
+                      </td>
+                      <td>
+                        {r.last_login_at ? (
+                          <span className="text-warning">{formatTimeAgo(r.last_login_at)}</span>
+                        ) : (
+                          <span className="text-muted">Never</span>
+                        )}
+                      </td>
+                      <td>
+                        {r.last_attendance_date ? (
+                          <span>{formatTimeAgo(r.last_attendance_date)}</span>
+                        ) : (
+                          <span className="text-muted">Never</span>
+                        )}
+                      </td>
+                      <td>
+                        <Link to={`${getBasePath()}/madrasahs/${r.id}`} className="btn-small">
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+        )}
+
+        {/* Announcements Tab */}
+        {activeTab === 'announcements' && (
+          <section className="table-section">
+            <div className="section-header-row">
+              <div>
+                <h2>Platform Announcements</h2>
+                <p className="section-desc">Broadcast messages to madrasah admins. Shown as banners on their dashboards.</p>
+              </div>
+              <button className="btn primary" onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}>
+                {showAnnouncementForm ? 'Cancel' : '+ New Announcement'}
+              </button>
+            </div>
+
+            {showAnnouncementForm && (
+              <form onSubmit={handleCreateAnnouncement} className="announcement-form">
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 2 }}>
+                    <label>Title</label>
+                    <input
+                      type="text"
+                      value={announcementForm.title}
+                      onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                      placeholder="e.g., Scheduled Maintenance"
+                      required
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Type</label>
+                    <select
+                      value={announcementForm.type}
+                      onChange={(e) => setAnnouncementForm({ ...announcementForm, type: e.target.value })}
+                    >
+                      <option value="info">Info</option>
+                      <option value="warning">Warning</option>
+                      <option value="success">Success</option>
+                      <option value="update">Update</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Message</label>
+                  <textarea
+                    value={announcementForm.message}
+                    onChange={(e) => setAnnouncementForm({ ...announcementForm, message: e.target.value })}
+                    placeholder="Announcement message..."
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Target Plans (leave empty for all)</label>
+                    <div className="plan-checkboxes">
+                      {['trial', 'standard', 'plus', 'enterprise'].map(plan => (
+                        <label key={plan} className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={announcementForm.target_plans.includes(plan)}
+                            onChange={(e) => {
+                              const plans = e.target.checked
+                                ? [...announcementForm.target_plans, plan]
+                                : announcementForm.target_plans.filter(p => p !== plan);
+                              setAnnouncementForm({ ...announcementForm, target_plans: plans });
+                            }}
+                          />
+                          {plan}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Expires At (optional)</label>
+                    <input
+                      type="datetime-local"
+                      value={announcementForm.expires_at}
+                      onChange={(e) => setAnnouncementForm({ ...announcementForm, expires_at: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <button type="submit" className="btn primary">Publish Announcement</button>
+              </form>
+            )}
+
+            {announcements.length === 0 ? (
+              <p className="empty-state">No announcements yet.</p>
+            ) : (
+              <div className="announcements-list">
+                {announcements.map((a) => (
+                  <div key={a.id} className={`announcement-item ${a.type} ${!a.is_active ? 'inactive' : ''}`}>
+                    <div className="announcement-content">
+                      <div className="announcement-header">
+                        <span className={`announcement-type ${a.type}`}>{a.type}</span>
+                        <strong>{a.title}</strong>
+                        {!a.is_active && <span className="status inactive">Inactive</span>}
+                      </div>
+                      <p>{a.message}</p>
+                      <div className="announcement-meta">
+                        <span>Created {new Date(a.created_at).toLocaleDateString()}</span>
+                        {a.expires_at && <span> · Expires {new Date(a.expires_at).toLocaleDateString()}</span>}
+                        {a.target_plans && <span> · Plans: {JSON.parse(a.target_plans).join(', ')}</span>}
+                        {a.dismiss_count !== undefined && <span> · {a.dismiss_count} dismissed</span>}
+                      </div>
+                    </div>
+                    <div className="announcement-actions">
+                      <button
+                        className={`btn-small ${a.is_active ? 'warning' : 'success'}`}
+                        onClick={() => handleToggleAnnouncement(a.id, a.is_active)}
+                      >
+                        {a.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button
+                        className="btn-small danger"
+                        onClick={() => handleDeleteAnnouncement(a.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Support Tickets Tab */}
+        {activeTab === 'tickets' && (
+          <section className="table-section">
+            <h2>Support Tickets</h2>
+            <p className="section-desc">Manage support requests from madrasah administrators.</p>
+
+            <div className="ticket-filters">
+              {['open', 'in_progress', 'resolved', 'closed', ''].map(status => (
+                <button
+                  key={status || 'all'}
+                  className={`btn-small ${ticketFilter === status ? 'active-filter' : ''}`}
+                  onClick={() => setTicketFilter(status)}
+                >
+                  {status === '' ? 'All' : status.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+
+            {selectedTicket ? (
+              <div className="ticket-detail">
+                <button className="btn-small" onClick={() => setSelectedTicket(null)}>← Back to list</button>
+                <div className="ticket-header-detail">
+                  <h3>{selectedTicket.subject}</h3>
+                  <div className="ticket-meta">
+                    <span className={`ticket-status ${selectedTicket.status}`}>{selectedTicket.status.replace('_', ' ')}</span>
+                    <span className={`ticket-priority ${selectedTicket.priority}`}>{selectedTicket.priority}</span>
+                    {selectedTicket.madrasah_name && <span>from <strong>{selectedTicket.madrasah_name}</strong></span>}
+                    <span>{new Date(selectedTicket.created_at).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="ticket-messages">
+                  {ticketMessages.map((msg) => (
+                    <div key={msg.id} className={`ticket-message ${msg.sender_type}`}>
+                      <div className="message-header">
+                        <strong>{msg.sender_type === 'super_admin' ? 'You' : 'User'}</strong>
+                        <span>{new Date(msg.created_at).toLocaleString()}</span>
+                      </div>
+                      <p>{msg.message}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {selectedTicket.status !== 'closed' && (
+                  <div className="ticket-reply-form">
+                    <textarea
+                      value={ticketReply}
+                      onChange={(e) => setTicketReply(e.target.value)}
+                      placeholder="Type your reply..."
+                      rows={3}
+                    />
+                    <div className="ticket-reply-actions">
+                      <button className="btn primary" onClick={handleReplyTicket} disabled={!ticketReply.trim()}>
+                        Send Reply
+                      </button>
+                      {selectedTicket.status !== 'resolved' && (
+                        <button className="btn secondary" onClick={() => handleCloseTicket(selectedTicket.id)}>
+                          Mark Resolved
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : tickets.length === 0 ? (
+              <p className="empty-state">No tickets match the current filter.</p>
+            ) : (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Subject</th>
+                    <th>Madrasah</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Messages</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tickets.map((t) => (
+                    <tr key={t.id} className={t.priority === 'urgent' ? 'warning-row' : ''}>
+                      <td><strong>{t.subject}</strong></td>
+                      <td>
+                        {t.madrasah_name ? (
+                          <Link to={`${getBasePath()}/madrasahs/${t.madrasah_id}`} className="madrasah-link">
+                            {t.madrasah_name}
+                          </Link>
+                        ) : '-'}
+                      </td>
+                      <td><span className={`ticket-status ${t.status}`}>{t.status.replace('_', ' ')}</span></td>
+                      <td><span className={`ticket-priority ${t.priority}`}>{t.priority}</span></td>
+                      <td>{t.message_count}</td>
+                      <td>{formatTimeAgo(t.updated_at)}</td>
+                      <td>
+                        <button className="btn-small" onClick={() => handleViewTicket(t.id)}>View</button>
+                        {t.status !== 'resolved' && t.status !== 'closed' && (
+                          <button className="btn-small success" onClick={() => handleCloseTicket(t.id)}>Resolve</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </section>
         )}

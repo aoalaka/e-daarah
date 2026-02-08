@@ -1,0 +1,85 @@
+.announcement-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid transparent;
+  font-size: 14px;
+}
+
+.announcement-banner.info {
+  background: #e8f4fd;
+  border-bottom-color: #b8daff;
+  color: #0c5da5;
+}
+
+.announcement-banner.warning {
+  background: #fff8e1;
+  border-bottom-color: #ffe082;
+  color: #8a6d0b;
+}
+
+.announcement-banner.success {
+  background: #e8f5e9;
+  border-bottom-color: #a5d6a7;
+  color: #1b5e20;
+}
+
+.announcement-banner.update {
+  background: #f3e5f5;
+  border-bottom-color: #ce93d8;
+  color: #6a1b9a;
+}
+
+.announcement-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.announcement-banner-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.announcement-banner-text {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.announcement-banner-text strong {
+  font-weight: 600;
+}
+
+.announcement-banner-text span {
+  opacity: 0.85;
+}
+
+.announcement-banner-dismiss {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.announcement-banner-dismiss:hover {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .announcement-banner {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .announcement-banner-text {
+    flex-direction: column;
+    gap: 2px;
+  }
+}

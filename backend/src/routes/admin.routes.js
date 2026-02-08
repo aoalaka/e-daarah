@@ -2629,4 +2629,160 @@ router.get('/analytics', async (req, res) => {
   }
 });
 
+// =====================================================
+// Platform Announcements (read-only for admins)
+// =====================================================
+
+// Get active announcements for this madrasah
+router.get('/announcements', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+
+    // Get madrasah plan to filter targeted announcements
+    const [[madrasah]] = await pool.query(
+      'SELECT pricing_plan FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+
+    const [announcements] = await pool.query(`
+      SELECT a.id, a.title, a.message, a.type, a.created_at
+      FROM announcements a
+      LEFT JOIN announcement_dismissals ad ON ad.announcement_id = a.id AND ad.madrasah_id = ?
+      WHERE a.is_active = TRUE
+        AND ad.id IS NULL
+        AND (a.expires_at IS NULL OR a.expires_at > NOW())
+        AND (a.target_plans IS NULL OR JSON_CONTAINS(a.target_plans, ?))
+      ORDER BY a.created_at DESC
+      LIMIT 5
+    `, [madrasahId, JSON.stringify(madrasah?.pricing_plan || 'trial')]);
+
+    res.json(announcements);
+  } catch (error) {
+    console.error('Get announcements error:', error);
+    res.status(500).json({ error: 'Failed to fetch announcements' });
+  }
+});
+
+// Dismiss announcement
+router.post('/announcements/:id/dismiss', async (req, res) => {
+  try {
+    await pool.query(
+      'INSERT IGNORE INTO announcement_dismissals (announcement_id, madrasah_id) VALUES (?, ?)',
+      [req.params.id, req.madrasahId]
+    );
+    res.json({ message: 'Dismissed' });
+  } catch (error) {
+    console.error('Dismiss announcement error:', error);
+    res.status(500).json({ error: 'Failed to dismiss announcement' });
+  }
+});
+
+// =====================================================
+// Support Tickets (madrasah admin)
+// =====================================================
+
+// List my tickets
+router.get('/tickets', async (req, res) => {
+  try {
+    const [tickets] = await pool.query(`
+      SELECT t.*,
+        (SELECT COUNT(*) FROM ticket_messages tm WHERE tm.ticket_id = t.id) as message_count,
+        (SELECT tm.sender_type FROM ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY tm.created_at DESC LIMIT 1) as last_sender
+      FROM support_tickets t
+      WHERE t.madrasah_id = ?
+      ORDER BY t.updated_at DESC
+      LIMIT 20
+    `, [req.madrasahId]);
+
+    res.json(tickets);
+  } catch (error) {
+    console.error('List tickets error:', error);
+    res.status(500).json({ error: 'Failed to fetch tickets' });
+  }
+});
+
+// Create ticket
+router.post('/tickets', async (req, res) => {
+  try {
+    const { subject, message, priority } = req.body;
+    if (!subject || !message) {
+      return res.status(400).json({ error: 'Subject and message are required' });
+    }
+
+    const [result] = await pool.query(
+      'INSERT INTO support_tickets (madrasah_id, user_id, subject, priority) VALUES (?, ?, ?, ?)',
+      [req.madrasahId, req.user.id, subject, priority || 'normal']
+    );
+
+    await pool.query(
+      'INSERT INTO ticket_messages (ticket_id, sender_type, sender_id, message) VALUES (?, "user", ?, ?)',
+      [result.insertId, req.user.id, message]
+    );
+
+    res.status(201).json({ id: result.insertId, message: 'Ticket created' });
+  } catch (error) {
+    console.error('Create ticket error:', error);
+    res.status(500).json({ error: 'Failed to create ticket' });
+  }
+});
+
+// Get ticket with messages
+router.get('/tickets/:id', async (req, res) => {
+  try {
+    const [[ticket]] = await pool.query(
+      'SELECT * FROM support_tickets WHERE id = ? AND madrasah_id = ?',
+      [req.params.id, req.madrasahId]
+    );
+
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    const [messages] = await pool.query(
+      'SELECT * FROM ticket_messages WHERE ticket_id = ? ORDER BY created_at ASC',
+      [req.params.id]
+    );
+
+    res.json({ ticket, messages });
+  } catch (error) {
+    console.error('Get ticket error:', error);
+    res.status(500).json({ error: 'Failed to fetch ticket' });
+  }
+});
+
+// Reply to ticket
+router.post('/tickets/:id/reply', async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    // Verify ticket belongs to this madrasah
+    const [[ticket]] = await pool.query(
+      'SELECT id FROM support_tickets WHERE id = ? AND madrasah_id = ?',
+      [req.params.id, req.madrasahId]
+    );
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    await pool.query(
+      'INSERT INTO ticket_messages (ticket_id, sender_type, sender_id, message) VALUES (?, "user", ?, ?)',
+      [req.params.id, req.user.id, message]
+    );
+
+    // Re-open if it was resolved
+    await pool.query(
+      'UPDATE support_tickets SET status = "open" WHERE id = ? AND status = "resolved"',
+      [req.params.id]
+    );
+
+    res.json({ message: 'Reply sent' });
+  } catch (error) {
+    console.error('Reply to ticket error:', error);
+    res.status(500).json({ error: 'Failed to send reply' });
+  }
+});
+
 export default router;

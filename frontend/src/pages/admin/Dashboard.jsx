@@ -4736,21 +4736,22 @@ function AdminDashboard() {
             <>
               <div className="section-header">
                 <h2>Support</h2>
-                <button className="btn-primary" onClick={() => setShowTicketForm(!showTicketForm)}>
+                <button className="btn btn-primary" onClick={() => setShowTicketForm(!showTicketForm)}>
                   {showTicketForm ? 'Cancel' : '+ New Ticket'}
                 </button>
               </div>
 
-              <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+              <p className="support-intro">
                 Need help? Submit a support ticket and our team will get back to you.
               </p>
 
               {showTicketForm && (
-                <div className="card" style={{ marginBottom: '24px' }}>
+                <div className="card ticket-form">
                   <form onSubmit={handleCreateTicket}>
-                    <div className="form-group">
-                      <label>Subject</label>
+                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                      <label className="form-label">Subject</label>
                       <input
+                        className="form-input"
                         type="text"
                         value={newTicket.subject}
                         onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
@@ -4758,9 +4759,10 @@ function AdminDashboard() {
                         required
                       />
                     </div>
-                    <div className="form-group">
-                      <label>Priority</label>
+                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                      <label className="form-label">Priority</label>
                       <select
+                        className="form-select"
                         value={newTicket.priority}
                         onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value })}
                       >
@@ -4770,9 +4772,10 @@ function AdminDashboard() {
                         <option value="urgent">Urgent</option>
                       </select>
                     </div>
-                    <div className="form-group">
-                      <label>Message</label>
+                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                      <label className="form-label">Message</label>
                       <textarea
+                        className="form-textarea"
                         value={newTicket.message}
                         onChange={(e) => setNewTicket({ ...newTicket, message: e.target.value })}
                         placeholder="Describe your issue in detail..."
@@ -4780,103 +4783,121 @@ function AdminDashboard() {
                         required
                       />
                     </div>
-                    <button type="submit" className="btn-primary">Submit Ticket</button>
+                    <div className="form-actions" style={{ borderTop: 'none', marginTop: 0, paddingTop: 0, justifyContent: 'flex-start' }}>
+                      <button type="submit" className="btn btn-primary">Submit Ticket</button>
+                    </div>
                   </form>
                 </div>
               )}
 
               {selectedTicket ? (
                 <div className="card">
-                  <button className="btn-secondary" onClick={() => setSelectedTicket(null)} style={{ marginBottom: '16px' }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setSelectedTicket(null)} style={{ marginBottom: '16px' }}>
                     ← Back to tickets
                   </button>
-                  <h3 style={{ marginBottom: '8px' }}>{selectedTicket.subject}</h3>
-                  <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', fontSize: '13px', color: '#666', flexWrap: 'wrap' }}>
-                    <span style={{
-                      padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 500,
-                      background: selectedTicket.status === 'open' ? '#e3f2fd' : selectedTicket.status === 'in_progress' ? '#fff8e1' : '#e8f5e9',
-                      color: selectedTicket.status === 'open' ? '#1976d2' : selectedTicket.status === 'in_progress' ? '#f57c00' : '#2e7d32'
-                    }}>
-                      {selectedTicket.status.replace('_', ' ')}
-                    </span>
-                    <span>{new Date(selectedTicket.created_at).toLocaleString()}</span>
+                  <div className="ticket-detail-header">
+                    <h3>{selectedTicket.subject}</h3>
+                    <div className="ticket-detail-meta">
+                      <span className={`ticket-status ticket-status-${selectedTicket.status}`}>
+                        {selectedTicket.status.replace('_', ' ')}
+                      </span>
+                      <span>{new Date(selectedTicket.created_at).toLocaleString()}</span>
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                  <div className="ticket-messages">
                     {ticketMessages.map((msg) => (
-                      <div key={msg.id} style={{
-                        padding: '14px', borderRadius: '8px', maxWidth: '85%',
-                        background: msg.sender_type === 'super_admin' ? '#e3f2fd' : '#f5f5f5',
-                        alignSelf: msg.sender_type === 'super_admin' ? 'flex-end' : 'flex-start'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '6px', fontSize: '12px', color: '#666' }}>
-                          <strong style={{ color: '#333' }}>{msg.sender_type === 'super_admin' ? 'Support Team' : 'You'}</strong>
+                      <div key={msg.id} className={`ticket-message ${msg.sender_type === 'super_admin' ? 'ticket-message-support' : 'ticket-message-user'}`}>
+                        <div className="ticket-message-header">
+                          <strong>{msg.sender_type === 'super_admin' ? 'Support Team' : 'You'}</strong>
                           <span>{new Date(msg.created_at).toLocaleString()}</span>
                         </div>
-                        <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{msg.message}</p>
+                        <p className="ticket-message-body">{msg.message}</p>
                       </div>
                     ))}
                   </div>
 
                   {selectedTicket.status !== 'closed' && (
-                    <div style={{ borderTop: '1px solid #eee', paddingTop: '16px' }}>
+                    <div className="ticket-reply-area">
                       <textarea
                         value={ticketReply}
                         onChange={(e) => setTicketReply(e.target.value)}
                         placeholder="Type your reply..."
                         rows={3}
-                        style={{ width: '100%', marginBottom: '12px' }}
                       />
-                      <button className="btn-primary" onClick={handleReplyToTicket} disabled={!ticketReply.trim()}>
+                      <button className="btn btn-primary" onClick={handleReplyToTicket} disabled={!ticketReply.trim()}>
                         Send Reply
                       </button>
                     </div>
                   )}
                 </div>
               ) : supportTickets.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-                  <p>No support tickets yet.</p>
-                  <p style={{ fontSize: '14px' }}>Click "+ New Ticket" to submit your first support request.</p>
+                <div className="card">
+                  <div className="empty">
+                    <p>No support tickets yet.</p>
+                    <p style={{ fontSize: '14px', marginTop: '8px' }}>Click "+ New Ticket" to submit your first support request.</p>
+                  </div>
                 </div>
               ) : (
-                <div className="card">
-                  <table className="data-table" style={{ width: '100%' }}>
-                    <thead>
-                      <tr>
-                        <th>Subject</th>
-                        <th>Status</th>
-                        <th>Priority</th>
-                        <th>Messages</th>
-                        <th>Updated</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                <>
+                  <div className="card">
+                    <div className="table-wrap support-table-desktop">
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Subject</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Messages</th>
+                            <th>Updated</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {supportTickets.map((t) => (
+                            <tr key={t.id}>
+                              <td><strong>{t.subject}</strong></td>
+                              <td>
+                                <span className={`ticket-status ticket-status-${t.status}`}>
+                                  {t.status.replace('_', ' ')}
+                                </span>
+                              </td>
+                              <td className="ticket-priority">{t.priority}</td>
+                              <td>{t.message_count}</td>
+                              <td style={{ fontSize: '13px', color: '#666' }}>{new Date(t.updated_at).toLocaleDateString()}</td>
+                              <td>
+                                <button className="btn-sm btn-edit" onClick={() => handleViewTicket(t.id)}>
+                                  View
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* Mobile cards for tickets */}
+                    <div className="support-mobile-cards">
                       {supportTickets.map((t) => (
-                        <tr key={t.id}>
-                          <td><strong>{t.subject}</strong></td>
-                          <td>
-                            <span style={{
-                              display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 500,
-                              background: t.status === 'open' ? '#e3f2fd' : t.status === 'in_progress' ? '#fff8e1' : t.status === 'resolved' ? '#e8f5e9' : '#f5f5f5',
-                              color: t.status === 'open' ? '#1976d2' : t.status === 'in_progress' ? '#f57c00' : t.status === 'resolved' ? '#2e7d32' : '#666'
-                            }}>
+                        <div key={t.id} className="admin-mobile-card">
+                          <div className="admin-mobile-card-top">
+                            <div>
+                              <div className="admin-mobile-card-title">{t.subject}</div>
+                              <div className="admin-mobile-card-sub">
+                                {t.message_count} message{t.message_count !== 1 ? 's' : ''} · {new Date(t.updated_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <span className={`ticket-status ticket-status-${t.status}`}>
                               {t.status.replace('_', ' ')}
                             </span>
-                          </td>
-                          <td style={{ textTransform: 'capitalize', fontSize: '13px' }}>{t.priority}</td>
-                          <td>{t.message_count}</td>
-                          <td style={{ fontSize: '13px', color: '#666' }}>{new Date(t.updated_at).toLocaleDateString()}</td>
-                          <td>
-                            <button className="btn-secondary" onClick={() => handleViewTicket(t.id)} style={{ fontSize: '13px' }}>
-                              View
-                            </button>
-                          </td>
-                        </tr>
+                          </div>
+                          <div className="admin-mobile-card-actions">
+                            <button className="btn btn-sm btn-secondary" onClick={() => handleViewTicket(t.id)}>View</button>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </div>
+                  </div>
+                </>
               )}
             </>
           )}

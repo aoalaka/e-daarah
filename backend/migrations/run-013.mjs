@@ -1,15 +1,30 @@
 import mysql from 'mysql2/promise';
 
-const config = {
-  host: process.env.DB_HOST || process.env.MYSQLHOST,
-  port: parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306'),
-  user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
-  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD,
-  database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'madrasah_admin',
-};
+// Parse MYSQL_URL if available, otherwise fall back to individual vars
+function getConfig() {
+  if (process.env.MYSQL_URL) {
+    const url = new URL(process.env.MYSQL_URL);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port || '3306'),
+      user: url.username,
+      password: url.password,
+      database: url.pathname.replace('/', ''),
+    };
+  }
+  return {
+    host: process.env.DB_HOST || process.env.MYSQLHOST,
+    port: parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306'),
+    user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
+    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD,
+    database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'madrasah_admin',
+  };
+}
+
+const config = getConfig();
 
 async function runMigration() {
-  console.log('Connecting to database...');
+  console.log('Connecting to database...', config.host, config.database);
   const connection = await mysql.createConnection(config);
   
   try {

@@ -36,6 +36,8 @@ const AUTH_ENDPOINTS = [
   '/auth/login',
   '/auth/parent-login',
   '/auth/parent/report',
+  '/auth/session-info',
+  '/auth/logout',
   '/auth/register',
   '/auth/register-madrasah',
   '/auth/register-teacher',

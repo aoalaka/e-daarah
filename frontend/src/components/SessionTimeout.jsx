@@ -82,10 +82,11 @@ function SessionTimeout({ onLogout }) {
     navigate(isDemo ? '/demo' : '/login');
   };
 
-  // Check session periodically
+  // Check session periodically (skip on parent portal - parents don't have server-side sessions)
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) return;
+    const isParentRoute = window.location.pathname.includes('/parent');
+    if (!token || isParentRoute) return;
 
     // Initial check after a short delay to avoid synchronous setState
     const initialTimeout = setTimeout(checkSession, 100);

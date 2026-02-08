@@ -52,6 +52,9 @@ CREATE TABLE IF NOT EXISTS madrasahs (
     enable_dressing_grade BOOLEAN NOT NULL DEFAULT TRUE,
     enable_behavior_grade BOOLEAN NOT NULL DEFAULT TRUE,
     enable_punctuality_grade BOOLEAN NOT NULL DEFAULT TRUE,
+    -- Suspension
+    suspended_at TIMESTAMP NULL DEFAULT NULL,
+    suspended_reason TEXT NULL DEFAULT NULL,
     -- Soft delete
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

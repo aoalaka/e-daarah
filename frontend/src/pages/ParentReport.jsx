@@ -27,7 +27,6 @@ function ParentReport() {
       navigate(`/${madrasahSlug}/parent-login`);
       return;
     }
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     fetchReport();
   }, [selectedSession, selectedSemester]);
 

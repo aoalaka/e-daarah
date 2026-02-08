@@ -14,7 +14,17 @@ const api = axios.create({
 
 // Add token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token') || localStorage.getItem('parentToken');
+  // If the request already has an Authorization header set explicitly, don't override it
+  if (config.headers.Authorization) {
+    return config;
+  }
+
+  // On parent portal routes, prefer the parent token
+  const isParentRoute = window.location.pathname.includes('/parent');
+  const parentToken = localStorage.getItem('parentToken');
+  const userToken = localStorage.getItem('token');
+
+  const token = isParentRoute && parentToken ? parentToken : (userToken || parentToken);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

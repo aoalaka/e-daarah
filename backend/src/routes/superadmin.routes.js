@@ -279,7 +279,7 @@ router.get('/madrasahs/:id', authenticateSuperAdmin, async (req, res) => {
         (SELECT MAX(u.last_login_at) FROM users u WHERE u.madrasah_id = ? AND u.deleted_at IS NULL) as lastActiveAt,
         (SELECT COUNT(*) FROM attendance WHERE madrasah_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND deleted_at IS NULL) as attendance30d,
         (SELECT COUNT(*) FROM exam_performance WHERE madrasah_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND deleted_at IS NULL) as exams30d,
-        (SELECT COUNT(DISTINCT teacher_id) FROM class_teachers ct JOIN classes c ON ct.class_id = c.id WHERE c.madrasah_id = ? AND c.deleted_at IS NULL) as assignedTeachers,
+        (SELECT COUNT(DISTINCT ct.user_id) FROM class_teachers ct JOIN classes c ON ct.class_id = c.id WHERE c.madrasah_id = ? AND c.deleted_at IS NULL) as assignedTeachers,
         (SELECT COUNT(*) FROM semesters WHERE madrasah_id = ? AND deleted_at IS NULL) as totalSemesters,
         (SELECT COUNT(DISTINCT date) FROM attendance WHERE madrasah_id = ? AND deleted_at IS NULL) as attendanceDays
     `, [id, id, id, id, id, id, id, id, id, id, id]);

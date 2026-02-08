@@ -413,7 +413,7 @@ function SuperAdminDashboard() {
             className={`tab ${activeTab === 'churn' ? 'active' : ''}`}
             onClick={() => setActiveTab('churn')}
           >
-            Churn Risk {churnRisks.length > 0 && <span className="badge warning-badge">{churnRisks.length}</span>}
+            Churn Risk {churnRisks.length > 0 && activeTab !== 'churn' && <span className="badge warning-badge">{churnRisks.length}</span>}
           </button>
           <button
             className={`tab ${activeTab === 'announcements' ? 'active' : ''}`}

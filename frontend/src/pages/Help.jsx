@@ -9,15 +9,15 @@ const faqs = [
     questions: [
       {
         q: 'How do I create my madrasah account?',
-        a: 'Click "Get Started" on the homepage and fill in your madrasah details. You\'ll receive a verification email to confirm your account. Once verified, you can log in and start setting up your madrasah.'
+        a: 'Click "Get Started" on the homepage and fill in your madrasah details including name, location, and institution type. You\'ll receive a verification email to confirm your account. Once verified, you can log in and start setting up your madrasah.'
       },
       {
         q: 'What happens during the 14-day free trial?',
-        a: 'During your trial, you have full access to all features. You can add students, teachers, track attendance, and create exams. After 14 days, you\'ll need to subscribe to continue using the service.'
+        a: 'During your trial, you have full access to all features including the parent portal. You can add students, teachers, track attendance, and record exams. After 14 days, you\'ll need to subscribe to continue using the service.'
       },
       {
-        q: 'How do I invite teachers to join?',
-        a: 'Go to Settings → Teachers and click "Add Teacher". Enter their email address and they\'ll receive an invitation to create their account and join your madrasah.'
+        q: 'How do I add teachers?',
+        a: 'There are two ways. As an admin, go to your dashboard and add a teacher with their name, email, and staff ID — they\'ll get a default password matching their staff ID. Alternatively, teachers can self-register using your madrasah\'s registration link, where they\'ll set their own password and receive an auto-generated staff ID.'
       }
     ]
   },
@@ -26,15 +26,15 @@ const faqs = [
     questions: [
       {
         q: 'How do I enroll a new student?',
-        a: 'Navigate to Students → Add Student. Fill in the student\'s details including name, date of birth, and parent contact information. You can also assign them to a class immediately.'
+        a: 'From the admin dashboard, go to the Students section and click "Add Student". Enter their first name, last name, gender, and a unique student ID. You can also add parent/guardian contact details, assign them to a class, and add notes. On Plus and Enterprise plans, a parent access code is automatically generated.'
       },
       {
         q: 'Can I import students from a spreadsheet?',
-        a: 'Currently, students need to be added individually through the dashboard. We\'re working on bulk import functionality for a future update.'
+        a: 'Bulk student upload is available on the Plus plan and above. On the Standard plan, students are added individually through the dashboard.'
       },
       {
         q: 'How do parents access their child\'s information?',
-        a: 'Parents receive a unique access code when their child is enrolled. They can use this code on the parent portal to view attendance records and report cards.'
+        a: 'On the Plus and Enterprise plans, each student receives a unique access code when enrolled. Parents log in to the parent portal with the student ID, access code, and madrasah name to view attendance records, dressing and behavior performance, and exam results. They can also filter by semester.'
       }
     ]
   },
@@ -43,32 +43,32 @@ const faqs = [
     questions: [
       {
         q: 'How do I mark attendance?',
-        a: 'Go to Attendance from the main menu. Select the date and class, then mark each student as present, absent, late, or excused. Don\'t forget to save your changes.'
+        a: 'Teachers select a class and date from their dashboard, then mark each student as present or absent. For present students, you can also rate their dressing, behavior, and punctuality (Excellent, Good, Fair, or Poor) depending on your madrasah\'s settings. For absent students, select a reason (Sick, Parent Request, School Not Notified, or Other). Save all records at once with bulk save.'
       },
       {
         q: 'Can I edit past attendance records?',
-        a: 'Yes, you can edit attendance for any past date. Simply select the date from the calendar and make your changes. All edits are logged for accountability.'
+        a: 'Yes, you can edit attendance for any past date by selecting it from the date picker. Simply update the records and save. Note that attendance cannot be recorded for future dates.'
       },
       {
         q: 'How do I view attendance reports?',
-        a: 'Attendance statistics are shown on the dashboard. For detailed reports, go to Students and click on an individual student to see their complete attendance history.'
+        a: 'Admins can view class-level attendance from the dashboard. For individual students, click on a student to see their complete attendance history, including attendance rate, dressing and behavior performance summaries, and punctuality trends filtered by semester.'
       }
     ]
   },
   {
-    category: 'Exams & Grades',
+    category: 'Exams & Results',
     questions: [
       {
-        q: 'How do I create an exam?',
-        a: 'Go to Exams → Create Exam. Select the term, class, and subject. Set the maximum marks and exam date. Once created, you can enter individual student scores.'
+        q: 'How do I record exam results?',
+        a: 'From the teacher dashboard, select a class and go to the Exams section. Enter the subject name, exam date, and maximum score, then enter each student\'s score. All scores are saved in bulk. You can also mark students as absent with a reason instead of entering a score.'
       },
       {
-        q: 'How are grades calculated?',
-        a: 'Grades are calculated as a percentage of marks obtained vs maximum marks. The grading scale (A, B, C, etc.) can be configured in your madrasah settings.'
+        q: 'How are results calculated?',
+        a: 'Results are calculated as a percentage of the score obtained versus the maximum score. Students are ranked within their class using tie-aware ranking — students with the same percentage share the same rank.'
       },
       {
-        q: 'How do I generate report cards?',
-        a: 'Go to Report Cards, select the term and class, then click "Generate". Report cards compile all exam results and attendance for the selected period. Parents can view these through the parent portal.'
+        q: 'How do I view student reports?',
+        a: 'Admins can view a detailed report for any student from the Students section. The report shows attendance statistics, dressing and behavior performance, exam results by subject, and overall ranking. You can filter by semester. Parents on the Plus plan can also view their child\'s report through the parent portal.'
       }
     ]
   },
@@ -81,7 +81,7 @@ const faqs = [
       },
       {
         q: 'How do I upgrade or change my plan?',
-        a: 'Go to Settings → Billing and click "Manage Subscription". You can upgrade, downgrade, or change your billing frequency at any time. Changes take effect on your next billing date.'
+        a: 'Go to Settings → Billing in your admin dashboard to manage your subscription. You can upgrade from Standard ($12/mo) to Plus ($29/mo) at any time. Annual billing is also available and saves you roughly two months.'
       },
       {
         q: 'Can I get a refund?',

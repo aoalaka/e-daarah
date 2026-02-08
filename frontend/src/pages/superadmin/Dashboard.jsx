@@ -186,7 +186,7 @@ function SuperAdminDashboard() {
   const fetchAnnouncements = async () => {
     try {
       const response = await api.get('/superadmin/announcements', getAuthHeader());
-      setAnnouncements(response.data || []);
+      setAnnouncements(response.data.announcements || []);
     } catch (error) {
       console.error('Failed to fetch announcements:', error);
     }

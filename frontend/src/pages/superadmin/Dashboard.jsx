@@ -486,7 +486,7 @@ function SuperAdminDashboard() {
               <>
                 <div className="revenue-cards">
                   <div className="revenue-card primary">
-                    <div className="revenue-value">${revenue.mrr}</div>
+                    <div className="revenue-value">${revenue.mrr} <span style={{ fontSize: '0.5em', opacity: 0.7 }}>USD</span></div>
                     <div className="revenue-label">Monthly Recurring Revenue</div>
                   </div>
                   <div className="revenue-card">

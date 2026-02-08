@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Component } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import './SuperAdmin.css';
@@ -6,6 +6,42 @@ import './SuperAdmin.css';
 // Check if we're on the admin subdomain
 const isAdminSubdomain = () => window.location.hostname.startsWith('admin.');
 const getBasePath = () => isAdminSubdomain() ? '' : '/superadmin';
+
+// Error boundary to prevent white screen crashes
+class DashboardErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('Dashboard crash:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+          <h2>Something went wrong</h2>
+          <p style={{ color: '#666', margin: '12px 0' }}>{this.state.error?.message}</p>
+          <button onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            style={{ padding: '10px 20px', background: '#1a1a1a', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+            Reload
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Safe JSON parse helper
+const safeParseJSON = (val) => {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  try { return JSON.parse(val); } catch { return []; }
+};
 
 function SuperAdminDashboard() {
   const navigate = useNavigate();
@@ -304,6 +340,7 @@ function SuperAdminDashboard() {
   };
 
   return (
+    <DashboardErrorBoundary>
     <div className="superadmin">
       <header className="superadmin-header">
         <div className="header-left">
@@ -853,7 +890,7 @@ function SuperAdminDashboard() {
                       <div className="announcement-meta">
                         <span>Created {new Date(a.created_at).toLocaleDateString()}</span>
                         {a.expires_at && <span> · Expires {new Date(a.expires_at).toLocaleDateString()}</span>}
-                        {a.target_plans && <span> · Plans: {(Array.isArray(a.target_plans) ? a.target_plans : (() => { try { return JSON.parse(a.target_plans); } catch { return []; } })()).join(', ')}</span>}
+                        {a.target_plans && <span> · Plans: {safeParseJSON(a.target_plans).join(', ')}</span>}
                         {a.dismiss_count !== undefined && <span> · {a.dismiss_count} dismissed</span>}
                       </div>
                     </div>
@@ -1141,6 +1178,7 @@ function SuperAdminDashboard() {
         )}
       </main>
     </div>
+    </DashboardErrorBoundary>
   );
 }
 

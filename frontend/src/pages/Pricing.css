@@ -378,7 +378,13 @@
 }
 
 .faq-item {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--light);
+}
+
+.faq-item:last-child {
+  border-bottom: none;
 }
 
 .faq-item h3 {

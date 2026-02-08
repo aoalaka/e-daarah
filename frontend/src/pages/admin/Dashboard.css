@@ -162,6 +162,91 @@
 .sidebar-footer {
   padding: 16px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+/* ============================================
+   PROFILE DROPDOWN
+   ============================================ */
+.profile-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 12px;
+  right: 12px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  padding: 6px;
+  z-index: 200;
+  animation: profileDropdownIn 0.15s ease-out;
+}
+
+@keyframes profileDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profile-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+}
+
+.profile-dropdown-header .user-avatar {
+  background: #1a1a1a;
+}
+
+.profile-dropdown-divider {
+  height: 1px;
+  background: #e5e5e5;
+  margin: 4px 0;
+}
+
+.profile-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #333;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.profile-dropdown-item:hover {
+  background: #f5f5f5;
+}
+
+.profile-dropdown-item svg {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.profile-dropdown-item.logout {
+  color: #dc2626;
+}
+
+.profile-dropdown-item.logout svg {
+  opacity: 0.7;
+}
+
+.sidebar.collapsed .profile-dropdown {
+  left: 8px;
+  right: auto;
+  width: 220px;
 }
 
 .sidebar.collapsed .sidebar-footer {
@@ -351,6 +436,7 @@
   border: 1px solid #e5e5e5;
   border-radius: 8px;
   margin-bottom: 16px;
+  padding: 20px;
 }
 
 .card-header {

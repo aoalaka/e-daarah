@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import PhoneInput from 'react-phone-input-2';
@@ -87,6 +87,8 @@ function AdminDashboard() {
   const [individualRankings, setIndividualRankings] = useState(null); // Madrasah-wide rankings for individual student
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef(null);
   // Access code state
   const [accessCodeModal, setAccessCodeModal] = useState(null); // { studentName, studentId, accessCode }
   // Settings state
@@ -985,6 +987,17 @@ function AdminDashboard() {
     navigate(isDemo ? '/demo' : `/${madrasahSlug}/login`);
   };
 
+  // Close profile dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const getNavIcon = (id) => {
     const iconProps = {
       width: "18",
@@ -1053,8 +1066,8 @@ function AdminDashboard() {
             </button>
           ))}
         </nav>
-        <div className="sidebar-footer">
-          <div className="sidebar-user" onClick={() => handleTabChange('settings')} style={{ cursor: 'pointer' }}>
+        <div className="sidebar-footer" ref={profileDropdownRef}>
+          <div className="sidebar-user" onClick={() => setProfileDropdownOpen(!profileDropdownOpen)} style={{ cursor: 'pointer' }}>
             <div className="user-avatar">
               {user?.firstName?.charAt(0) || 'A'}
             </div>
@@ -1062,21 +1075,45 @@ function AdminDashboard() {
               <div className="user-name">{user?.firstName} {user?.lastName}</div>
               <div className="user-role">{user?.role || 'Admin'}</div>
             </div>
-            <svg 
-              width="20" 
-              height="20" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-              style={{ opacity: 0.7 }}
-            >
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M12 1v6m0 6v6m-8-8h6m6 0h6"></path>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, transform: profileDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+              <polyline points="18 15 12 9 6 15"></polyline>
             </svg>
           </div>
+          {profileDropdownOpen && (
+            <div className="profile-dropdown">
+              <div className="profile-dropdown-header">
+                <div className="user-avatar" style={{ width: 36, height: 36, minWidth: 36, fontSize: 14 }}>
+                  {user?.firstName?.charAt(0) || 'A'}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: 13 }}>{user?.firstName} {user?.lastName}</div>
+                  <div style={{ fontSize: 11, color: '#888' }}>{user?.email}</div>
+                </div>
+              </div>
+              <div className="profile-dropdown-divider" />
+              <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                Account
+              </button>
+              <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
+                Change Password
+              </button>
+              <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+                Settings
+              </button>
+              <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                Billing
+              </button>
+              <div className="profile-dropdown-divider" />
+              <button className="profile-dropdown-item logout" onClick={handleLogout}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                Log out
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -1099,7 +1136,6 @@ function AdminDashboard() {
             <span className="header-title">{madrasahProfile?.name || 'Dashboard'}</span>
           </div>
           <div className="header-actions">
-            <button onClick={handleLogout} className="logout-btn">Logout</button>
           </div>
         </header>
 

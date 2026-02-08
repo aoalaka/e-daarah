@@ -744,6 +744,7 @@ function SuperAdminDashboard() {
                   <tr>
                     <th>Madrasah</th>
                     <th>Plan</th>
+                    <th>Status</th>
                     <th>Risk Level</th>
                     <th>Last Login</th>
                     <th>Last Attendance</th>
@@ -762,18 +763,23 @@ function SuperAdminDashboard() {
                         <span className={`plan-badge ${r.pricing_plan}`}>{r.pricing_plan}</span>
                       </td>
                       <td>
+                        <span className={`status-badge ${r.subscription_status === 'active' ? '' : 'danger'}`}>
+                          {r.subscription_status || 'unknown'}
+                        </span>
+                      </td>
+                      <td>
                         <span className={`risk-badge ${r.risk_level}`}>{r.risk_level}</span>
                       </td>
                       <td>
-                        {r.last_login_at ? (
-                          <span className="text-warning">{formatTimeAgo(r.last_login_at)}</span>
+                        {r.last_login ? (
+                          <span className="text-warning">{formatTimeAgo(r.last_login)}</span>
                         ) : (
                           <span className="text-muted">Never</span>
                         )}
                       </td>
                       <td>
-                        {r.last_attendance_date ? (
-                          <span>{formatTimeAgo(r.last_attendance_date)}</span>
+                        {r.last_attendance ? (
+                          <span>{formatTimeAgo(r.last_attendance)}</span>
                         ) : (
                           <span className="text-muted">Never</span>
                         )}

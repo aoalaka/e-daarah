@@ -780,21 +780,34 @@ router.get('/churn-risks', authenticateSuperAdmin, async (req, res) => {
         AND m.is_active = TRUE
         AND m.slug NOT LIKE '%-demo'
         AND m.pricing_plan != 'trial'
-        AND m.subscription_status = 'active'
-      HAVING days_since_login > 7 OR days_since_login IS NULL
-      ORDER BY days_since_login DESC
+        AND (
+          m.subscription_status IN ('canceled', 'past_due', 'cancelled')
+          OR (m.subscription_status = 'active' AND (
+            (SELECT MAX(u.last_login_at) FROM users u WHERE u.madrasah_id = m.id AND u.deleted_at IS NULL) < DATE_SUB(NOW(), INTERVAL 7 DAY)
+            OR (SELECT MAX(u.last_login_at) FROM users u WHERE u.madrasah_id = m.id AND u.deleted_at IS NULL) IS NULL
+          ))
+        )
+      ORDER BY 
+        CASE WHEN m.subscription_status IN ('canceled', 'past_due', 'cancelled') THEN 0 ELSE 1 END,
+        days_since_login DESC
     `);
 
     // Categorize risk level
     const categorized = risks.map(r => {
       let riskLevel = 'low';
-      if (r.days_since_login > 30 || r.days_since_login === null) riskLevel = 'critical';
-      else if (r.days_since_login > 14) riskLevel = 'high';
-      else if (r.days_since_login > 7) riskLevel = 'medium';
+      if (r.subscription_status === 'canceled' || r.subscription_status === 'cancelled' || r.subscription_status === 'past_due') {
+        riskLevel = 'critical';
+      } else if (r.days_since_login > 30 || r.days_since_login === null) {
+        riskLevel = 'critical';
+      } else if (r.days_since_login > 14) {
+        riskLevel = 'high';
+      } else if (r.days_since_login > 7) {
+        riskLevel = 'medium';
+      }
       return { ...r, risk_level: riskLevel };
     });
 
-    res.json({ risks: categorized });
+    res.json({ atRisk: categorized });
   } catch (error) {
     console.error('Churn risks error:', error);
     res.status(500).json({ error: 'Failed to fetch churn risks' });

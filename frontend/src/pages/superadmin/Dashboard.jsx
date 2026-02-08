@@ -853,7 +853,7 @@ function SuperAdminDashboard() {
                       <div className="announcement-meta">
                         <span>Created {new Date(a.created_at).toLocaleDateString()}</span>
                         {a.expires_at && <span> · Expires {new Date(a.expires_at).toLocaleDateString()}</span>}
-                        {a.target_plans && <span> · Plans: {JSON.parse(a.target_plans).join(', ')}</span>}
+                        {a.target_plans && <span> · Plans: {(Array.isArray(a.target_plans) ? a.target_plans : (() => { try { return JSON.parse(a.target_plans); } catch { return []; } })()).join(', ')}</span>}
                         {a.dismiss_count !== undefined && <span> · {a.dismiss_count} dismissed</span>}
                       </div>
                     </div>

@@ -210,8 +210,13 @@
   margin-top: 4px;
 }
 
+.stat-card.highlight .stat-value,
 .stat-card.highlight .stat-label {
   color: #ccc;
+}
+
+.stat-card.highlight .stat-value {
+  color: #fff;
 }
 
 /* Filters */

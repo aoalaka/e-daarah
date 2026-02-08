@@ -110,7 +110,7 @@ router.get('/dashboard', authenticateSuperAdmin, async (req, res) => {
 
     // Active madrasahs
     const [[{ activeMadrasahs }]] = await pool.query(
-      'SELECT COUNT(*) as activeMadrasahs FROM madrasahs WHERE is_active = TRUE AND suspended_at IS NULL AND deleted_at IS NULL'
+      'SELECT COUNT(*) as activeMadrasahs FROM madrasahs WHERE is_active = TRUE AND deleted_at IS NULL'
     );
 
     // Total users
@@ -190,9 +190,9 @@ router.get('/madrasahs', authenticateSuperAdmin, async (req, res) => {
     const params = [];
 
     if (status === 'active') {
-      query += ' AND m.is_active = TRUE AND m.suspended_at IS NULL';
+      query += ' AND m.is_active = TRUE';
     } else if (status === 'suspended') {
-      query += ' AND m.suspended_at IS NOT NULL';
+      query += ' AND m.is_active = FALSE';
     } else if (status === 'inactive') {
       query += ' AND m.is_active = FALSE';
     }
@@ -306,8 +306,8 @@ router.post('/madrasahs/:id/suspend', authenticateSuperAdmin, async (req, res) =
     const { reason } = req.body;
 
     await pool.query(
-      'UPDATE madrasahs SET suspended_at = NOW(), suspended_reason = ? WHERE id = ?',
-      [reason || 'No reason provided', id]
+      'UPDATE madrasahs SET is_active = FALSE WHERE id = ?',
+      [id]
     );
 
     await logAudit(req, 'SUSPEND', 'madrasah', id, { reason }, parseInt(id));
@@ -325,7 +325,7 @@ router.post('/madrasahs/:id/reactivate', authenticateSuperAdmin, async (req, res
     const { id } = req.params;
 
     await pool.query(
-      'UPDATE madrasahs SET suspended_at = NULL, suspended_reason = NULL, is_active = TRUE WHERE id = ?',
+      'UPDATE madrasahs SET is_active = TRUE WHERE id = ?',
       [id]
     );
 
@@ -628,7 +628,7 @@ router.get('/engagement', authenticateSuperAdmin, async (req, res) => {
         (SELECT COUNT(DISTINCT m.id) FROM madrasahs m
          LEFT JOIN users u ON u.madrasah_id = m.id
          WHERE (u.last_login_at IS NULL OR u.last_login_at < DATE_SUB(NOW(), INTERVAL 30 DAY))
-         AND m.deleted_at IS NULL AND m.is_active = TRUE AND m.suspended_at IS NULL) as dormantCount,
+         AND m.deleted_at IS NULL AND m.is_active = TRUE) as dormantCount,
         (SELECT COUNT(*) FROM attendance WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND deleted_at IS NULL) as attendanceThisWeek,
         (SELECT COUNT(*) FROM exam_performance WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND deleted_at IS NULL) as examsThisWeek
     `);
@@ -774,7 +774,6 @@ router.get('/churn-risks', authenticateSuperAdmin, async (req, res) => {
       FROM madrasahs m
       WHERE m.deleted_at IS NULL
         AND m.is_active = TRUE
-        AND m.suspended_at IS NULL
         AND m.slug NOT LIKE '%-demo'
         AND m.pricing_plan != 'trial'
         AND m.subscription_status = 'active'

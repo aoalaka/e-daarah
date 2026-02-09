@@ -1566,10 +1566,12 @@ function AdminDashboard() {
                                   {sessionSemesters.length} semester{sessionSemesters.length !== 1 ? 's' : ''}
                                 </div>
                               </div>
-                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
-                                <button onClick={() => handleEditSession(session)} className="btn-sm btn-edit">Edit</button>
-                                <button onClick={() => handleDeleteSession(session.id)} className="btn-sm btn-delete">Delete</button>
-                                <span style={{ color: 'var(--muted)', fontSize: '18px', marginLeft: '4px' }}>→</span>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                <button onClick={(e) => { e.stopPropagation(); handleEditSession(session); }} className="btn-sm btn-edit">Edit</button>
+                                <button onClick={(e) => { e.stopPropagation(); handleDeleteSession(session.id); }} className="btn-sm btn-delete">Delete</button>
+                                <button onClick={() => openPlannerSession(session)} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px', color: '#2563eb', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  View →
+                                </button>
                               </div>
                             </div>
                           </div>

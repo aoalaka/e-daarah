@@ -2947,7 +2947,7 @@ function TeacherDashboard() {
                             <h3 style={{ margin: '0 0 var(--md) 0', fontSize: '15px', fontWeight: '600' }}>Record Today's Session</h3>
 
                             {/* Session Type Toggle */}
-                            <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--md)' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: 'var(--md)' }}>
                               {[
                                 { value: 'tilawah', label: 'Tilawah (Reading)', desc: 'Student reads from the mushaf' },
                                 { value: 'hifz', label: 'Hifz (Memorization)', desc: 'Student recites from memory' },
@@ -2958,7 +2958,8 @@ function TeacherDashboard() {
                                   type="button"
                                   onClick={() => setQuranSessionType(opt.value)}
                                   style={{
-                                    flex: 1,
+                                    flex: '1 1 140px',
+                                    minWidth: '140px',
                                     padding: '10px 12px',
                                     border: `2px solid ${quranSessionType === opt.value ? 'var(--primary)' : 'var(--border)'}`,
                                     borderRadius: '8px',
@@ -3075,7 +3076,7 @@ function TeacherDashboard() {
                           {quranStudentHistory.length > 0 && (
                             <div className="card" style={{ padding: 'var(--lg)' }}>
                               <h3 style={{ margin: '0 0 var(--sm) 0', fontSize: '15px', fontWeight: '600' }}>Recent Sessions</h3>
-                              <div className="table-responsive">
+                              <div className="table-wrap">
                                 <table className="table">
                                   <thead>
                                     <tr>
@@ -3135,7 +3136,7 @@ function TeacherDashboard() {
                       {quranPositions.length === 0 ? (
                         <p className="empty">No students found in this class.</p>
                       ) : (
-                        <div className="table-responsive">
+                        <div className="table-wrap">
                           <table className="table">
                             <thead>
                               <tr>
@@ -3188,7 +3189,7 @@ function TeacherDashboard() {
                       {quranRecords.length === 0 ? (
                         <p className="empty">No records found for this semester.</p>
                       ) : (
-                        <div className="table-responsive">
+                        <div className="table-wrap">
                           <table className="table">
                             <thead>
                               <tr>

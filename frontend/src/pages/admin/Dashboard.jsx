@@ -2498,27 +2498,29 @@ function AdminDashboard() {
               </div>
 
               {/* Sub-tabs */}
-              <div className="report-tabs no-print" style={{ marginBottom: 'var(--md)' }}>
-                <button className={`report-tab ${promotionSubTab === 'promote' ? 'active' : ''}`} onClick={() => setPromotionSubTab('promote')}>
-                  Promote Students
-                </button>
-                <button className={`report-tab ${promotionSubTab === 'history' ? 'active' : ''}`} onClick={() => {
-                  setPromotionSubTab('history');
-                  (async () => {
-                    try {
-                      const res = await api.get('/admin/promotion/history');
-                      setPromotionHistory(res.data || []);
-                    } catch { setPromotionHistory([]); }
-                  })();
-                }}>
-                  History
-                </button>
+              <div className="report-tabs no-print">
+                <nav className="report-tabs-nav">
+                  <button className={`report-tab-btn ${promotionSubTab === 'promote' ? 'active' : ''}`} onClick={() => setPromotionSubTab('promote')}>
+                    Promote Students
+                  </button>
+                  <button className={`report-tab-btn ${promotionSubTab === 'history' ? 'active' : ''}`} onClick={() => {
+                    setPromotionSubTab('history');
+                    (async () => {
+                      try {
+                        const res = await api.get('/admin/promotion/history');
+                        setPromotionHistory(res.data || []);
+                      } catch { setPromotionHistory([]); }
+                    })();
+                  }}>
+                    History
+                  </button>
+                </nav>
               </div>
 
               {/* Promote Sub-Tab */}
               {promotionSubTab === 'promote' && (
-                <div className="card">
-                  <h3 className="card-title" style={{ marginBottom: 'var(--md)' }}>
+                <div className="card" style={{ padding: 'var(--lg)' }}>
+                  <h3 style={{ margin: '0 0 var(--md) 0', fontSize: '16px', fontWeight: '600' }}>
                     {promotionStep === 1 && 'Step 1: Select Source Class'}
                     {promotionStep === 2 && 'Step 2: Select Students'}
                     {promotionStep === 3 && 'Step 3: Choose Action & Destination'}
@@ -2526,15 +2528,15 @@ function AdminDashboard() {
                   </h3>
 
                   {/* Step indicator */}
-                  <div style={{ display: 'flex', gap: 'var(--xs)', marginBottom: 'var(--lg)', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
                     {[1,2,3,4].map(s => (
                       <div key={s} style={{
-                        padding: 'var(--xs) var(--sm)',
-                        borderRadius: 'var(--radius)',
-                        fontSize: '0.8rem',
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                        fontSize: '13px',
                         fontWeight: promotionStep === s ? '600' : '400',
-                        background: promotionStep === s ? 'var(--primary)' : s < promotionStep ? 'var(--success)' : 'var(--border)',
-                        color: (promotionStep === s || s < promotionStep) ? '#fff' : 'var(--text-muted)'
+                        background: promotionStep === s ? '#0a0a0a' : s < promotionStep ? '#16a34a' : '#f5f5f5',
+                        color: (promotionStep === s || s < promotionStep) ? '#fff' : '#666'
                       }}>
                         {s}. {s === 1 ? 'Source' : s === 2 ? 'Students' : s === 3 ? 'Action' : 'Confirm'}
                       </div>
@@ -2543,23 +2545,25 @@ function AdminDashboard() {
 
                   {/* Step 1: Select source class */}
                   {promotionStep === 1 && (
-                    <div>
-                      <label className="form-label">From Class</label>
-                      <select
-                        className="form-input"
-                        value={promotionSourceClass}
-                        onChange={(e) => {
-                          setPromotionSourceClass(e.target.value);
-                          setPromotionSelected([]);
-                        }}
-                      >
-                        <option value="">-- Select class --</option>
-                        <option value="unassigned">Unassigned Students</option>
-                        {classes.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}{c.grade_level ? ` (${c.grade_level})` : ''}</option>
-                        ))}
-                      </select>
-                      <div style={{ marginTop: 'var(--md)', display: 'flex', justifyContent: 'flex-end' }}>
+                    <div className="form-grid" style={{ maxWidth: '400px' }}>
+                      <div className="form-group">
+                        <label className="form-label">From Class</label>
+                        <select
+                          className="form-select"
+                          value={promotionSourceClass}
+                          onChange={(e) => {
+                            setPromotionSourceClass(e.target.value);
+                            setPromotionSelected([]);
+                          }}
+                        >
+                          <option value="">-- Select class --</option>
+                          <option value="unassigned">Unassigned Students</option>
+                          {classes.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}{c.grade_level ? ` (${c.grade_level})` : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-actions" style={{ justifyContent: 'flex-end' }}>
                         <button
                           className="btn btn-primary"
                           disabled={!promotionSourceClass}
@@ -2578,11 +2582,11 @@ function AdminDashboard() {
                       : students.filter(s => String(s.class_id) === String(promotionSourceClass));
                     return (
                       <div>
-                        <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--sm)', fontSize: '0.9rem' }}>
+                        <p style={{ color: '#666', marginBottom: '12px', fontSize: '14px' }}>
                           {sourceStudents.length} student{sourceStudents.length !== 1 ? 's' : ''} in {promotionSourceClass === 'unassigned' ? 'Unassigned' : classes.find(c => String(c.id) === String(promotionSourceClass))?.name || 'class'}
                         </p>
                         {sourceStudents.length > 0 && (
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--xs)', marginBottom: 'var(--sm)', cursor: 'pointer', fontWeight: '500' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', cursor: 'pointer', fontWeight: '500', fontSize: '14px' }}>
                             <input
                               type="checkbox"
                               checked={promotionSelected.length === sourceStudents.length && sourceStudents.length > 0}
@@ -2593,11 +2597,11 @@ function AdminDashboard() {
                             Select All
                           </label>
                         )}
-                        <div style={{ maxHeight: '350px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                        <div className="table-wrap" style={{ maxHeight: '350px', overflowY: 'auto' }}>
                           {sourceStudents.length === 0 ? (
-                            <p style={{ padding: 'var(--md)', color: 'var(--text-muted)', textAlign: 'center' }}>No students in this class.</p>
+                            <p style={{ padding: '16px', color: '#666', textAlign: 'center' }}>No students in this class.</p>
                           ) : (
-                            <table className="data-table" style={{ marginBottom: 0 }}>
+                            <table className="table">
                               <thead>
                                 <tr>
                                   <th style={{ width: '40px' }}></th>
@@ -2629,7 +2633,7 @@ function AdminDashboard() {
                             </table>
                           )}
                         </div>
-                        <div style={{ marginTop: 'var(--md)', display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="form-actions" style={{ marginTop: '16px', justifyContent: 'space-between' }}>
                           <button className="btn btn-secondary" onClick={() => setPromotionStep(1)}>← Back</button>
                           <button className="btn btn-primary" disabled={promotionSelected.length === 0} onClick={() => setPromotionStep(3)}>
                             Next ({promotionSelected.length} selected) →
@@ -2642,10 +2646,10 @@ function AdminDashboard() {
                   {/* Step 3: Choose action & destination */}
                   {promotionStep === 3 && (
                     <div>
-                      <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 'var(--md)' }}>
-                        <div>
+                      <div className="form-grid form-grid-2">
+                        <div className="form-group">
                           <label className="form-label">Action</label>
-                          <select className="form-input" value={promotionType} onChange={(e) => setPromotionType(e.target.value)}>
+                          <select className="form-select" value={promotionType} onChange={(e) => setPromotionType(e.target.value)}>
                             <option value="promoted">Promote to class</option>
                             <option value="transferred">Transfer to class</option>
                             <option value="repeated">Repeat (move to class)</option>
@@ -2654,9 +2658,9 @@ function AdminDashboard() {
                         </div>
 
                         {promotionType !== 'graduated' && (
-                          <div>
+                          <div className="form-group">
                             <label className="form-label">Destination Class</label>
-                            <select className="form-input" value={promotionDestClass} onChange={(e) => setPromotionDestClass(e.target.value)}>
+                            <select className="form-select" value={promotionDestClass} onChange={(e) => setPromotionDestClass(e.target.value)}>
                               <option value="">-- Select class --</option>
                               {classes.filter(c => String(c.id) !== String(promotionSourceClass)).map(c => (
                                 <option key={c.id} value={c.id}>{c.name}{c.grade_level ? ` (${c.grade_level})` : ''}</option>
@@ -2665,9 +2669,9 @@ function AdminDashboard() {
                           </div>
                         )}
 
-                        <div>
+                        <div className="form-group">
                           <label className="form-label">Session (optional)</label>
-                          <select className="form-input" value={promotionSession} onChange={(e) => setPromotionSession(e.target.value)}>
+                          <select className="form-select" value={promotionSession} onChange={(e) => setPromotionSession(e.target.value)}>
                             <option value="">-- None --</option>
                             {sessions.map(s => (
                               <option key={s.id} value={s.id}>{s.name}</option>
@@ -2675,10 +2679,10 @@ function AdminDashboard() {
                           </select>
                         </div>
 
-                        <div style={{ gridColumn: '1 / -1' }}>
+                        <div className="form-group full">
                           <label className="form-label">Notes (optional)</label>
                           <textarea
-                            className="form-input"
+                            className="form-textarea"
                             rows="2"
                             value={promotionNotes}
                             onChange={(e) => setPromotionNotes(e.target.value)}
@@ -2687,7 +2691,7 @@ function AdminDashboard() {
                         </div>
                       </div>
 
-                      <div style={{ marginTop: 'var(--md)', display: 'flex', justifyContent: 'space-between' }}>
+                      <div className="form-actions" style={{ marginTop: '16px', justifyContent: 'space-between' }}>
                         <button className="btn btn-secondary" onClick={() => setPromotionStep(2)}>← Back</button>
                         <button
                           className="btn btn-primary"
@@ -2713,8 +2717,8 @@ function AdminDashboard() {
 
                     return (
                       <div>
-                        <div style={{ background: 'var(--bg-secondary)', padding: 'var(--md)', borderRadius: 'var(--radius)', marginBottom: 'var(--md)' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sm)', fontSize: '0.9rem' }}>
+                        <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #e5e5e5' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px' }}>
                             <div><strong>Action:</strong> {actionLabel}</div>
                             <div><strong>Students:</strong> {selectedStudents.length}</div>
                             <div><strong>From:</strong> {sourceName}</div>
@@ -2724,8 +2728,8 @@ function AdminDashboard() {
                           </div>
                         </div>
 
-                        <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginBottom: 'var(--md)' }}>
-                          <table className="data-table" style={{ marginBottom: 0 }}>
+                        <div className="table-wrap" style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '16px' }}>
+                          <table className="table">
                             <thead>
                               <tr>
                                 <th>Student ID</th>
@@ -2746,12 +2750,12 @@ function AdminDashboard() {
                         </div>
 
                         {promotionType === 'graduated' && (
-                          <p style={{ color: 'var(--warning)', fontSize: '0.85rem', marginBottom: 'var(--md)' }}>
+                          <p style={{ color: '#d97706', fontSize: '13px', marginBottom: '16px' }}>
                             ⚠️ Graduating students will remove them from their class. They will appear as &quot;Unassigned&quot; and can be re-assigned later.
                           </p>
                         )}
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="form-actions" style={{ justifyContent: 'space-between' }}>
                           <button className="btn btn-secondary" onClick={() => setPromotionStep(3)}>← Back</button>
                           <button
                             className="btn btn-primary"
@@ -2800,12 +2804,12 @@ function AdminDashboard() {
 
               {/* History Sub-Tab */}
               {promotionSubTab === 'history' && (
-                <div className="card">
+                <div className="card" style={{ padding: 'var(--lg)' }}>
                   {promotionHistory.length === 0 ? (
-                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 'var(--lg)' }}>No promotion history yet.</p>
+                    <p style={{ color: '#666', textAlign: 'center', padding: '24px' }}>No promotion history yet.</p>
                   ) : (
-                    <div style={{ overflowX: 'auto' }}>
-                      <table className="data-table">
+                    <div className="table-wrap">
+                      <table className="table">
                         <thead>
                           <tr>
                             <th>Date</th>
@@ -2822,9 +2826,9 @@ function AdminDashboard() {
                           {promotionHistory.map(h => (
                             <tr key={h.id}>
                               <td style={{ whiteSpace: 'nowrap' }}>{new Date(h.created_at).toLocaleDateString()}</td>
-                              <td>{h.first_name} {h.last_name} <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>({h.student_code})</span></td>
+                              <td>{h.first_name} {h.last_name} <span style={{ color: '#666', fontSize: '12px' }}>({h.student_code})</span></td>
                               <td>
-                                <span className={`status-badge ${h.promotion_type === 'graduated' ? 'status-info' : h.promotion_type === 'repeated' ? 'status-warning' : 'status-active'}`}>
+                                <span className={`badge ${h.promotion_type === 'graduated' ? 'badge-info' : h.promotion_type === 'repeated' ? 'badge-warning' : 'badge-success'}`}>
                                   {h.promotion_type}
                                 </span>
                               </td>

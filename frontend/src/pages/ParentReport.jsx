@@ -5,6 +5,11 @@ import api from '../services/api';
 import './ParentReport.css';
 
 function ParentReport() {
+  const fmtDate = (d) => {
+    const date = new Date(d);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   const navigate = useNavigate();
   const { madrasahSlug } = useParams();
   const [student, setStudent] = useState(null);
@@ -233,7 +238,7 @@ function ParentReport() {
               </div>
               <div className="info-item">
                 <div className="info-label">Report Date</div>
-                <div className="info-value">{new Date().toLocaleDateString()}</div>
+                <div className="info-value">{fmtDate(new Date())}</div>
               </div>
             </div>
           </div>
@@ -536,7 +541,7 @@ function ParentReport() {
                     <tbody>
                       {quranProgress.map(r => (
                         <tr key={r.id}>
-                          <td>{new Date(r.date).toLocaleDateString()}</td>
+                          <td>{fmtDate(r.date)}</td>
                           <td>{r.type === 'memorization_new' ? 'New Memorization' : r.type === 'memorization_revision' ? 'Revision' : 'Tilawah'}</td>
                           <td>{r.surah_number}. {r.surah_name}</td>
                           <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : '—'}</td>

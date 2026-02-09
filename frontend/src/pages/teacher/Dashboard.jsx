@@ -10,6 +10,12 @@ import AnnouncementBanner from '../../components/AnnouncementBanner';
 import '../admin/Dashboard.css';
 
 function TeacherDashboard() {
+  // Format date as "01 Sep 2025"
+  const fmtDate = (d) => {
+    const date = new Date(d);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   // Helper to get local date in YYYY-MM-DD format
   const getLocalDate = (date = new Date()) => {
     const year = date.getFullYear();
@@ -1781,7 +1787,7 @@ function TeacherDashboard() {
                             label: 'Date',
                             sortable: true,
                             sortType: 'date',
-                            render: (row) => new Date(row.date).toLocaleDateString()
+                            render: (row) => fmtDate(row.date)
                           },
                           {
                             key: 'student_id',
@@ -2052,7 +2058,7 @@ function TeacherDashboard() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--md)', padding: 'var(--sm)', backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius)' }}>
                             <div>
                               <strong style={{ fontSize: '15px' }}>
-                                {new Date(batch.exam_date).toLocaleDateString()} - {batch.semester_name} (Max: {batch.max_score})
+                                {fmtDate(batch.exam_date)} - {batch.semester_name} (Max: {batch.max_score})
                               </strong>
                               <span style={{ marginLeft: 'var(--md)', color: 'var(--muted)', fontSize: '13px' }}>
                                 {batch.records.length} student{batch.records.length !== 1 ? 's' : ''}
@@ -2097,7 +2103,7 @@ function TeacherDashboard() {
                               label: 'Exam Date', 
                               sortable: true, 
                               sortType: 'date',
-                              render: (row) => new Date(row.exam_date).toLocaleDateString()
+                              render: (row) => fmtDate(row.exam_date)
                             },
                             { 
                               key: 'semester_name', 
@@ -3166,7 +3172,7 @@ function TeacherDashboard() {
                                   <tbody>
                                     {quranStudentHistory.map(r => (
                                       <tr key={r.id}>
-                                        <td>{new Date(r.date).toLocaleDateString()}</td>
+                                        <td>{fmtDate(r.date)}</td>
                                         <td>
                                           <span className={`badge ${r.type === 'hifz' ? 'badge-success' : r.type === 'revision' ? 'badge-info' : 'badge-muted'}`}>
                                             {r.type === 'hifz' ? 'Hifz' : r.type === 'revision' ? 'Revision' : 'Tilawah'}
@@ -3247,7 +3253,7 @@ function TeacherDashboard() {
                                       <span style={{ color: 'var(--muted)' }}>Not started</span>
                                     )}
                                   </td>
-                                  <td>{s.last_updated ? new Date(s.last_updated).toLocaleDateString() : '—'}</td>
+                                  <td>{s.last_updated ? fmtDate(s.last_updated) : '—'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -3281,7 +3287,7 @@ function TeacherDashboard() {
                             <tbody>
                               {quranRecords.map(r => (
                                 <tr key={r.id}>
-                                  <td>{new Date(r.date).toLocaleDateString()}</td>
+                                  <td>{fmtDate(r.date)}</td>
                                   <td>{r.first_name} {r.last_name}</td>
                                   <td>
                                     <span className={`badge ${r.type === 'hifz' ? 'badge-success' : r.type === 'revision' ? 'badge-info' : 'badge-muted'}`}>
@@ -3452,7 +3458,7 @@ function TeacherDashboard() {
                     </div>
                     <div>
                       <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Exam Date</label>
-                      <p style={{ margin: '4px 0 0 0' }}>{new Date(editingExamRecord.exam_date).toLocaleDateString()}</p>
+                      <p style={{ margin: '4px 0 0 0' }}>{fmtDate(editingExamRecord.exam_date)}</p>
                     </div>
                     <div>
                       <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Max Score</label>
@@ -3668,7 +3674,7 @@ function TeacherDashboard() {
               </div>
               <div style={{ padding: 'var(--md)', backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius)' }}>
                 <p style={{ margin: '0 0 8px 0' }}><strong>Subject:</strong> {deleteExamBatch.subject}</p>
-                <p style={{ margin: '0 0 8px 0' }}><strong>Date:</strong> {new Date(deleteExamBatch.exam_date).toLocaleDateString()}</p>
+                <p style={{ margin: '0 0 8px 0' }}><strong>Date:</strong> {fmtDate(deleteExamBatch.exam_date)}</p>
                 <p style={{ margin: '0 0 8px 0' }}><strong>Semester:</strong> {deleteExamBatch.semester_name}</p>
                 <p style={{ margin: 0 }}><strong>Students:</strong> {deleteExamBatch.student_count} record{deleteExamBatch.student_count !== 1 ? 's' : ''}</p>
               </div>

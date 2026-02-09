@@ -1515,7 +1515,7 @@ function AdminDashboard() {
                             <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '8px' }}>Select which days the madrasah operates during this session</p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                               {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                                <button key={day} type="button" onClick={() => setNewSession({ ...newSession, default_school_days: (newSession.default_school_days || []).includes(day) ? newSession.default_school_days.filter(d => d !== day) : [...(newSession.default_school_days || []), day] })} style={{ padding: '6px 14px', borderRadius: '20px', border: `2px solid ${(newSession.default_school_days || []).includes(day) ? 'var(--primary)' : 'var(--border)'}`, background: (newSession.default_school_days || []).includes(day) ? 'var(--primary)' : 'transparent', color: (newSession.default_school_days || []).includes(day) ? 'white' : 'var(--text)', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
+                                <button key={day} type="button" onClick={() => setNewSession({ ...newSession, default_school_days: (newSession.default_school_days || []).includes(day) ? newSession.default_school_days.filter(d => d !== day) : [...(newSession.default_school_days || []), day] })} style={{ padding: '6px 14px', borderRadius: '20px', border: `2px solid ${(newSession.default_school_days || []).includes(day) ? '#2563eb' : '#d1d5db'}`, background: (newSession.default_school_days || []).includes(day) ? '#2563eb' : 'transparent', color: (newSession.default_school_days || []).includes(day) ? '#fff' : '#374151', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
                                   {day.substring(0, 3)}
                                 </button>
                               ))}
@@ -1558,7 +1558,7 @@ function AdminDashboard() {
                                 {schoolDays.length > 0 && (
                                   <div style={{ display: 'flex', gap: '4px', marginTop: '8px', flexWrap: 'wrap' }}>
                                     {schoolDays.map(day => (
-                                      <span key={day} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', background: 'var(--primary-bg, rgba(37,99,235,0.08))', color: 'var(--primary)', fontWeight: '500' }}>{day.substring(0, 3)}</span>
+                                      <span key={day} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', background: 'rgba(37,99,235,0.08)', color: '#2563eb', fontWeight: '500' }}>{day.substring(0, 3)}</span>
                                     ))}
                                   </div>
                                 )}
@@ -1784,7 +1784,7 @@ function AdminDashboard() {
                             <label className="form-label">Temporary School Days</label>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                               {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                                <button key={day} type="button" onClick={() => setNewOverride({ ...newOverride, school_days: newOverride.school_days.includes(day) ? newOverride.school_days.filter(d => d !== day) : [...newOverride.school_days, day] })} style={{ padding: '6px 14px', borderRadius: '20px', border: `2px solid ${newOverride.school_days.includes(day) ? 'var(--primary)' : 'var(--border)'}`, background: newOverride.school_days.includes(day) ? 'var(--primary)' : 'transparent', color: newOverride.school_days.includes(day) ? 'white' : 'var(--text)', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
+                                <button key={day} type="button" onClick={() => setNewOverride({ ...newOverride, school_days: newOverride.school_days.includes(day) ? newOverride.school_days.filter(d => d !== day) : [...newOverride.school_days, day] })} style={{ padding: '6px 14px', borderRadius: '20px', border: `2px solid ${newOverride.school_days.includes(day) ? '#2563eb' : '#d1d5db'}`, background: newOverride.school_days.includes(day) ? '#2563eb' : 'transparent', color: newOverride.school_days.includes(day) ? '#fff' : '#374151', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
                                   {day.substring(0, 3)}
                                 </button>
                               ))}
@@ -1822,7 +1822,7 @@ function AdminDashboard() {
                                     <td>
                                       <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
                                         {days.map(d => (
-                                          <span key={d} style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '10px', background: 'var(--primary-bg, rgba(37,99,235,0.08))', color: 'var(--primary)', fontWeight: '500' }}>{d.substring(0, 3)}</span>
+                                          <span key={d} style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '10px', background: 'rgba(37,99,235,0.08)', color: '#2563eb', fontWeight: '500' }}>{d.substring(0, 3)}</span>
                                         ))}
                                       </div>
                                     </td>

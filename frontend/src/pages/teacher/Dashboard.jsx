@@ -75,12 +75,21 @@ function TeacherDashboard() {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
   const [madrasahProfile, setMadrasahProfile] = useState(null);
+  // Quran Progress state
+  const [quranRecords, setQuranRecords] = useState([]);
+  const [quranPositions, setQuranPositions] = useState([]);
+  const [quranSubTab, setQuranSubTab] = useState('record');
+  const [quranForm, setQuranForm] = useState({ student_id: '', type: 'memorization_new', surah_number: '', grade: 'Good', ayah_from: '', ayah_to: '', notes: '' });
+  const [quranSaving, setQuranSaving] = useState(false);
+  const [quranDate, setQuranDate] = useState(getLocalDate());
+  const [surahs, setSurahs] = useState([]);
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
   const navItems = [
     { id: 'overview', label: 'Overview' },
     { id: 'attendance', label: 'Attendance' },
+    { id: 'quran', label: "Qur'an" },
     { id: 'exams', label: 'Exam Recording' },
     { id: 'reports', label: 'Exam Reports' }
   ];
@@ -108,6 +117,7 @@ function TeacherDashboard() {
     fetchClasses();
     fetchActiveSessionSemester();
     fetchMadrasahInfo();
+    fetchSurahList();
   }, []);
 
   useEffect(() => {
@@ -251,6 +261,84 @@ function TeacherDashboard() {
       setMadrasahProfile(response.data);
     } catch (error) {
       console.error('Failed to fetch madrasah info:', error);
+    }
+  };
+
+  const fetchSurahList = async () => {
+    try {
+      const response = await api.get('/teacher/quran/surahs');
+      setSurahs(response.data);
+    } catch (error) {
+      console.error('Failed to fetch surahs:', error);
+    }
+  };
+
+  const fetchQuranProgress = async (classId) => {
+    if (!classId || !activeSemester) return;
+    try {
+      const response = await api.get(`/teacher/classes/${classId}/quran-progress`, {
+        params: { semester_id: activeSemester.id }
+      });
+      setQuranRecords(response.data);
+    } catch (error) {
+      console.error('Failed to fetch quran progress:', error);
+    }
+  };
+
+  const fetchQuranPositions = async (classId) => {
+    if (!classId) return;
+    try {
+      const response = await api.get(`/teacher/classes/${classId}/quran-positions`);
+      setQuranPositions(response.data);
+    } catch (error) {
+      console.error('Failed to fetch quran positions:', error);
+    }
+  };
+
+  const handleSaveQuranProgress = async () => {
+    if (!selectedClass || !activeSemester) return;
+    const { student_id, type, surah_number, grade } = quranForm;
+    if (!student_id || !surah_number) {
+      toast.error('Please select a student and surah');
+      return;
+    }
+    const surah = surahs.find(s => s.n === parseInt(surah_number));
+    if (!surah) { toast.error('Invalid surah'); return; }
+
+    setQuranSaving(true);
+    try {
+      await api.post(`/teacher/classes/${selectedClass}/quran-progress`, {
+        student_id: parseInt(student_id),
+        semester_id: activeSemester.id,
+        date: quranDate,
+        type,
+        surah_number: surah.n,
+        surah_name: surah.name,
+        juz: surah.juz,
+        ayah_from: quranForm.ayah_from ? parseInt(quranForm.ayah_from) : null,
+        ayah_to: quranForm.ayah_to ? parseInt(quranForm.ayah_to) : null,
+        grade,
+        notes: quranForm.notes || null
+      });
+      toast.success('Progress saved');
+      setQuranForm({ student_id: quranForm.student_id, type: 'memorization_new', surah_number: '', grade: 'Good', ayah_from: '', ayah_to: '', notes: '' });
+      fetchQuranProgress(selectedClass);
+      fetchQuranPositions(selectedClass);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to save');
+    } finally {
+      setQuranSaving(false);
+    }
+  };
+
+  const handleDeleteQuranRecord = async (id) => {
+    if (!window.confirm('Delete this record?')) return;
+    try {
+      await api.delete(`/teacher/quran-progress/${id}`);
+      toast.success('Deleted');
+      fetchQuranProgress(selectedClass);
+    } catch (error) {
+      toast.error('Failed to delete');
     }
   };
 
@@ -2631,6 +2719,210 @@ function TeacherDashboard() {
                   <div className="empty">
                     <p>Please select a class to view exam reports.</p>
                   </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Qur'an Progress Tab */}
+          {activeTab === 'quran' && (
+            <>
+              <div className="section-header">
+                <h2>Qur'an Progress</h2>
+              </div>
+
+              {/* Class Selector */}
+              <div className="filter-bar">
+                <div className="filter-group">
+                  <label>Class</label>
+                  <select
+                    className="form-select"
+                    value={selectedClass || ''}
+                    onChange={(e) => {
+                      const cid = e.target.value;
+                      setSelectedClass(cid);
+                      if (cid) {
+                        fetchStudents();
+                        fetchQuranProgress(cid);
+                        fetchQuranPositions(cid);
+                      }
+                    }}
+                  >
+                    <option value="">Select Class</option>
+                    {classes.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {selectedClass && (
+                <>
+                  {/* Sub-tabs */}
+                  <div className="report-tabs" style={{ marginBottom: 'var(--md)' }}>
+                    <nav className="report-tabs-nav">
+                      <button className={`report-tab-btn ${quranSubTab === 'record' ? 'active' : ''}`} onClick={() => setQuranSubTab('record')}>Record Progress</button>
+                      <button className={`report-tab-btn ${quranSubTab === 'positions' ? 'active' : ''}`} onClick={() => { setQuranSubTab('positions'); fetchQuranPositions(selectedClass); }}>Student Positions</button>
+                      <button className={`report-tab-btn ${quranSubTab === 'history' ? 'active' : ''}`} onClick={() => { setQuranSubTab('history'); fetchQuranProgress(selectedClass); }}>History</button>
+                    </nav>
+                  </div>
+
+                  {/* Record Sub-tab */}
+                  {quranSubTab === 'record' && (
+                    <div className="card" style={{ padding: 'var(--md)' }}>
+                      <h3 style={{ margin: '0 0 var(--md) 0', fontSize: '16px' }}>Record Qur'an Progress</h3>
+                      <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--sm)' }}>
+                        <div>
+                          <label className="form-label">Student</label>
+                          <select className="form-select" value={quranForm.student_id} onChange={e => setQuranForm({...quranForm, student_id: e.target.value})}>
+                            <option value="">Select Student</option>
+                            {students.map(s => (
+                              <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="form-label">Date</label>
+                          <input type="date" className="form-input" value={quranDate} onChange={e => setQuranDate(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="form-label">Type</label>
+                          <select className="form-select" value={quranForm.type} onChange={e => setQuranForm({...quranForm, type: e.target.value})}>
+                            <option value="memorization_new">New Memorization</option>
+                            <option value="memorization_revision">Revision</option>
+                            <option value="tilawah">Tilawah (Recitation)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="form-label">Surah</label>
+                          <select className="form-select" value={quranForm.surah_number} onChange={e => setQuranForm({...quranForm, surah_number: e.target.value})}>
+                            <option value="">Select Surah</option>
+                            {surahs.map(s => (
+                              <option key={s.n} value={s.n}>{s.n}. {s.name} (Juz {s.juz})</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="form-label">Ayah From</label>
+                          <input type="number" className="form-input" min="1" placeholder="e.g. 1" value={quranForm.ayah_from} onChange={e => setQuranForm({...quranForm, ayah_from: e.target.value})} />
+                        </div>
+                        <div>
+                          <label className="form-label">Ayah To</label>
+                          <input type="number" className="form-input" min="1" placeholder={quranForm.surah_number ? `max ${surahs.find(s => s.n === parseInt(quranForm.surah_number))?.ayahs || ''}` : 'e.g. 20'} value={quranForm.ayah_to} onChange={e => setQuranForm({...quranForm, ayah_to: e.target.value})} />
+                        </div>
+                        <div>
+                          <label className="form-label">Grade</label>
+                          <select className="form-select" value={quranForm.grade} onChange={e => setQuranForm({...quranForm, grade: e.target.value})}>
+                            <option value="Excellent">Excellent</option>
+                            <option value="Good">Good</option>
+                            <option value="Fair">Fair</option>
+                            <option value="Needs Improvement">Needs Improvement</option>
+                          </select>
+                        </div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <label className="form-label">Notes</label>
+                          <textarea className="form-textarea" rows="2" placeholder="Optional notes..." value={quranForm.notes} onChange={e => setQuranForm({...quranForm, notes: e.target.value})} />
+                        </div>
+                      </div>
+                      <div style={{ marginTop: 'var(--md)', display: 'flex', gap: 'var(--sm)' }}>
+                        <button className="btn btn-primary" onClick={handleSaveQuranProgress} disabled={quranSaving || isReadOnly()}>
+                          {quranSaving ? 'Saving...' : 'Save Progress'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Student Positions Sub-tab */}
+                  {quranSubTab === 'positions' && (
+                    <div className="card" style={{ padding: 'var(--md)' }}>
+                      <h3 style={{ margin: '0 0 var(--md) 0', fontSize: '16px' }}>Current Student Positions</h3>
+                      {quranPositions.length === 0 ? (
+                        <p className="empty">No Qur'an progress recorded yet for this class.</p>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th>Student</th>
+                                <th>Current Surah</th>
+                                <th>Juz</th>
+                                <th>Last Updated</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {quranPositions.map(s => (
+                                <tr key={s.id}>
+                                  <td>{s.first_name} {s.last_name}</td>
+                                  <td>{s.current_surah_name ? `${s.current_surah_number}. ${s.current_surah_name}` : <span className="text-muted">Not started</span>}</td>
+                                  <td>{s.current_juz || '—'}</td>
+                                  <td>{s.last_updated ? new Date(s.last_updated).toLocaleDateString() : '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* History Sub-tab */}
+                  {quranSubTab === 'history' && (
+                    <div className="card" style={{ padding: 'var(--md)' }}>
+                      <h3 style={{ margin: '0 0 var(--md) 0', fontSize: '16px' }}>Progress History</h3>
+                      {quranRecords.length === 0 ? (
+                        <p className="empty">No records found for this semester.</p>
+                      ) : (
+                        <div className="table-responsive">
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th>Date</th>
+                                <th>Student</th>
+                                <th>Type</th>
+                                <th>Surah</th>
+                                <th>Ayahs</th>
+                                <th>Grade</th>
+                                <th>Notes</th>
+                                <th></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {quranRecords.map(r => (
+                                <tr key={r.id}>
+                                  <td>{new Date(r.date).toLocaleDateString()}</td>
+                                  <td>{r.first_name} {r.last_name}</td>
+                                  <td>
+                                    <span className={`badge ${r.type === 'memorization_new' ? 'badge-success' : r.type === 'memorization_revision' ? 'badge-info' : 'badge-muted'}`}>
+                                      {r.type === 'memorization_new' ? 'New' : r.type === 'memorization_revision' ? 'Revision' : 'Tilawah'}
+                                    </span>
+                                  </td>
+                                  <td>{r.surah_number}. {r.surah_name}</td>
+                                  <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : r.ayah_from ? `From ${r.ayah_from}` : '—'}</td>
+                                  <td>
+                                    <span className={`badge ${r.grade === 'Excellent' ? 'badge-success' : r.grade === 'Good' ? 'badge-info' : r.grade === 'Fair' ? 'badge-warning' : 'badge-danger'}`}>
+                                      {r.grade}
+                                    </span>
+                                  </td>
+                                  <td>{r.notes || '—'}</td>
+                                  <td>
+                                    {!isReadOnly() && (
+                                      <button className="btn btn-sm btn-danger" onClick={() => handleDeleteQuranRecord(r.id)}>✕</button>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {!selectedClass && (
+                <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                  <p className="empty">Select a class to record Qur'an progress</p>
                 </div>
               )}
             </>

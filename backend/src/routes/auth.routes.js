@@ -1002,6 +1002,30 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       });
     }
 
+    // Quran progress
+    let quranQuery = `
+      SELECT qp.*, u.first_name as teacher_first_name, u.last_name as teacher_last_name
+      FROM quran_progress qp
+      LEFT JOIN users u ON qp.user_id = u.id
+      WHERE qp.student_id = ? AND qp.madrasah_id = ? AND qp.deleted_at IS NULL
+    `;
+    const quranParams = [studentId, student.madrasah_id];
+    if (semesterId) {
+      quranQuery += ' AND qp.semester_id = ?';
+      quranParams.push(semesterId);
+    } else if (sessionId) {
+      quranQuery += ' AND qp.semester_id IN (SELECT id FROM semesters WHERE session_id = ? AND deleted_at IS NULL)';
+      quranParams.push(sessionId);
+    }
+    quranQuery += ' ORDER BY qp.date DESC';
+    const [quranProgress] = await pool.query(quranQuery, quranParams);
+
+    // Quran position
+    const [quranPosition] = await pool.query(
+      'SELECT * FROM quran_student_position WHERE student_id = ? AND madrasah_id = ?',
+      [studentId, student.madrasah_id]
+    );
+
     res.json({
       student,
       madrasah: madrasahProfile[0] || {},
@@ -1023,7 +1047,9 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       classPosition: {
         position: rankings.exam?.rank || null,
         totalStudents: rankings.exam?.total_students || null
-      }
+      },
+      quranProgress,
+      quranPosition: quranPosition[0] || null
     });
   } catch (error) {
     console.error('Error fetching parent report:', error);

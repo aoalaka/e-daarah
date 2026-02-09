@@ -946,4 +946,256 @@ router.get('/madrasah-info', async (req, res) => {
   }
 });
 
+// =====================================================
+// Quran Progress Tracking
+// =====================================================
+
+// Surah reference data
+const SURAHS = [
+  {n:1,name:'Al-Fatiha',juz:1,ayahs:7},{n:2,name:'Al-Baqarah',juz:1,ayahs:286},{n:3,name:"Ali 'Imran",juz:3,ayahs:200},
+  {n:4,name:'An-Nisa',juz:4,ayahs:176},{n:5,name:"Al-Ma'idah",juz:6,ayahs:120},{n:6,name:"Al-An'am",juz:7,ayahs:165},
+  {n:7,name:"Al-A'raf",juz:8,ayahs:206},{n:8,name:'Al-Anfal',juz:9,ayahs:75},{n:9,name:'At-Tawbah',juz:10,ayahs:129},
+  {n:10,name:'Yunus',juz:11,ayahs:109},{n:11,name:'Hud',juz:11,ayahs:123},{n:12,name:'Yusuf',juz:12,ayahs:111},
+  {n:13,name:"Ar-Ra'd",juz:13,ayahs:43},{n:14,name:'Ibrahim',juz:13,ayahs:52},{n:15,name:'Al-Hijr',juz:14,ayahs:99},
+  {n:16,name:'An-Nahl',juz:14,ayahs:128},{n:17,name:"Al-Isra'",juz:15,ayahs:111},{n:18,name:'Al-Kahf',juz:15,ayahs:110},
+  {n:19,name:'Maryam',juz:16,ayahs:98},{n:20,name:'Ta-Ha',juz:16,ayahs:135},{n:21,name:"Al-Anbiya'",juz:17,ayahs:112},
+  {n:22,name:'Al-Hajj',juz:17,ayahs:78},{n:23,name:"Al-Mu'minun",juz:18,ayahs:118},{n:24,name:'An-Nur',juz:18,ayahs:64},
+  {n:25,name:'Al-Furqan',juz:18,ayahs:77},{n:26,name:"Ash-Shu'ara'",juz:19,ayahs:227},{n:27,name:'An-Naml',juz:19,ayahs:93},
+  {n:28,name:'Al-Qasas',juz:20,ayahs:88},{n:29,name:"Al-'Ankabut",juz:20,ayahs:69},{n:30,name:'Ar-Rum',juz:21,ayahs:60},
+  {n:31,name:'Luqman',juz:21,ayahs:34},{n:32,name:'As-Sajdah',juz:21,ayahs:30},{n:33,name:'Al-Ahzab',juz:21,ayahs:73},
+  {n:34,name:"Saba'",juz:22,ayahs:54},{n:35,name:'Fatir',juz:22,ayahs:45},{n:36,name:'Ya-Sin',juz:22,ayahs:83},
+  {n:37,name:'As-Saffat',juz:23,ayahs:182},{n:38,name:'Sad',juz:23,ayahs:88},{n:39,name:'Az-Zumar',juz:23,ayahs:75},
+  {n:40,name:'Ghafir',juz:24,ayahs:85},{n:41,name:'Fussilat',juz:24,ayahs:54},{n:42,name:'Ash-Shura',juz:25,ayahs:53},
+  {n:43,name:'Az-Zukhruf',juz:25,ayahs:89},{n:44,name:'Ad-Dukhan',juz:25,ayahs:59},{n:45,name:'Al-Jathiyah',juz:25,ayahs:37},
+  {n:46,name:'Al-Ahqaf',juz:26,ayahs:35},{n:47,name:'Muhammad',juz:26,ayahs:38},{n:48,name:'Al-Fath',juz:26,ayahs:29},
+  {n:49,name:'Al-Hujurat',juz:26,ayahs:18},{n:50,name:'Qaf',juz:26,ayahs:45},{n:51,name:'Adh-Dhariyat',juz:26,ayahs:60},
+  {n:52,name:'At-Tur',juz:27,ayahs:49},{n:53,name:'An-Najm',juz:27,ayahs:62},{n:54,name:'Al-Qamar',juz:27,ayahs:55},
+  {n:55,name:'Ar-Rahman',juz:27,ayahs:78},{n:56,name:"Al-Waqi'ah",juz:27,ayahs:96},{n:57,name:'Al-Hadid',juz:27,ayahs:29},
+  {n:58,name:'Al-Mujadilah',juz:28,ayahs:22},{n:59,name:'Al-Hashr',juz:28,ayahs:24},{n:60,name:'Al-Mumtahanah',juz:28,ayahs:13},
+  {n:61,name:'As-Saff',juz:28,ayahs:14},{n:62,name:"Al-Jumu'ah",juz:28,ayahs:11},{n:63,name:'Al-Munafiqun',juz:28,ayahs:11},
+  {n:64,name:'At-Taghabun',juz:28,ayahs:18},{n:65,name:'At-Talaq',juz:28,ayahs:12},{n:66,name:'At-Tahrim',juz:28,ayahs:12},
+  {n:67,name:'Al-Mulk',juz:29,ayahs:30},{n:68,name:'Al-Qalam',juz:29,ayahs:52},{n:69,name:'Al-Haqqah',juz:29,ayahs:52},
+  {n:70,name:"Al-Ma'arij",juz:29,ayahs:44},{n:71,name:'Nuh',juz:29,ayahs:28},{n:72,name:'Al-Jinn',juz:29,ayahs:28},
+  {n:73,name:'Al-Muzzammil',juz:29,ayahs:20},{n:74,name:'Al-Muddaththir',juz:29,ayahs:56},{n:75,name:'Al-Qiyamah',juz:29,ayahs:40},
+  {n:76,name:'Al-Insan',juz:29,ayahs:31},{n:77,name:'Al-Mursalat',juz:29,ayahs:50},{n:78,name:"An-Naba'",juz:30,ayahs:40},
+  {n:79,name:"An-Nazi'at",juz:30,ayahs:46},{n:80,name:'Abasa',juz:30,ayahs:42},{n:81,name:'At-Takwir',juz:30,ayahs:29},
+  {n:82,name:'Al-Infitar',juz:30,ayahs:19},{n:83,name:'Al-Mutaffifin',juz:30,ayahs:36},{n:84,name:'Al-Inshiqaq',juz:30,ayahs:25},
+  {n:85,name:'Al-Buruj',juz:30,ayahs:22},{n:86,name:'At-Tariq',juz:30,ayahs:17},{n:87,name:"Al-A'la",juz:30,ayahs:19},
+  {n:88,name:'Al-Ghashiyah',juz:30,ayahs:26},{n:89,name:'Al-Fajr',juz:30,ayahs:30},{n:90,name:'Al-Balad',juz:30,ayahs:20},
+  {n:91,name:'Ash-Shams',juz:30,ayahs:15},{n:92,name:'Al-Layl',juz:30,ayahs:21},{n:93,name:'Ad-Duha',juz:30,ayahs:11},
+  {n:94,name:'Ash-Sharh',juz:30,ayahs:8},{n:95,name:'At-Tin',juz:30,ayahs:8},{n:96,name:"Al-'Alaq",juz:30,ayahs:19},
+  {n:97,name:'Al-Qadr',juz:30,ayahs:5},{n:98,name:'Al-Bayyinah',juz:30,ayahs:8},{n:99,name:'Az-Zalzalah',juz:30,ayahs:8},
+  {n:100,name:"Al-'Adiyat",juz:30,ayahs:11},{n:101,name:"Al-Qari'ah",juz:30,ayahs:11},{n:102,name:'At-Takathur',juz:30,ayahs:8},
+  {n:103,name:"Al-'Asr",juz:30,ayahs:3},{n:104,name:'Al-Humazah',juz:30,ayahs:9},{n:105,name:'Al-Fil',juz:30,ayahs:5},
+  {n:106,name:'Quraysh',juz:30,ayahs:4},{n:107,name:"Al-Ma'un",juz:30,ayahs:7},{n:108,name:'Al-Kawthar',juz:30,ayahs:3},
+  {n:109,name:'Al-Kafirun',juz:30,ayahs:6},{n:110,name:'An-Nasr',juz:30,ayahs:3},{n:111,name:'Al-Masad',juz:30,ayahs:5},
+  {n:112,name:'Al-Ikhlas',juz:30,ayahs:4},{n:113,name:'Al-Falaq',juz:30,ayahs:5},{n:114,name:'An-Nas',juz:30,ayahs:6}
+];
+
+// GET Surah reference data
+router.get('/quran/surahs', (req, res) => {
+  res.json(SURAHS);
+});
+
+// GET Quran progress for a class on a date
+router.get('/classes/:classId/quran-progress', async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { date, semester_id, student_id } = req.query;
+    const madrasahId = req.madrasahId;
+    const teacherId = req.user.id;
+
+    // Verify teacher is assigned to this class
+    const [assignment] = await pool.query(
+      'SELECT * FROM class_teachers WHERE class_id = ? AND user_id = ?',
+      [classId, teacherId]
+    );
+    if (assignment.length === 0) {
+      return res.status(403).json({ error: 'Not assigned to this class' });
+    }
+
+    let query = `
+      SELECT qp.*, s.first_name, s.last_name, s.student_id as student_code
+      FROM quran_progress qp
+      JOIN students s ON qp.student_id = s.id
+      WHERE qp.class_id = ? AND qp.madrasah_id = ? AND qp.deleted_at IS NULL
+    `;
+    const params = [classId, madrasahId];
+
+    if (date) {
+      query += ' AND qp.date = ?';
+      params.push(date);
+    }
+    if (semester_id) {
+      query += ' AND qp.semester_id = ?';
+      params.push(semester_id);
+    }
+    if (student_id) {
+      query += ' AND qp.student_id = ?';
+      params.push(student_id);
+    }
+
+    query += ' ORDER BY qp.date DESC, s.first_name ASC';
+
+    const [records] = await pool.query(query, params);
+    res.json(records);
+  } catch (error) {
+    console.error('Get quran progress error:', error);
+    res.status(500).json({ error: 'Failed to fetch quran progress' });
+  }
+});
+
+// GET student positions for a class
+router.get('/classes/:classId/quran-positions', async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const madrasahId = req.madrasahId;
+    const teacherId = req.user.id;
+
+    // Verify teacher is assigned
+    const [assignment] = await pool.query(
+      'SELECT * FROM class_teachers WHERE class_id = ? AND user_id = ?',
+      [classId, teacherId]
+    );
+    if (assignment.length === 0) {
+      return res.status(403).json({ error: 'Not assigned to this class' });
+    }
+
+    // Get all students with their quran positions
+    const [students] = await pool.query(`
+      SELECT s.id, s.first_name, s.last_name, s.student_id as student_code,
+        qsp.current_surah_number, qsp.current_surah_name, qsp.current_juz,
+        qsp.current_ayah, qsp.total_surahs_completed, qsp.total_juz_completed,
+        qsp.last_updated
+      FROM students s
+      LEFT JOIN quran_student_position qsp ON s.id = qsp.student_id AND qsp.madrasah_id = ?
+      WHERE s.class_id = ? AND s.madrasah_id = ? AND s.deleted_at IS NULL
+      ORDER BY s.first_name ASC
+    `, [madrasahId, classId, madrasahId]);
+
+    res.json(students);
+  } catch (error) {
+    console.error('Get quran positions error:', error);
+    res.status(500).json({ error: 'Failed to fetch quran positions' });
+  }
+});
+
+// POST record quran progress for a student
+router.post('/classes/:classId/quran-progress', requireActiveSubscription, async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const madrasahId = req.madrasahId;
+    const teacherId = req.user.id;
+
+    const { student_id, semester_id, date, type, surah_number, surah_name, juz, ayah_from, ayah_to, grade, notes } = req.body;
+
+    // Validate required fields
+    if (!student_id || !semester_id || !date || !type || !surah_number || !surah_name) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Verify teacher is assigned
+    const [assignment] = await pool.query(
+      'SELECT * FROM class_teachers WHERE class_id = ? AND user_id = ?',
+      [classId, teacherId]
+    );
+    if (assignment.length === 0) {
+      return res.status(403).json({ error: 'Not assigned to this class' });
+    }
+
+    // Insert progress record
+    const [result] = await pool.query(
+      `INSERT INTO quran_progress (madrasah_id, student_id, class_id, semester_id, user_id, date, type, surah_number, surah_name, juz, ayah_from, ayah_to, grade, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [madrasahId, student_id, classId, semester_id, teacherId, date, type, surah_number, surah_name, juz || null, ayah_from || null, ayah_to || null, grade || 'Good', notes || null]
+    );
+
+    // Update student position if this is new memorization
+    if (type === 'memorization_new') {
+      await pool.query(`
+        INSERT INTO quran_student_position (madrasah_id, student_id, current_surah_number, current_surah_name, current_juz, current_ayah)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          current_surah_number = VALUES(current_surah_number),
+          current_surah_name = VALUES(current_surah_name),
+          current_juz = VALUES(current_juz),
+          current_ayah = VALUES(current_ayah)
+      `, [madrasahId, student_id, surah_number, surah_name, juz || null, ayah_to || null]);
+    }
+
+    res.status(201).json({ id: result.insertId, message: 'Progress recorded' });
+  } catch (error) {
+    console.error('Record quran progress error:', error);
+    res.status(500).json({ error: 'Failed to record progress' });
+  }
+});
+
+// POST bulk quran progress for multiple students
+router.post('/classes/:classId/quran-progress/bulk', requireActiveSubscription, async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const madrasahId = req.madrasahId;
+    const teacherId = req.user.id;
+    const { records } = req.body;
+
+    if (!records || !Array.isArray(records) || records.length === 0) {
+      return res.status(400).json({ error: 'No records provided' });
+    }
+
+    // Verify teacher is assigned
+    const [assignment] = await pool.query(
+      'SELECT * FROM class_teachers WHERE class_id = ? AND user_id = ?',
+      [classId, teacherId]
+    );
+    if (assignment.length === 0) {
+      return res.status(403).json({ error: 'Not assigned to this class' });
+    }
+
+    let inserted = 0;
+    for (const r of records) {
+      await pool.query(
+        `INSERT INTO quran_progress (madrasah_id, student_id, class_id, semester_id, user_id, date, type, surah_number, surah_name, juz, ayah_from, ayah_to, grade, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [madrasahId, r.student_id, classId, r.semester_id, teacherId, r.date, r.type, r.surah_number, r.surah_name, r.juz || null, r.ayah_from || null, r.ayah_to || null, r.grade || 'Good', r.notes || null]
+      );
+
+      if (r.type === 'memorization_new') {
+        await pool.query(`
+          INSERT INTO quran_student_position (madrasah_id, student_id, current_surah_number, current_surah_name, current_juz, current_ayah)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            current_surah_number = VALUES(current_surah_number),
+            current_surah_name = VALUES(current_surah_name),
+            current_juz = VALUES(current_juz),
+            current_ayah = VALUES(current_ayah)
+        `, [madrasahId, r.student_id, r.surah_number, r.surah_name, r.juz || null, r.ayah_to || null]);
+      }
+      inserted++;
+    }
+
+    res.status(201).json({ inserted, message: `${inserted} records saved` });
+  } catch (error) {
+    console.error('Bulk quran progress error:', error);
+    res.status(500).json({ error: 'Failed to save progress' });
+  }
+});
+
+// DELETE quran progress record
+router.delete('/quran-progress/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const madrasahId = req.madrasahId;
+
+    await pool.query(
+      'UPDATE quran_progress SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ?',
+      [id, madrasahId]
+    );
+
+    res.json({ message: 'Record deleted' });
+  } catch (error) {
+    console.error('Delete quran progress error:', error);
+    res.status(500).json({ error: 'Failed to delete record' });
+  }
+});
+
 export default router;

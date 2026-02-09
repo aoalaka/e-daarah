@@ -20,6 +20,8 @@ function ParentReport() {
   const [selectedSession, setSelectedSession] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
   const [loading, setLoading] = useState(true);
+  const [quranProgress, setQuranProgress] = useState([]);
+  const [quranPosition, setQuranPosition] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('parentToken');
@@ -62,6 +64,8 @@ function ParentReport() {
       setRankings(data.rankings || { attendance: {}, exam: {}, dressing: {}, behavior: {}, punctuality: {} });
       setSessions(data.sessions || []);
       setSemesters(data.semesters || []);
+      setQuranProgress(data.quranProgress || []);
+      setQuranPosition(data.quranPosition || null);
 
       // Group exams by subject with stats
       const grouped = data.exams.reduce((acc, exam) => {
@@ -496,6 +500,57 @@ function ParentReport() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Qur'an Progress */}
+          {(quranProgress.length > 0 || quranPosition) && (
+            <div className="exam-scores-section">
+              <h3>Qur'an Progress</h3>
+
+              {quranPosition && (
+                <div className="performance-grid" style={{ marginBottom: 'var(--md)' }}>
+                  <div className="performance-card">
+                    <div className="perf-label">Current Surah</div>
+                    <div className="perf-value">{quranPosition.current_surah_number}. {quranPosition.current_surah_name}</div>
+                  </div>
+                  <div className="performance-card">
+                    <div className="perf-label">Current Juz</div>
+                    <div className="perf-value">{quranPosition.current_juz || '—'}</div>
+                  </div>
+                </div>
+              )}
+
+              {quranProgress.length > 0 && (
+                <div className="subject-block">
+                  <table className="subject-exam-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Surah</th>
+                        <th>Ayahs</th>
+                        <th>Grade</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {quranProgress.map(r => (
+                        <tr key={r.id}>
+                          <td>{new Date(r.date).toLocaleDateString()}</td>
+                          <td>{r.type === 'memorization_new' ? 'New Memorization' : r.type === 'memorization_revision' ? 'Revision' : 'Tilawah'}</td>
+                          <td>{r.surah_number}. {r.surah_name}</td>
+                          <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : '—'}</td>
+                          <td>
+                            <span className={`grade-badge ${r.grade === 'Excellent' ? 'excellent' : r.grade === 'Good' ? 'good' : r.grade === 'Fair' ? 'fair' : 'poor'}`}>
+                              {r.grade}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

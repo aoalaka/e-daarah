@@ -5726,6 +5726,36 @@ function AdminDashboard() {
                       <span className="setting-switch-thumb" />
                     </button>
                   </div>
+                  <div className="setting-toggle-row">
+                    <div className="setting-toggle-info">
+                      <span className="setting-toggle-label">Qur'an Tracking</span>
+                      <p className="setting-toggle-desc">
+                        Enable Qur'an memorization and recitation progress tracking for teachers
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false}
+                      className={`setting-switch ${(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false) ? 'on' : ''}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        const newValue = !(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false);
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/admin/settings', { enable_quran_tracking: newValue });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(`Qur'an tracking ${newValue ? 'enabled' : 'disabled'}`);
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                    >
+                      <span className="setting-switch-thumb" />
+                    </button>
+                  </div>
                 </div>
               </div>
 

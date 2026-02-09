@@ -79,7 +79,8 @@ function TeacherDashboard() {
   const [quranRecords, setQuranRecords] = useState([]);
   const [quranPositions, setQuranPositions] = useState([]);
   const [quranSubTab, setQuranSubTab] = useState('record');
-  const [quranForm, setQuranForm] = useState({ student_id: '', type: 'memorization_new', surah_number: '', grade: 'Good', ayah_from: '', ayah_to: '', notes: '' });
+  const [quranBulkRecords, setQuranBulkRecords] = useState({});
+  const [quranBulkType, setQuranBulkType] = useState('memorization_new');
   const [quranSaving, setQuranSaving] = useState(false);
   const [quranDate, setQuranDate] = useState(getLocalDate());
   const [surahs, setSurahs] = useState([]);
@@ -89,7 +90,7 @@ function TeacherDashboard() {
   const navItems = [
     { id: 'overview', label: 'Overview' },
     { id: 'attendance', label: 'Attendance' },
-    { id: 'quran', label: "Qur'an" },
+    ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? [{ id: 'quran', label: "Qur'an" }] : []),
     { id: 'exams', label: 'Exam Recording' },
     { id: 'reports', label: 'Exam Reports' }
   ];
@@ -126,6 +127,29 @@ function TeacherDashboard() {
       fetchAttendance();
     }
   }, [selectedClass, selectedSemester, attendanceDate]);
+
+  // Fetch Qur'an data when class changes and quran tab is active
+  useEffect(() => {
+    if (selectedClass && activeTab === 'quran') {
+      fetchQuranProgress(selectedClass.id);
+      fetchQuranPositions(selectedClass.id);
+    }
+  }, [selectedClass, activeTab]);
+
+  // Initialize bulk quran records when students load and quran tab is active
+  useEffect(() => {
+    if (students.length > 0 && activeTab === 'quran') {
+      const initial = {};
+      students.forEach(s => {
+        if (!quranBulkRecords[s.id]) {
+          initial[s.id] = { surah_number: '', ayah_from: '', ayah_to: '', grade: 'Good', notes: '' };
+        } else {
+          initial[s.id] = quranBulkRecords[s.id];
+        }
+      });
+      setQuranBulkRecords(initial);
+    }
+  }, [students, activeTab]);
 
   // Fetch exam performance when class, semester, or subject filter changes
   useEffect(() => {
@@ -297,37 +321,52 @@ function TeacherDashboard() {
 
   const handleSaveQuranProgress = async () => {
     if (!selectedClass || !activeSemester) return;
-    const { student_id, type, surah_number, grade } = quranForm;
-    if (!student_id || !surah_number) {
-      toast.error('Please select a student and surah');
-      return;
-    }
-    const surah = surahs.find(s => s.n === parseInt(surah_number));
-    if (!surah) { toast.error('Invalid surah'); return; }
 
-    setQuranSaving(true);
-    try {
-      await api.post(`/teacher/classes/${selectedClass}/quran-progress`, {
-        student_id: parseInt(student_id),
+    // Collect all students that have a surah selected
+    const records = [];
+    for (const student of students) {
+      const entry = quranBulkRecords[student.id];
+      if (!entry || !entry.surah_number) continue;
+      const surah = surahs.find(s => s.n === parseInt(entry.surah_number));
+      if (!surah) continue;
+      records.push({
+        student_id: student.id,
         semester_id: activeSemester.id,
         date: quranDate,
-        type,
+        type: quranBulkType,
         surah_number: surah.n,
         surah_name: surah.name,
         juz: surah.juz,
-        ayah_from: quranForm.ayah_from ? parseInt(quranForm.ayah_from) : null,
-        ayah_to: quranForm.ayah_to ? parseInt(quranForm.ayah_to) : null,
-        grade,
-        notes: quranForm.notes || null
+        ayah_from: entry.ayah_from ? parseInt(entry.ayah_from) : null,
+        ayah_to: entry.ayah_to ? parseInt(entry.ayah_to) : null,
+        grade: entry.grade || 'Good',
+        notes: entry.notes || null
       });
-      toast.success('Progress saved');
-      setQuranForm({ student_id: quranForm.student_id, type: 'memorization_new', surah_number: '', grade: 'Good', ayah_from: '', ayah_to: '', notes: '' });
-      fetchQuranProgress(selectedClass);
-      fetchQuranPositions(selectedClass);
+    }
+
+    if (records.length === 0) {
+      toast.error('Please fill in at least one student\'s surah');
+      return;
+    }
+
+    setQuranSaving(true);
+    try {
+      const response = await api.post(`/teacher/classes/${selectedClass.id}/quran-progress/bulk`, { records });
+      toast.success(`${response.data.inserted} record(s) saved`);
+      // Reset bulk records
+      const reset = {};
+      students.forEach(s => {
+        reset[s.id] = { surah_number: '', ayah_from: '', ayah_to: '', grade: 'Good', notes: '' };
+      });
+      setQuranBulkRecords(reset);
+      fetchQuranProgress(selectedClass.id);
+      fetchQuranPositions(selectedClass.id);
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to save');
     } finally {
       setQuranSaving(false);
+    }
+  };
     }
   };
 
@@ -336,7 +375,9 @@ function TeacherDashboard() {
     try {
       await api.delete(`/teacher/quran-progress/${id}`);
       toast.success('Deleted');
-      fetchQuranProgress(selectedClass);
+      if (selectedClass) {
+        fetchQuranProgress(selectedClass.id);
+      }
     } catch (error) {
       toast.error('Failed to delete');
     }
@@ -2733,32 +2774,11 @@ function TeacherDashboard() {
                 <h2 className="page-title">Qur'an Progress</h2>
               </div>
 
-              {/* Class Selector */}
-              <div className="form-grid" style={{ maxWidth: '400px', marginBottom: 'var(--md)' }}>
-                <div className="form-group">
-                  <label className="form-label">CLASS</label>
-                  <select
-                    className="form-select"
-                    value={selectedClass?.id || ''}
-                    onChange={(e) => {
-                      const cid = e.target.value;
-                      const cls = classes.find(c => String(c.id) === cid) || null;
-                      setSelectedClass(cls);
-                      if (cls) {
-                        fetchQuranProgress(cls.id);
-                        fetchQuranPositions(cls.id);
-                      }
-                    }}
-                  >
-                    <option value="">Select Class</option>
-                    {classes.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+              {!selectedClass ? (
+                <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                  <p className="empty">Select a class from the sidebar to record Qur'an progress</p>
                 </div>
-              </div>
-
-              {selectedClass && (
+              ) : (
                 <>
                   {/* Sub-tabs */}
                   <div className="report-tabs" style={{ marginBottom: 'var(--md)' }}>
@@ -2769,68 +2789,132 @@ function TeacherDashboard() {
                     </nav>
                   </div>
 
-                  {/* Record Sub-tab */}
+                  {/* Record Sub-tab — Bulk entry for all students */}
                   {quranSubTab === 'record' && (
                     <div className="card" style={{ padding: 'var(--lg)' }}>
-                      <h3 style={{ margin: '0 0 var(--lg) 0', fontSize: '16px', fontWeight: '600' }}>Record Qur'an Progress</h3>
-                      <div className="form-grid form-grid-3" style={{ gap: '16px' }}>
-                        <div className="form-group">
-                          <label className="form-label">Student</label>
-                          <select className="form-select" value={quranForm.student_id} onChange={e => setQuranForm({...quranForm, student_id: e.target.value})}>
-                            <option value="">Select Student</option>
-                            {students.map(s => (
-                              <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="form-group">
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end', marginBottom: 'var(--lg)' }}>
+                        <div className="form-group" style={{ minWidth: '140px' }}>
                           <label className="form-label">Date</label>
                           <input type="date" className="form-input" value={quranDate} onChange={e => setQuranDate(e.target.value)} />
                         </div>
-                        <div className="form-group">
-                          <label className="form-label">Type</label>
-                          <select className="form-select" value={quranForm.type} onChange={e => setQuranForm({...quranForm, type: e.target.value})}>
+                        <div className="form-group" style={{ minWidth: '180px' }}>
+                          <label className="form-label">Type (for all)</label>
+                          <select className="form-select" value={quranBulkType} onChange={e => setQuranBulkType(e.target.value)}>
                             <option value="memorization_new">New Memorization</option>
                             <option value="memorization_revision">Revision</option>
                             <option value="tilawah">Tilawah (Recitation)</option>
                           </select>
                         </div>
-                        <div className="form-group">
-                          <label className="form-label">Surah</label>
-                          <select className="form-select" value={quranForm.surah_number} onChange={e => setQuranForm({...quranForm, surah_number: e.target.value})}>
-                            <option value="">Select Surah</option>
-                            {surahs.map(s => (
-                              <option key={s.n} value={s.n}>{s.n}. {s.name} (Juz {s.juz})</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Ayah From</label>
-                          <input type="number" className="form-input" min="1" placeholder="e.g. 1" value={quranForm.ayah_from} onChange={e => setQuranForm({...quranForm, ayah_from: e.target.value})} />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Ayah To</label>
-                          <input type="number" className="form-input" min="1" placeholder={quranForm.surah_number ? `max ${surahs.find(s => s.n === parseInt(quranForm.surah_number))?.ayahs || ''}` : 'e.g. 20'} value={quranForm.ayah_to} onChange={e => setQuranForm({...quranForm, ayah_to: e.target.value})} />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Grade</label>
-                          <select className="form-select" value={quranForm.grade} onChange={e => setQuranForm({...quranForm, grade: e.target.value})}>
-                            <option value="Excellent">Excellent</option>
-                            <option value="Good">Good</option>
-                            <option value="Fair">Fair</option>
-                            <option value="Needs Improvement">Needs Improvement</option>
-                          </select>
-                        </div>
-                        <div className="form-group full">
-                          <label className="form-label">Notes</label>
-                          <textarea className="form-textarea" rows="2" placeholder="Optional notes..." value={quranForm.notes} onChange={e => setQuranForm({...quranForm, notes: e.target.value})} />
-                        </div>
                       </div>
-                      <div className="form-actions" style={{ marginTop: 'var(--md)' }}>
-                        <button className="btn btn-primary" onClick={handleSaveQuranProgress} disabled={quranSaving || isReadOnly()}>
-                          {quranSaving ? 'Saving...' : 'Save Progress'}
-                        </button>
-                      </div>
+
+                      {students.length === 0 ? (
+                        <p className="empty">No students in this class.</p>
+                      ) : (
+                        <>
+                          <div className="table-responsive">
+                            <table className="table">
+                              <thead>
+                                <tr>
+                                  <th style={{ minWidth: '130px' }}>Student</th>
+                                  <th style={{ minWidth: '180px' }}>Surah</th>
+                                  <th style={{ width: '70px' }}>From</th>
+                                  <th style={{ width: '70px' }}>To</th>
+                                  <th style={{ minWidth: '110px' }}>Grade</th>
+                                  <th style={{ minWidth: '120px' }}>Notes</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {students.map(s => {
+                                  const entry = quranBulkRecords[s.id] || { surah_number: '', ayah_from: '', ayah_to: '', grade: 'Good', notes: '' };
+                                  return (
+                                    <tr key={s.id}>
+                                      <td style={{ fontWeight: '500' }}>{s.first_name} {s.last_name}</td>
+                                      <td>
+                                        <select
+                                          className="form-select"
+                                          style={{ fontSize: '13px', padding: '6px 8px' }}
+                                          value={entry.surah_number}
+                                          onChange={e => setQuranBulkRecords(prev => ({
+                                            ...prev,
+                                            [s.id]: { ...entry, surah_number: e.target.value }
+                                          }))}
+                                        >
+                                          <option value="">—</option>
+                                          {surahs.map(su => (
+                                            <option key={su.n} value={su.n}>{su.n}. {su.name}</option>
+                                          ))}
+                                        </select>
+                                      </td>
+                                      <td>
+                                        <input
+                                          type="number"
+                                          className="form-input"
+                                          style={{ fontSize: '13px', padding: '6px 8px', width: '60px' }}
+                                          min="1"
+                                          placeholder="1"
+                                          value={entry.ayah_from}
+                                          onChange={e => setQuranBulkRecords(prev => ({
+                                            ...prev,
+                                            [s.id]: { ...entry, ayah_from: e.target.value }
+                                          }))}
+                                        />
+                                      </td>
+                                      <td>
+                                        <input
+                                          type="number"
+                                          className="form-input"
+                                          style={{ fontSize: '13px', padding: '6px 8px', width: '60px' }}
+                                          min="1"
+                                          placeholder={entry.surah_number ? `${surahs.find(su => su.n === parseInt(entry.surah_number))?.ayahs || ''}` : ''}
+                                          value={entry.ayah_to}
+                                          onChange={e => setQuranBulkRecords(prev => ({
+                                            ...prev,
+                                            [s.id]: { ...entry, ayah_to: e.target.value }
+                                          }))}
+                                        />
+                                      </td>
+                                      <td>
+                                        <select
+                                          className="form-select"
+                                          style={{ fontSize: '13px', padding: '6px 8px' }}
+                                          value={entry.grade}
+                                          onChange={e => setQuranBulkRecords(prev => ({
+                                            ...prev,
+                                            [s.id]: { ...entry, grade: e.target.value }
+                                          }))}
+                                        >
+                                          <option value="Excellent">Excellent</option>
+                                          <option value="Good">Good</option>
+                                          <option value="Fair">Fair</option>
+                                          <option value="Needs Improvement">Needs Improvement</option>
+                                        </select>
+                                      </td>
+                                      <td>
+                                        <input
+                                          type="text"
+                                          className="form-input"
+                                          style={{ fontSize: '13px', padding: '6px 8px' }}
+                                          placeholder="Optional"
+                                          value={entry.notes}
+                                          onChange={e => setQuranBulkRecords(prev => ({
+                                            ...prev,
+                                            [s.id]: { ...entry, notes: e.target.value }
+                                          }))}
+                                        />
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="form-actions" style={{ marginTop: 'var(--md)' }}>
+                            <button className="btn btn-primary" onClick={handleSaveQuranProgress} disabled={quranSaving || isReadOnly()}>
+                              {quranSaving ? 'Saving...' : `Save Progress (${Object.values(quranBulkRecords).filter(r => r.surah_number).length} students)`}
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -2920,12 +3004,6 @@ function TeacherDashboard() {
                     </div>
                   )}
                 </>
-              )}
-
-              {!selectedClass && (
-                <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
-                  <p className="empty">Select a class to record Qur'an progress</p>
-                </div>
               )}
             </>
           )}

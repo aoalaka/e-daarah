@@ -592,7 +592,7 @@ function AdminDashboard() {
     }
   };
 
-  const toggleSchoolDay = (day) => {
+  const toggleClassSchoolDay = (day) => {
     setNewClass(prev => ({
       ...prev,
       school_days: prev.school_days.includes(day)
@@ -1901,7 +1901,7 @@ function AdminDashboard() {
                                 key={day}
                                 type="button"
                                 className={`day-btn ${newClass.school_days.includes(day) ? 'selected' : ''}`}
-                                onClick={() => toggleSchoolDay(day)}
+                                onClick={() => toggleClassSchoolDay(day)}
                               >
                                 {day.substring(0, 3)}
                               </button>

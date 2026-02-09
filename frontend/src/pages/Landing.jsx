@@ -57,35 +57,35 @@ function Landing() {
 
         <div className="feature-list">
           <div className="feature">
-            <h3>📋 Daily Attendance</h3>
+            <h3>Daily Attendance</h3>
             <p>Mark attendance, grade dressing, behavior, and punctuality — all in one step. Bulk-save for the whole class.</p>
           </div>
           <div className="feature">
-            <h3>📖 Qur'an Progress Tracking</h3>
+            <h3>Qur'an Progress Tracking</h3>
             <p>Track hifz, tilawah, and revision progress per student. Record surahs, ayahs, grades, and pass/fail status.</p>
           </div>
           <div className="feature">
-            <h3>🗓️ Academic Planner</h3>
+            <h3>Academic Planner</h3>
             <p>Set flexible school days, manage holidays and closures, and schedule temporary overrides like Ramadan timetables.</p>
           </div>
           <div className="feature">
-            <h3>📝 Exam Recording</h3>
+            <h3>Exam Recording</h3>
             <p>Record scores for any subject with tie-aware ranking. View class-wide and per-student performance reports.</p>
           </div>
           <div className="feature">
-            <h3>👨‍👩‍👧 Parent Portal</h3>
+            <h3>Parent Portal</h3>
             <p>Parents log in to view their child's attendance rate, conduct grades, exam results, and teacher comments.</p>
           </div>
           <div className="feature">
-            <h3>🎓 Student Promotion</h3>
+            <h3>Student Promotion</h3>
             <p>Promote or retain students between classes at the end of each session with a simple bulk tool.</p>
           </div>
           <div className="feature">
-            <h3>🔐 Role-Based Access</h3>
+            <h3>Role-Based Access</h3>
             <p>Admins, teachers, and parents each get their own secure portal with appropriate permissions.</p>
           </div>
           <div className="feature">
-            <h3>📊 Reports &amp; Exports</h3>
+            <h3>Reports &amp; Exports</h3>
             <p>Generate detailed student reports, class performance summaries, and export data as CSV or PDF.</p>
           </div>
         </div>

@@ -1009,7 +1009,7 @@ router.get('/quran/student/:studentId/position', async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.json({ isNew: true, hifz: null, tilawah: null });
+      return res.json({ isNew: true, hifz: null, tilawah: null, revision: null });
     }
 
     const pos = rows[0];
@@ -1026,6 +1026,12 @@ router.get('/quran/student/:studentId/position', async (req, res) => {
         surah_name: pos.tilawah_surah_name,
         juz: pos.tilawah_juz,
         ayah: pos.tilawah_ayah
+      } : null,
+      revision: pos.revision_surah_number ? {
+        surah_number: pos.revision_surah_number,
+        surah_name: pos.revision_surah_name,
+        juz: pos.revision_juz,
+        ayah: pos.revision_ayah
       } : null
     });
   } catch (error) {
@@ -1078,6 +1084,7 @@ router.get('/classes/:classId/quran-positions', async (req, res) => {
       SELECT s.id, s.first_name, s.last_name, s.student_id as student_code,
         qsp.current_surah_number, qsp.current_surah_name, qsp.current_juz, qsp.current_ayah,
         qsp.tilawah_surah_number, qsp.tilawah_surah_name, qsp.tilawah_juz, qsp.tilawah_ayah,
+        qsp.revision_surah_number, qsp.revision_surah_name, qsp.revision_juz, qsp.revision_ayah,
         qsp.total_surahs_completed, qsp.total_juz_completed, qsp.last_updated
       FROM students s
       LEFT JOIN quran_student_position qsp ON s.id = qsp.student_id AND qsp.madrasah_id = ?
@@ -1195,8 +1202,19 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
             tilawah_ayah = VALUES(tilawah_ayah),
             last_updated = CURRENT_TIMESTAMP
         `, [madrasahId, student_id, surah_number, surah_name, juz || null, ayah_to || null]);
+      } else if (type === 'revision') {
+        // Update revision position
+        await pool.query(`
+          INSERT INTO quran_student_position (madrasah_id, student_id, revision_surah_number, revision_surah_name, revision_juz, revision_ayah)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            revision_surah_number = VALUES(revision_surah_number),
+            revision_surah_name = VALUES(revision_surah_name),
+            revision_juz = VALUES(revision_juz),
+            revision_ayah = VALUES(revision_ayah),
+            last_updated = CURRENT_TIMESTAMP
+        `, [madrasahId, student_id, surah_number, surah_name, juz || null, ayah_to || null]);
       }
-      // revision doesn't update position — student is just re-doing old work
     }
 
     res.status(201).json({ id: result.insertId, message: passed !== false ? 'Passed — position updated' : 'Repeat — come back next time' });

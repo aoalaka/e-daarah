@@ -92,6 +92,9 @@ function TeacherDashboard() {
   const [quranSaving, setQuranSaving] = useState(false);
   const [quranDate, setQuranDate] = useState(getLocalDate());
   const [surahs, setSurahs] = useState([]);
+  // School day validation state
+  const [schoolDayInfo, setSchoolDayInfo] = useState(null);
+  const [attendanceDateWarning, setAttendanceDateWarning] = useState('');
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
@@ -127,7 +130,13 @@ function TeacherDashboard() {
     fetchActiveSessionSemester();
     fetchMadrasahInfo();
     fetchSurahList();
+    fetchSchoolDayInfo();
   }, []);
+
+  // Validate attendance date against school day rules
+  useEffect(() => {
+    validateAttendanceDate(attendanceDate);
+  }, [attendanceDate, schoolDayInfo]);
 
   useEffect(() => {
     if (selectedClass && selectedSemester) {
@@ -276,6 +285,58 @@ function TeacherDashboard() {
     } catch (error) {
       console.error('Failed to fetch active session/semester:', error);
     }
+  };
+
+  const fetchSchoolDayInfo = async () => {
+    try {
+      const response = await api.get('/teacher/school-day-info');
+      setSchoolDayInfo(response.data);
+    } catch (error) {
+      console.error('Failed to fetch school day info:', error);
+    }
+  };
+
+  const validateAttendanceDate = (dateStr) => {
+    if (!schoolDayInfo || !dateStr) {
+      setAttendanceDateWarning('');
+      return;
+    }
+    const { schoolDays, holidays, overrides } = schoolDayInfo;
+    const date = new Date(dateStr + 'T00:00:00');
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+
+    // Check if date falls on a holiday
+    const holiday = holidays?.find(h => {
+      const start = new Date(h.start_date.split('T')[0] + 'T00:00:00');
+      const end = new Date(h.end_date.split('T')[0] + 'T00:00:00');
+      return date >= start && date <= end;
+    });
+    if (holiday) {
+      setAttendanceDateWarning(`This date falls on a holiday: ${holiday.title}`);
+      return;
+    }
+
+    // Check schedule override first
+    const override = overrides?.find(o => {
+      const start = new Date(o.start_date.split('T')[0] + 'T00:00:00');
+      const end = new Date(o.end_date.split('T')[0] + 'T00:00:00');
+      return date >= start && date <= end;
+    });
+
+    if (override) {
+      const overrideDays = typeof override.school_days === 'string' ? JSON.parse(override.school_days) : override.school_days;
+      if (!overrideDays.includes(dayName)) {
+        setAttendanceDateWarning(`${dayName} is not a school day during "${override.title}" (${overrideDays.map(d => d.substring(0, 3)).join(', ')})`);
+        return;
+      }
+    } else if (schoolDays && schoolDays.length > 0) {
+      if (!schoolDays.includes(dayName)) {
+        setAttendanceDateWarning(`${dayName} is not a scheduled school day (${schoolDays.map(d => d.substring(0, 3)).join(', ')})`);
+        return;
+      }
+    }
+
+    setAttendanceDateWarning('');
   };
 
   const fetchMadrasahInfo = async () => {
@@ -1362,9 +1423,23 @@ function TeacherDashboard() {
                             onChange={(e) => setAttendanceDate(e.target.value)}
                             max={getLocalDate()}
                             className="form-input"
+                            style={attendanceDateWarning ? { borderColor: '#e67e22' } : {}}
                           />
+                          {attendanceDateWarning && (
+                            <p style={{ color: '#e67e22', fontSize: '12px', marginTop: '4px', margin: '4px 0 0' }}>
+                              ⚠ {attendanceDateWarning}
+                            </p>
+                          )}
                         </div>
                       </div>
+                      {schoolDayInfo?.schoolDays?.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--muted)' }}>School days:</span>
+                          {schoolDayInfo.schoolDays.map(day => (
+                            <span key={day} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', background: 'var(--primary-bg, rgba(37,99,235,0.08))', color: 'var(--primary)', fontWeight: '500' }}>{day.substring(0, 3)}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 

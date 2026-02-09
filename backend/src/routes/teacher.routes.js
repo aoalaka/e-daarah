@@ -33,6 +33,125 @@ router.get('/active-session-semester', async (req, res) => {
   }
 });
 
+// Helper: check if a date is a valid school day
+async function isValidSchoolDay(madrasahId, dateStr) {
+  const date = new Date(dateStr + 'T00:00:00Z');
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayOfWeek = dayNames[date.getUTCDay()];
+
+  // 1. Find the active session that contains this date
+  const [sessions] = await pool.query(
+    `SELECT id, default_school_days FROM sessions 
+     WHERE madrasah_id = ? AND deleted_at IS NULL 
+     AND start_date <= ? AND end_date >= ?`,
+    [madrasahId, dateStr, dateStr]
+  );
+  if (sessions.length === 0) {
+    return { valid: false, reason: 'Date is not within any academic session' };
+  }
+  const session = sessions[0];
+
+  // 2. Check if date falls within a semester
+  const [semesters] = await pool.query(
+    `SELECT id FROM semesters 
+     WHERE session_id = ? AND deleted_at IS NULL 
+     AND start_date <= ? AND end_date >= ?`,
+    [session.id, dateStr, dateStr]
+  );
+  if (semesters.length === 0) {
+    return { valid: false, reason: 'Date is not within any semester' };
+  }
+
+  // 3. Check if it's a holiday
+  const [holidays] = await pool.query(
+    `SELECT title FROM academic_holidays 
+     WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL 
+     AND start_date <= ? AND end_date >= ?`,
+    [madrasahId, session.id, dateStr, dateStr]
+  );
+  if (holidays.length > 0) {
+    return { valid: false, reason: `Holiday: ${holidays[0].title}` };
+  }
+
+  // 4. Check for schedule override covering this date
+  const [overrides] = await pool.query(
+    `SELECT school_days FROM schedule_overrides 
+     WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL 
+     AND start_date <= ? AND end_date >= ?`,
+    [madrasahId, session.id, dateStr, dateStr]
+  );
+
+  let schoolDays;
+  if (overrides.length > 0) {
+    // Use override school days
+    schoolDays = typeof overrides[0].school_days === 'string' ? JSON.parse(overrides[0].school_days) : overrides[0].school_days;
+  } else {
+    // Use session default school days
+    schoolDays = session.default_school_days ? (typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days) : null;
+  }
+
+  // 5. If no school days configured, allow any day (backward compat)
+  if (!schoolDays || !Array.isArray(schoolDays) || schoolDays.length === 0) {
+    return { valid: true };
+  }
+
+  // 6. Check if day of week is in the school days list
+  if (!schoolDays.includes(dayOfWeek)) {
+    return { valid: false, reason: `${dayOfWeek} is not a school day` };
+  }
+
+  return { valid: true };
+}
+
+// GET validate a date for attendance
+router.get('/validate-attendance-date', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { date } = req.query;
+    if (!date) return res.status(400).json({ error: 'Date parameter required' });
+
+    const result = await isValidSchoolDay(madrasahId, date);
+    res.json(result);
+  } catch (error) {
+    console.error('Validate attendance date error:', error);
+    res.status(500).json({ error: 'Failed to validate date' });
+  }
+});
+
+// GET school day info for the active session (for the teacher date picker)
+router.get('/school-day-info', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+
+    // Get active session
+    const [sessions] = await pool.query(
+      'SELECT id, default_school_days, start_date, end_date FROM sessions WHERE madrasah_id = ? AND is_active = TRUE AND deleted_at IS NULL LIMIT 1',
+      [madrasahId]
+    );
+    if (sessions.length === 0) return res.json({ schoolDays: [], holidays: [], overrides: [] });
+
+    const session = sessions[0];
+    const schoolDays = session.default_school_days ? (typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days) : [];
+
+    // Get holidays for active session
+    const [holidays] = await pool.query(
+      'SELECT id, title, start_date, end_date FROM academic_holidays WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL ORDER BY start_date',
+      [madrasahId, session.id]
+    );
+
+    // Get schedule overrides for active session
+    const [overrides] = await pool.query(
+      'SELECT id, title, start_date, end_date, school_days FROM schedule_overrides WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL ORDER BY start_date',
+      [madrasahId, session.id]
+    );
+
+    res.json({ schoolDays, holidays, overrides });
+  } catch (error) {
+    console.error('Get school day info error:', error);
+    res.status(500).json({ error: 'Failed to fetch school day info' });
+  }
+});
+
 // Get all sessions (scoped to madrasah)
 router.get('/sessions', async (req, res) => {
   try {
@@ -164,6 +283,12 @@ router.post('/classes/:classId/attendance', requireActiveSubscription, async (re
       return res.status(400).json({ error: 'Cannot record attendance for future dates' });
     }
 
+    // Validate the date is a valid school day
+    const schoolDayCheck = await isValidSchoolDay(madrasahId, date);
+    if (!schoolDayCheck.valid) {
+      return res.status(400).json({ error: schoolDayCheck.reason });
+    }
+
     // Fetch madrasah grading settings
     const [madrasahSettings] = await pool.query(
       'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade FROM madrasahs WHERE id = ?',
@@ -242,6 +367,12 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
     const todayStr = todayInClientTz.toISOString().split('T')[0]; // YYYY-MM-DD
     if (date > todayStr) {
       return res.status(400).json({ error: 'Cannot record attendance for future dates' });
+    }
+
+    // Validate the date is a valid school day
+    const bulkSchoolDayCheck = await isValidSchoolDay(madrasahId, date);
+    if (!bulkSchoolDayCheck.valid) {
+      return res.status(400).json({ error: bulkSchoolDayCheck.reason });
     }
 
     // Validate that records exist

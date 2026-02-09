@@ -3426,3 +3426,29 @@
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
+
+/* ============================================
+   TEACHER PERFORMANCE
+   ============================================ */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: #f0f0f0;
+  color: #404040;
+}
+
+.status-badge.inactive {
+  background: #fafafa;
+  color: #a3a3a3;
+}
+
+.status-badge.none {
+  background: #fafafa;
+  color: #d4d4d4;
+}

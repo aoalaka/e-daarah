@@ -2898,4 +2898,150 @@ router.get('/promotion/history', async (req, res) => {
   }
 });
 
+// =====================================================
+// TEACHER PERFORMANCE (Plus only)
+// =====================================================
+
+// GET /admin/teacher-performance - Overview of all teachers with key metrics
+router.get('/teacher-performance', requirePlusPlan('teacher_performance'), async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+
+    const [teachers] = await pool.query(`
+      SELECT
+        u.id,
+        u.first_name,
+        u.last_name,
+        u.staff_id,
+        u.email,
+        u.last_login_at,
+        (SELECT COUNT(*) FROM class_teachers ct
+         JOIN classes c ON ct.class_id = c.id
+         WHERE ct.user_id = u.id AND c.deleted_at IS NULL) AS classes_assigned,
+        (SELECT COUNT(*) FROM attendance a
+         WHERE a.user_id = u.id AND a.madrasah_id = ? AND a.deleted_at IS NULL) AS attendance_records,
+        (SELECT COUNT(*) FROM exam_performance ep
+         WHERE ep.user_id = u.id AND ep.madrasah_id = ? AND ep.deleted_at IS NULL) AS exam_records,
+        GREATEST(
+          COALESCE((SELECT MAX(a.date) FROM attendance a WHERE a.user_id = u.id AND a.madrasah_id = ? AND a.deleted_at IS NULL), '1970-01-01'),
+          COALESCE((SELECT MAX(ep.exam_date) FROM exam_performance ep WHERE ep.user_id = u.id AND ep.madrasah_id = ? AND ep.deleted_at IS NULL), '1970-01-01')
+        ) AS last_activity
+      FROM users u
+      WHERE u.madrasah_id = ?
+        AND u.role = 'teacher'
+        AND u.deleted_at IS NULL
+      ORDER BY u.first_name, u.last_name
+    `, [madrasahId, madrasahId, madrasahId, madrasahId, madrasahId]);
+
+    res.json({
+      teachers: teachers.map(t => ({
+        ...t,
+        activity_status: (() => {
+          const lastActivity = t.last_activity ? new Date(t.last_activity).toISOString().split('T')[0] : '1970-01-01';
+          if (lastActivity === '1970-01-01') return 'No Records';
+          const daysSince = Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000);
+          return daysSince <= 14 ? 'Active' : 'Inactive';
+        })()
+      }))
+    });
+  } catch (error) {
+    console.error('Teacher performance error:', error);
+    res.status(500).json({ error: 'Failed to fetch teacher performance data' });
+  }
+});
+
+// GET /admin/teacher-performance/:teacherId - Detail view for a single teacher
+router.get('/teacher-performance/:teacherId', requirePlusPlan('teacher_performance'), async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { teacherId } = req.params;
+
+    // Verify teacher belongs to this madrasah
+    const [teacherCheck] = await pool.query(
+      'SELECT id FROM users WHERE id = ? AND madrasah_id = ? AND role = ? AND deleted_at IS NULL',
+      [teacherId, madrasahId, 'teacher']
+    );
+    if (teacherCheck.length === 0) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    // 1. Recording frequency - last 8 weeks
+    const [recordingFrequency] = await pool.query(`
+      SELECT
+        YEARWEEK(a.date, 1) AS year_week,
+        MIN(a.date) AS week_start,
+        COUNT(*) AS records_count,
+        COUNT(DISTINCT a.date) AS days_recorded
+      FROM attendance a
+      WHERE a.user_id = ?
+        AND a.madrasah_id = ?
+        AND a.deleted_at IS NULL
+        AND a.date >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
+      GROUP BY YEARWEEK(a.date, 1)
+      ORDER BY year_week ASC
+    `, [teacherId, madrasahId]);
+
+    // 2. Class attendance rates
+    const [classAttendanceRates] = await pool.query(`
+      SELECT
+        c.id AS class_id,
+        c.name AS class_name,
+        COUNT(a.id) AS total_records,
+        SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) AS present_count,
+        ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) AS attendance_rate
+      FROM class_teachers ct
+      JOIN classes c ON ct.class_id = c.id AND c.deleted_at IS NULL
+      LEFT JOIN attendance a ON a.class_id = c.id
+        AND a.madrasah_id = ?
+        AND a.deleted_at IS NULL
+      WHERE ct.user_id = ?
+      GROUP BY c.id
+      ORDER BY c.name
+    `, [madrasahId, teacherId]);
+
+    // 3. Exams by subject
+    const [examsBySubject] = await pool.query(`
+      SELECT
+        ep.subject,
+        COUNT(*) AS exam_count,
+        COUNT(DISTINCT ep.student_id) AS students_examined
+      FROM exam_performance ep
+      WHERE ep.user_id = ?
+        AND ep.madrasah_id = ?
+        AND ep.deleted_at IS NULL
+      GROUP BY ep.subject
+      ORDER BY exam_count DESC
+    `, [teacherId, madrasahId]);
+
+    // 4. Average student scores by class and subject
+    const [avgScoresByClassSubject] = await pool.query(`
+      SELECT
+        c.name AS class_name,
+        ep.subject,
+        COUNT(*) AS total_exams,
+        ROUND(AVG(ep.score / ep.max_score * 100), 1) AS avg_percentage
+      FROM exam_performance ep
+      JOIN students s ON ep.student_id = s.id
+      JOIN class_teachers ct ON ct.user_id = ? AND s.class_id = ct.class_id
+      JOIN classes c ON ct.class_id = c.id AND c.deleted_at IS NULL
+      WHERE ep.madrasah_id = ?
+        AND ep.deleted_at IS NULL
+        AND ep.is_absent = 0
+        AND ep.score IS NOT NULL
+      GROUP BY c.id, ep.subject
+      ORDER BY c.name, ep.subject
+    `, [teacherId, madrasahId]);
+
+    res.json({
+      recordingFrequency,
+      classAttendanceRates,
+      examsBySubject,
+      avgScoresByClassSubject
+    });
+  } catch (error) {
+    console.error('Teacher detail error:', error);
+    res.status(500).json({ error: 'Failed to fetch teacher details' });
+  }
+});
+
 export default router;

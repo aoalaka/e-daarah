@@ -86,6 +86,12 @@ function AdminDashboard() {
   const [behaviorRankings, setBehaviorRankings] = useState([]);
   const [punctualityRankings, setPunctualityRankings] = useState([]);
   const [individualRankings, setIndividualRankings] = useState(null); // Madrasah-wide rankings for individual student
+  // Teacher Performance state
+  const [teacherPerformanceData, setTeacherPerformanceData] = useState(null);
+  const [teacherPerformanceLoading, setTeacherPerformanceLoading] = useState(false);
+  const [selectedTeacherForDetail, setSelectedTeacherForDetail] = useState(null);
+  const [teacherDetailData, setTeacherDetailData] = useState(null);
+  const [teacherDetailLoading, setTeacherDetailLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -247,6 +253,13 @@ function AdminDashboard() {
       fetchAnalytics();
     }
   }, [activeTab, reportSubTab, reportSemester, madrasahProfile]);
+
+  // Fetch teacher performance when Teacher Performance sub-tab is selected
+  useEffect(() => {
+    if (activeTab === 'reports' && reportSubTab === 'teacher-performance' && madrasahProfile && hasPlusAccess()) {
+      fetchTeacherPerformance();
+    }
+  }, [activeTab, reportSubTab, madrasahProfile]);
 
   // Fetch tickets when Support tab is active
   useEffect(() => {
@@ -1005,6 +1018,34 @@ function AdminDashboard() {
       }
     } finally {
       setAnalyticsLoading(false);
+    }
+  };
+
+  const fetchTeacherPerformance = async () => {
+    setTeacherPerformanceLoading(true);
+    try {
+      const response = await api.get('/admin/teacher-performance');
+      setTeacherPerformanceData(response.data);
+    } catch (error) {
+      console.error('Teacher performance error:', error);
+      if (error.response?.data?.code !== 'UPGRADE_REQUIRED') {
+        toast.error('Failed to load teacher performance data');
+      }
+    } finally {
+      setTeacherPerformanceLoading(false);
+    }
+  };
+
+  const fetchTeacherDetail = async (teacherId) => {
+    setTeacherDetailLoading(true);
+    try {
+      const response = await api.get(`/admin/teacher-performance/${teacherId}`);
+      setTeacherDetailData(response.data);
+    } catch (error) {
+      console.error('Teacher detail error:', error);
+      toast.error('Failed to load teacher details');
+    } finally {
+      setTeacherDetailLoading(false);
     }
   };
 
@@ -2844,6 +2885,16 @@ function AdminDashboard() {
                         className={`report-tab-btn ${reportSubTab === 'individual' ? 'active' : ''}`}
                       >
                         Individual Student
+                      </button>
+                      <button
+                        onClick={() => {
+                          setReportSubTab('teacher-performance');
+                          setSelectedTeacherForDetail(null);
+                          setTeacherDetailData(null);
+                        }}
+                        className={`report-tab-btn ${reportSubTab === 'teacher-performance' ? 'active' : ''}`}
+                      >
+                        Teacher Performance
                       </button>
                     </>
                   )}
@@ -5095,6 +5146,234 @@ function AdminDashboard() {
                     <p>Select a student to view their report</p>
                   </div>
                 </div>
+              )}
+
+              {/* Teacher Performance Tab */}
+              {reportSubTab === 'teacher-performance' && (
+                <>
+                  {selectedTeacherForDetail ? (
+                    <div>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setSelectedTeacherForDetail(null);
+                          setTeacherDetailData(null);
+                        }}
+                        style={{ marginBottom: 'var(--md)' }}
+                      >
+                        Back to All Teachers
+                      </button>
+
+                      <h3 style={{ marginBottom: 'var(--md)' }}>
+                        {selectedTeacherForDetail.first_name} {selectedTeacherForDetail.last_name}
+                        {selectedTeacherForDetail.staff_id && (
+                          <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 'var(--sm)' }}>
+                            ({selectedTeacherForDetail.staff_id})
+                          </span>
+                        )}
+                      </h3>
+
+                      {teacherDetailLoading ? (
+                        <div className="card">
+                          <div className="card-body" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
+                            <p>Loading teacher details...</p>
+                          </div>
+                        </div>
+                      ) : teacherDetailData ? (
+                        <>
+                          {/* Summary cards */}
+                          <div className="insights-summary" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                            <div className="summary-card">
+                              <div className="summary-value">{selectedTeacherForDetail.attendance_records}</div>
+                              <div className="summary-label">Attendance Records</div>
+                            </div>
+                            <div className="summary-card">
+                              <div className="summary-value">{selectedTeacherForDetail.exam_records}</div>
+                              <div className="summary-label">Exam Records</div>
+                            </div>
+                            <div className="summary-card">
+                              <div className="summary-value">{selectedTeacherForDetail.classes_assigned}</div>
+                              <div className="summary-label">Classes Assigned</div>
+                            </div>
+                          </div>
+
+                          <div className="insights-widgets">
+                            {/* Recording Frequency */}
+                            <div className="insight-widget">
+                              <h4>Recording Frequency (Last 8 Weeks)</h4>
+                              {teacherDetailData.recordingFrequency.length > 0 ? (
+                                <div className="class-bars">
+                                  {teacherDetailData.recordingFrequency.map(week => (
+                                    <div key={week.year_week} className="class-bar-row">
+                                      <span className="class-bar-label" style={{ width: '70px', fontSize: '12px' }}>
+                                        {new Date(week.week_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                      </span>
+                                      <div className="class-bar-container">
+                                        <div
+                                          className="class-bar-fill good"
+                                          style={{ width: `${Math.min((week.days_recorded / 5) * 100, 100)}%` }}
+                                        />
+                                      </div>
+                                      <span className="class-bar-value">{week.days_recorded}d</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No attendance recorded recently</p>
+                              )}
+                            </div>
+
+                            {/* Class Attendance Rates */}
+                            <div className="insight-widget">
+                              <h4>Class Attendance Rates</h4>
+                              {teacherDetailData.classAttendanceRates.length > 0 ? (
+                                <div className="class-bars">
+                                  {teacherDetailData.classAttendanceRates.map(cls => (
+                                    <div key={cls.class_id} className="class-bar-row">
+                                      <span className="class-bar-label">{cls.class_name}</span>
+                                      <div className="class-bar-container">
+                                        <div
+                                          className={`class-bar-fill ${
+                                            cls.attendance_rate >= 90 ? 'excellent' :
+                                            cls.attendance_rate >= 80 ? 'good' :
+                                            cls.attendance_rate >= 70 ? 'fair' : 'poor'
+                                          }`}
+                                          style={{ width: `${cls.attendance_rate || 0}%` }}
+                                        />
+                                      </div>
+                                      <span className="class-bar-value">{cls.attendance_rate || 0}%</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No class data available</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="insights-widgets">
+                            {/* Exams by Subject */}
+                            <div className="insight-widget">
+                              <h4>Exams Recorded by Subject</h4>
+                              {teacherDetailData.examsBySubject.length > 0 ? (
+                                <table className="table" style={{ fontSize: '13px' }}>
+                                  <thead>
+                                    <tr>
+                                      <th>Subject</th>
+                                      <th>Records</th>
+                                      <th>Students</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {teacherDetailData.examsBySubject.map(subj => (
+                                      <tr key={subj.subject}>
+                                        <td>{subj.subject}</td>
+                                        <td>{subj.exam_count}</td>
+                                        <td>{subj.students_examined}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No exam records</p>
+                              )}
+                            </div>
+
+                            {/* Average Scores */}
+                            <div className="insight-widget">
+                              <h4>Average Student Scores</h4>
+                              {teacherDetailData.avgScoresByClassSubject.length > 0 ? (
+                                <table className="table" style={{ fontSize: '13px' }}>
+                                  <thead>
+                                    <tr>
+                                      <th>Class</th>
+                                      <th>Subject</th>
+                                      <th>Avg %</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {teacherDetailData.avgScoresByClassSubject.map((row, i) => (
+                                      <tr key={i}>
+                                        <td>{row.class_name}</td>
+                                        <td>{row.subject}</td>
+                                        <td>{row.avg_percentage}%</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No exam scores available</p>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="card">
+                          <div className="empty">
+                            <p>Unable to load teacher details. Please try again.</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      {teacherPerformanceLoading ? (
+                        <div className="card">
+                          <div className="card-body" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
+                            <p>Loading teacher performance data...</p>
+                          </div>
+                        </div>
+                      ) : teacherPerformanceData && teacherPerformanceData.teachers.length > 0 ? (
+                        <SortableTable
+                          columns={[
+                            { key: 'name', label: 'Teacher', sortable: true, render: (row) => `${row.first_name} ${row.last_name}` },
+                            { key: 'staff_id', label: 'Staff ID', sortable: true },
+                            { key: 'classes_assigned', label: 'Classes', sortable: true, sortType: 'number' },
+                            { key: 'attendance_records', label: 'Attendance', sortable: true, sortType: 'number' },
+                            { key: 'exam_records', label: 'Exams', sortable: true, sortType: 'number' },
+                            {
+                              key: 'last_activity',
+                              label: 'Last Active',
+                              sortable: true,
+                              sortType: 'date',
+                              render: (row) => {
+                                if (!row.last_activity || new Date(row.last_activity).getFullYear() <= 1970) return 'Never';
+                                return new Date(row.last_activity).toLocaleDateString();
+                              }
+                            },
+                            {
+                              key: 'activity_status',
+                              label: 'Status',
+                              sortable: true,
+                              render: (row) => (
+                                <span className={`status-badge ${row.activity_status === 'Active' ? 'active' : row.activity_status === 'Inactive' ? 'inactive' : 'none'}`}>
+                                  {row.activity_status}
+                                </span>
+                              )
+                            }
+                          ]}
+                          data={teacherPerformanceData.teachers}
+                          searchable={true}
+                          searchPlaceholder="Search teachers..."
+                          searchKeys={['first_name', 'last_name', 'staff_id']}
+                          pagination={true}
+                          pageSize={10}
+                          onRowClick={(teacher) => {
+                            setSelectedTeacherForDetail(teacher);
+                            fetchTeacherDetail(teacher.id);
+                          }}
+                          emptyMessage="No teachers found"
+                        />
+                      ) : (
+                        <div className="card">
+                          <div className="empty">
+                            <p>No teachers found. Add teachers to see their performance metrics.</p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
               )}
             </>
           )}

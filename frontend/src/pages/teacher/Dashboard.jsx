@@ -2732,9 +2732,9 @@ function TeacherDashboard() {
               </div>
 
               {/* Class Selector */}
-              <div className="filter-bar">
-                <div className="filter-group">
-                  <label>Class</label>
+              <div className="form-grid" style={{ maxWidth: '400px', marginBottom: 'var(--md)' }}>
+                <div className="form-group">
+                  <label className="form-label">CLASS</label>
                   <select
                     className="form-select"
                     value={selectedClass || ''}
@@ -2769,10 +2769,10 @@ function TeacherDashboard() {
 
                   {/* Record Sub-tab */}
                   {quranSubTab === 'record' && (
-                    <div className="card" style={{ padding: 'var(--md)' }}>
-                      <h3 style={{ margin: '0 0 var(--md) 0', fontSize: '16px' }}>Record Qur'an Progress</h3>
-                      <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--sm)' }}>
-                        <div>
+                    <div className="card" style={{ padding: 'var(--lg)' }}>
+                      <h3 style={{ margin: '0 0 var(--lg) 0', fontSize: '16px', fontWeight: '600' }}>Record Qur'an Progress</h3>
+                      <div className="form-grid form-grid-3" style={{ gap: '16px' }}>
+                        <div className="form-group">
                           <label className="form-label">Student</label>
                           <select className="form-select" value={quranForm.student_id} onChange={e => setQuranForm({...quranForm, student_id: e.target.value})}>
                             <option value="">Select Student</option>
@@ -2781,11 +2781,11 @@ function TeacherDashboard() {
                             ))}
                           </select>
                         </div>
-                        <div>
+                        <div className="form-group">
                           <label className="form-label">Date</label>
                           <input type="date" className="form-input" value={quranDate} onChange={e => setQuranDate(e.target.value)} />
                         </div>
-                        <div>
+                        <div className="form-group">
                           <label className="form-label">Type</label>
                           <select className="form-select" value={quranForm.type} onChange={e => setQuranForm({...quranForm, type: e.target.value})}>
                             <option value="memorization_new">New Memorization</option>
@@ -2793,7 +2793,7 @@ function TeacherDashboard() {
                             <option value="tilawah">Tilawah (Recitation)</option>
                           </select>
                         </div>
-                        <div>
+                        <div className="form-group">
                           <label className="form-label">Surah</label>
                           <select className="form-select" value={quranForm.surah_number} onChange={e => setQuranForm({...quranForm, surah_number: e.target.value})}>
                             <option value="">Select Surah</option>
@@ -2802,15 +2802,15 @@ function TeacherDashboard() {
                             ))}
                           </select>
                         </div>
-                        <div>
+                        <div className="form-group">
                           <label className="form-label">Ayah From</label>
                           <input type="number" className="form-input" min="1" placeholder="e.g. 1" value={quranForm.ayah_from} onChange={e => setQuranForm({...quranForm, ayah_from: e.target.value})} />
                         </div>
-                        <div>
+                        <div className="form-group">
                           <label className="form-label">Ayah To</label>
                           <input type="number" className="form-input" min="1" placeholder={quranForm.surah_number ? `max ${surahs.find(s => s.n === parseInt(quranForm.surah_number))?.ayahs || ''}` : 'e.g. 20'} value={quranForm.ayah_to} onChange={e => setQuranForm({...quranForm, ayah_to: e.target.value})} />
                         </div>
-                        <div>
+                        <div className="form-group">
                           <label className="form-label">Grade</label>
                           <select className="form-select" value={quranForm.grade} onChange={e => setQuranForm({...quranForm, grade: e.target.value})}>
                             <option value="Excellent">Excellent</option>
@@ -2819,12 +2819,12 @@ function TeacherDashboard() {
                             <option value="Needs Improvement">Needs Improvement</option>
                           </select>
                         </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
+                        <div className="form-group full">
                           <label className="form-label">Notes</label>
                           <textarea className="form-textarea" rows="2" placeholder="Optional notes..." value={quranForm.notes} onChange={e => setQuranForm({...quranForm, notes: e.target.value})} />
                         </div>
                       </div>
-                      <div style={{ marginTop: 'var(--md)', display: 'flex', gap: 'var(--sm)' }}>
+                      <div className="form-actions" style={{ marginTop: 'var(--md)' }}>
                         <button className="btn btn-primary" onClick={handleSaveQuranProgress} disabled={quranSaving || isReadOnly()}>
                           {quranSaving ? 'Saving...' : 'Save Progress'}
                         </button>

@@ -98,7 +98,7 @@ function TeacherDashboard() {
   const navItems = [
     { id: 'overview', label: 'Overview' },
     { id: 'attendance', label: 'Attendance' },
-    ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? [{ id: 'quran', label: "Qur'an" }] : []),
+    ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? [{ id: 'quran', label: "Qur'an Tracker" }] : []),
     { id: 'exams', label: 'Exam Recording' },
     { id: 'reports', label: 'Exam Reports' }
   ];

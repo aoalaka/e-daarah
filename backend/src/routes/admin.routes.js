@@ -1984,7 +1984,7 @@ router.get('/profile', async (req, res) => {
       `SELECT id, name, slug, logo_url, street, city, region, country, phone, email,
        institution_type, verification_status, trial_ends_at, created_at,
        pricing_plan, subscription_status, current_period_end, stripe_customer_id,
-       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade
+       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -2027,7 +2027,7 @@ router.get('/profile', async (req, res) => {
 router.put('/settings', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade } = req.body;
+    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking } = req.body;
 
     const updates = [];
     const params = [];
@@ -2044,6 +2044,10 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
       updates.push('enable_punctuality_grade = ?');
       params.push(enable_punctuality_grade);
     }
+    if (typeof enable_quran_tracking === 'boolean') {
+      updates.push('enable_quran_tracking = ?');
+      params.push(enable_quran_tracking);
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No valid settings provided' });
@@ -2057,7 +2061,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
 
     // Return updated settings
     const [updated] = await pool.query(
-      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade FROM madrasahs WHERE id = ?',
+      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
 

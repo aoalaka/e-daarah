@@ -2559,7 +2559,7 @@ function AdminDashboard() {
                           <option value="">-- Select class --</option>
                           <option value="unassigned">Unassigned Students</option>
                           {classes.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}{c.grade_level ? ` (${c.grade_level})` : ''}</option>
+                            <option key={c.id} value={c.id}>{c.name}{c.grade_level && c.grade_level !== 'N/A' ? ` (${c.grade_level})` : ''}</option>
                           ))}
                         </select>
                       </div>
@@ -2663,7 +2663,7 @@ function AdminDashboard() {
                             <select className="form-select" value={promotionDestClass} onChange={(e) => setPromotionDestClass(e.target.value)}>
                               <option value="">-- Select class --</option>
                               {classes.filter(c => String(c.id) !== String(promotionSourceClass)).map(c => (
-                                <option key={c.id} value={c.id}>{c.name}{c.grade_level ? ` (${c.grade_level})` : ''}</option>
+                                <option key={c.id} value={c.id}>{c.name}{c.grade_level && c.grade_level !== 'N/A' ? ` (${c.grade_level})` : ''}</option>
                               ))}
                             </select>
                           </div>

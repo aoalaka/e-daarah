@@ -2727,8 +2727,8 @@ function TeacherDashboard() {
           {/* Qur'an Progress Tab */}
           {activeTab === 'quran' && (
             <>
-              <div className="section-header">
-                <h2>Qur'an Progress</h2>
+              <div className="page-header">
+                <h2 className="page-title">Qur'an Progress</h2>
               </div>
 
               {/* Class Selector */}

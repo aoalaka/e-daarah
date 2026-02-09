@@ -754,6 +754,16 @@
   color: #525252 !important;
 }
 
+.badge-info {
+  background: #eff6ff !important;
+  color: #1e40af !important;
+}
+
+.badge-warning {
+  background: #fffbeb !important;
+  color: #92400e !important;
+}
+
 /* ============================================
    MODALS
    ============================================ */

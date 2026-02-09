@@ -57,20 +57,36 @@ function Landing() {
 
         <div className="feature-list">
           <div className="feature">
-            <h3>Daily Attendance</h3>
-            <p>Mark attendance, grade dressing, behavior, and punctuality — all in one step</p>
+            <h3>📋 Daily Attendance</h3>
+            <p>Mark attendance, grade dressing, behavior, and punctuality — all in one step. Bulk-save for the whole class.</p>
           </div>
           <div className="feature">
-            <h3>Parent Access</h3>
-            <p>Parents log in to see their child's attendance, grades, and performance reports</p>
+            <h3>📖 Qur'an Progress Tracking</h3>
+            <p>Track hifz, tilawah, and revision progress per student. Record surahs, ayahs, grades, and pass/fail status.</p>
           </div>
           <div className="feature">
-            <h3>Exam Records</h3>
-            <p>Record scores for Quran, Islamic studies, Arabic, and any custom subject</p>
+            <h3>🗓️ Academic Planner</h3>
+            <p>Set flexible school days, manage holidays and closures, and schedule temporary overrides like Ramadan timetables.</p>
           </div>
           <div className="feature">
-            <h3>Role-Based Portals</h3>
-            <p>Admins, teachers, and parents each get their own secure dashboard</p>
+            <h3>📝 Exam Recording</h3>
+            <p>Record scores for any subject with tie-aware ranking. View class-wide and per-student performance reports.</p>
+          </div>
+          <div className="feature">
+            <h3>👨‍👩‍👧 Parent Portal</h3>
+            <p>Parents log in to view their child's attendance rate, conduct grades, exam results, and teacher comments.</p>
+          </div>
+          <div className="feature">
+            <h3>🎓 Student Promotion</h3>
+            <p>Promote or retain students between classes at the end of each session with a simple bulk tool.</p>
+          </div>
+          <div className="feature">
+            <h3>🔐 Role-Based Access</h3>
+            <p>Admins, teachers, and parents each get their own secure portal with appropriate permissions.</p>
+          </div>
+          <div className="feature">
+            <h3>📊 Reports &amp; Exports</h3>
+            <p>Generate detailed student reports, class performance summaries, and export data as CSV or PDF.</p>
           </div>
         </div>
       </section>
@@ -87,9 +103,11 @@ function Landing() {
             <ul>
               <li>Up to 100 students</li>
               <li>Up to 20 teachers</li>
-              <li>Attendance &amp; grading</li>
-              <li>Tie-aware student ranking</li>
-              <li>Exam recording</li>
+              <li>Attendance &amp; conduct grading</li>
+              <li>Academic planner &amp; school days</li>
+              <li>Qur'an progress tracking</li>
+              <li>Exam recording &amp; ranking</li>
+              <li>Student promotion</li>
               <li>Email support</li>
             </ul>
             <button onClick={() => navigate('/register')} className="btn secondary">
@@ -105,7 +123,8 @@ function Landing() {
               <li>Up to 50 teachers</li>
               <li>Everything in Standard</li>
               <li>Parent portal access</li>
-              <li>Reports &amp; data exports</li>
+              <li>Reports, CSV &amp; PDF exports</li>
+              <li>Holidays &amp; schedule overrides</li>
               <li>Priority support</li>
             </ul>
             <button onClick={() => navigate('/register')} className="btn primary">
@@ -119,6 +138,7 @@ function Landing() {
             <ul>
               <li>Unlimited students</li>
               <li>Unlimited teachers</li>
+              <li>Everything in Plus</li>
               <li>Custom integrations</li>
               <li>Dedicated support</li>
               <li>SLA guarantee</li>

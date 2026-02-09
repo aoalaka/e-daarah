@@ -332,6 +332,10 @@ function TeacherDashboard() {
         setQuranSurah(String(pos.tilawah.surah_number));
         setQuranAyahFrom(pos.tilawah.ayah ? String(pos.tilawah.ayah + 1) : '1');
         setQuranAyahTo('');
+      } else if (quranSessionType === 'revision' && pos.revision) {
+        setQuranSurah(String(pos.revision.surah_number));
+        setQuranAyahFrom(pos.revision.ayah ? String(pos.revision.ayah + 1) : '1');
+        setQuranAyahTo('');
       } else {
         setQuranSurah('');
         setQuranAyahFrom('');
@@ -339,7 +343,7 @@ function TeacherDashboard() {
       }
     } catch (error) {
       console.error('Failed to fetch student position:', error);
-      setQuranStudentPosition({ isNew: true, hifz: null, tilawah: null });
+      setQuranStudentPosition({ isNew: true, hifz: null, tilawah: null, revision: null });
     }
   };
 
@@ -422,9 +426,9 @@ function TeacherDashboard() {
         setQuranSurah(String(pos.tilawah.surah_number));
         setQuranAyahFrom(pos.tilawah.ayah ? String(pos.tilawah.ayah + 1) : '1');
         setQuranAyahTo('');
-      } else if (quranSessionType === 'revision' && pos.hifz) {
-        setQuranSurah(String(pos.hifz.surah_number));
-        setQuranAyahFrom('1');
+      } else if (quranSessionType === 'revision' && pos.revision) {
+        setQuranSurah(String(pos.revision.surah_number));
+        setQuranAyahFrom(pos.revision.ayah ? String(pos.revision.ayah + 1) : '1');
         setQuranAyahTo('');
       } else {
         setQuranSurah('');
@@ -2892,7 +2896,7 @@ function TeacherDashboard() {
                             <h3 style={{ margin: '0 0 var(--sm) 0', fontSize: '15px', fontWeight: '600' }}>
                               {quranSelectedStudent.first_name} {quranSelectedStudent.last_name} — Current Position
                             </h3>
-                            {quranStudentPosition.isNew && !quranStudentPosition.hifz && !quranStudentPosition.tilawah ? (
+                            {quranStudentPosition.isNew && !quranStudentPosition.hifz && !quranStudentPosition.tilawah && !quranStudentPosition.revision ? (
                               <p style={{ color: 'var(--muted)', fontSize: '14px', margin: '8px 0 0 0' }}>
                                 New student — no previous assignments. Start with a new reading below.
                               </p>
@@ -2917,6 +2921,18 @@ function TeacherDashboard() {
                                       <strong>{quranStudentPosition.tilawah.surah_number}. {quranStudentPosition.tilawah.surah_name}</strong>
                                       {quranStudentPosition.tilawah.ayah && <span style={{ color: 'var(--muted)' }}> — up to Ayah {quranStudentPosition.tilawah.ayah}</span>}
                                       <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Juz {quranStudentPosition.tilawah.juz}</div>
+                                    </div>
+                                  ) : (
+                                    <div style={{ marginTop: '4px', fontSize: '13px', color: 'var(--muted)' }}>Not started</div>
+                                  )}
+                                </div>
+                                <div style={{ padding: '12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                  <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: '600', letterSpacing: '0.5px' }}>Revision</div>
+                                  {quranStudentPosition.revision ? (
+                                    <div style={{ marginTop: '4px', fontSize: '14px' }}>
+                                      <strong>{quranStudentPosition.revision.surah_number}. {quranStudentPosition.revision.surah_name}</strong>
+                                      {quranStudentPosition.revision.ayah && <span style={{ color: 'var(--muted)' }}> — up to Ayah {quranStudentPosition.revision.ayah}</span>}
+                                      <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Juz {quranStudentPosition.revision.juz}</div>
                                     </div>
                                   ) : (
                                     <div style={{ marginTop: '4px', fontSize: '13px', color: 'var(--muted)' }}>Not started</div>
@@ -3126,6 +3142,7 @@ function TeacherDashboard() {
                                 <th>Student</th>
                                 <th>Hifz Position</th>
                                 <th>Tilawah Position</th>
+                                <th>Revision Position</th>
                                 <th>Last Updated</th>
                               </tr>
                             </thead>
@@ -3143,6 +3160,13 @@ function TeacherDashboard() {
                                   <td>
                                     {s.tilawah_surah_name ? (
                                       <span>{s.tilawah_surah_number}. {s.tilawah_surah_name}{s.tilawah_ayah ? ` (Ayah ${s.tilawah_ayah})` : ''}</span>
+                                    ) : (
+                                      <span style={{ color: 'var(--muted)' }}>Not started</span>
+                                    )}
+                                  </td>
+                                  <td>
+                                    {s.revision_surah_name ? (
+                                      <span>{s.revision_surah_number}. {s.revision_surah_name}{s.revision_ayah ? ` (Ayah ${s.revision_ayah})` : ''}</span>
                                     ) : (
                                       <span style={{ color: 'var(--muted)' }}>Not started</span>
                                     )}

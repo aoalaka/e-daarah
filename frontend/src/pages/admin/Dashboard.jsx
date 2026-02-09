@@ -86,7 +86,7 @@ function AdminDashboard() {
   const [behaviorRankings, setBehaviorRankings] = useState([]);
   const [punctualityRankings, setPunctualityRankings] = useState([]);
   const [individualRankings, setIndividualRankings] = useState(null); // Madrasah-wide rankings for individual student
-  // Teacher Performance state
+  // Teacher Activity state
   const [teacherPerformanceData, setTeacherPerformanceData] = useState(null);
   const [teacherPerformanceLoading, setTeacherPerformanceLoading] = useState(false);
   const [selectedTeacherForDetail, setSelectedTeacherForDetail] = useState(null);
@@ -254,7 +254,7 @@ function AdminDashboard() {
     }
   }, [activeTab, reportSubTab, reportSemester, madrasahProfile]);
 
-  // Fetch teacher performance when Teacher Performance sub-tab is selected
+  // Fetch teacher performance when Teacher Activity sub-tab is selected
   useEffect(() => {
     if (activeTab === 'reports' && reportSubTab === 'teacher-performance' && madrasahProfile && hasPlusAccess()) {
       fetchTeacherPerformance();
@@ -2898,7 +2898,7 @@ function AdminDashboard() {
                         }}
                         className={`report-tab-btn ${reportSubTab === 'teacher-performance' ? 'active' : ''}`}
                       >
-                        Teacher Performance
+                        Teacher Activity
                       </button>
                     </>
                   )}
@@ -5152,7 +5152,7 @@ function AdminDashboard() {
                 </div>
               )}
 
-              {/* Teacher Performance Tab */}
+              {/* Teacher Activity Tab */}
               {reportSubTab === 'teacher-performance' && (
                 <>
                   {selectedTeacherForDetail ? (

@@ -352,6 +352,104 @@ Only build these when customers ask:
 
 ---
 
+## Phase 8: Next Features (Week 16+)
+
+### 8.1 Academic Calendar (Plus)
+Admin defines the academic calendar per session:
+- [ ] `calendar_events` table (madrasah_id, session_id, date, event_type, title, description)
+- [ ] Event types: holiday, exam_period, special_event, closure
+- [ ] Admin UI: calendar view to add/edit/delete events
+- [ ] Mark holidays (Eid, school breaks, snow days)
+- [ ] Teacher attendance view shows calendar events (why no school)
+- [ ] Backend: validate attendance date is not a holiday
+- [ ] Teacher date picker only shows valid school days
+
+### 8.2 Email Attendance Alerts (Plus)
+Notify parents of absences via monthly digest:
+- [ ] Admin toggle to enable/disable per madrasah
+- [ ] Monthly digest email: total days, absences, attendance %, dressing/behavior summary
+- [ ] Uses existing Resend integration (free tier: 3K emails/month)
+- [ ] Scheduler sends at end of each month
+- [ ] Template with madrasah branding
+
+### 8.3 Quran Progress Tracking (Plus)
+Track student Hifz (memorization) and Tilawah (recitation) progress:
+- [ ] `quran_progress` table (student_id, madrasah_id, date, type, surah, juz, ayah_from, ayah_to, grade, teacher_notes)
+- [ ] Types: memorization_new, memorization_revision, tilawah
+- [ ] Teacher UI: record daily Quran progress per student
+- [ ] Grades: Excellent, Good, Fair, Needs Improvement
+- [ ] Student profile: Quran progress timeline/history
+- [ ] Parent portal: see child's Quran journey
+- [ ] Dashboard widget: class Quran progress overview
+- [ ] Track current Juz/Surah position per student
+
+### 8.4 Teacher Performance Dashboard (Admin)
+Admin sees teacher engagement and effectiveness:
+- [ ] Attendance marking consistency (% of school days marked)
+- [ ] Average class attendance rate per teacher
+- [ ] Exam recording frequency
+- [ ] Average class exam pass rate
+- [ ] Days since last activity per teacher
+- [ ] Comparison across teachers (ranking)
+- [ ] Alert: teacher hasn't marked attendance in X days
+
+### 8.5 Student Promotion / Year-End Rollover
+Move students between classes at end of session:
+- [ ] Admin UI: bulk promote students from one class to another
+- [ ] Select students → choose destination class
+- [ ] Option to graduate/archive students leaving the madrasah
+- [ ] `student_history` table tracking class changes over time
+- [ ] Historical data preserved (old attendance/exams stay linked to original class)
+- [ ] Rollover wizard at end of academic session
+
+### 8.6 In-App Notification Center
+Real-time notifications within the app:
+- [ ] `notifications` table (user_id, madrasah_id, type, title, message, read_at, created_at)
+- [ ] Bell icon with unread count in header
+- [ ] Notification types: attendance_not_marked, new_student_enrolled, exam_scores_ready, trial_expiring, announcement
+- [ ] Mark as read / mark all read
+- [ ] Click notification → navigate to relevant page
+- [ ] Auto-generate: "Attendance not marked today" for teachers by end of school day
+
+### 8.7 Parent Communication Portal
+Admin/teacher can message parents through the platform:
+- [ ] `parent_messages` table (madrasah_id, sender_id, student_id, subject, message, sent_at)
+- [ ] Admin/teacher UI: compose message to individual parent or class-wide
+- [ ] Parent portal: inbox with message history
+- [ ] Email notification when new message received
+- [ ] Class-wide announcements (e.g., "No class this Saturday")
+- [ ] Read receipts (parent viewed message)
+
+### 8.8 Multi-Language Support
+Arabic/Urdu/Malay UI for international madrasahs:
+- [ ] i18n framework (react-intl or similar)
+- [ ] Extract all UI strings to translation files
+- [ ] Languages: English (default), Arabic (RTL), Urdu (RTL), Malay, French
+- [ ] Language selector in settings
+- [ ] RTL layout support for Arabic/Urdu
+- [ ] Parent portal language preference
+
+### 8.9 Fee Management
+Track tuition, donations, and payments:
+- [ ] `fees` table (madrasah_id, student_id, amount, type, due_date, paid_date, status)
+- [ ] Fee types: tuition, registration, books, donation, other
+- [ ] Admin: set fee structures per class or per student
+- [ ] Track payments: paid, pending, overdue
+- [ ] Parent portal: view fees and payment history
+- [ ] Simple reports: outstanding fees, collection rate
+- [ ] Note: NOT payment processing — just record-keeping
+
+### 8.10 Mobile App / PWA
+Optimized mobile experience for teachers and parents:
+- [ ] Progressive Web App (PWA) with service worker
+- [ ] Install prompt on mobile browsers
+- [ ] Offline support for attendance marking (sync when online)
+- [ ] Push notifications (replaces email for real-time alerts)
+- [ ] Optimized touch UI for attendance grid
+- [ ] Camera integration for student photos
+
+---
+
 ## Database Migration Strategy
 
 ### Safe Migration Rules

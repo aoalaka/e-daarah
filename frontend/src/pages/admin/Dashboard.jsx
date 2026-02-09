@@ -100,6 +100,17 @@ function AdminDashboard() {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [selectedPlan, setSelectedPlan] = useState('plus');
   const [madrasahProfile, setMadrasahProfile] = useState(null);
+  // Promotion / Rollover state
+  const [promotionStep, setPromotionStep] = useState(1);
+  const [promotionSourceClass, setPromotionSourceClass] = useState('');
+  const [promotionDestClass, setPromotionDestClass] = useState('');
+  const [promotionType, setPromotionType] = useState('promoted');
+  const [promotionNotes, setPromotionNotes] = useState('');
+  const [promotionSession, setPromotionSession] = useState('');
+  const [promotionSelected, setPromotionSelected] = useState([]);
+  const [promotionHistory, setPromotionHistory] = useState([]);
+  const [promotionSubTab, setPromotionSubTab] = useState('promote');
+  const [promotionSaving, setPromotionSaving] = useState(false);
   // Support tickets state
   const [supportTickets, setSupportTickets] = useState([]);
   const [showTicketForm, setShowTicketForm] = useState(false);
@@ -156,6 +167,7 @@ function AdminDashboard() {
     { id: 'classes', label: 'Classes' },
     { id: 'teachers', label: 'Teachers' },
     { id: 'students', label: 'Students' },
+    { id: 'promotion', label: 'Promotion' },
     { id: 'reports', label: 'Reports' },
     { id: 'support', label: 'Support' }
   ];
@@ -1086,6 +1098,8 @@ function AdminDashboard() {
         return <svg {...iconProps}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
       case 'students':
         return <svg {...iconProps}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
+      case 'promotion':
+        return <svg {...iconProps}><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>;
       case 'reports':
         return <svg {...iconProps}><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>;
       case 'support':
@@ -2432,6 +2446,360 @@ function AdminDashboard() {
                   emptyMessage="No students yet. Create one to get started."
                 />
               </div>
+            </>
+          )}
+
+          {/* Promotion / Rollover Tab */}
+          {activeTab === 'promotion' && (
+            <>
+              <div className="page-header">
+                <h2 className="page-title">Student Promotion / Rollover</h2>
+              </div>
+
+              {/* Sub-tabs */}
+              <div className="report-tabs no-print" style={{ marginBottom: 'var(--md)' }}>
+                <button className={`report-tab ${promotionSubTab === 'promote' ? 'active' : ''}`} onClick={() => setPromotionSubTab('promote')}>
+                  Promote Students
+                </button>
+                <button className={`report-tab ${promotionSubTab === 'history' ? 'active' : ''}`} onClick={() => {
+                  setPromotionSubTab('history');
+                  (async () => {
+                    try {
+                      const res = await api.get('/admin/promotion/history');
+                      setPromotionHistory(res.data || []);
+                    } catch { setPromotionHistory([]); }
+                  })();
+                }}>
+                  History
+                </button>
+              </div>
+
+              {/* Promote Sub-Tab */}
+              {promotionSubTab === 'promote' && (
+                <div className="card">
+                  <h3 className="card-title" style={{ marginBottom: 'var(--md)' }}>
+                    {promotionStep === 1 && 'Step 1: Select Source Class'}
+                    {promotionStep === 2 && 'Step 2: Select Students'}
+                    {promotionStep === 3 && 'Step 3: Choose Action & Destination'}
+                    {promotionStep === 4 && 'Step 4: Confirm'}
+                  </h3>
+
+                  {/* Step indicator */}
+                  <div style={{ display: 'flex', gap: 'var(--xs)', marginBottom: 'var(--lg)', flexWrap: 'wrap' }}>
+                    {[1,2,3,4].map(s => (
+                      <div key={s} style={{
+                        padding: 'var(--xs) var(--sm)',
+                        borderRadius: 'var(--radius)',
+                        fontSize: '0.8rem',
+                        fontWeight: promotionStep === s ? '600' : '400',
+                        background: promotionStep === s ? 'var(--primary)' : s < promotionStep ? 'var(--success)' : 'var(--border)',
+                        color: (promotionStep === s || s < promotionStep) ? '#fff' : 'var(--text-muted)'
+                      }}>
+                        {s}. {s === 1 ? 'Source' : s === 2 ? 'Students' : s === 3 ? 'Action' : 'Confirm'}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Step 1: Select source class */}
+                  {promotionStep === 1 && (
+                    <div>
+                      <label className="form-label">From Class</label>
+                      <select
+                        className="form-input"
+                        value={promotionSourceClass}
+                        onChange={(e) => {
+                          setPromotionSourceClass(e.target.value);
+                          setPromotionSelected([]);
+                        }}
+                      >
+                        <option value="">-- Select class --</option>
+                        <option value="unassigned">Unassigned Students</option>
+                        {classes.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}{c.grade_level ? ` (${c.grade_level})` : ''}</option>
+                        ))}
+                      </select>
+                      <div style={{ marginTop: 'var(--md)', display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn-primary"
+                          disabled={!promotionSourceClass}
+                          onClick={() => setPromotionStep(2)}
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: Select students */}
+                  {promotionStep === 2 && (() => {
+                    const sourceStudents = promotionSourceClass === 'unassigned'
+                      ? students.filter(s => !s.class_id)
+                      : students.filter(s => String(s.class_id) === String(promotionSourceClass));
+                    return (
+                      <div>
+                        <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--sm)', fontSize: '0.9rem' }}>
+                          {sourceStudents.length} student{sourceStudents.length !== 1 ? 's' : ''} in {promotionSourceClass === 'unassigned' ? 'Unassigned' : classes.find(c => String(c.id) === String(promotionSourceClass))?.name || 'class'}
+                        </p>
+                        {sourceStudents.length > 0 && (
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--xs)', marginBottom: 'var(--sm)', cursor: 'pointer', fontWeight: '500' }}>
+                            <input
+                              type="checkbox"
+                              checked={promotionSelected.length === sourceStudents.length && sourceStudents.length > 0}
+                              onChange={(e) => {
+                                setPromotionSelected(e.target.checked ? sourceStudents.map(s => s.id) : []);
+                              }}
+                            />
+                            Select All
+                          </label>
+                        )}
+                        <div style={{ maxHeight: '350px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                          {sourceStudents.length === 0 ? (
+                            <p style={{ padding: 'var(--md)', color: 'var(--text-muted)', textAlign: 'center' }}>No students in this class.</p>
+                          ) : (
+                            <table className="data-table" style={{ marginBottom: 0 }}>
+                              <thead>
+                                <tr>
+                                  <th style={{ width: '40px' }}></th>
+                                  <th>Student ID</th>
+                                  <th>Name</th>
+                                  <th>Gender</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sourceStudents.map(s => (
+                                  <tr key={s.id}>
+                                    <td>
+                                      <input
+                                        type="checkbox"
+                                        checked={promotionSelected.includes(s.id)}
+                                        onChange={(e) => {
+                                          setPromotionSelected(prev =>
+                                            e.target.checked ? [...prev, s.id] : prev.filter(id => id !== s.id)
+                                          );
+                                        }}
+                                      />
+                                    </td>
+                                    <td>{s.student_id}</td>
+                                    <td>{s.first_name} {s.last_name}</td>
+                                    <td>{s.gender}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                        <div style={{ marginTop: 'var(--md)', display: 'flex', justifyContent: 'space-between' }}>
+                          <button className="btn btn-secondary" onClick={() => setPromotionStep(1)}>← Back</button>
+                          <button className="btn btn-primary" disabled={promotionSelected.length === 0} onClick={() => setPromotionStep(3)}>
+                            Next ({promotionSelected.length} selected) →
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Step 3: Choose action & destination */}
+                  {promotionStep === 3 && (
+                    <div>
+                      <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 'var(--md)' }}>
+                        <div>
+                          <label className="form-label">Action</label>
+                          <select className="form-input" value={promotionType} onChange={(e) => setPromotionType(e.target.value)}>
+                            <option value="promoted">Promote to class</option>
+                            <option value="transferred">Transfer to class</option>
+                            <option value="repeated">Repeat (move to class)</option>
+                            <option value="graduated">Graduate (remove from class)</option>
+                          </select>
+                        </div>
+
+                        {promotionType !== 'graduated' && (
+                          <div>
+                            <label className="form-label">Destination Class</label>
+                            <select className="form-input" value={promotionDestClass} onChange={(e) => setPromotionDestClass(e.target.value)}>
+                              <option value="">-- Select class --</option>
+                              {classes.filter(c => String(c.id) !== String(promotionSourceClass)).map(c => (
+                                <option key={c.id} value={c.id}>{c.name}{c.grade_level ? ` (${c.grade_level})` : ''}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="form-label">Session (optional)</label>
+                          <select className="form-input" value={promotionSession} onChange={(e) => setPromotionSession(e.target.value)}>
+                            <option value="">-- None --</option>
+                            {sessions.map(s => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <label className="form-label">Notes (optional)</label>
+                          <textarea
+                            className="form-input"
+                            rows="2"
+                            value={promotionNotes}
+                            onChange={(e) => setPromotionNotes(e.target.value)}
+                            placeholder="e.g. End of year 2025 promotion"
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 'var(--md)', display: 'flex', justifyContent: 'space-between' }}>
+                        <button className="btn btn-secondary" onClick={() => setPromotionStep(2)}>← Back</button>
+                        <button
+                          className="btn btn-primary"
+                          disabled={promotionType !== 'graduated' && !promotionDestClass}
+                          onClick={() => setPromotionStep(4)}
+                        >
+                          Review →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 4: Confirm */}
+                  {promotionStep === 4 && (() => {
+                    const selectedStudents = students.filter(s => promotionSelected.includes(s.id));
+                    const sourceName = promotionSourceClass === 'unassigned'
+                      ? 'Unassigned'
+                      : classes.find(c => String(c.id) === String(promotionSourceClass))?.name || '—';
+                    const destName = promotionType === 'graduated'
+                      ? 'Graduated (removed)'
+                      : classes.find(c => String(c.id) === String(promotionDestClass))?.name || '—';
+                    const actionLabel = { promoted: 'Promote', transferred: 'Transfer', repeated: 'Repeat', graduated: 'Graduate' }[promotionType];
+
+                    return (
+                      <div>
+                        <div style={{ background: 'var(--bg-secondary)', padding: 'var(--md)', borderRadius: 'var(--radius)', marginBottom: 'var(--md)' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sm)', fontSize: '0.9rem' }}>
+                            <div><strong>Action:</strong> {actionLabel}</div>
+                            <div><strong>Students:</strong> {selectedStudents.length}</div>
+                            <div><strong>From:</strong> {sourceName}</div>
+                            <div><strong>To:</strong> {destName}</div>
+                            {promotionSession && <div><strong>Session:</strong> {sessions.find(s => String(s.id) === String(promotionSession))?.name}</div>}
+                            {promotionNotes && <div style={{ gridColumn: '1 / -1' }}><strong>Notes:</strong> {promotionNotes}</div>}
+                          </div>
+                        </div>
+
+                        <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginBottom: 'var(--md)' }}>
+                          <table className="data-table" style={{ marginBottom: 0 }}>
+                            <thead>
+                              <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Current Class</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedStudents.map(s => (
+                                <tr key={s.id}>
+                                  <td>{s.student_id}</td>
+                                  <td>{s.first_name} {s.last_name}</td>
+                                  <td>{s.class_name || 'Unassigned'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {promotionType === 'graduated' && (
+                          <p style={{ color: 'var(--warning)', fontSize: '0.85rem', marginBottom: 'var(--md)' }}>
+                            ⚠️ Graduating students will remove them from their class. They will appear as &quot;Unassigned&quot; and can be re-assigned later.
+                          </p>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <button className="btn btn-secondary" onClick={() => setPromotionStep(3)}>← Back</button>
+                          <button
+                            className="btn btn-primary"
+                            disabled={promotionSaving}
+                            onClick={async () => {
+                              setPromotionSaving(true);
+                              try {
+                                const payload = {
+                                  session_id: promotionSession || null,
+                                  promotions: selectedStudents.map(s => ({
+                                    student_id: s.id,
+                                    from_class_id: s.class_id || null,
+                                    to_class_id: promotionType === 'graduated' ? null : Number(promotionDestClass),
+                                    type: promotionType,
+                                    notes: promotionNotes
+                                  }))
+                                };
+                                const res = await api.post('/admin/promotion/promote', payload);
+                                toast.success(res.data.message || 'Promotion complete');
+                                // Reset wizard
+                                setPromotionStep(1);
+                                setPromotionSourceClass('');
+                                setPromotionDestClass('');
+                                setPromotionSelected([]);
+                                setPromotionNotes('');
+                                setPromotionType('promoted');
+                                setPromotionSession('');
+                                // Refresh data
+                                const studentsRes = await api.get('/admin/students').catch(() => ({ data: [] }));
+                                setStudents(studentsRes.data || []);
+                              } catch (err) {
+                                handleApiError(err, 'Failed to promote students');
+                              } finally {
+                                setPromotionSaving(false);
+                              }
+                            }}
+                          >
+                            {promotionSaving ? 'Processing...' : `${actionLabel} ${selectedStudents.length} Student${selectedStudents.length !== 1 ? 's' : ''}`}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* History Sub-Tab */}
+              {promotionSubTab === 'history' && (
+                <div className="card">
+                  {promotionHistory.length === 0 ? (
+                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 'var(--lg)' }}>No promotion history yet.</p>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Student</th>
+                            <th>Action</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Session</th>
+                            <th>By</th>
+                            <th>Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {promotionHistory.map(h => (
+                            <tr key={h.id}>
+                              <td style={{ whiteSpace: 'nowrap' }}>{new Date(h.created_at).toLocaleDateString()}</td>
+                              <td>{h.first_name} {h.last_name} <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>({h.student_code})</span></td>
+                              <td>
+                                <span className={`status-badge ${h.promotion_type === 'graduated' ? 'status-info' : h.promotion_type === 'repeated' ? 'status-warning' : 'status-active'}`}>
+                                  {h.promotion_type}
+                                </span>
+                              </td>
+                              <td>{h.from_class_name || '—'}</td>
+                              <td>{h.to_class_name || '—'}</td>
+                              <td>{h.session_name || '—'}</td>
+                              <td>{h.promoted_by_first ? `${h.promoted_by_first} ${h.promoted_by_last}` : '—'}</td>
+                              <td style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.notes || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 

@@ -2785,4 +2785,117 @@ router.post('/tickets/:id/reply', async (req, res) => {
   }
 });
 
+// =====================================================
+// Student Promotion / Rollover
+// =====================================================
+
+// GET students for promotion (grouped by class)
+router.get('/promotion/students', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+
+    const [students] = await pool.query(`
+      SELECT s.id, s.first_name, s.last_name, s.student_id, s.gender, s.class_id,
+        c.name as class_name, c.grade_level
+      FROM students s
+      LEFT JOIN classes c ON s.class_id = c.id AND c.deleted_at IS NULL
+      WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+      ORDER BY c.name ASC, s.first_name ASC
+    `, [madrasahId]);
+
+    const [classes] = await pool.query(
+      'SELECT id, name, grade_level FROM classes WHERE madrasah_id = ? AND deleted_at IS NULL ORDER BY name ASC',
+      [madrasahId]
+    );
+
+    res.json({ students, classes });
+  } catch (error) {
+    console.error('Get promotion students error:', error);
+    res.status(500).json({ error: 'Failed to fetch students' });
+  }
+});
+
+// POST bulk promote students
+router.post('/promotion/promote', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const userId = req.user.id;
+    const { promotions, session_id } = req.body;
+
+    // promotions = [{ student_id, from_class_id, to_class_id, type, notes }]
+    if (!promotions || !Array.isArray(promotions) || promotions.length === 0) {
+      return res.status(400).json({ error: 'No promotions provided' });
+    }
+
+    let promoted = 0;
+    let graduated = 0;
+
+    for (const p of promotions) {
+      const { student_id, from_class_id, to_class_id, type, notes } = p;
+
+      if (!student_id || !type) continue;
+
+      // Update student's class
+      if (type === 'graduated') {
+        // Set class_id to NULL (graduated / archived)
+        await pool.query(
+          'UPDATE students SET class_id = NULL, updated_at = NOW() WHERE id = ? AND madrasah_id = ?',
+          [student_id, madrasahId]
+        );
+        graduated++;
+      } else {
+        // promoted, transferred, repeated — move to destination class
+        if (!to_class_id) continue;
+        await pool.query(
+          'UPDATE students SET class_id = ?, updated_at = NOW() WHERE id = ? AND madrasah_id = ?',
+          [to_class_id, student_id, madrasahId]
+        );
+        promoted++;
+      }
+
+      // Record the promotion history
+      await pool.query(
+        `INSERT INTO student_promotions (madrasah_id, student_id, from_class_id, to_class_id, session_id, promotion_type, notes, promoted_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [madrasahId, student_id, from_class_id || null, type === 'graduated' ? null : (to_class_id || null), session_id || null, type, notes || null, userId]
+      );
+    }
+
+    res.json({ message: `${promoted} promoted, ${graduated} graduated`, promoted, graduated });
+  } catch (error) {
+    console.error('Promote students error:', error);
+    res.status(500).json({ error: 'Failed to promote students' });
+  }
+});
+
+// GET promotion history
+router.get('/promotion/history', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+
+    const [history] = await pool.query(`
+      SELECT sp.*,
+        s.first_name, s.last_name, s.student_id as student_code,
+        fc.name as from_class_name,
+        tc.name as to_class_name,
+        sess.name as session_name,
+        u.first_name as promoted_by_first, u.last_name as promoted_by_last
+      FROM student_promotions sp
+      JOIN students s ON sp.student_id = s.id
+      LEFT JOIN classes fc ON sp.from_class_id = fc.id
+      LEFT JOIN classes tc ON sp.to_class_id = tc.id
+      LEFT JOIN sessions sess ON sp.session_id = sess.id
+      LEFT JOIN users u ON sp.promoted_by = u.id
+      WHERE sp.madrasah_id = ?
+      ORDER BY sp.created_at DESC
+      LIMIT 200
+    `, [madrasahId]);
+
+    res.json(history);
+  } catch (error) {
+    console.error('Get promotion history error:', error);
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
 export default router;

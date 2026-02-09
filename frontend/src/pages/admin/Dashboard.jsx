@@ -16,6 +16,12 @@ import { downloadCSV, studentColumns, attendanceColumns, getAttendanceColumns, e
 import './Dashboard.css';
 
 function AdminDashboard() {
+  // Format date as "01 Sep 2025"
+  const fmtDate = (d) => {
+    const date = new Date(d);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   const [activeTab, setActiveTab] = useState('overview');
   const [sessions, setSessions] = useState([]);
   const [semesters, setSemesters] = useState([]);
@@ -1553,7 +1559,7 @@ function AdminDashboard() {
                                   <span className={`badge ${session.is_active ? 'badge-success' : 'badge-muted'}`}>{session.is_active ? 'Active' : 'Inactive'}</span>
                                 </div>
                                 <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
-                                  {new Date(session.start_date).toLocaleDateString()} – {new Date(session.end_date).toLocaleDateString()}
+                                  {fmtDate(session.start_date)} – {fmtDate(session.end_date)}
                                 </div>
                                 {schoolDays.length > 0 && (
                                   <div style={{ display: 'flex', gap: '4px', marginTop: '8px', flexWrap: 'wrap' }}>
@@ -1590,7 +1596,7 @@ function AdminDashboard() {
                     <div style={{ flex: 1 }}>
                       <h2 className="page-title" style={{ margin: 0 }}>{plannerSelectedSession.name}</h2>
                       <p style={{ margin: 0, fontSize: '13px', color: 'var(--muted)' }}>
-                        {new Date(plannerSelectedSession.start_date).toLocaleDateString()} – {new Date(plannerSelectedSession.end_date).toLocaleDateString()}
+                        {fmtDate(plannerSelectedSession.start_date)} – {fmtDate(plannerSelectedSession.end_date)}
                         {(() => {
                           const sd = plannerSelectedSession.default_school_days ? (typeof plannerSelectedSession.default_school_days === 'string' ? JSON.parse(plannerSelectedSession.default_school_days) : plannerSelectedSession.default_school_days) : [];
                           return sd.length > 0 ? ` · School days: ${sd.map(d => d.substring(0, 3)).join(', ')}` : '';
@@ -1660,8 +1666,8 @@ function AdminDashboard() {
                               {semesters.filter(sem => sem.session_id === plannerSelectedSession.id).map(semester => (
                                 <tr key={semester.id}>
                                   <td><strong>{semester.name}</strong></td>
-                                  <td>{new Date(semester.start_date).toLocaleDateString()}</td>
-                                  <td>{new Date(semester.end_date).toLocaleDateString()}</td>
+                                  <td>{fmtDate(semester.start_date)}</td>
+                                  <td>{fmtDate(semester.end_date)}</td>
                                   <td><span className={`badge ${semester.is_active ? 'badge-success' : 'badge-muted'}`}>{semester.is_active ? 'Active' : 'Inactive'}</span></td>
                                   <td>
                                     <button onClick={() => handleEditSemester(semester)} className="btn-sm btn-edit">Edit</button>
@@ -1735,8 +1741,8 @@ function AdminDashboard() {
                               {plannerHolidays.map(h => (
                                 <tr key={h.id}>
                                   <td><strong>{h.title}</strong></td>
-                                  <td>{new Date(h.start_date).toLocaleDateString()}</td>
-                                  <td>{new Date(h.end_date).toLocaleDateString()}</td>
+                                  <td>{fmtDate(h.start_date)}</td>
+                                  <td>{fmtDate(h.end_date)}</td>
                                   <td style={{ color: 'var(--muted)', fontSize: '13px' }}>{h.description || '—'}</td>
                                   <td>
                                     <button onClick={() => handleEditHoliday(h)} className="btn-sm btn-edit">Edit</button>
@@ -1820,7 +1826,7 @@ function AdminDashboard() {
                                 return (
                                   <tr key={o.id}>
                                     <td><strong>{o.title}</strong></td>
-                                    <td style={{ fontSize: '13px' }}>{new Date(o.start_date).toLocaleDateString()} – {new Date(o.end_date).toLocaleDateString()}</td>
+                                    <td style={{ fontSize: '13px' }}>{fmtDate(o.start_date)} – {fmtDate(o.end_date)}</td>
                                     <td>
                                       <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
                                         {days.map(d => (
@@ -3020,7 +3026,7 @@ function AdminDashboard() {
                         <tbody>
                           {promotionHistory.map(h => (
                             <tr key={h.id}>
-                              <td style={{ whiteSpace: 'nowrap' }}>{new Date(h.created_at).toLocaleDateString()}</td>
+                              <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(h.created_at)}</td>
                               <td>{h.first_name} {h.last_name} <span style={{ color: '#666', fontSize: '12px' }}>({h.student_code})</span></td>
                               <td>
                                 <span className={`badge ${h.promotion_type === 'graduated' ? 'badge-info' : h.promotion_type === 'repeated' ? 'badge-warning' : 'badge-success'}`}>
@@ -3751,7 +3757,7 @@ function AdminDashboard() {
                           label: 'Date',
                           sortable: true,
                           sortType: 'date',
-                          render: (row) => new Date(row.date).toLocaleDateString()
+                          render: (row) => fmtDate(row.date)
                         },
                         {
                           key: 'student_id',
@@ -3956,7 +3962,7 @@ function AdminDashboard() {
                                   label: 'Exam Date', 
                                   sortable: true, 
                                   sortType: 'date',
-                                  render: (row) => new Date(row.exam_date).toLocaleDateString()
+                                  render: (row) => fmtDate(row.exam_date)
                                 },
                                 { 
                                   key: 'semester_name', 
@@ -5045,7 +5051,7 @@ function AdminDashboard() {
                       </div>
                       <div className="info-item">
                         <div className="info-label">Report Date</div>
-                        <div className="info-value">{new Date().toLocaleDateString()}</div>
+                        <div className="info-value">{fmtDate()}</div>
                       </div>
                     </div>
                   </div>
@@ -5537,7 +5543,7 @@ function AdminDashboard() {
                               sortType: 'date',
                               render: (row) => {
                                 if (!row.last_activity || new Date(row.last_activity).getFullYear() <= 1970) return 'Never';
-                                return new Date(row.last_activity).toLocaleDateString();
+                                return fmtDate(row.last_activity);
                               }
                             },
                             {
@@ -5710,7 +5716,7 @@ function AdminDashboard() {
                               </td>
                               <td className="ticket-priority">{t.priority}</td>
                               <td>{t.message_count}</td>
-                              <td style={{ fontSize: '13px', color: '#666' }}>{new Date(t.updated_at).toLocaleDateString()}</td>
+                              <td style={{ fontSize: '13px', color: '#666' }}>{fmtDate(t.updated_at)}</td>
                               <td>
                                 <button className="btn-sm btn-edit" onClick={() => handleViewTicket(t.id)}>
                                   View
@@ -5729,7 +5735,7 @@ function AdminDashboard() {
                             <div>
                               <div className="admin-mobile-card-title">{t.subject}</div>
                               <div className="admin-mobile-card-sub">
-                                {t.message_count} message{t.message_count !== 1 ? 's' : ''} · {new Date(t.updated_at).toLocaleDateString()}
+                                {t.message_count} message{t.message_count !== 1 ? 's' : ''} · {fmtDate(t.updated_at)}
                               </div>
                             </div>
                             <span className={`ticket-status ticket-status-${t.status}`}>
@@ -6025,7 +6031,7 @@ function AdminDashboard() {
                       <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Trial Ends</label>
                       <p style={{ margin: '4px 0 0 0' }}>
                         {madrasahProfile.trial_ends_at
-                          ? new Date(madrasahProfile.trial_ends_at).toLocaleDateString()
+                          ? fmtDate(madrasahProfile.trial_ends_at)
                           : 'N/A'}
                       </p>
                     </div>

@@ -39,7 +39,7 @@ router.get('/sessions', async (req, res) => {
 router.post('/sessions', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { name, start_date, end_date, is_active } = req.body;
+    const { name, start_date, end_date, is_active, default_school_days } = req.body;
 
     // If setting this session as active, deactivate all other sessions in THIS madrasah
     if (is_active) {
@@ -47,10 +47,10 @@ router.post('/sessions', requireActiveSubscription, async (req, res) => {
     }
 
     const [result] = await pool.query(
-      'INSERT INTO sessions (madrasah_id, name, start_date, end_date, is_active) VALUES (?, ?, ?, ?, ?)',
-      [madrasahId, name, start_date, end_date, is_active || false]
+      'INSERT INTO sessions (madrasah_id, name, start_date, end_date, is_active, default_school_days) VALUES (?, ?, ?, ?, ?, ?)',
+      [madrasahId, name, start_date, end_date, is_active || false, default_school_days ? JSON.stringify(default_school_days) : null]
     );
-    res.status(201).json({ id: result.insertId, name, start_date, end_date, is_active });
+    res.status(201).json({ id: result.insertId, name, start_date, end_date, is_active, default_school_days });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create session' });
   }
@@ -61,7 +61,7 @@ router.put('/sessions/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
-    const { name, start_date, end_date, is_active } = req.body;
+    const { name, start_date, end_date, is_active, default_school_days } = req.body;
 
     // Verify session belongs to this madrasah
     const [check] = await pool.query(
@@ -78,10 +78,10 @@ router.put('/sessions/:id', requireActiveSubscription, async (req, res) => {
     }
 
     await pool.query(
-      'UPDATE sessions SET name = ?, start_date = ?, end_date = ?, is_active = ? WHERE id = ? AND madrasah_id = ?',
-      [name, start_date, end_date, is_active, id, madrasahId]
+      'UPDATE sessions SET name = ?, start_date = ?, end_date = ?, is_active = ?, default_school_days = ? WHERE id = ? AND madrasah_id = ?',
+      [name, start_date, end_date, is_active, default_school_days ? JSON.stringify(default_school_days) : null, id, madrasahId]
     );
-    res.json({ id, name, start_date, end_date, is_active });
+    res.json({ id, name, start_date, end_date, is_active, default_school_days });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update session' });
   }
@@ -297,6 +297,164 @@ router.delete('/semesters/:id', requireActiveSubscription, async (req, res) => {
     res.json({ message: 'Semester deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete semester' });
+  }
+});
+
+// ============ ACADEMIC HOLIDAYS ============
+
+// GET holidays for a session
+router.get('/sessions/:sessionId/holidays', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { sessionId } = req.params;
+    const [holidays] = await pool.query(
+      `SELECT * FROM academic_holidays WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL ORDER BY start_date ASC`,
+      [madrasahId, sessionId]
+    );
+    res.json(holidays);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch holidays' });
+  }
+});
+
+// CREATE holiday
+router.post('/sessions/:sessionId/holidays', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { sessionId } = req.params;
+    const { title, start_date, end_date, description } = req.body;
+
+    if (!title || !start_date || !end_date) {
+      return res.status(400).json({ error: 'Title, start date, and end date are required' });
+    }
+
+    // Verify session belongs to madrasah
+    const [session] = await pool.query('SELECT id, start_date, end_date FROM sessions WHERE id = ? AND madrasah_id = ?', [sessionId, madrasahId]);
+    if (session.length === 0) return res.status(404).json({ error: 'Session not found' });
+
+    // Validate dates within session range
+    if (new Date(start_date) < new Date(session[0].start_date) || new Date(end_date) > new Date(session[0].end_date)) {
+      return res.status(400).json({ error: 'Holiday dates must be within session date range' });
+    }
+
+    const [result] = await pool.query(
+      'INSERT INTO academic_holidays (madrasah_id, session_id, title, start_date, end_date, description) VALUES (?, ?, ?, ?, ?, ?)',
+      [madrasahId, sessionId, title, start_date, end_date, description || null]
+    );
+    res.status(201).json({ id: result.insertId, madrasah_id: madrasahId, session_id: parseInt(sessionId), title, start_date, end_date, description });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create holiday' });
+  }
+});
+
+// UPDATE holiday
+router.put('/holidays/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    const { title, start_date, end_date, description } = req.body;
+
+    const [check] = await pool.query('SELECT id FROM academic_holidays WHERE id = ? AND madrasah_id = ?', [id, madrasahId]);
+    if (check.length === 0) return res.status(404).json({ error: 'Holiday not found' });
+
+    await pool.query(
+      'UPDATE academic_holidays SET title = ?, start_date = ?, end_date = ?, description = ? WHERE id = ? AND madrasah_id = ?',
+      [title, start_date, end_date, description || null, id, madrasahId]
+    );
+    res.json({ id: parseInt(id), title, start_date, end_date, description });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update holiday' });
+  }
+});
+
+// DELETE holiday (soft delete)
+router.delete('/holidays/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    await pool.query('UPDATE academic_holidays SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ?', [id, madrasahId]);
+    res.json({ message: 'Holiday deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete holiday' });
+  }
+});
+
+// ============ SCHEDULE OVERRIDES ============
+
+// GET schedule overrides for a session
+router.get('/sessions/:sessionId/schedule-overrides', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { sessionId } = req.params;
+    const [overrides] = await pool.query(
+      `SELECT * FROM schedule_overrides WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL ORDER BY start_date ASC`,
+      [madrasahId, sessionId]
+    );
+    res.json(overrides);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch schedule overrides' });
+  }
+});
+
+// CREATE schedule override
+router.post('/sessions/:sessionId/schedule-overrides', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { sessionId } = req.params;
+    const { title, start_date, end_date, school_days } = req.body;
+
+    if (!title || !start_date || !end_date || !school_days || !Array.isArray(school_days)) {
+      return res.status(400).json({ error: 'Title, dates, and school_days array are required' });
+    }
+
+    // Verify session belongs to madrasah
+    const [session] = await pool.query('SELECT id, start_date, end_date FROM sessions WHERE id = ? AND madrasah_id = ?', [sessionId, madrasahId]);
+    if (session.length === 0) return res.status(404).json({ error: 'Session not found' });
+
+    // Validate dates within session range
+    if (new Date(start_date) < new Date(session[0].start_date) || new Date(end_date) > new Date(session[0].end_date)) {
+      return res.status(400).json({ error: 'Override dates must be within session date range' });
+    }
+
+    const [result] = await pool.query(
+      'INSERT INTO schedule_overrides (madrasah_id, session_id, title, start_date, end_date, school_days) VALUES (?, ?, ?, ?, ?, ?)',
+      [madrasahId, sessionId, title, start_date, end_date, JSON.stringify(school_days)]
+    );
+    res.status(201).json({ id: result.insertId, madrasah_id: madrasahId, session_id: parseInt(sessionId), title, start_date, end_date, school_days });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create schedule override' });
+  }
+});
+
+// UPDATE schedule override
+router.put('/schedule-overrides/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    const { title, start_date, end_date, school_days } = req.body;
+
+    const [check] = await pool.query('SELECT id FROM schedule_overrides WHERE id = ? AND madrasah_id = ?', [id, madrasahId]);
+    if (check.length === 0) return res.status(404).json({ error: 'Override not found' });
+
+    await pool.query(
+      'UPDATE schedule_overrides SET title = ?, start_date = ?, end_date = ?, school_days = ? WHERE id = ? AND madrasah_id = ?',
+      [title, start_date, end_date, JSON.stringify(school_days), id, madrasahId]
+    );
+    res.json({ id: parseInt(id), title, start_date, end_date, school_days });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update schedule override' });
+  }
+});
+
+// DELETE schedule override (soft delete)
+router.delete('/schedule-overrides/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    await pool.query('UPDATE schedule_overrides SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ?', [id, madrasahId]);
+    res.json({ message: 'Override deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete schedule override' });
   }
 });
 

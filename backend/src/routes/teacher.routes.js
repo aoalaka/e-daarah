@@ -997,15 +997,109 @@ router.get('/quran/surahs', (req, res) => {
   res.json(SURAHS);
 });
 
-// GET Quran progress for a class on a date
-router.get('/classes/:classId/quran-progress', async (req, res) => {
+// GET student position (hifz + tilawah) for a specific student
+router.get('/quran/student/:studentId/position', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const madrasahId = req.madrasahId;
+
+    const [rows] = await pool.query(
+      `SELECT * FROM quran_student_position WHERE student_id = ? AND madrasah_id = ?`,
+      [studentId, madrasahId]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ isNew: true, hifz: null, tilawah: null });
+    }
+
+    const pos = rows[0];
+    res.json({
+      isNew: false,
+      hifz: pos.current_surah_number ? {
+        surah_number: pos.current_surah_number,
+        surah_name: pos.current_surah_name,
+        juz: pos.current_juz,
+        ayah: pos.current_ayah
+      } : null,
+      tilawah: pos.tilawah_surah_number ? {
+        surah_number: pos.tilawah_surah_number,
+        surah_name: pos.tilawah_surah_name,
+        juz: pos.tilawah_juz,
+        ayah: pos.tilawah_ayah
+      } : null
+    });
+  } catch (error) {
+    console.error('Get student position error:', error);
+    res.status(500).json({ error: 'Failed to fetch student position' });
+  }
+});
+
+// GET recent history for a specific student
+router.get('/quran/student/:studentId/history', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const madrasahId = req.madrasahId;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const [records] = await pool.query(
+      `SELECT qp.*, s.first_name, s.last_name
+       FROM quran_progress qp
+       JOIN students s ON qp.student_id = s.id
+       WHERE qp.student_id = ? AND qp.madrasah_id = ? AND qp.deleted_at IS NULL
+       ORDER BY qp.date DESC, qp.created_at DESC
+       LIMIT ?`,
+      [studentId, madrasahId, limit]
+    );
+
+    res.json(records);
+  } catch (error) {
+    console.error('Get student quran history error:', error);
+    res.status(500).json({ error: 'Failed to fetch student history' });
+  }
+});
+
+// GET all student positions for a class (overview)
+router.get('/classes/:classId/quran-positions', async (req, res) => {
   try {
     const { classId } = req.params;
-    const { date, semester_id, student_id } = req.query;
     const madrasahId = req.madrasahId;
     const teacherId = req.user.id;
 
-    // Verify teacher is assigned to this class
+    // Verify teacher is assigned
+    const [assignment] = await pool.query(
+      'SELECT * FROM class_teachers WHERE class_id = ? AND user_id = ?',
+      [classId, teacherId]
+    );
+    if (assignment.length === 0) {
+      return res.status(403).json({ error: 'Not assigned to this class' });
+    }
+
+    const [students] = await pool.query(`
+      SELECT s.id, s.first_name, s.last_name, s.student_id as student_code,
+        qsp.current_surah_number, qsp.current_surah_name, qsp.current_juz, qsp.current_ayah,
+        qsp.tilawah_surah_number, qsp.tilawah_surah_name, qsp.tilawah_juz, qsp.tilawah_ayah,
+        qsp.total_surahs_completed, qsp.total_juz_completed, qsp.last_updated
+      FROM students s
+      LEFT JOIN quran_student_position qsp ON s.id = qsp.student_id AND qsp.madrasah_id = ?
+      WHERE s.class_id = ? AND s.madrasah_id = ? AND s.deleted_at IS NULL
+      ORDER BY s.first_name ASC
+    `, [madrasahId, classId, madrasahId]);
+
+    res.json(students);
+  } catch (error) {
+    console.error('Get quran positions error:', error);
+    res.status(500).json({ error: 'Failed to fetch quran positions' });
+  }
+});
+
+// GET Quran progress history for a class
+router.get('/classes/:classId/quran-progress', async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { semester_id, student_id } = req.query;
+    const madrasahId = req.madrasahId;
+    const teacherId = req.user.id;
+
     const [assignment] = await pool.query(
       'SELECT * FROM class_teachers WHERE class_id = ? AND user_id = ?',
       [classId, teacherId]
@@ -1022,10 +1116,6 @@ router.get('/classes/:classId/quran-progress', async (req, res) => {
     `;
     const params = [classId, madrasahId];
 
-    if (date) {
-      query += ' AND qp.date = ?';
-      params.push(date);
-    }
     if (semester_id) {
       query += ' AND qp.semester_id = ?';
       params.push(semester_id);
@@ -1035,7 +1125,7 @@ router.get('/classes/:classId/quran-progress', async (req, res) => {
       params.push(student_id);
     }
 
-    query += ' ORDER BY qp.date DESC, s.first_name ASC';
+    query += ' ORDER BY qp.date DESC, qp.created_at DESC';
 
     const [records] = await pool.query(query, params);
     res.json(records);
@@ -1045,59 +1135,28 @@ router.get('/classes/:classId/quran-progress', async (req, res) => {
   }
 });
 
-// GET student positions for a class
-router.get('/classes/:classId/quran-positions', async (req, res) => {
+// POST record a Qur'an session for a student
+// This is the core endpoint — teacher records what happened when a student came to recite
+router.post('/quran/record', requireActiveSubscription, async (req, res) => {
   try {
-    const { classId } = req.params;
     const madrasahId = req.madrasahId;
     const teacherId = req.user.id;
+    const {
+      student_id, class_id, semester_id, date,
+      type,          // 'hifz', 'tilawah', or 'revision'
+      surah_number, surah_name, juz,
+      ayah_from, ayah_to,
+      grade, passed, notes
+    } = req.body;
 
-    // Verify teacher is assigned
-    const [assignment] = await pool.query(
-      'SELECT * FROM class_teachers WHERE class_id = ? AND user_id = ?',
-      [classId, teacherId]
-    );
-    if (assignment.length === 0) {
-      return res.status(403).json({ error: 'Not assigned to this class' });
-    }
-
-    // Get all students with their quran positions
-    const [students] = await pool.query(`
-      SELECT s.id, s.first_name, s.last_name, s.student_id as student_code,
-        qsp.current_surah_number, qsp.current_surah_name, qsp.current_juz,
-        qsp.current_ayah, qsp.total_surahs_completed, qsp.total_juz_completed,
-        qsp.last_updated
-      FROM students s
-      LEFT JOIN quran_student_position qsp ON s.id = qsp.student_id AND qsp.madrasah_id = ?
-      WHERE s.class_id = ? AND s.madrasah_id = ? AND s.deleted_at IS NULL
-      ORDER BY s.first_name ASC
-    `, [madrasahId, classId, madrasahId]);
-
-    res.json(students);
-  } catch (error) {
-    console.error('Get quran positions error:', error);
-    res.status(500).json({ error: 'Failed to fetch quran positions' });
-  }
-});
-
-// POST record quran progress for a student
-router.post('/classes/:classId/quran-progress', requireActiveSubscription, async (req, res) => {
-  try {
-    const { classId } = req.params;
-    const madrasahId = req.madrasahId;
-    const teacherId = req.user.id;
-
-    const { student_id, semester_id, date, type, surah_number, surah_name, juz, ayah_from, ayah_to, grade, notes } = req.body;
-
-    // Validate required fields
-    if (!student_id || !semester_id || !date || !type || !surah_number || !surah_name) {
+    if (!student_id || !class_id || !semester_id || !date || !type || !surah_number || !surah_name) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Verify teacher is assigned
+    // Verify teacher is assigned to this class
     const [assignment] = await pool.query(
       'SELECT * FROM class_teachers WHERE class_id = ? AND user_id = ?',
-      [classId, teacherId]
+      [class_id, teacherId]
     );
     if (assignment.length === 0) {
       return res.status(403).json({ error: 'Not assigned to this class' });
@@ -1105,61 +1164,15 @@ router.post('/classes/:classId/quran-progress', requireActiveSubscription, async
 
     // Insert progress record
     const [result] = await pool.query(
-      `INSERT INTO quran_progress (madrasah_id, student_id, class_id, semester_id, user_id, date, type, surah_number, surah_name, juz, ayah_from, ayah_to, grade, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [madrasahId, student_id, classId, semester_id, teacherId, date, type, surah_number, surah_name, juz || null, ayah_from || null, ayah_to || null, grade || 'Good', notes || null]
+      `INSERT INTO quran_progress (madrasah_id, student_id, class_id, semester_id, user_id, date, type, surah_number, surah_name, juz, ayah_from, ayah_to, grade, passed, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [madrasahId, student_id, class_id, semester_id, teacherId, date, type, surah_number, surah_name, juz || null, ayah_from || null, ayah_to || null, grade || 'Good', passed !== undefined ? passed : true, notes || null]
     );
 
-    // Update student position if this is new memorization
-    if (type === 'memorization_new') {
-      await pool.query(`
-        INSERT INTO quran_student_position (madrasah_id, student_id, current_surah_number, current_surah_name, current_juz, current_ayah)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          current_surah_number = VALUES(current_surah_number),
-          current_surah_name = VALUES(current_surah_name),
-          current_juz = VALUES(current_juz),
-          current_ayah = VALUES(current_ayah)
-      `, [madrasahId, student_id, surah_number, surah_name, juz || null, ayah_to || null]);
-    }
-
-    res.status(201).json({ id: result.insertId, message: 'Progress recorded' });
-  } catch (error) {
-    console.error('Record quran progress error:', error);
-    res.status(500).json({ error: 'Failed to record progress' });
-  }
-});
-
-// POST bulk quran progress for multiple students
-router.post('/classes/:classId/quran-progress/bulk', requireActiveSubscription, async (req, res) => {
-  try {
-    const { classId } = req.params;
-    const madrasahId = req.madrasahId;
-    const teacherId = req.user.id;
-    const { records } = req.body;
-
-    if (!records || !Array.isArray(records) || records.length === 0) {
-      return res.status(400).json({ error: 'No records provided' });
-    }
-
-    // Verify teacher is assigned
-    const [assignment] = await pool.query(
-      'SELECT * FROM class_teachers WHERE class_id = ? AND user_id = ?',
-      [classId, teacherId]
-    );
-    if (assignment.length === 0) {
-      return res.status(403).json({ error: 'Not assigned to this class' });
-    }
-
-    let inserted = 0;
-    for (const r of records) {
-      await pool.query(
-        `INSERT INTO quran_progress (madrasah_id, student_id, class_id, semester_id, user_id, date, type, surah_number, surah_name, juz, ayah_from, ayah_to, grade, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [madrasahId, r.student_id, classId, r.semester_id, teacherId, r.date, r.type, r.surah_number, r.surah_name, r.juz || null, r.ayah_from || null, r.ayah_to || null, r.grade || 'Good', r.notes || null]
-      );
-
-      if (r.type === 'memorization_new') {
+    // Update student position if student passed
+    if (passed !== false) {
+      if (type === 'hifz') {
+        // Update hifz (memorization) position
         await pool.query(`
           INSERT INTO quran_student_position (madrasah_id, student_id, current_surah_number, current_surah_name, current_juz, current_ayah)
           VALUES (?, ?, ?, ?, ?, ?)
@@ -1167,16 +1180,29 @@ router.post('/classes/:classId/quran-progress/bulk', requireActiveSubscription, 
             current_surah_number = VALUES(current_surah_number),
             current_surah_name = VALUES(current_surah_name),
             current_juz = VALUES(current_juz),
-            current_ayah = VALUES(current_ayah)
-        `, [madrasahId, r.student_id, r.surah_number, r.surah_name, r.juz || null, r.ayah_to || null]);
+            current_ayah = VALUES(current_ayah),
+            last_updated = CURRENT_TIMESTAMP
+        `, [madrasahId, student_id, surah_number, surah_name, juz || null, ayah_to || null]);
+      } else if (type === 'tilawah') {
+        // Update tilawah (recitation) position
+        await pool.query(`
+          INSERT INTO quran_student_position (madrasah_id, student_id, tilawah_surah_number, tilawah_surah_name, tilawah_juz, tilawah_ayah)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            tilawah_surah_number = VALUES(tilawah_surah_number),
+            tilawah_surah_name = VALUES(tilawah_surah_name),
+            tilawah_juz = VALUES(tilawah_juz),
+            tilawah_ayah = VALUES(tilawah_ayah),
+            last_updated = CURRENT_TIMESTAMP
+        `, [madrasahId, student_id, surah_number, surah_name, juz || null, ayah_to || null]);
       }
-      inserted++;
+      // revision doesn't update position — student is just re-doing old work
     }
 
-    res.status(201).json({ inserted, message: `${inserted} records saved` });
+    res.status(201).json({ id: result.insertId, message: passed !== false ? 'Passed — position updated' : 'Repeat — come back next time' });
   } catch (error) {
-    console.error('Bulk quran progress error:', error);
-    res.status(500).json({ error: 'Failed to save progress' });
+    console.error('Record quran progress error:', error);
+    res.status(500).json({ error: 'Failed to record progress' });
   }
 });
 

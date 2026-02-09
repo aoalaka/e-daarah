@@ -5186,7 +5186,7 @@ function AdminDashboard() {
                       ) : teacherDetailData ? (
                         <>
                           {/* Summary cards */}
-                          <div className="insights-summary" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                          <div className="insights-summary">
                             <div className="summary-card">
                               <div className="summary-value">{selectedTeacherForDetail.attendance_records}</div>
                               <div className="summary-label">Attendance Records</div>

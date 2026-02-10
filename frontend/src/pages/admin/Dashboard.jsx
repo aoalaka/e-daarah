@@ -1457,13 +1457,13 @@ function AdminDashboard() {
 
               <h3 className="section-title">Quick Actions</h3>
               <div className="quick-grid">
-                <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('sessions'); setShowSessionForm(true); } }}>
+                <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('planner'); setPlannerSubTab('sessions'); } }}>
                   <h4>New Session</h4>
                   <p>Create a new academic year</p>
                 </div>
-                <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('semesters'); setShowSemesterForm(true); } }}>
-                  <h4>New Semester</h4>
-                  <p>Create a new semester</p>
+                <div className="quick-card" onClick={() => { setActiveTab('reports'); setReportSubTab('insights'); }}>
+                  <h4>View Quick Insights</h4>
+                  <p>Check attendance & exam alerts</p>
                 </div>
                 <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('classes'); setShowClassForm(true); } }}>
                   <h4>New Class</h4>

@@ -137,7 +137,7 @@ function Demo() {
       </section>
 
       <section className="demo-info">
-        <p>Demo sessions last 4 hours. Data resets periodically.</p>
+        <p>Explore the demo freely. Data resets regularly for a fresh experience.</p>
         <p>Ready to start? <Link to="/register">Create your madrasah →</Link></p>
       </section>
 

@@ -25,9 +25,7 @@ const getPoolConfig = () => {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
-      connectTimeout: 20000, // 20 seconds to establish connection
-      acquireTimeout: 20000, // 20 seconds to acquire connection from pool
-      timeout: 30000, // 30 seconds for query execution
+      connectTimeout: 20000, // 20 seconds to establish initial connection
       enableKeepAlive: true,
       keepAliveInitialDelay: 10000, // 10 seconds
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
@@ -45,8 +43,6 @@ const getPoolConfig = () => {
     connectionLimit: 10,
     queueLimit: 0,
     connectTimeout: 20000,
-    acquireTimeout: 20000,
-    timeout: 30000,
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000
   };

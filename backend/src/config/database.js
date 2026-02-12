@@ -25,6 +25,11 @@ const getPoolConfig = () => {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
+      connectTimeout: 20000, // 20 seconds to establish connection
+      acquireTimeout: 20000, // 20 seconds to acquire connection from pool
+      timeout: 30000, // 30 seconds for query execution
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000, // 10 seconds
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
     };
   }
@@ -38,7 +43,12 @@ const getPoolConfig = () => {
     database: process.env.DB_NAME || 'madrasah_admin',
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    connectTimeout: 20000,
+    acquireTimeout: 20000,
+    timeout: 30000,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000
   };
 };
 
@@ -76,15 +86,22 @@ const createQueryLogger = (pool) => {
 
 const pool = createQueryLogger(basePool);
 
-export const testConnection = async () => {
-  try {
-    const connection = await pool.getConnection();
-    console.log('Database connected successfully');
-    connection.release();
-    return true;
-  } catch (error) {
-    console.error('Database connection failed:', error.message);
-    throw error;
+export const testConnection = async (retries = 3, delay = 2000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const connection = await pool.getConnection();
+      console.log('Database connected successfully');
+      connection.release();
+      return true;
+    } catch (error) {
+      console.error(`Database connection attempt ${i + 1}/${retries} failed:`, error.message);
+      if (i < retries - 1) {
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
   }
 };
 

@@ -45,7 +45,7 @@ const emailWrapper = (content, preheader = '') => `
           <!-- Logo -->
           <tr>
             <td align="center" style="padding-bottom: 24px;">
-              <span style="font-size: 24px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.5px;">${APP_NAME}</span>
+              <img src="https://www.e-daarah.com/e-daarah-whitebg-logo.png" alt="${APP_NAME}" style="height: 40px; width: auto;" />
             </td>
           </tr>
           <!-- Content Card -->
@@ -408,6 +408,64 @@ export const sendTrialExpiringEmail = async (email, firstName, madrasahName, day
     return { success: true, messageId: data.id };
   } catch (error) {
     console.error('[Email] Failed to send trial expiring:', error);
+    return { success: false };
+  }
+};
+
+/**
+ * Send broadcast/marketing email
+ */
+export const sendBroadcastEmail = async (email, subject, message) => {
+  if (!isEmailEnabled()) {
+    console.log('\n=== BROADCAST EMAIL (Console) ===');
+    console.log(`To: ${email}`);
+    console.log(`Subject: ${subject}`);
+    console.log('=================================\n');
+    return { success: true, messageId: 'console-log' };
+  }
+
+  const htmlMessage = message.replace(/\n/g, '<br>');
+
+  const content = `
+    <td style="padding: 40px;">
+      <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: #1a1a1a;">
+        ${subject}
+      </h1>
+      <div style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4a4a4a;">
+        ${htmlMessage}
+      </div>
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td align="center">
+            <a href="https://www.e-daarah.com" style="display: inline-block; padding: 14px 32px; background-color: #1a1a1a; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px;">
+              Visit e-Daarah
+            </a>
+          </td>
+        </tr>
+      </table>
+      <p style="margin: 24px 0 0 0; font-size: 12px; color: #aaaaaa;">
+        You're receiving this because you're registered on e-Daarah.
+      </p>
+    </td>
+  `;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `${subject} - ${APP_NAME}`,
+      html: emailWrapper(content, subject),
+    });
+
+    if (error) {
+      console.error('[Email] Broadcast email error:', error);
+      return { success: false };
+    }
+
+    console.log(`[Email] Broadcast sent to ${email}, ID: ${data.id}`);
+    return { success: true, messageId: data.id };
+  } catch (error) {
+    console.error('[Email] Failed to send broadcast:', error);
     return { success: false };
   }
 };

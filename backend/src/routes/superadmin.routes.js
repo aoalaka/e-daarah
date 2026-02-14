@@ -1020,4 +1020,107 @@ router.patch('/tickets/:id/status', authenticateSuperAdmin, async (req, res) => 
   }
 });
 
+// =============================================
+// Email Broadcast
+// =============================================
+
+// Ensure email_broadcasts table exists
+const ensureBroadcastTable = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_broadcasts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      subject VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      target VARCHAR(50) NOT NULL,
+      sent_count INT DEFAULT 0,
+      failed_count INT DEFAULT 0,
+      created_by INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+};
+
+// GET /superadmin/email-broadcasts - Broadcast history
+router.get('/email-broadcasts', authenticateSuperAdmin, async (req, res) => {
+  try {
+    await ensureBroadcastTable();
+    const [broadcasts] = await pool.query(
+      'SELECT * FROM email_broadcasts ORDER BY created_at DESC LIMIT 50'
+    );
+    res.json(broadcasts);
+  } catch (error) {
+    console.error('Error fetching email broadcasts:', error);
+    res.status(500).json({ error: 'Failed to fetch broadcasts' });
+  }
+});
+
+// POST /superadmin/email-broadcast - Send broadcast email
+router.post('/email-broadcast', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { subject, message, target, testEmail } = req.body;
+
+    if (!subject || !message) {
+      return res.status(400).json({ error: 'Subject and message are required' });
+    }
+
+    const { sendBroadcastEmail } = await import('../services/email.service.js');
+
+    // Test mode: send to single email
+    if (testEmail) {
+      const result = await sendBroadcastEmail(testEmail, subject, message);
+      return res.json({ sent: result.success ? 1 : 0, failed: result.success ? 0 : 1, total: 1, test: true });
+    }
+
+    // Build query for target admins
+    let query = `
+      SELECT DISTINCT u.email
+      FROM users u
+      JOIN madrasahs m ON u.madrasah_id = m.id
+      WHERE u.role = 'admin'
+        AND u.is_active = 1
+        AND u.deleted_at IS NULL
+        AND m.is_active = 1
+        AND m.deleted_at IS NULL
+    `;
+    const params = [];
+
+    if (target && target !== 'all') {
+      query += ' AND m.pricing_plan = ?';
+      params.push(target);
+    }
+
+    const [admins] = await pool.query(query, params);
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const admin of admins) {
+      try {
+        const result = await sendBroadcastEmail(admin.email, subject, message);
+        if (result.success) {
+          sent++;
+        } else {
+          failed++;
+        }
+        // Small delay to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch {
+        failed++;
+      }
+    }
+
+    // Log broadcast
+    await ensureBroadcastTable();
+    await pool.query(
+      'INSERT INTO email_broadcasts (subject, message, target, sent_count, failed_count, created_by) VALUES (?, ?, ?, ?, ?, ?)',
+      [subject, message, target || 'all', sent, failed, req.adminId]
+    );
+
+    res.json({ sent, failed, total: admins.length });
+  } catch (error) {
+    console.error('Error sending broadcast:', error);
+    res.status(500).json({ error: 'Failed to send broadcast' });
+  }
+});
+
 export default router;

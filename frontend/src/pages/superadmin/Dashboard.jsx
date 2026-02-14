@@ -68,6 +68,10 @@ function SuperAdminDashboard() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketMessages, setTicketMessages] = useState([]);
   const [ticketReply, setTicketReply] = useState('');
+  // Email broadcast state
+  const [emailBroadcastForm, setEmailBroadcastForm] = useState({ subject: '', message: '', target: 'all', testEmail: '' });
+  const [emailBroadcasts, setEmailBroadcasts] = useState([]);
+  const [emailSending, setEmailSending] = useState(false);
 
   const superAdmin = JSON.parse(localStorage.getItem('superAdmin') || '{}');
 
@@ -192,6 +196,15 @@ function SuperAdminDashboard() {
     }
   };
 
+  const fetchEmailBroadcasts = async () => {
+    try {
+      const response = await api.get('/superadmin/email-broadcasts', getAuthHeader());
+      setEmailBroadcasts(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch email broadcasts:', error);
+    }
+  };
+
   const fetchTickets = async () => {
     try {
       const response = await api.get(`/superadmin/tickets?status=${ticketFilter}`, getAuthHeader());
@@ -234,6 +247,30 @@ function SuperAdminDashboard() {
       fetchAnnouncements();
     } catch (error) {
       alert('Failed to delete announcement');
+    }
+  };
+
+  const handleSendBroadcast = async (isTest = false) => {
+    const { subject, message, target, testEmail } = emailBroadcastForm;
+    if (!subject || !message) { alert('Subject and message are required'); return; }
+    if (isTest && !testEmail) { alert('Enter a test email address'); return; }
+    if (!isTest && !confirm(`Send this email to all ${target === 'all' ? '' : target + ' '}admins?`)) return;
+
+    setEmailSending(true);
+    try {
+      const payload = { subject, message, target };
+      if (isTest) payload.testEmail = testEmail;
+      const response = await api.post('/superadmin/email-broadcast', payload, getAuthHeader());
+      const { sent, failed, total } = response.data;
+      alert(isTest ? `Test email sent to ${testEmail}` : `Sent: ${sent}, Failed: ${failed}, Total: ${total}`);
+      if (!isTest) {
+        setEmailBroadcastForm({ subject: '', message: '', target: 'all', testEmail: '' });
+        fetchEmailBroadcasts();
+      }
+    } catch (error) {
+      alert('Failed to send broadcast');
+    } finally {
+      setEmailSending(false);
     }
   };
 
@@ -420,6 +457,12 @@ function SuperAdminDashboard() {
             onClick={() => setActiveTab('announcements')}
           >
             Announcements
+          </button>
+          <button
+            className={`tab ${activeTab === 'email-broadcast' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('email-broadcast'); fetchEmailBroadcasts(); }}
+          >
+            Email Broadcast
           </button>
           <button
             className={`tab ${activeTab === 'tickets' ? 'active' : ''}`}
@@ -917,6 +960,112 @@ function SuperAdminDashboard() {
                   </div>
                 ))}
               </div>
+            )}
+          </section>
+        )}
+
+        {/* Email Broadcast Tab */}
+        {activeTab === 'email-broadcast' && (
+          <section className="table-section">
+            <div className="section-header-row">
+              <div>
+                <h2>Email Broadcast</h2>
+                <p className="section-desc">Send marketing emails to madrasah admins using the e-daarah email template.</p>
+              </div>
+            </div>
+
+            <form onSubmit={(e) => e.preventDefault()} className="announcement-form">
+              <div className="form-group">
+                <label>Subject</label>
+                <input
+                  type="text"
+                  value={emailBroadcastForm.subject}
+                  onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, subject: e.target.value })}
+                  placeholder="e.g., Stop tracking attendance on paper"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Message (plain text — auto-formatted in email template)</label>
+                <textarea
+                  value={emailBroadcastForm.message}
+                  onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, message: e.target.value })}
+                  placeholder="Write your email content here. Line breaks will be preserved."
+                  rows={8}
+                  required
+                />
+              </div>
+              <div className="form-row">
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Target</label>
+                  <select
+                    value={emailBroadcastForm.target}
+                    onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, target: e.target.value })}
+                  >
+                    <option value="all">All Admins</option>
+                    <option value="trial">Trial Only</option>
+                    <option value="standard">Standard Only</option>
+                    <option value="plus">Plus Only</option>
+                    <option value="enterprise">Enterprise Only</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ flex: 2 }}>
+                  <label>Test Email (optional — preview before sending)</label>
+                  <input
+                    type="email"
+                    value={emailBroadcastForm.testEmail}
+                    onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, testEmail: e.target.value })}
+                    placeholder="your@email.com"
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => handleSendBroadcast(true)}
+                  disabled={emailSending || !emailBroadcastForm.testEmail}
+                  style={{ opacity: emailBroadcastForm.testEmail ? 1 : 0.5 }}
+                >
+                  {emailSending ? 'Sending...' : 'Send Test'}
+                </button>
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={() => handleSendBroadcast(false)}
+                  disabled={emailSending}
+                >
+                  {emailSending ? 'Sending...' : 'Send Broadcast'}
+                </button>
+              </div>
+            </form>
+
+            {emailBroadcasts.length > 0 && (
+              <>
+                <h3 style={{ marginTop: '32px', marginBottom: '12px', fontSize: '16px', fontWeight: '600' }}>History</h3>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Subject</th>
+                      <th>Target</th>
+                      <th>Sent</th>
+                      <th>Failed</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {emailBroadcasts.map((b) => (
+                      <tr key={b.id}>
+                        <td>{b.subject}</td>
+                        <td>{b.target}</td>
+                        <td>{b.sent_count}</td>
+                        <td>{b.failed_count}</td>
+                        <td>{new Date(b.created_at).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
             )}
           </section>
         )}

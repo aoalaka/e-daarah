@@ -1,5 +1,6 @@
 import { useState, useEffect, Component } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import api from '../../services/api';
 import './SuperAdmin.css';
 
@@ -218,7 +219,7 @@ function SuperAdminDashboard() {
 
   const handleSaveTemplate = async () => {
     if (!templateName.trim() || !emailBroadcastForm.subject || !emailBroadcastForm.message) {
-      alert('Template name, subject, and message are required'); return;
+      toast.error('Template name, subject, and message are required'); return;
     }
     try {
       await api.post('/superadmin/email-templates', {
@@ -226,10 +227,11 @@ function SuperAdminDashboard() {
         subject: emailBroadcastForm.subject,
         message: emailBroadcastForm.message
       }, getAuthHeader());
+      toast.success(`Template "${templateName.trim()}" saved`);
       setTemplateName('');
       fetchEmailTemplates();
     } catch (error) {
-      alert('Failed to save template');
+      toast.error('Failed to save template');
     }
   };
 
@@ -1064,14 +1066,17 @@ function SuperAdminDashboard() {
                 />
               </div>
               <div className="form-group">
-                <label>Message (plain text — auto-formatted in email template)</label>
+                <label>Message</label>
                 <textarea
                   value={emailBroadcastForm.message}
                   onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, message: e.target.value })}
-                  placeholder="Write your email content here. Line breaks will be preserved."
-                  rows={8}
+                  placeholder={"Assalamu Alaykum,\n\nWe built **e-Daarah** to help madrasahs like yours.\n\n## What you get\n\n- Track attendance in seconds\n- Record and share exam results\n- Give parents real-time access\n\nStart your free trial at [e-daarah.com](https://www.e-daarah.com)"}
+                  rows={10}
                   required
                 />
+                <span style={{ fontSize: '12px', color: '#888', marginTop: '4px', display: 'block' }}>
+                  Supports: **bold**, *italic*, - bullet lists, ## headings, [link text](url)
+                </span>
               </div>
 
               {/* Save as template */}

@@ -617,8 +617,13 @@ function AdminDashboard() {
         toast.success('Teacher updated successfully');
         setEditingTeacher(null);
       } else {
-        await api.post('/admin/teachers', newTeacher);
-        toast.success('Teacher created successfully');
+        const createdTeacher = await api.post('/admin/teachers', newTeacher);
+        const loginUrl = `${window.location.origin}/${madrasahSlug}/login`;
+        const staffId = createdTeacher.data?.staff_id || newTeacher.staff_id;
+        toast.success(
+          `Teacher created. Share these login details with them:\n\nLogin: ${loginUrl}\nStaff ID: ${staffId}\nPassword: ${staffId} (same as Staff ID)`,
+          { duration: 12000 }
+        );
       }
       setShowTeacherForm(false);
       setNewTeacher({
@@ -2099,6 +2104,20 @@ function AdminDashboard() {
                 }} className="btn btn-primary" disabled={isReadOnly()}>
                   + New Teacher
                 </button>
+              </div>
+
+              <div className="info-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sm)', flexWrap: 'wrap', padding: '12px 16px', background: '#fafafa', borderRadius: '8px', fontSize: '13px', color: '#525252', marginBottom: 'var(--md)' }}>
+                <span>Teachers can also self-register using this link:</span>
+                <code
+                  style={{ padding: '4px 10px', background: '#f0f0f0', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', userSelect: 'all' }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/${madrasahSlug}/register-teacher`);
+                    toast.success('Link copied');
+                  }}
+                  title="Click to copy"
+                >
+                  {`${window.location.origin}/${madrasahSlug}/register-teacher`}
+                </code>
               </div>
 
               {showTeacherForm && (

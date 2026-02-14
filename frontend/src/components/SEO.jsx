@@ -8,9 +8,9 @@ export default function SEO({ title, description }) {
   useEffect(() => {
     // Set page title
     if (title) {
-      document.title = title.includes('e-daarah')
+      document.title = title.includes('e-Daarah')
         ? title
-        : `${title} — e-daarah`;
+        : `${title} — e-Daarah`;
     }
 
     // Set meta description
@@ -25,7 +25,7 @@ export default function SEO({ title, description }) {
     if (title) {
       let ogTitle = document.querySelector('meta[property="og:title"]');
       if (ogTitle) {
-        ogTitle.setAttribute('content', title.includes('e-daarah') ? title : `${title} — e-daarah`);
+        ogTitle.setAttribute('content', title.includes('e-Daarah') ? title : `${title} — e-Daarah`);
       }
     }
 
@@ -41,7 +41,7 @@ export default function SEO({ title, description }) {
     if (title) {
       let twTitle = document.querySelector('meta[name="twitter:title"]');
       if (twTitle) {
-        twTitle.setAttribute('content', title.includes('e-daarah') ? title : `${title} — e-daarah`);
+        twTitle.setAttribute('content', title.includes('e-Daarah') ? title : `${title} — e-Daarah`);
       }
     }
     if (description) {

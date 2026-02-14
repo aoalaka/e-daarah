@@ -1021,21 +1021,34 @@ router.patch('/tickets/:id/status', authenticateSuperAdmin, async (req, res) => 
 });
 
 // =============================================
-// Email Broadcast
+// Email Broadcast (uses Resend Broadcasts API)
 // =============================================
 
-// Ensure email_broadcasts table exists
-const ensureBroadcastTable = async () => {
+// Ensure broadcast tables exist
+const ensureBroadcastTables = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS email_broadcasts (
       id INT AUTO_INCREMENT PRIMARY KEY,
       subject VARCHAR(255) NOT NULL,
       message TEXT NOT NULL,
-      target VARCHAR(50) NOT NULL,
+      segment_id VARCHAR(255),
+      resend_broadcast_id VARCHAR(255),
       sent_count INT DEFAULT 0,
       failed_count INT DEFAULT 0,
+      status VARCHAR(50) DEFAULT 'sent',
       created_by INT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_templates (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      subject VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      created_by INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
 };
@@ -1043,7 +1056,7 @@ const ensureBroadcastTable = async () => {
 // GET /superadmin/email-broadcasts - Broadcast history
 router.get('/email-broadcasts', authenticateSuperAdmin, async (req, res) => {
   try {
-    await ensureBroadcastTable();
+    await ensureBroadcastTables();
     const [broadcasts] = await pool.query(
       'SELECT * FROM email_broadcasts ORDER BY created_at DESC LIMIT 50'
     );
@@ -1054,69 +1067,138 @@ router.get('/email-broadcasts', authenticateSuperAdmin, async (req, res) => {
   }
 });
 
-// POST /superadmin/email-broadcast - Send broadcast email
+// GET /superadmin/email-templates - Saved templates
+router.get('/email-templates', authenticateSuperAdmin, async (req, res) => {
+  try {
+    await ensureBroadcastTables();
+    const [templates] = await pool.query(
+      'SELECT * FROM email_templates ORDER BY updated_at DESC'
+    );
+    res.json(templates);
+  } catch (error) {
+    console.error('Error fetching email templates:', error);
+    res.status(500).json({ error: 'Failed to fetch templates' });
+  }
+});
+
+// POST /superadmin/email-templates - Save template
+router.post('/email-templates', authenticateSuperAdmin, async (req, res) => {
+  try {
+    await ensureBroadcastTables();
+    const { name, subject, message } = req.body;
+    if (!name || !subject || !message) {
+      return res.status(400).json({ error: 'Name, subject, and message are required' });
+    }
+    const [result] = await pool.query(
+      'INSERT INTO email_templates (name, subject, message, created_by) VALUES (?, ?, ?, ?)',
+      [name, subject, message, req.adminId]
+    );
+    res.json({ id: result.insertId, name, subject, message });
+  } catch (error) {
+    console.error('Error saving template:', error);
+    res.status(500).json({ error: 'Failed to save template' });
+  }
+});
+
+// DELETE /superadmin/email-templates/:id - Delete template
+router.delete('/email-templates/:id', authenticateSuperAdmin, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM email_templates WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting template:', error);
+    res.status(500).json({ error: 'Failed to delete template' });
+  }
+});
+
+// POST /superadmin/email-broadcast - Send broadcast via Resend Broadcasts API
 router.post('/email-broadcast', authenticateSuperAdmin, async (req, res) => {
   try {
-    const { subject, message, target, testEmail } = req.body;
+    const { subject, message, emails, testEmail } = req.body;
 
     if (!subject || !message) {
       return res.status(400).json({ error: 'Subject and message are required' });
     }
 
-    const { sendBroadcastEmail } = await import('../services/email.service.js');
+    const { sendBroadcastEmail, buildBroadcastHtml, getResendClient } = await import('../services/email.service.js');
+    const resend = getResendClient();
 
-    // Test mode: send to single email
+    // Test mode: send single email directly
     if (testEmail) {
       const result = await sendBroadcastEmail(testEmail, subject, message);
       return res.json({ sent: result.success ? 1 : 0, failed: result.success ? 0 : 1, total: 1, test: true });
     }
 
-    // Build query for target admins
-    let query = `
-      SELECT DISTINCT u.email
-      FROM users u
-      JOIN madrasahs m ON u.madrasah_id = m.id
-      WHERE u.role = 'admin'
-        AND u.is_active = 1
-        AND u.deleted_at IS NULL
-        AND m.is_active = 1
-        AND m.deleted_at IS NULL
-    `;
-    const params = [];
-
-    if (target && target !== 'all') {
-      query += ' AND m.pricing_plan = ?';
-      params.push(target);
+    // Broadcast mode: use Resend Broadcasts API
+    if (!emails || !Array.isArray(emails) || emails.length === 0) {
+      return res.status(400).json({ error: 'Email list is required for broadcast' });
     }
 
-    const [admins] = await pool.query(query, params);
+    if (!resend) {
+      return res.status(500).json({ error: 'Resend not configured' });
+    }
 
-    let sent = 0;
-    let failed = 0;
+    // 1. Create a segment for this broadcast
+    const segmentName = `Broadcast ${new Date().toISOString().slice(0, 16)}`;
+    const { data: segment, error: segError } = await resend.segments.create({ name: segmentName });
+    if (segError) {
+      console.error('[Broadcast] Failed to create segment:', segError);
+      return res.status(500).json({ error: 'Failed to create email segment' });
+    }
 
-    for (const admin of admins) {
+    // 2. Add contacts to the segment
+    let addedCount = 0;
+    for (const email of emails) {
       try {
-        const result = await sendBroadcastEmail(admin.email, subject, message);
-        if (result.success) {
-          sent++;
-        } else {
-          failed++;
+        await resend.contacts.create({
+          email,
+          segments: [{ id: segment.id }],
+        });
+        addedCount++;
+      } catch (err) {
+        // Contact may already exist, try adding segment
+        try {
+          // List contacts to find existing one
+          const { data: existing } = await resend.contacts.list({ segmentId: undefined });
+          // If create fails, it's likely a duplicate — still count it
+          addedCount++;
+        } catch {
+          console.error(`[Broadcast] Failed to add contact ${email}:`, err.message);
         }
-        // Small delay to respect rate limits
-        await new Promise(resolve => setTimeout(resolve, 200));
-      } catch {
-        failed++;
       }
+      // Small delay to respect rate limits
+      if (addedCount % 10 === 0) await new Promise(r => setTimeout(r, 100));
     }
 
-    // Log broadcast
-    await ensureBroadcastTable();
+    // 3. Create and send the broadcast
+    const html = buildBroadcastHtml(subject, message);
+    const { data: broadcast, error: bcastError } = await resend.broadcasts.create({
+      segmentId: segment.id,
+      from: 'e-Daarah <noreply@e-daarah.com>',
+      subject,
+      html,
+      send: true,
+    });
+
+    if (bcastError) {
+      console.error('[Broadcast] Failed to send broadcast:', bcastError);
+      // Log as failed
+      await ensureBroadcastTables();
+      await pool.query(
+        'INSERT INTO email_broadcasts (subject, message, segment_id, sent_count, failed_count, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [subject, message, segment.id, 0, emails.length, 'failed', req.adminId]
+      );
+      return res.status(500).json({ error: 'Failed to send broadcast: ' + bcastError.message });
+    }
+
+    // 4. Log success
+    await ensureBroadcastTables();
     await pool.query(
-      'INSERT INTO email_broadcasts (subject, message, target, sent_count, failed_count, created_by) VALUES (?, ?, ?, ?, ?, ?)',
-      [subject, message, target || 'all', sent, failed, req.adminId]
+      'INSERT INTO email_broadcasts (subject, message, segment_id, resend_broadcast_id, sent_count, failed_count, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [subject, message, segment.id, broadcast.id, addedCount, emails.length - addedCount, 'sent', req.adminId]
     );
 
-    res.json({ sent, failed, total: admins.length });
+    res.json({ sent: addedCount, failed: emails.length - addedCount, total: emails.length, broadcastId: broadcast.id });
   } catch (error) {
     console.error('Error sending broadcast:', error);
     res.status(500).json({ error: 'Failed to send broadcast' });

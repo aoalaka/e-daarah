@@ -8,14 +8,14 @@ function Landing() {
   return (
     <div className="landing">
       <SEO
-        title="e-daarah — School Management for Madrasahs & Islamic Schools"
+        title="e-Daarah — School Management for Madrasahs & Islamic Schools"
         description="Simple admin system for madrasahs, Islamic schools, and weekend programs. Track attendance, record exams, grade conduct, and keep parents informed."
       />
       {/* Header */}
       <header className="landing-header">
         <Link to="/" className="logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="logo-img" />
-          <span className="logo-text">e-daarah</span>
+          <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="logo-img" />
+          <span className="logo-text">e-Daarah</span>
         </Link>
         <nav className="header-nav">
           <Link to="/pricing" className="nav-link">Pricing</Link>
@@ -168,8 +168,8 @@ function Landing() {
         <div className="footer-content">
           <div className="footer-brand">
             <div className="footer-logo">
-              <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="footer-logo-img" />
-              <span className="footer-logo-text">e-daarah</span>
+              <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="footer-logo-img" />
+              <span className="footer-logo-text">e-Daarah</span>
             </div>
             <p style={{ marginTop: 4 }}>{'نظام إدارة المدارس الدينية'}</p>
             <p style={{ fontSize: 12, color: '#999', marginTop: 2 }}>Designed for madrasahs. Ready for any school.</p>
@@ -186,7 +186,7 @@ function Landing() {
             <a href="mailto:support@e-daarah.com">Contact</a>
           </div>
         </div>
-        <p className="copyright">© 2026 e-daarah</p>
+        <p className="copyright">© 2026 e-Daarah</p>
       </footer>
     </div>
   );

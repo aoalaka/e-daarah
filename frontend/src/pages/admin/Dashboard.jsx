@@ -112,6 +112,8 @@ function AdminDashboard() {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [selectedPlan, setSelectedPlan] = useState('plus');
   const [madrasahProfile, setMadrasahProfile] = useState(null);
+  // Students sub-tab state
+  const [studentsSubTab, setStudentsSubTab] = useState('manage');
   // Promotion / Rollover state
   const [promotionStep, setPromotionStep] = useState(1);
   const [promotionSourceClass, setPromotionSourceClass] = useState('');
@@ -185,11 +187,10 @@ function AdminDashboard() {
 
   const navItems = [
     { id: 'overview', label: 'Overview' },
-    { id: 'planner', label: 'Planner' },
     { id: 'classes', label: 'Classes' },
     { id: 'teachers', label: 'Teachers' },
     { id: 'students', label: 'Students' },
-    { id: 'promotion', label: 'Promotion' },
+    { id: 'planner', label: 'Planner' },
     { id: 'reports', label: 'Reports' },
     { id: 'support', label: 'Support' }
   ];
@@ -2323,6 +2324,20 @@ function AdminDashboard() {
                 </div>
               </div>
 
+              {/* Students Sub-Tabs */}
+              <div className="report-tabs no-print">
+                <nav className="report-tabs-nav">
+                  <button className={`report-tab-btn ${studentsSubTab === 'manage' ? 'active' : ''}`} onClick={() => setStudentsSubTab('manage')}>
+                    Manage
+                  </button>
+                  <button className={`report-tab-btn ${studentsSubTab === 'promotion' ? 'active' : ''}`} onClick={() => setStudentsSubTab('promotion')}>
+                    Promotion
+                  </button>
+                </nav>
+              </div>
+
+              {studentsSubTab === 'manage' && (
+              <>
               {showBulkUpload && (
                 <div className="card">
                   <div className="card-header">Bulk Upload Students</div>
@@ -2688,17 +2703,12 @@ function AdminDashboard() {
                   emptyMessage="No students yet. Create one to get started."
                 />
               </div>
-            </>
-          )}
+              </>
+              )}
 
-          {/* Promotion / Rollover Tab */}
-          {activeTab === 'promotion' && (
-            <>
-              <div className="page-header">
-                <h2 className="page-title">Student Promotion / Rollover</h2>
-              </div>
-
-              {/* Sub-tabs */}
+              {studentsSubTab === 'promotion' && (
+              <>
+              {/* Promotion Sub-tabs */}
               <div className="report-tabs no-print">
                 <nav className="report-tabs-nav">
                   <button className={`report-tab-btn ${promotionSubTab === 'promote' ? 'active' : ''}`} onClick={() => setPromotionSubTab('promote')}>
@@ -3045,6 +3055,8 @@ function AdminDashboard() {
                     </div>
                   )}
                 </div>
+              )}
+              </>
               )}
             </>
           )}

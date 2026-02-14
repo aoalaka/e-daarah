@@ -75,6 +75,7 @@ function SuperAdminDashboard() {
   const [emailTemplates, setEmailTemplates] = useState([]);
   const [emailSending, setEmailSending] = useState(false);
   const [templateName, setTemplateName] = useState('');
+  const [editingTemplateId, setEditingTemplateId] = useState(null);
 
   const superAdmin = JSON.parse(localStorage.getItem('superAdmin') || '{}');
 
@@ -222,13 +223,16 @@ function SuperAdminDashboard() {
       toast.error('Template name, subject, and message are required'); return;
     }
     try {
-      await api.post('/superadmin/email-templates', {
-        name: templateName.trim(),
-        subject: emailBroadcastForm.subject,
-        message: emailBroadcastForm.message
-      }, getAuthHeader());
-      toast.success(`Template "${templateName.trim()}" saved`);
+      const payload = { name: templateName.trim(), subject: emailBroadcastForm.subject, message: emailBroadcastForm.message };
+      if (editingTemplateId) {
+        await api.put(`/superadmin/email-templates/${editingTemplateId}`, payload, getAuthHeader());
+        toast.success(`Template "${templateName.trim()}" updated`);
+      } else {
+        await api.post('/superadmin/email-templates', payload, getAuthHeader());
+        toast.success(`Template "${templateName.trim()}" saved`);
+      }
       setTemplateName('');
+      setEditingTemplateId(null);
       fetchEmailTemplates();
     } catch (error) {
       toast.error('Failed to save template');
@@ -237,6 +241,8 @@ function SuperAdminDashboard() {
 
   const handleLoadTemplate = (template) => {
     setEmailBroadcastForm({ ...emailBroadcastForm, subject: template.subject, message: template.message });
+    setTemplateName(template.name);
+    setEditingTemplateId(template.id);
   };
 
   const handleDeleteTemplate = async (id) => {
@@ -1032,18 +1038,18 @@ function SuperAdminDashboard() {
                 <label style={{ fontSize: '13px', fontWeight: '600', color: '#525252', marginBottom: '6px', display: 'block' }}>Load Template</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {emailTemplates.map((t) => (
-                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f5f5f5', borderRadius: '6px', padding: '6px 10px', fontSize: '13px' }}>
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: editingTemplateId === t.id ? '#1a1a1a' : '#f5f5f5', borderRadius: '6px', padding: '6px 10px', fontSize: '13px' }}>
                       <button
                         type="button"
                         onClick={() => handleLoadTemplate(t)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '13px', color: '#1a1a1a', fontWeight: '500' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '13px', color: editingTemplateId === t.id ? '#fff' : '#1a1a1a', fontWeight: '500' }}
                       >
                         {t.name}
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDeleteTemplate(t.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontSize: '14px', color: '#999', lineHeight: 1 }}
+                        onClick={() => { handleDeleteTemplate(t.id); if (editingTemplateId === t.id) { setEditingTemplateId(null); setTemplateName(''); } }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontSize: '14px', color: editingTemplateId === t.id ? '#ccc' : '#999', lineHeight: 1 }}
                         title="Delete template"
                       >
                         &times;
@@ -1084,7 +1090,7 @@ function SuperAdminDashboard() {
                 <input
                   type="text"
                   value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
+                  onChange={(e) => { setTemplateName(e.target.value); if (editingTemplateId) setEditingTemplateId(null); }}
                   placeholder="Template name"
                   style={{ flex: 1, maxWidth: '240px', padding: '6px 10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px' }}
                 />
@@ -1095,8 +1101,18 @@ function SuperAdminDashboard() {
                   disabled={!templateName.trim() || !emailBroadcastForm.subject || !emailBroadcastForm.message}
                   style={{ opacity: templateName.trim() && emailBroadcastForm.subject && emailBroadcastForm.message ? 1 : 0.5 }}
                 >
-                  Save Template
+                  {editingTemplateId ? 'Update Template' : 'Save Template'}
                 </button>
+                {editingTemplateId && (
+                  <button
+                    type="button"
+                    className="btn-small"
+                    onClick={() => { setEditingTemplateId(null); setTemplateName(''); }}
+                    style={{ color: '#888' }}
+                  >
+                    Save as New
+                  </button>
+                )}
               </div>
 
               <div className="form-group">

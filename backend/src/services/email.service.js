@@ -45,8 +45,8 @@ const emailWrapper = (content, preheader = '') => `
           <!-- Logo -->
           <tr>
             <td align="center" style="padding-bottom: 24px;">
-              <img src="https://www.e-daarah.com/e-daarah-whitebg-logo.png" alt="${APP_NAME}" style="height: 36px; width: auto; vertical-align: middle;" />
-              <span style="font-size: 20px; font-weight: 600; color: #1a1a1a; letter-spacing: -0.3px; margin-left: 8px; vertical-align: middle;">${APP_NAME}</span>
+              <img src="https://www.e-daarah.com/e-daarah-whitebg-logo.png" alt="${APP_NAME}" style="height: 40px; width: auto; display: block; margin: 0 auto;" />
+              <span style="display: block; font-size: 18px; font-weight: 600; color: #1a1a1a; letter-spacing: -0.3px; margin-top: 8px;">${APP_NAME}</span>
             </td>
           </tr>
           <!-- Content Card -->
@@ -414,17 +414,64 @@ export const sendTrialExpiringEmail = async (email, firstName, madrasahName, day
 };
 
 /**
+ * Convert simple markdown to HTML for broadcast emails.
+ * Supports: **bold**, *italic*, - bullet lists, ## headings, [links](url)
+ */
+const markdownToHtml = (text) => {
+  const lines = text.split('\n');
+  const result = [];
+  let inList = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Bullet list item
+    if (/^[-*]\s+/.test(trimmed)) {
+      if (!inList) { result.push('<ul style="margin: 8px 0; padding-left: 20px;">'); inList = true; }
+      const itemText = trimmed.replace(/^[-*]\s+/, '');
+      result.push(`<li style="margin: 4px 0; color: #4a4a4a;">${formatInline(itemText)}</li>`);
+      continue;
+    }
+
+    // Close list if we were in one
+    if (inList) { result.push('</ul>'); inList = false; }
+
+    // Heading
+    if (/^##\s+/.test(trimmed)) {
+      result.push(`<h2 style="margin: 20px 0 8px 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^##\s+/, ''))}</h2>`);
+      continue;
+    }
+
+    // Empty line = paragraph break
+    if (!trimmed) { result.push('<br>'); continue; }
+
+    // Regular text
+    result.push(`${formatInline(trimmed)}<br>`);
+  }
+
+  if (inList) result.push('</ul>');
+  return result.join('\n');
+};
+
+const formatInline = (text) => {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" style="color: #1a1a1a; text-decoration: underline;">$1</a>');
+};
+
+/**
  * Build broadcast email HTML (for external marketing emails)
  */
 export const buildBroadcastHtml = (subject, message) => {
-  const htmlMessage = message.replace(/\n/g, '<br>');
+  const htmlMessage = markdownToHtml(message);
 
   const content = `
-    <td style="padding: 40px;">
-      <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: #1a1a1a;">
+    <td style="padding: 40px; text-align: left;">
+      <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: #1a1a1a; text-align: left;">
         ${subject}
       </h1>
-      <div style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4a4a4a;">
+      <div style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4a4a4a; text-align: left;">
         ${htmlMessage}
       </div>
       <table role="presentation" style="width: 100%; border-collapse: collapse;">

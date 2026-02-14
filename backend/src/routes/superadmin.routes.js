@@ -1100,6 +1100,24 @@ router.post('/email-templates', authenticateSuperAdmin, async (req, res) => {
   }
 });
 
+// PUT /superadmin/email-templates/:id - Update template
+router.put('/email-templates/:id', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { name, subject, message } = req.body;
+    if (!name || !subject || !message) {
+      return res.status(400).json({ error: 'Name, subject, and message are required' });
+    }
+    await pool.query(
+      'UPDATE email_templates SET name = ?, subject = ?, message = ? WHERE id = ?',
+      [name, subject, message, req.params.id]
+    );
+    res.json({ id: parseInt(req.params.id), name, subject, message });
+  } catch (error) {
+    console.error('Error updating template:', error);
+    res.status(500).json({ error: 'Failed to update template' });
+  }
+});
+
 // DELETE /superadmin/email-templates/:id - Delete template
 router.delete('/email-templates/:id', authenticateSuperAdmin, async (req, res) => {
   try {

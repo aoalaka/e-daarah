@@ -467,11 +467,11 @@ export const buildBroadcastHtml = (subject, message) => {
   const htmlMessage = markdownToHtml(message);
 
   const content = `
-    <td style="padding: 40px; text-align: left;">
+    <td style="padding: 40px; text-align: justify;">
       <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 600; color: #1a1a1a; text-align: left;">
         ${subject}
       </h1>
-      <div style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4a4a4a; text-align: left;">
+      <div style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #4a4a4a; text-align: justify;">
         ${htmlMessage}
       </div>
       <table role="presentation" style="width: 100%; border-collapse: collapse;">

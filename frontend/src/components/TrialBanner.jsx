@@ -28,7 +28,7 @@ function TrialBanner({ trialEndsAt, subscriptionStatus, pricingPlan }) {
           <div className="trial-banner-icon">!</div>
           <div className="trial-banner-text">
             <strong>Your trial has expired.</strong>
-            <span>Subscribe now to continue using e-daarah and keep your data.</span>
+            <span>Subscribe now to continue using e-Daarah and keep your data.</span>
           </div>
         </div>
         <button
@@ -66,7 +66,7 @@ function TrialBanner({ trialEndsAt, subscriptionStatus, pricingPlan }) {
           </strong>
           <span>
             {daysRemaining <= 3
-              ? 'Subscribe now to keep your data and continue using e-daarah.'
+              ? 'Subscribe now to keep your data and continue using e-Daarah.'
               : 'Upgrade to a paid plan before your trial ends.'}
           </span>
         </div>

@@ -109,7 +109,7 @@ export const requireActiveSubscription = async (req, res, next) => {
         return res.status(403).json({
           error: 'Trial expired',
           code: 'TRIAL_EXPIRED',
-          message: 'Your trial has expired. Please subscribe to continue using e-daarah.'
+          message: 'Your trial has expired. Please subscribe to continue using e-Daarah.'
         });
       }
 

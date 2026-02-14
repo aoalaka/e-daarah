@@ -6,8 +6,8 @@ function Privacy() {
   return (
     <div className="legal-page">
       <SEO
-        title="Privacy Policy — e-daarah"
-        description="Privacy policy for e-daarah. Learn how we protect your school's data and your students' information."
+        title="Privacy Policy — e-Daarah"
+        description="Privacy policy for e-Daarah. Learn how we protect your school's data and your students' information."
       />
       <div className="legal-container">
         <Link to="/" className="legal-back">Back to Home</Link>
@@ -18,7 +18,7 @@ function Privacy() {
         <section>
           <h2>1. Introduction</h2>
           <p>
-            e-daarah ("we", "us", "our") is committed to protecting the privacy of our users.
+            e-Daarah ("we", "us", "our") is committed to protecting the privacy of our users.
             This Privacy Policy explains how we collect, use, and safeguard your information
             when you use our madrasah management platform.
           </p>

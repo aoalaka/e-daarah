@@ -121,14 +121,14 @@ function MadrasahRegistration() {
   return (
     <div className="register-page">
       <SEO
-        title="Register Your School — e-daarah"
-        description="Set up your madrasah on e-daarah in minutes. 14-day free trial, no credit card required. Manage attendance, exams, and parent communication."
+        title="Register Your School — e-Daarah"
+        description="Set up your madrasah on e-Daarah in minutes. 14-day free trial, no credit card required. Manage attendance, exams, and parent communication."
       />
       <div className="register-container">
         <div className="register-header">
           <Link to="/" className="register-logo">
-            <img src="/e-daarah-whitebg-logo.png" alt="e-daarah" className="register-logo-img" />
-            <span className="register-logo-text">e-daarah</span>
+            <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="register-logo-img" />
+            <span className="register-logo-text">e-Daarah</span>
           </Link>
           <h1 className="register-title">Register Your Madrasah</h1>
           <p className="register-subtitle">Start managing your Islamic school today</p>

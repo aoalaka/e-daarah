@@ -69,9 +69,11 @@ function SuperAdminDashboard() {
   const [ticketMessages, setTicketMessages] = useState([]);
   const [ticketReply, setTicketReply] = useState('');
   // Email broadcast state
-  const [emailBroadcastForm, setEmailBroadcastForm] = useState({ subject: '', message: '', target: 'all', testEmail: '' });
+  const [emailBroadcastForm, setEmailBroadcastForm] = useState({ subject: '', message: '', emails: '', testEmail: '' });
   const [emailBroadcasts, setEmailBroadcasts] = useState([]);
+  const [emailTemplates, setEmailTemplates] = useState([]);
   const [emailSending, setEmailSending] = useState(false);
+  const [templateName, setTemplateName] = useState('');
 
   const superAdmin = JSON.parse(localStorage.getItem('superAdmin') || '{}');
 
@@ -205,6 +207,46 @@ function SuperAdminDashboard() {
     }
   };
 
+  const fetchEmailTemplates = async () => {
+    try {
+      const response = await api.get('/superadmin/email-templates', getAuthHeader());
+      setEmailTemplates(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch email templates:', error);
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim() || !emailBroadcastForm.subject || !emailBroadcastForm.message) {
+      alert('Template name, subject, and message are required'); return;
+    }
+    try {
+      await api.post('/superadmin/email-templates', {
+        name: templateName.trim(),
+        subject: emailBroadcastForm.subject,
+        message: emailBroadcastForm.message
+      }, getAuthHeader());
+      setTemplateName('');
+      fetchEmailTemplates();
+    } catch (error) {
+      alert('Failed to save template');
+    }
+  };
+
+  const handleLoadTemplate = (template) => {
+    setEmailBroadcastForm({ ...emailBroadcastForm, subject: template.subject, message: template.message });
+  };
+
+  const handleDeleteTemplate = async (id) => {
+    if (!confirm('Delete this template?')) return;
+    try {
+      await api.delete(`/superadmin/email-templates/${id}`, getAuthHeader());
+      fetchEmailTemplates();
+    } catch (error) {
+      alert('Failed to delete template');
+    }
+  };
+
   const fetchTickets = async () => {
     try {
       const response = await api.get(`/superadmin/tickets?status=${ticketFilter}`, getAuthHeader());
@@ -251,24 +293,32 @@ function SuperAdminDashboard() {
   };
 
   const handleSendBroadcast = async (isTest = false) => {
-    const { subject, message, target, testEmail } = emailBroadcastForm;
+    const { subject, message, emails, testEmail } = emailBroadcastForm;
     if (!subject || !message) { alert('Subject and message are required'); return; }
     if (isTest && !testEmail) { alert('Enter a test email address'); return; }
-    if (!isTest && !confirm(`Send this email to all ${target === 'all' ? '' : target + ' '}admins?`)) return;
+
+    // Parse email list
+    const emailList = emails.split(/[\n,;]+/).map(e => e.trim()).filter(e => e && e.includes('@'));
+    if (!isTest && emailList.length === 0) { alert('Add at least one recipient email'); return; }
+    if (!isTest && !confirm(`Send this email to ${emailList.length} recipient${emailList.length !== 1 ? 's' : ''}?`)) return;
 
     setEmailSending(true);
     try {
-      const payload = { subject, message, target };
-      if (isTest) payload.testEmail = testEmail;
+      const payload = { subject, message };
+      if (isTest) {
+        payload.testEmail = testEmail;
+      } else {
+        payload.emails = emailList;
+      }
       const response = await api.post('/superadmin/email-broadcast', payload, getAuthHeader());
       const { sent, failed, total } = response.data;
       alert(isTest ? `Test email sent to ${testEmail}` : `Sent: ${sent}, Failed: ${failed}, Total: ${total}`);
       if (!isTest) {
-        setEmailBroadcastForm({ subject: '', message: '', target: 'all', testEmail: '' });
+        setEmailBroadcastForm({ subject: '', message: '', emails: '', testEmail: '' });
         fetchEmailBroadcasts();
       }
     } catch (error) {
-      alert('Failed to send broadcast');
+      alert(error.response?.data?.error || 'Failed to send broadcast');
     } finally {
       setEmailSending(false);
     }
@@ -381,8 +431,8 @@ function SuperAdminDashboard() {
     <div className="superadmin">
       <header className="superadmin-header">
         <div className="header-left">
-          <img src="/e-daarah-blackbg-logo.png" alt="e-daarah" className="header-logo-img" />
-          <span className="header-logo-text">e-daarah</span>
+          <img src="/e-daarah-blackbg-logo.png" alt="e-Daarah" className="header-logo-img" />
+          <span className="header-logo-text">e-Daarah</span>
           <span className="platform-label">Platform</span>
         </div>
         <div className="header-right">
@@ -460,7 +510,7 @@ function SuperAdminDashboard() {
           </button>
           <button
             className={`tab ${activeTab === 'email-broadcast' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('email-broadcast'); fetchEmailBroadcasts(); }}
+            onClick={() => { setActiveTab('email-broadcast'); fetchEmailBroadcasts(); fetchEmailTemplates(); }}
           >
             Email Broadcast
           </button>
@@ -970,9 +1020,37 @@ function SuperAdminDashboard() {
             <div className="section-header-row">
               <div>
                 <h2>Email Broadcast</h2>
-                <p className="section-desc">Send marketing emails to madrasah admins using the e-daarah email template.</p>
+                <p className="section-desc">Send marketing emails to potential clients using the e-Daarah email template.</p>
               </div>
             </div>
+
+            {/* Saved Templates */}
+            {emailTemplates.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#525252', marginBottom: '6px', display: 'block' }}>Load Template</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {emailTemplates.map((t) => (
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f5f5f5', borderRadius: '6px', padding: '6px 10px', fontSize: '13px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleLoadTemplate(t)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '13px', color: '#1a1a1a', fontWeight: '500' }}
+                      >
+                        {t.name}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTemplate(t.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontSize: '14px', color: '#999', lineHeight: 1 }}
+                        title="Delete template"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <form onSubmit={(e) => e.preventDefault()} className="announcement-form">
               <div className="form-group">
@@ -995,30 +1073,52 @@ function SuperAdminDashboard() {
                   required
                 />
               </div>
-              <div className="form-row">
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Target</label>
-                  <select
-                    value={emailBroadcastForm.target}
-                    onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, target: e.target.value })}
-                  >
-                    <option value="all">All Admins</option>
-                    <option value="trial">Trial Only</option>
-                    <option value="standard">Standard Only</option>
-                    <option value="plus">Plus Only</option>
-                    <option value="enterprise">Enterprise Only</option>
-                  </select>
-                </div>
-                <div className="form-group" style={{ flex: 2 }}>
-                  <label>Test Email (optional — preview before sending)</label>
-                  <input
-                    type="email"
-                    value={emailBroadcastForm.testEmail}
-                    onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, testEmail: e.target.value })}
-                    placeholder="your@email.com"
-                  />
-                </div>
+
+              {/* Save as template */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+                <input
+                  type="text"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="Template name"
+                  style={{ flex: 1, maxWidth: '240px', padding: '6px 10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px' }}
+                />
+                <button
+                  type="button"
+                  className="btn-small"
+                  onClick={handleSaveTemplate}
+                  disabled={!templateName.trim() || !emailBroadcastForm.subject || !emailBroadcastForm.message}
+                  style={{ opacity: templateName.trim() && emailBroadcastForm.subject && emailBroadcastForm.message ? 1 : 0.5 }}
+                >
+                  Save Template
+                </button>
               </div>
+
+              <div className="form-group">
+                <label>Recipient Emails (one per line, or comma/semicolon separated)</label>
+                <textarea
+                  value={emailBroadcastForm.emails}
+                  onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, emails: e.target.value })}
+                  placeholder={"admin@school1.com\nadmin@school2.com\nadmin@school3.com"}
+                  rows={5}
+                />
+                {emailBroadcastForm.emails && (
+                  <span style={{ fontSize: '12px', color: '#888', marginTop: '4px', display: 'block' }}>
+                    {emailBroadcastForm.emails.split(/[\n,;]+/).filter(e => e.trim() && e.includes('@')).length} valid email(s)
+                  </span>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>Test Email (optional — preview before sending)</label>
+                <input
+                  type="email"
+                  value={emailBroadcastForm.testEmail}
+                  onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, testEmail: e.target.value })}
+                  placeholder="your@email.com"
+                />
+              </div>
+
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   type="button"
@@ -1047,9 +1147,9 @@ function SuperAdminDashboard() {
                   <thead>
                     <tr>
                       <th>Subject</th>
-                      <th>Target</th>
                       <th>Sent</th>
                       <th>Failed</th>
+                      <th>Status</th>
                       <th>Date</th>
                     </tr>
                   </thead>
@@ -1057,9 +1157,13 @@ function SuperAdminDashboard() {
                     {emailBroadcasts.map((b) => (
                       <tr key={b.id}>
                         <td>{b.subject}</td>
-                        <td>{b.target}</td>
                         <td>{b.sent_count}</td>
                         <td>{b.failed_count}</td>
+                        <td>
+                          <span className={`status ${b.status === 'sent' ? 'active' : b.status === 'failed' ? 'suspended' : ''}`}>
+                            {b.status || 'sent'}
+                          </span>
+                        </td>
                         <td>{new Date(b.created_at).toLocaleDateString()}</td>
                       </tr>
                     ))}

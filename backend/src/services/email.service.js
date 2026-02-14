@@ -7,9 +7,9 @@ import { Resend } from 'resend';
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Email configuration
-const FROM_EMAIL = process.env.EMAIL_FROM || 'e-daarah <noreply@e-daarah.com>';
+const FROM_EMAIL = process.env.EMAIL_FROM || 'e-Daarah <noreply@e-daarah.com>';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-const APP_NAME = 'e-daarah';
+const APP_NAME = 'e-Daarah';
 
 // Check if email is enabled
 const isEmailEnabled = () => {
@@ -45,7 +45,8 @@ const emailWrapper = (content, preheader = '') => `
           <!-- Logo -->
           <tr>
             <td align="center" style="padding-bottom: 24px;">
-              <img src="https://www.e-daarah.com/e-daarah-whitebg-logo.png" alt="${APP_NAME}" style="height: 40px; width: auto;" />
+              <img src="https://www.e-daarah.com/e-daarah-whitebg-logo.png" alt="${APP_NAME}" style="height: 36px; width: auto; vertical-align: middle;" />
+              <span style="font-size: 20px; font-weight: 600; color: #1a1a1a; letter-spacing: -0.3px; margin-left: 8px; vertical-align: middle;">${APP_NAME}</span>
             </td>
           </tr>
           <!-- Content Card -->
@@ -413,17 +414,9 @@ export const sendTrialExpiringEmail = async (email, firstName, madrasahName, day
 };
 
 /**
- * Send broadcast/marketing email
+ * Build broadcast email HTML (for external marketing emails)
  */
-export const sendBroadcastEmail = async (email, subject, message) => {
-  if (!isEmailEnabled()) {
-    console.log('\n=== BROADCAST EMAIL (Console) ===');
-    console.log(`To: ${email}`);
-    console.log(`Subject: ${subject}`);
-    console.log('=================================\n');
-    return { success: true, messageId: 'console-log' };
-  }
-
+export const buildBroadcastHtml = (subject, message) => {
   const htmlMessage = message.replace(/\n/g, '<br>');
 
   const content = `
@@ -443,18 +436,30 @@ export const sendBroadcastEmail = async (email, subject, message) => {
           </td>
         </tr>
       </table>
-      <p style="margin: 24px 0 0 0; font-size: 12px; color: #aaaaaa;">
-        You're receiving this because you're registered on e-Daarah.
-      </p>
     </td>
   `;
+
+  return emailWrapper(content, subject);
+};
+
+/**
+ * Send a single broadcast/marketing email (for test sends)
+ */
+export const sendBroadcastEmail = async (email, subject, message) => {
+  if (!isEmailEnabled()) {
+    console.log('\n=== BROADCAST EMAIL (Console) ===');
+    console.log(`To: ${email}`);
+    console.log(`Subject: ${subject}`);
+    console.log('=================================\n');
+    return { success: true, messageId: 'console-log' };
+  }
 
   try {
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: `${subject} - ${APP_NAME}`,
-      html: emailWrapper(content, subject),
+      subject,
+      html: buildBroadcastHtml(subject, message),
     });
 
     if (error) {
@@ -469,3 +474,8 @@ export const sendBroadcastEmail = async (email, subject, message) => {
     return { success: false };
   }
 };
+
+/**
+ * Get Resend client for advanced operations (broadcasts, segments, contacts)
+ */
+export const getResendClient = () => resend;

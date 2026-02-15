@@ -13,7 +13,7 @@ function Privacy() {
         <Link to="/" className="legal-back">Back to Home</Link>
 
         <h1>Privacy Policy</h1>
-        <p className="legal-updated">Last updated: February 5, 2026</p>
+        <p className="legal-updated">Last updated: February 14, 2026</p>
 
         <section>
           <h2>1. Introduction</h2>
@@ -77,7 +77,8 @@ function Privacy() {
           <ul>
             <li>Encryption of data in transit (HTTPS/TLS)</li>
             <li>Secure password hashing (bcrypt)</li>
-            <li>Regular automated backups</li>
+            <li>Daily automated backups encrypted with AES-256 (GPG) and stored in multiple locations</li>
+            <li>Backup integrity verification with size trend monitoring</li>
             <li>Access controls and authentication</li>
             <li>Account lockout after failed login attempts</li>
           </ul>

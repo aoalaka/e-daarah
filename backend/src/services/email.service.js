@@ -492,10 +492,11 @@ export const buildBroadcastHtml = (subject, message) => {
 /**
  * Send a single broadcast/marketing email (for test sends)
  */
-export const sendBroadcastEmail = async (email, subject, message) => {
+export const sendBroadcastEmail = async (email, subject, message, fromOverride) => {
   if (!isEmailEnabled()) {
     console.log('\n=== BROADCAST EMAIL (Console) ===');
     console.log(`To: ${email}`);
+    console.log(`From: ${fromOverride || FROM_EMAIL}`);
     console.log(`Subject: ${subject}`);
     console.log('=================================\n');
     return { success: true, messageId: 'console-log' };
@@ -503,7 +504,7 @@ export const sendBroadcastEmail = async (email, subject, message) => {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: fromOverride || FROM_EMAIL,
       to: email,
       subject,
       html: buildBroadcastHtml(subject, message),

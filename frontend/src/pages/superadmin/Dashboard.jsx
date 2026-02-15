@@ -70,7 +70,7 @@ function SuperAdminDashboard() {
   const [ticketMessages, setTicketMessages] = useState([]);
   const [ticketReply, setTicketReply] = useState('');
   // Email broadcast state
-  const [emailBroadcastForm, setEmailBroadcastForm] = useState({ subject: '', message: '', emails: '', testEmail: '' });
+  const [emailBroadcastForm, setEmailBroadcastForm] = useState({ subject: '', message: '', emails: '', testEmail: '', fromEmail: 'noreply@e-daarah.com' });
   const [emailBroadcasts, setEmailBroadcasts] = useState([]);
   const [emailTemplates, setEmailTemplates] = useState([]);
   const [emailSending, setEmailSending] = useState(false);
@@ -301,7 +301,7 @@ function SuperAdminDashboard() {
   };
 
   const handleSendBroadcast = async (isTest = false) => {
-    const { subject, message, emails, testEmail } = emailBroadcastForm;
+    const { subject, message, emails, testEmail, fromEmail } = emailBroadcastForm;
     if (!subject || !message) { alert('Subject and message are required'); return; }
     if (isTest && !testEmail) { alert('Enter a test email address'); return; }
 
@@ -312,7 +312,7 @@ function SuperAdminDashboard() {
 
     setEmailSending(true);
     try {
-      const payload = { subject, message };
+      const payload = { subject, message, fromEmail };
       if (isTest) {
         payload.testEmail = testEmail;
       } else {
@@ -322,7 +322,7 @@ function SuperAdminDashboard() {
       const { sent, failed, total } = response.data;
       alert(isTest ? `Test email sent to ${testEmail}` : `Sent: ${sent}, Failed: ${failed}, Total: ${total}`);
       if (!isTest) {
-        setEmailBroadcastForm({ subject: '', message: '', emails: '', testEmail: '' });
+        setEmailBroadcastForm({ subject: '', message: '', emails: '', testEmail: '', fromEmail: 'noreply@e-daarah.com' });
         fetchEmailBroadcasts();
       }
     } catch (error) {
@@ -1061,6 +1061,17 @@ function SuperAdminDashboard() {
             )}
 
             <form onSubmit={(e) => e.preventDefault()} className="announcement-form">
+              <div className="form-group">
+                <label>From</label>
+                <select
+                  value={emailBroadcastForm.fromEmail}
+                  onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, fromEmail: e.target.value })}
+                >
+                  <option value="noreply@e-daarah.com">noreply@e-daarah.com</option>
+                  <option value="founder@e-daarah.com">founder@e-daarah.com</option>
+                  <option value="support@e-daarah.com">support@e-daarah.com</option>
+                </select>
+              </div>
               <div className="form-group">
                 <label>Subject</label>
                 <input

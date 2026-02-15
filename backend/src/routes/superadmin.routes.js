@@ -1132,18 +1132,26 @@ router.delete('/email-templates/:id', authenticateSuperAdmin, async (req, res) =
 // POST /superadmin/email-broadcast - Send broadcast via Resend Broadcasts API
 router.post('/email-broadcast', authenticateSuperAdmin, async (req, res) => {
   try {
-    const { subject, message, emails, testEmail } = req.body;
+    const { subject, message, emails, testEmail, fromEmail } = req.body;
 
     if (!subject || !message) {
       return res.status(400).json({ error: 'Subject and message are required' });
     }
+
+    // Validate and resolve from email
+    const ALLOWED_FROM = {
+      'founder@e-daarah.com': 'e-Daarah <founder@e-daarah.com>',
+      'support@e-daarah.com': 'e-Daarah <support@e-daarah.com>',
+      'noreply@e-daarah.com': 'e-Daarah <noreply@e-daarah.com>',
+    };
+    const resolvedFrom = ALLOWED_FROM[fromEmail] || ALLOWED_FROM['noreply@e-daarah.com'];
 
     const { sendBroadcastEmail, buildBroadcastHtml, getResendClient } = await import('../services/email.service.js');
     const resend = getResendClient();
 
     // Test mode: send single email directly
     if (testEmail) {
-      const result = await sendBroadcastEmail(testEmail, subject, message);
+      const result = await sendBroadcastEmail(testEmail, subject, message, resolvedFrom);
       return res.json({ sent: result.success ? 1 : 0, failed: result.success ? 0 : 1, total: 1, test: true });
     }
 
@@ -1192,7 +1200,7 @@ router.post('/email-broadcast', authenticateSuperAdmin, async (req, res) => {
     const html = buildBroadcastHtml(subject, message);
     const { data: broadcast, error: bcastError } = await resend.broadcasts.create({
       segmentId: segment.id,
-      from: 'e-Daarah <noreply@e-daarah.com>',
+      from: resolvedFrom,
       subject,
       html,
       send: true,

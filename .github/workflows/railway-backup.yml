@@ -64,6 +64,7 @@ jobs:
 
           mysqldump \
             --host="${{ secrets.DB_HOST }}" \
+            --port="${{ secrets.DB_PORT }}" \
             --user="${{ secrets.DB_USER }}" \
             --password="${{ secrets.DB_PASSWORD }}" \
             --single-transaction \
@@ -162,7 +163,7 @@ jobs:
             FROM information_schema.tables
             WHERE table_schema='$DB_NAME'
             ORDER BY table_name;
-          " --host="${{ secrets.DB_HOST }}" --user="${{ secrets.DB_USER }}" --password="${{ secrets.DB_PASSWORD }}" 2>/dev/null)
+          " --host="${{ secrets.DB_HOST }}" --port="${{ secrets.DB_PORT }}" --user="${{ secrets.DB_USER }}" --password="${{ secrets.DB_PASSWORD }}" 2>/dev/null)
 
           RESTORED=$($MYSQL -N -e "
             SELECT table_name, table_rows

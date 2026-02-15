@@ -141,32 +141,29 @@ jobs:
       - name: Start local MySQL for restore verification
         run: |
           sudo systemctl start mysql || sudo service mysql start
-          # Set root password access
-          sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'testpass'; FLUSH PRIVILEGES;" || true
 
       - name: Restore and verify backup
         id: verify
         run: |
           set -euo pipefail
-          MYSQL="mysql -u root -ptestpass"
 
           # Create restore database
-          $MYSQL -e "DROP DATABASE IF EXISTS $RESTORE_DB;"
-          $MYSQL -e "CREATE DATABASE $RESTORE_DB;"
+          sudo mysql -e "DROP DATABASE IF EXISTS $RESTORE_DB;"
+          sudo mysql -e "CREATE DATABASE $RESTORE_DB;"
 
           # Restore
-          gunzip -c "$BACKUP_DIR/$FILENAME" | $MYSQL "$RESTORE_DB"
+          gunzip -c "$BACKUP_DIR/$FILENAME" | sudo mysql "$RESTORE_DB"
           echo "Restore complete"
 
           # Compare table row counts
-          ORIGINAL=$($MYSQL -N -e "
+          ORIGINAL=$(mysql -N -e "
             SELECT table_name, table_rows
             FROM information_schema.tables
             WHERE table_schema='$DB_NAME'
             ORDER BY table_name;
           " --host="${{ secrets.DB_HOST }}" --port="${{ secrets.DB_PORT }}" --user="${{ secrets.DB_USER }}" --password="${{ secrets.DB_PASSWORD }}" 2>/dev/null)
 
-          RESTORED=$($MYSQL -N -e "
+          RESTORED=$(sudo mysql -N -e "
             SELECT table_name, table_rows
             FROM information_schema.tables
             WHERE table_schema='$RESTORE_DB'
@@ -193,7 +190,7 @@ jobs:
           fi
 
           # Cleanup
-          $MYSQL -e "DROP DATABASE IF EXISTS $RESTORE_DB;" 2>/dev/null || true
+          sudo mysql -e "DROP DATABASE IF EXISTS $RESTORE_DB;" 2>/dev/null || true
 
       - name: Send failure alert
         if: env.VERIFY_STATUS == 'failed'

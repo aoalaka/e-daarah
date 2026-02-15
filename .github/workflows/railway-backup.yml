@@ -6,11 +6,16 @@ on:
     - cron: '30 14 * * *'
   workflow_dispatch:
 
+# Prevent overlapping backup runs (e.g., manual + scheduled at same time)
+concurrency:
+  group: mysql-backup
+  cancel-in-progress: false
+
 env:
   DB_NAME: ${{ secrets.DB_NAME }}
-  RESTORE_DB: railway_restore_test
   BACKUP_DIR: /tmp/mysql_backups
   RCLONE_REMOTE: "gdrive:backups/mysql/railway"
+  RCLONE_REMOTE_SECONDARY: "gdrive:backups/mysql/railway-redundant"
 
 jobs:
   backup:
@@ -19,10 +24,10 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Install MySQL client and rclone
+      - name: Install MySQL client, rclone, and GPG
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq mysql-client rclone msmtp
+          sudo apt-get install -y -qq mysql-client rclone msmtp gnupg
 
       - name: Configure rclone
         run: |
@@ -76,67 +81,88 @@ jobs:
             "$DB_NAME" | gzip > "$BACKUP_DIR/$FILENAME"
 
           SIZE=$(du -h "$BACKUP_DIR/$FILENAME" | cut -f1)
-          echo "Backup size: $SIZE"
+          SIZE_BYTES=$(stat --format=%s "$BACKUP_DIR/$FILENAME")
+          echo "Backup size: $SIZE ($SIZE_BYTES bytes)"
           echo "BACKUP_SIZE=$SIZE" >> "$GITHUB_ENV"
+          echo "BACKUP_SIZE_BYTES=$SIZE_BYTES" >> "$GITHUB_ENV"
 
-      - name: Upload to Google Drive
+      - name: Encrypt backup with GPG
         run: |
-          rclone copy "$BACKUP_DIR/$FILENAME" "$RCLONE_REMOTE" --checksum
-          echo "Uploaded $FILENAME to $RCLONE_REMOTE"
+          set -euo pipefail
+          echo "${{ secrets.BACKUP_GPG_PASSPHRASE }}" | gpg --batch --yes --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 \
+            --output "$BACKUP_DIR/$FILENAME.gpg" \
+            "$BACKUP_DIR/$FILENAME"
+          echo "Encrypted: $FILENAME.gpg"
+          echo "ENCRYPTED_FILENAME=${FILENAME}.gpg" >> "$GITHUB_ENV"
+
+      - name: Upload to Google Drive (primary)
+        run: |
+          rclone copy "$BACKUP_DIR/$ENCRYPTED_FILENAME" "$RCLONE_REMOTE" --checksum
+          echo "Uploaded $ENCRYPTED_FILENAME to $RCLONE_REMOTE"
+
+      - name: Upload to Google Drive (redundant copy)
+        run: |
+          rclone copy "$BACKUP_DIR/$ENCRYPTED_FILENAME" "$RCLONE_REMOTE_SECONDARY" --checksum
+          echo "Uploaded $ENCRYPTED_FILENAME to $RCLONE_REMOTE_SECONDARY"
 
       - name: Smart retention cleanup
         run: |
           set -euo pipefail
 
-          # List all backups sorted by date (oldest first)
-          BACKUPS=$(rclone lsf "$RCLONE_REMOTE" --files-only | sort)
-          TOTAL=$(echo "$BACKUPS" | grep -c . || true)
-          echo "Total backups in remote: $TOTAL"
+          for REMOTE in "$RCLONE_REMOTE" "$RCLONE_REMOTE_SECONDARY"; do
+            echo "=== Retention cleanup for $REMOTE ==="
 
-          if [ "$TOTAL" -le 7 ]; then
-            echo "7 or fewer backups — skipping retention cleanup"
-            exit 0
-          fi
+            # List all backups sorted by date (oldest first)
+            BACKUPS=$(rclone lsf "$REMOTE" --files-only | sort)
+            TOTAL=$(echo "$BACKUPS" | grep -c . || true)
+            echo "Total backups in remote: $TOTAL"
 
-          # Determine which files to keep
-          KEEP_FILES=$(mktemp)
-
-          # Keep last 7 daily backups
-          echo "$BACKUPS" | tail -7 >> "$KEEP_FILES"
-
-          # Keep weekly backups (oldest backup per ISO week) for last 4 weeks
-          for i in $(seq 0 3); do
-            WEEK_START=$(date -u -d "-$((i * 7)) days" +%Y-%m-%d 2>/dev/null || date -u -v-$((i * 7))d +%Y-%m-%d)
-            WEEK_MATCH=$(echo "$BACKUPS" | grep "$(echo "$WEEK_START" | cut -c1-8)" | head -1 || true)
-            if [ -n "$WEEK_MATCH" ]; then
-              echo "$WEEK_MATCH" >> "$KEEP_FILES"
+            if [ "$TOTAL" -le 7 ]; then
+              echo "7 or fewer backups — skipping retention cleanup"
+              continue
             fi
+
+            # Determine which files to keep
+            KEEP_FILES=$(mktemp)
+
+            # Keep last 7 daily backups
+            echo "$BACKUPS" | tail -7 >> "$KEEP_FILES"
+
+            # Keep weekly backups (oldest backup per ISO week) for last 4 weeks
+            for i in $(seq 0 3); do
+              WEEK_START=$(date -u -d "-$((i * 7)) days" +%Y-%m-%d 2>/dev/null || date -u -v-$((i * 7))d +%Y-%m-%d)
+              WEEK_MATCH=$(echo "$BACKUPS" | grep "$(echo "$WEEK_START" | cut -c1-8)" | head -1 || true)
+              if [ -n "$WEEK_MATCH" ]; then
+                echo "$WEEK_MATCH" >> "$KEEP_FILES"
+              fi
+            done
+
+            # Keep monthly backups (first backup per month) for last 6 months
+            for i in $(seq 0 5); do
+              MONTH=$(date -u -d "-$i months" +%Y-%m 2>/dev/null || date -u -v-${i}m +%Y-%m)
+              MONTH_MATCH=$(echo "$BACKUPS" | grep "${DB_NAME}_${MONTH}" | head -1 || true)
+              if [ -n "$MONTH_MATCH" ]; then
+                echo "$MONTH_MATCH" >> "$KEEP_FILES"
+              fi
+            done
+
+            # Deduplicate keep list
+            KEEP_UNIQUE=$(sort -u "$KEEP_FILES")
+
+            # Delete files not in keep list
+            DELETED=0
+            while IFS= read -r file; do
+              if ! echo "$KEEP_UNIQUE" | grep -qF "$file"; then
+                echo "Deleting old backup: $file"
+                rclone deletefile "$REMOTE/$file"
+                DELETED=$((DELETED + 1))
+              fi
+            done <<< "$BACKUPS"
+
+            echo "Retention cleanup: deleted $DELETED old backups from $REMOTE"
+            rm -f "$KEEP_FILES"
           done
-
-          # Keep monthly backups (first backup per month) for last 6 months
-          for i in $(seq 0 5); do
-            MONTH=$(date -u -d "-$i months" +%Y-%m 2>/dev/null || date -u -v-${i}m +%Y-%m)
-            MONTH_MATCH=$(echo "$BACKUPS" | grep "${DB_NAME}_${MONTH}" | head -1 || true)
-            if [ -n "$MONTH_MATCH" ]; then
-              echo "$MONTH_MATCH" >> "$KEEP_FILES"
-            fi
-          done
-
-          # Deduplicate keep list
-          KEEP_UNIQUE=$(sort -u "$KEEP_FILES")
-
-          # Delete files not in keep list
-          DELETED=0
-          while IFS= read -r file; do
-            if ! echo "$KEEP_UNIQUE" | grep -qF "$file"; then
-              echo "Deleting old backup: $file"
-              rclone deletefile "$RCLONE_REMOTE/$file"
-              DELETED=$((DELETED + 1))
-            fi
-          done <<< "$BACKUPS"
-
-          echo "Retention cleanup: deleted $DELETED old backups"
-          rm -f "$KEEP_FILES"
 
       - name: Verify backup integrity
         id: verify
@@ -185,12 +211,102 @@ jobs:
 
           echo "Backup verified: $TABLE_COUNT tables, $INSERT_COUNT inserts, $SQL_SIZE bytes"
           echo "VERIFY_STATUS=passed" >> "$GITHUB_ENV"
+          echo "TABLE_COUNT=$TABLE_COUNT" >> "$GITHUB_ENV"
+          echo "INSERT_COUNT=$INSERT_COUNT" >> "$GITHUB_ENV"
+          echo "SQL_SIZE=$SQL_SIZE" >> "$GITHUB_ENV"
+
+      - name: Compare with previous backup size
+        if: env.VERIFY_STATUS == 'passed'
+        run: |
+          set -euo pipefail
+
+          # Get list of all backups sorted by date
+          ALL_BACKUPS=$(rclone lsf "$RCLONE_REMOTE" --files-only | sort)
+          BACKUP_COUNT=$(echo "$ALL_BACKUPS" | grep -c . || true)
+
+          if [ "$BACKUP_COUNT" -lt 2 ]; then
+            echo "Only one backup exists — skipping size comparison"
+            echo "SIZE_TREND=first backup" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          # Get the second-to-last backup (previous)
+          PREV_BACKUP=$(echo "$ALL_BACKUPS" | tail -2 | head -1)
+          echo "Previous backup: $PREV_BACKUP"
+
+          # Download previous backup to check its size
+          PREV_SIZE=$(rclone size "$RCLONE_REMOTE/$PREV_BACKUP" --json 2>/dev/null | grep -o '"bytes":[0-9]*' | grep -o '[0-9]*' || echo "0")
+          CURR_SIZE=${{ env.BACKUP_SIZE_BYTES }}
+          echo "Previous size: $PREV_SIZE bytes, Current size: $CURR_SIZE bytes"
+
+          if [ "$PREV_SIZE" -eq 0 ]; then
+            echo "Could not determine previous backup size"
+            echo "SIZE_TREND=unknown" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          # Calculate percentage change
+          if [ "$PREV_SIZE" -gt 0 ]; then
+            CHANGE=$(( (CURR_SIZE - PREV_SIZE) * 100 / PREV_SIZE ))
+          else
+            CHANGE=0
+          fi
+          echo "Size change: ${CHANGE}%"
+          echo "SIZE_TREND=${CHANGE}% (${PREV_SIZE} → ${CURR_SIZE} bytes)" >> "$GITHUB_ENV"
+
+          # Alert if backup shrunk by more than 20%
+          if [ "$CHANGE" -lt -20 ]; then
+            echo "::warning::Backup size decreased by ${CHANGE}% — possible data loss"
+            echo "SIZE_WARNING=true" >> "$GITHUB_ENV"
+          else
+            echo "SIZE_WARNING=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Verify GPG encryption
+        run: |
+          set -euo pipefail
+          # Verify we can decrypt the encrypted file
+          echo "${{ secrets.BACKUP_GPG_PASSPHRASE }}" | gpg --batch --yes --passphrase-fd 0 \
+            --decrypt "$BACKUP_DIR/$ENCRYPTED_FILENAME" | gunzip -t
+          echo "GPG decryption + gzip verify: OK"
+
+      - name: Send success notification
+        if: env.VERIFY_STATUS == 'passed'
+        run: |
+          SIZE_WARNING_MSG=""
+          if [ "${{ env.SIZE_WARNING }}" = "true" ]; then
+            SIZE_WARNING_MSG="
+          ⚠ WARNING: Backup size decreased significantly!
+          Size trend: ${{ env.SIZE_TREND }}
+          Please verify no data was lost."
+          fi
+
+          cat <<EOF | msmtp "${{ secrets.EMAIL_USERNAME }}"
+          Subject: [e-Daarah] Backup OK - ${{ env.DATE }}
+          From: ${{ secrets.EMAIL_USERNAME }}
+          To: ${{ secrets.EMAIL_USERNAME }}
+
+          Railway MySQL backup completed successfully.
+
+          Backup: ${{ env.ENCRYPTED_FILENAME }}
+          Compressed size: ${{ env.BACKUP_SIZE }}
+          Uncompressed SQL: ${{ env.SQL_SIZE }} bytes
+          Tables: ${{ env.TABLE_COUNT }}
+          Insert statements: ${{ env.INSERT_COUNT }}
+          Size trend: ${{ env.SIZE_TREND }}
+          Destinations: primary + redundant
+          Encrypted: AES-256 (GPG)
+          ${SIZE_WARNING_MSG}
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          — e-Daarah Backup Bot
+          EOF
 
       - name: Send failure alert
         if: env.VERIFY_STATUS == 'failed'
         run: |
           cat <<EOF | msmtp "${{ secrets.EMAIL_USERNAME }}"
-          Subject: [e-Daarah] Backup Verification FAILED - ${{ env.DATE }}
+          Subject: [e-Daarah] Backup FAILED - ${{ env.DATE }}
           From: ${{ secrets.EMAIL_USERNAME }}
           To: ${{ secrets.EMAIL_USERNAME }}
 
@@ -200,7 +316,7 @@ jobs:
           Backup size: ${{ env.BACKUP_SIZE }}
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-          Row count diff:
+          Issue:
           ${{ env.VERIFY_DIFF }}
 
           — e-Daarah Backup Bot
@@ -214,5 +330,6 @@ jobs:
         if: always()
         run: |
           rm -f "$BACKUP_DIR/$FILENAME"
+          rm -f "$BACKUP_DIR/$FILENAME.gpg"
           rm -f ~/.config/rclone/rclone.conf
           rm -f ~/.msmtprc

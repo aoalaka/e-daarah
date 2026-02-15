@@ -436,9 +436,9 @@ const markdownToHtml = (text) => {
     // Close list if we were in one
     if (inList) { result.push('</ul>'); inList = false; }
 
-    // Heading
-    if (/^##\s+/.test(trimmed)) {
-      result.push(`<h2 style="margin: 20px 0 8px 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^##\s+/, ''))}</h2>`);
+    // Heading (# or ##)
+    if (/^#{1,2}\s+/.test(trimmed)) {
+      result.push(`<h2 style="margin: 20px 0 8px 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^#{1,2}\s+/, ''))}</h2>`);
       continue;
     }
 

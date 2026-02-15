@@ -1081,7 +1081,7 @@ function SuperAdminDashboard() {
                   required
                 />
                 <span style={{ fontSize: '12px', color: '#888', marginTop: '4px', display: 'block' }}>
-                  Supports: **bold**, *italic*, - bullet lists, ## headings, [link text](url)
+                  Supports: **bold**, *italic*, - bullet lists, # or ## headings, [link text](url)
                 </span>
               </div>
 

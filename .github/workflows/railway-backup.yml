@@ -10,7 +10,7 @@ env:
   DB_NAME: ${{ secrets.DB_NAME }}
   RESTORE_DB: railway_restore_test
   BACKUP_DIR: /tmp/mysql_backups
-  RCLONE_REMOTE: "gdrive_enc:backups/mysql/railway"
+  RCLONE_REMOTE: "gdrive:backups/mysql/railway"
 
 jobs:
   backup:
@@ -79,7 +79,7 @@ jobs:
           echo "Backup size: $SIZE"
           echo "BACKUP_SIZE=$SIZE" >> "$GITHUB_ENV"
 
-      - name: Upload to encrypted Google Drive
+      - name: Upload to Google Drive
         run: |
           rclone copy "$BACKUP_DIR/$FILENAME" "$RCLONE_REMOTE" --checksum
           echo "Uploaded $FILENAME to $RCLONE_REMOTE"

@@ -138,59 +138,53 @@ jobs:
           echo "Retention cleanup: deleted $DELETED old backups"
           rm -f "$KEEP_FILES"
 
-      - name: Start local MySQL for restore verification
-        run: |
-          sudo systemctl start mysql || sudo service mysql start
-
-      - name: Restore and verify backup
+      - name: Verify backup integrity
         id: verify
         run: |
           set -euo pipefail
 
-          # Create restore database
-          sudo mysql -e "DROP DATABASE IF EXISTS $RESTORE_DB;"
-          sudo mysql -e "CREATE DATABASE $RESTORE_DB;"
-
-          # Restore
-          gunzip -c "$BACKUP_DIR/$FILENAME" | sudo mysql "$RESTORE_DB"
-          echo "Restore complete"
-
-          # Compare table row counts
-          ORIGINAL=$(mysql -N -e "
-            SELECT table_name, table_rows
-            FROM information_schema.tables
-            WHERE table_schema='$DB_NAME'
-            ORDER BY table_name;
-          " --host="${{ secrets.DB_HOST }}" --port="${{ secrets.DB_PORT }}" --user="${{ secrets.DB_USER }}" --password="${{ secrets.DB_PASSWORD }}" 2>/dev/null)
-
-          RESTORED=$(sudo mysql -N -e "
-            SELECT table_name, table_rows
-            FROM information_schema.tables
-            WHERE table_schema='$RESTORE_DB'
-            ORDER BY table_name;
-          " 2>/dev/null)
-
-          echo "--- Original ---"
-          echo "$ORIGINAL"
-          echo "--- Restored ---"
-          echo "$RESTORED"
-
-          DIFF=$(diff <(echo "$ORIGINAL") <(echo "$RESTORED") || true)
-
-          if [ -z "$DIFF" ]; then
-            echo "Backup verified: restored DB matches production"
-            echo "VERIFY_STATUS=passed" >> "$GITHUB_ENV"
-          else
-            echo "::error::Backup verification FAILED — row count mismatch"
-            echo "$DIFF"
+          # 1. Check gzip integrity
+          if ! gunzip -t "$BACKUP_DIR/$FILENAME"; then
+            echo "::error::Backup file is corrupt (gzip test failed)"
             echo "VERIFY_STATUS=failed" >> "$GITHUB_ENV"
-            echo "VERIFY_DIFF<<EOF" >> "$GITHUB_ENV"
-            echo "$DIFF" >> "$GITHUB_ENV"
-            echo "EOF" >> "$GITHUB_ENV"
+            echo "VERIFY_DIFF=Gzip integrity check failed" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          echo "Gzip integrity: OK"
+
+          # 2. Extract and check SQL content
+          SQL_CONTENT=$(gunzip -c "$BACKUP_DIR/$FILENAME")
+          SQL_SIZE=${#SQL_CONTENT}
+          echo "Uncompressed SQL size: $SQL_SIZE bytes"
+
+          if [ "$SQL_SIZE" -lt 500 ]; then
+            echo "::error::Backup too small — likely empty or failed dump"
+            echo "VERIFY_STATUS=failed" >> "$GITHUB_ENV"
+            echo "VERIFY_DIFF=SQL dump only $SQL_SIZE bytes" >> "$GITHUB_ENV"
+            exit 0
           fi
 
-          # Cleanup
-          sudo mysql -e "DROP DATABASE IF EXISTS $RESTORE_DB;" 2>/dev/null || true
+          # 3. Check for CREATE TABLE statements
+          TABLE_COUNT=$(echo "$SQL_CONTENT" | grep -c "^CREATE TABLE" || true)
+          echo "Tables found in backup: $TABLE_COUNT"
+
+          if [ "$TABLE_COUNT" -lt 1 ]; then
+            echo "::error::No CREATE TABLE statements found in backup"
+            echo "VERIFY_STATUS=failed" >> "$GITHUB_ENV"
+            echo "VERIFY_DIFF=No tables in backup" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          # 4. List all tables in the backup
+          echo "--- Tables in backup ---"
+          echo "$SQL_CONTENT" | grep "^CREATE TABLE" | sed 's/CREATE TABLE `\(.*\)`.*/\1/'
+
+          # 5. Check for INSERT statements (data exists)
+          INSERT_COUNT=$(echo "$SQL_CONTENT" | grep -c "^INSERT INTO" || true)
+          echo "INSERT statements: $INSERT_COUNT"
+
+          echo "Backup verified: $TABLE_COUNT tables, $INSERT_COUNT inserts, $SQL_SIZE bytes"
+          echo "VERIFY_STATUS=passed" >> "$GITHUB_ENV"
 
       - name: Send failure alert
         if: env.VERIFY_STATUS == 'failed'

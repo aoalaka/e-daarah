@@ -1,0 +1,225 @@
+name: Railway MySQL Backup
+
+on:
+  schedule:
+    # 2:30 AM NZST = 14:30 UTC (NZDT = 13:30 UTC, but 14:30 covers standard time)
+    - cron: '30 14 * * *'
+  workflow_dispatch:
+
+env:
+  DB_NAME: ${{ secrets.DB_NAME }}
+  RESTORE_DB: railway_restore_test
+  BACKUP_DIR: /tmp/mysql_backups
+  RCLONE_REMOTE: "gdrive_enc:backups/mysql/railway"
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Install MySQL client and rclone
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mysql-client rclone msmtp
+
+      - name: Configure rclone
+        run: |
+          mkdir -p ~/.config/rclone
+          echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
+          chmod 600 ~/.config/rclone/rclone.conf
+
+      - name: Configure msmtp for email alerts
+        run: |
+          cat > ~/.msmtprc <<'MSMTP'
+          defaults
+          auth           on
+          tls            on
+          tls_starttls   on
+          tls_trust_file /etc/ssl/certs/ca-certificates.crt
+          logfile        /tmp/msmtp.log
+
+          account        gmail
+          host           smtp.gmail.com
+          port           587
+          from           $EMAIL_USERNAME
+          user           $EMAIL_USERNAME
+          password       $EMAIL_PASSWORD
+
+          account default : gmail
+          MSMTP
+          # Substitute env vars (secrets can't go in heredoc directly)
+          sed -i "s|\$EMAIL_USERNAME|${{ secrets.EMAIL_USERNAME }}|g" ~/.msmtprc
+          sed -i "s|\$EMAIL_PASSWORD|${{ secrets.EMAIL_PASSWORD }}|g" ~/.msmtprc
+          chmod 600 ~/.msmtprc
+
+      - name: Dump production database
+        run: |
+          set -euo pipefail
+          mkdir -p "$BACKUP_DIR"
+          DATE=$(date -u +"%Y-%m-%d_%H-%M")
+          FILENAME="${DB_NAME}_${DATE}.sql.gz"
+          echo "FILENAME=$FILENAME" >> "$GITHUB_ENV"
+          echo "DATE=$DATE" >> "$GITHUB_ENV"
+
+          mysqldump \
+            --host="${{ secrets.DB_HOST }}" \
+            --user="${{ secrets.DB_USER }}" \
+            --password="${{ secrets.DB_PASSWORD }}" \
+            --single-transaction \
+            --quick \
+            --routines \
+            --events \
+            --set-gtid-purged=OFF \
+            "$DB_NAME" | gzip > "$BACKUP_DIR/$FILENAME"
+
+          SIZE=$(du -h "$BACKUP_DIR/$FILENAME" | cut -f1)
+          echo "Backup size: $SIZE"
+          echo "BACKUP_SIZE=$SIZE" >> "$GITHUB_ENV"
+
+      - name: Upload to encrypted Google Drive
+        run: |
+          rclone copy "$BACKUP_DIR/$FILENAME" "$RCLONE_REMOTE" --checksum
+          echo "Uploaded $FILENAME to $RCLONE_REMOTE"
+
+      - name: Smart retention cleanup
+        run: |
+          set -euo pipefail
+
+          # List all backups sorted by date (oldest first)
+          BACKUPS=$(rclone lsf "$RCLONE_REMOTE" --files-only | sort)
+          TOTAL=$(echo "$BACKUPS" | grep -c . || true)
+          echo "Total backups in remote: $TOTAL"
+
+          if [ "$TOTAL" -le 7 ]; then
+            echo "7 or fewer backups — skipping retention cleanup"
+            exit 0
+          fi
+
+          # Determine which files to keep
+          KEEP_FILES=$(mktemp)
+
+          # Keep last 7 daily backups
+          echo "$BACKUPS" | tail -7 >> "$KEEP_FILES"
+
+          # Keep weekly backups (oldest backup per ISO week) for last 4 weeks
+          for i in $(seq 0 3); do
+            WEEK_START=$(date -u -d "-$((i * 7)) days" +%Y-%m-%d 2>/dev/null || date -u -v-$((i * 7))d +%Y-%m-%d)
+            WEEK_MATCH=$(echo "$BACKUPS" | grep "$(echo "$WEEK_START" | cut -c1-8)" | head -1 || true)
+            if [ -n "$WEEK_MATCH" ]; then
+              echo "$WEEK_MATCH" >> "$KEEP_FILES"
+            fi
+          done
+
+          # Keep monthly backups (first backup per month) for last 6 months
+          for i in $(seq 0 5); do
+            MONTH=$(date -u -d "-$i months" +%Y-%m 2>/dev/null || date -u -v-${i}m +%Y-%m)
+            MONTH_MATCH=$(echo "$BACKUPS" | grep "${DB_NAME}_${MONTH}" | head -1 || true)
+            if [ -n "$MONTH_MATCH" ]; then
+              echo "$MONTH_MATCH" >> "$KEEP_FILES"
+            fi
+          done
+
+          # Deduplicate keep list
+          KEEP_UNIQUE=$(sort -u "$KEEP_FILES")
+
+          # Delete files not in keep list
+          DELETED=0
+          while IFS= read -r file; do
+            if ! echo "$KEEP_UNIQUE" | grep -qF "$file"; then
+              echo "Deleting old backup: $file"
+              rclone deletefile "$RCLONE_REMOTE/$file"
+              DELETED=$((DELETED + 1))
+            fi
+          done <<< "$BACKUPS"
+
+          echo "Retention cleanup: deleted $DELETED old backups"
+          rm -f "$KEEP_FILES"
+
+      - name: Start local MySQL for restore verification
+        run: |
+          sudo systemctl start mysql || sudo service mysql start
+          # Set root password access
+          sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'testpass'; FLUSH PRIVILEGES;" || true
+
+      - name: Restore and verify backup
+        id: verify
+        run: |
+          set -euo pipefail
+          MYSQL="mysql -u root -ptestpass"
+
+          # Create restore database
+          $MYSQL -e "DROP DATABASE IF EXISTS $RESTORE_DB;"
+          $MYSQL -e "CREATE DATABASE $RESTORE_DB;"
+
+          # Restore
+          gunzip -c "$BACKUP_DIR/$FILENAME" | $MYSQL "$RESTORE_DB"
+          echo "Restore complete"
+
+          # Compare table row counts
+          ORIGINAL=$($MYSQL -N -e "
+            SELECT table_name, table_rows
+            FROM information_schema.tables
+            WHERE table_schema='$DB_NAME'
+            ORDER BY table_name;
+          " --host="${{ secrets.DB_HOST }}" --user="${{ secrets.DB_USER }}" --password="${{ secrets.DB_PASSWORD }}" 2>/dev/null)
+
+          RESTORED=$($MYSQL -N -e "
+            SELECT table_name, table_rows
+            FROM information_schema.tables
+            WHERE table_schema='$RESTORE_DB'
+            ORDER BY table_name;
+          " 2>/dev/null)
+
+          echo "--- Original ---"
+          echo "$ORIGINAL"
+          echo "--- Restored ---"
+          echo "$RESTORED"
+
+          DIFF=$(diff <(echo "$ORIGINAL") <(echo "$RESTORED") || true)
+
+          if [ -z "$DIFF" ]; then
+            echo "Backup verified: restored DB matches production"
+            echo "VERIFY_STATUS=passed" >> "$GITHUB_ENV"
+          else
+            echo "::error::Backup verification FAILED — row count mismatch"
+            echo "$DIFF"
+            echo "VERIFY_STATUS=failed" >> "$GITHUB_ENV"
+            echo "VERIFY_DIFF<<EOF" >> "$GITHUB_ENV"
+            echo "$DIFF" >> "$GITHUB_ENV"
+            echo "EOF" >> "$GITHUB_ENV"
+          fi
+
+          # Cleanup
+          $MYSQL -e "DROP DATABASE IF EXISTS $RESTORE_DB;" 2>/dev/null || true
+
+      - name: Send failure alert
+        if: env.VERIFY_STATUS == 'failed'
+        run: |
+          cat <<EOF | msmtp "${{ secrets.EMAIL_USERNAME }}"
+          Subject: [e-Daarah] Backup Verification FAILED - ${{ env.DATE }}
+          From: ${{ secrets.EMAIL_USERNAME }}
+          To: ${{ secrets.EMAIL_USERNAME }}
+
+          Railway MySQL backup verification failed.
+
+          Backup file: ${{ env.FILENAME }}
+          Backup size: ${{ env.BACKUP_SIZE }}
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Row count diff:
+          ${{ env.VERIFY_DIFF }}
+
+          — e-Daarah Backup Bot
+          EOF
+
+      - name: Fail workflow if verification failed
+        if: env.VERIFY_STATUS == 'failed'
+        run: exit 1
+
+      - name: Cleanup local files
+        if: always()
+        run: |
+          rm -f "$BACKUP_DIR/$FILENAME"
+          rm -f ~/.config/rclone/rclone.conf
+          rm -f ~/.msmtprc

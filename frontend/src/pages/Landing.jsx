@@ -153,14 +153,14 @@ function Landing() {
           <Link to="/pricing" className="pricing-link">See full plan comparison →</Link>
         </p>
 
-        <div className="regional-discount">
+        {/* <div className="regional-discount">
           <p className="discount-text">
             <strong>50% off the Plus ANNUAL PLAN for schools in Australia &amp; New Zealand</strong>
           </p>
           <p className="discount-subtext">
             Email <a href="mailto:support@e-daarah.com?subject=NZ/AU%20Plus%20Discount%20Request">support@e-daarah.com</a> to get your coupon code.
           </p>
-        </div>
+        </div> */}
       </section>
 
       {/* Footer */}

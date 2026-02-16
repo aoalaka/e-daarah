@@ -240,14 +240,14 @@ function Pricing() {
         </div>
 
         {/* Regional Discount */}
-        <div className="regional-discount">
+        {/* <div className="regional-discount">
           <p className="discount-text">
             <strong>50% off Plus ANNUAL PLAN for schools in Australia & New Zealand</strong>
           </p>
           <p className="discount-subtext">
             Contact us at <a href="mailto:support@e-daarah.com?subject=NZ/AU%20Plus%20Discount%20Request">support@e-daarah.com</a> for your coupon code.
           </p>
-        </div>
+        </div> */}
 
         {/* FAQ Section */}
         <section className="pricing-faq">

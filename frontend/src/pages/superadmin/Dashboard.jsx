@@ -319,8 +319,12 @@ function SuperAdminDashboard() {
         payload.emails = emailList;
       }
       const response = await api.post('/superadmin/email-broadcast', payload, getAuthHeader());
-      const { sent, failed, total } = response.data;
-      alert(isTest ? `Test email sent to ${testEmail}` : `Sent: ${sent}, Failed: ${failed}, Total: ${total}`);
+      const { sent, failed, total, error: sendError } = response.data;
+      if (isTest) {
+        alert(sent > 0 ? `Test email sent to ${testEmail}` : `Failed to send test email: ${sendError || 'Unknown error'}`);
+      } else {
+        alert(`Sent: ${sent}, Failed: ${failed}, Total: ${total}`);
+      }
       if (!isTest) {
         setEmailBroadcastForm({ subject: '', message: '', emails: '', testEmail: '', fromEmail: 'noreply@e-daarah.com' });
         fetchEmailBroadcasts();

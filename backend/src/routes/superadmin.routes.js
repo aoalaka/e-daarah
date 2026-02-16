@@ -1196,7 +1196,7 @@ router.post('/email-broadcast', authenticateSuperAdmin, async (req, res) => {
     console.log(`[Broadcast] Completed: ${sent} sent, ${failed} failed out of ${emails.length}`);
     if (errors.length > 0) console.log('[Broadcast] Errors:', errors);
 
-    res.json({ sent, failed, total: emails.length });
+    res.json({ sent, failed, total: emails.length, errors: errors.length > 0 ? errors : undefined });
   } catch (error) {
     console.error('Error sending broadcast:', error);
     res.status(500).json({ error: error.message || 'Failed to send broadcast' });

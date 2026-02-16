@@ -1186,15 +1186,19 @@ router.post('/email-broadcast', authenticateSuperAdmin, async (req, res) => {
       await new Promise(r => setTimeout(r, 150));
     }
 
-    // Log to database
-    await ensureBroadcastTables();
-    await pool.query(
-      'INSERT INTO email_broadcasts (subject, message, sent_count, failed_count, status, created_by) VALUES (?, ?, ?, ?, ?, ?)',
-      [subject, message, sent, failed, failed === emails.length ? 'failed' : 'sent', req.superAdmin?.id]
-    );
-
     console.log(`[Broadcast] Completed: ${sent} sent, ${failed} failed out of ${emails.length}`);
     if (errors.length > 0) console.log('[Broadcast] Errors:', errors);
+
+    // Log to database (non-blocking — don't let DB errors affect the response)
+    try {
+      await ensureBroadcastTables();
+      await pool.query(
+        'INSERT INTO email_broadcasts (subject, message, sent_count, failed_count, status, created_by) VALUES (?, ?, ?, ?, ?, ?)',
+        [subject, message, sent, failed, failed === emails.length ? 'failed' : 'sent', req.superAdmin?.id]
+      );
+    } catch (dbErr) {
+      console.error('[Broadcast] Failed to log to database:', dbErr.message);
+    }
 
     res.json({ sent, failed, total: emails.length, errors: errors.length > 0 ? errors : undefined });
   } catch (error) {

@@ -1182,8 +1182,8 @@ router.post('/email-broadcast', authenticateSuperAdmin, async (req, res) => {
         failed++;
         errors.push({ email, error: result.error });
       }
-      // 150ms delay between sends = ~6.6 req/s (well under Resend's 10/s limit)
-      await new Promise(r => setTimeout(r, 150));
+      // 600ms delay between sends = ~1.7 req/s (under Resend's 2/s rate limit)
+      await new Promise(r => setTimeout(r, 600));
     }
 
     console.log(`[Broadcast] Completed: ${sent} sent, ${failed} failed out of ${emails.length}`);

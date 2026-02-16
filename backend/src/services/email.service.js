@@ -512,14 +512,14 @@ export const sendBroadcastEmail = async (email, subject, message, fromOverride) 
 
     if (error) {
       console.error('[Email] Broadcast email error:', error);
-      return { success: false };
+      return { success: false, error: error.message || 'Resend API error' };
     }
 
     console.log(`[Email] Broadcast sent to ${email}, ID: ${data.id}`);
     return { success: true, messageId: data.id };
   } catch (error) {
     console.error('[Email] Failed to send broadcast:', error);
-    return { success: false };
+    return { success: false, error: error.message || 'Failed to send email' };
   }
 };
 

@@ -1042,6 +1042,10 @@ const ensureBroadcastTables = async () => {
   try {
     await pool.query(`ALTER TABLE email_broadcasts ADD COLUMN status VARCHAR(50) DEFAULT 'sent'`);
   } catch { /* column already exists */ }
+  // Make target column nullable (was NOT NULL in original schema, no longer used in INSERT)
+  try {
+    await pool.query(`ALTER TABLE email_broadcasts MODIFY COLUMN target VARCHAR(50) DEFAULT NULL`);
+  } catch { /* column doesn't exist or already modified */ }
   await pool.query(`
     CREATE TABLE IF NOT EXISTS email_templates (
       id INT AUTO_INCREMENT PRIMARY KEY,

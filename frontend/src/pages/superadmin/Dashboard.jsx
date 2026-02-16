@@ -70,10 +70,11 @@ function SuperAdminDashboard() {
   const [ticketMessages, setTicketMessages] = useState([]);
   const [ticketReply, setTicketReply] = useState('');
   // Email broadcast state
-  const [emailBroadcastForm, setEmailBroadcastForm] = useState({ subject: '', message: '', emails: '', testEmail: '', fromEmail: 'noreply@e-daarah.com' });
+  const [emailBroadcastForm, setEmailBroadcastForm] = useState({ subject: '', message: '', emails: '', fromEmail: 'noreply@e-daarah.com' });
   const [emailBroadcasts, setEmailBroadcasts] = useState([]);
   const [emailTemplates, setEmailTemplates] = useState([]);
   const [emailSending, setEmailSending] = useState(false);
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [editingTemplateId, setEditingTemplateId] = useState(null);
 
@@ -255,6 +256,56 @@ function SuperAdminDashboard() {
     }
   };
 
+  // Simple markdown to HTML (mirrors backend markdownToHtml)
+  const markdownToHtml = (text) => {
+    const formatInline = (t) => t
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" style="color: #1a1a1a; text-decoration: underline;">$1</a>');
+    const lines = text.split('\n');
+    const result = [];
+    let inList = false;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (/^[-*]\s+/.test(trimmed)) {
+        if (!inList) { result.push('<ul style="margin: 8px 0; padding-left: 20px;">'); inList = true; }
+        result.push(`<li style="margin: 4px 0; color: #4a4a4a;">${formatInline(trimmed.replace(/^[-*]\s+/, ''))}</li>`);
+        continue;
+      }
+      if (inList) { result.push('</ul>'); inList = false; }
+      if (/^#{1,2}\s+/.test(trimmed)) { result.push(`<h2 style="margin: 20px 0 8px 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^#{1,2}\s+/, ''))}</h2>`); continue; }
+      if (!trimmed) { result.push('<br>'); continue; }
+      result.push(`${formatInline(trimmed)}<br>`);
+    }
+    if (inList) result.push('</ul>');
+    return result.join('\n');
+  };
+
+  const buildPreviewHtml = (subject, message) => {
+    const htmlMessage = markdownToHtml(message);
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center" style="padding:40px 20px;">
+<table role="presentation" style="width:100%;max-width:560px;border-collapse:collapse;">
+<tr><td align="center" style="padding-bottom:24px;">
+<img src="https://www.e-daarah.com/e-daarah-whitebg-logo.png" alt="e-Daarah" style="height:40px;width:auto;display:block;margin:0 auto;" />
+<span style="display:block;font-size:18px;font-weight:600;color:#1a1a1a;letter-spacing:-0.3px;margin-top:8px;">e-Daarah</span>
+</td></tr>
+<tr><td style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+<td style="padding:40px;text-align:justify;">
+<h1 style="margin:0 0 16px 0;font-size:24px;font-weight:600;color:#1a1a1a;text-align:left;">${subject}</h1>
+<div style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4a4a;text-align:justify;">${htmlMessage}</div>
+<table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center">
+<a href="https://www.e-daarah.com" style="display:inline-block;padding:14px 32px;background-color:#1a1a1a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;border-radius:6px;">Visit e-Daarah</a>
+</td></tr></table></td>
+</td></tr>
+<tr><td align="center" style="padding-top:24px;">
+<p style="margin:0;font-size:13px;color:#888;">&copy; ${new Date().getFullYear()} e-Daarah. All rights reserved.</p>
+<p style="margin:8px 0 0 0;font-size:12px;color:#aaa;">Madrasah Administration Made Simple</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+  };
+
   const fetchTickets = async () => {
     try {
       const response = await api.get(`/superadmin/tickets?status=${ticketFilter}`, getAuthHeader());
@@ -300,35 +351,21 @@ function SuperAdminDashboard() {
     }
   };
 
-  const handleSendBroadcast = async (isTest = false) => {
-    const { subject, message, emails, testEmail, fromEmail } = emailBroadcastForm;
+  const handleSendBroadcast = async () => {
+    const { subject, message, emails, fromEmail } = emailBroadcastForm;
     if (!subject || !message) { alert('Subject and message are required'); return; }
-    if (isTest && !testEmail) { alert('Enter a test email address'); return; }
 
-    // Parse email list
     const emailList = emails.split(/[\n,;]+/).map(e => e.trim()).filter(e => e && e.includes('@'));
-    if (!isTest && emailList.length === 0) { alert('Add at least one recipient email'); return; }
-    if (!isTest && !confirm(`Send this email to ${emailList.length} recipient${emailList.length !== 1 ? 's' : ''}?`)) return;
+    if (emailList.length === 0) { alert('Add at least one recipient email'); return; }
+    if (!confirm(`Send this email to ${emailList.length} recipient${emailList.length !== 1 ? 's' : ''}?`)) return;
 
     setEmailSending(true);
     try {
-      const payload = { subject, message, fromEmail };
-      if (isTest) {
-        payload.testEmail = testEmail;
-      } else {
-        payload.emails = emailList;
-      }
-      const response = await api.post('/superadmin/email-broadcast', payload, getAuthHeader());
-      const { sent, failed, total, error: sendError } = response.data;
-      if (isTest) {
-        alert(sent > 0 ? `Test email sent to ${testEmail}` : `Failed to send test email: ${sendError || 'Unknown error'}`);
-      } else {
-        alert(`Sent: ${sent}, Failed: ${failed}, Total: ${total}`);
-      }
-      if (!isTest) {
-        setEmailBroadcastForm({ subject: '', message: '', emails: '', testEmail: '', fromEmail: 'noreply@e-daarah.com' });
-        fetchEmailBroadcasts();
-      }
+      const response = await api.post('/superadmin/email-broadcast', { subject, message, fromEmail, emails: emailList }, getAuthHeader());
+      const { sent, failed, total } = response.data;
+      alert(`Sent: ${sent}, Failed: ${failed}, Total: ${total}`);
+      setEmailBroadcastForm({ subject: '', message: '', emails: '', fromEmail: 'noreply@e-daarah.com' });
+      fetchEmailBroadcasts();
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to send broadcast');
     } finally {
@@ -1145,36 +1182,52 @@ function SuperAdminDashboard() {
                 )}
               </div>
 
-              <div className="form-group">
-                <label>Test Email (optional — preview before sending)</label>
-                <input
-                  type="email"
-                  value={emailBroadcastForm.testEmail}
-                  onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, testEmail: e.target.value })}
-                  placeholder="your@email.com"
-                />
-              </div>
-
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   type="button"
                   className="btn"
-                  onClick={() => handleSendBroadcast(true)}
-                  disabled={emailSending || !emailBroadcastForm.testEmail}
-                  style={{ opacity: emailBroadcastForm.testEmail ? 1 : 0.5 }}
+                  onClick={() => setShowEmailPreview(true)}
+                  disabled={!emailBroadcastForm.subject || !emailBroadcastForm.message}
+                  style={{ opacity: emailBroadcastForm.subject && emailBroadcastForm.message ? 1 : 0.5 }}
                 >
-                  {emailSending ? 'Sending...' : 'Send Test'}
+                  Preview
                 </button>
                 <button
                   type="button"
                   className="btn primary"
-                  onClick={() => handleSendBroadcast(false)}
+                  onClick={handleSendBroadcast}
                   disabled={emailSending}
                 >
                   {emailSending ? 'Sending...' : 'Send Broadcast'}
                 </button>
               </div>
             </form>
+
+            {/* Email Preview Modal */}
+            {showEmailPreview && (
+              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setShowEmailPreview(false)}>
+                <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '680px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={(e) => e.stopPropagation()}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Email Preview</h3>
+                      <span style={{ fontSize: '12px', color: '#888' }}>From: {emailBroadcastForm.fromEmail}</span>
+                    </div>
+                    <button onClick={() => setShowEmailPreview(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888', padding: '4px 8px' }}>&times;</button>
+                  </div>
+                  <div style={{ flex: 1, overflow: 'auto' }}>
+                    <iframe
+                      srcDoc={buildPreviewHtml(emailBroadcastForm.subject, emailBroadcastForm.message)}
+                      style={{ width: '100%', height: '500px', border: 'none' }}
+                      title="Email Preview"
+                      sandbox=""
+                    />
+                  </div>
+                  <div style={{ padding: '12px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <button className="btn" onClick={() => setShowEmailPreview(false)}>Close</button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {emailBroadcasts.length > 0 && (
               <>

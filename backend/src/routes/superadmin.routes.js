@@ -1031,8 +1031,6 @@ const ensureBroadcastTables = async () => {
       id INT AUTO_INCREMENT PRIMARY KEY,
       subject VARCHAR(255) NOT NULL,
       message TEXT NOT NULL,
-      segment_id VARCHAR(255),
-      resend_broadcast_id VARCHAR(255),
       sent_count INT DEFAULT 0,
       failed_count INT DEFAULT 0,
       status VARCHAR(50) DEFAULT 'sent',
@@ -1040,6 +1038,10 @@ const ensureBroadcastTables = async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  // Add status column if table was created before it existed
+  try {
+    await pool.query(`ALTER TABLE email_broadcasts ADD COLUMN status VARCHAR(50) DEFAULT 'sent'`);
+  } catch { /* column already exists */ }
   await pool.query(`
     CREATE TABLE IF NOT EXISTS email_templates (
       id INT AUTO_INCREMENT PRIMARY KEY,

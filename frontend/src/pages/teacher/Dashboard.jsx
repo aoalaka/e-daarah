@@ -101,6 +101,9 @@ function TeacherDashboard() {
   // School day validation state
   const [schoolDayInfo, setSchoolDayInfo] = useState(null);
   const [attendanceDateWarning, setAttendanceDateWarning] = useState('');
+  // Overview state
+  const [overviewData, setOverviewData] = useState(null);
+  const [overviewLoading, setOverviewLoading] = useState(false);
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
@@ -137,7 +140,15 @@ function TeacherDashboard() {
     fetchMadrasahInfo();
     fetchSurahList();
     fetchSchoolDayInfo();
+    fetchOverview();
   }, []);
+
+  // Refresh overview when tab becomes active
+  useEffect(() => {
+    if (activeTab === 'overview') {
+      fetchOverview();
+    }
+  }, [activeTab]);
 
   // Validate attendance date against school day rules
   useEffect(() => {
@@ -529,6 +540,18 @@ function TeacherDashboard() {
       setClasses(response.data);
     } catch (error) {
       console.error('Failed to fetch classes:', error);
+    }
+  };
+
+  const fetchOverview = async () => {
+    setOverviewLoading(true);
+    try {
+      const response = await api.get('/teacher/overview');
+      setOverviewData(response.data);
+    } catch (error) {
+      console.error('Failed to fetch overview:', error);
+    } finally {
+      setOverviewLoading(false);
     }
   };
 
@@ -1319,44 +1342,128 @@ function TeacherDashboard() {
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <>
-              <div className="page-header">
-                <h2 className="page-title">Overview</h2>
+              {/* Greeting + Semester */}
+              <div className="overview-greeting">
+                <h2 className="page-title">
+                  {(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}{user?.firstName ? `, ${user.firstName}` : ''}
+                </h2>
+                <span className="overview-context">
+                  {activeSemester ? activeSemester.name : ''}
+                </span>
               </div>
 
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-value">{classes.length}</div>
-                  <div className="stat-label">Assigned Classes</div>
+              {overviewLoading ? (
+                <div className="card" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
+                  <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
                 </div>
-                <div className="stat-card">
-                  <div className="stat-value">{students.length}</div>
-                  <div className="stat-label">Total Students</div>
-                </div>
-              </div>
-
-              <h3 className="section-title">Your Classes</h3>
-              {classes.length > 0 ? (
-                <div className="quick-grid">
-                  {classes.map(cls => (
-                    <div
-                      key={cls.id}
-                      className="quick-card"
-                      onClick={() => {
-                        setSelectedClass(cls);
-                        setActiveTab('attendance');
-                      }}
-                    >
-                      <h4>{cls.name}</h4>
-                      <p>Click to take attendance</p>
+              ) : overviewData ? (
+                <>
+                  {/* Quick Stats */}
+                  <div className="compact-stats">
+                    <div className="compact-stat-card">
+                      <div className="compact-stat-value">{overviewData.stats.total_students}</div>
+                      <div className="compact-stat-label">Students</div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="card">
-                  <div className="empty">
-                    <p>No classes assigned yet. Contact your administrator.</p>
+                    <div className="compact-stat-card">
+                      <div className="compact-stat-value">{overviewData.stats.attendance_rate !== null ? `${overviewData.stats.attendance_rate}%` : '-'}</div>
+                      <div className="compact-stat-label">Attendance Rate</div>
+                    </div>
+                    <div className="compact-stat-card">
+                      <div className="compact-stat-value">{overviewData.stats.exams_recorded}</div>
+                      <div className="compact-stat-label">Exams Recorded</div>
+                    </div>
                   </div>
-                </div>
+
+                  {/* Today's Classes */}
+                  <h4 className="overview-section-title" style={{ marginBottom: 'var(--sm)' }}>Today's Classes</h4>
+                  {overviewData.classes.length > 0 ? (
+                    <div className="today-classes-grid">
+                      {overviewData.classes.map(cls => (
+                        <div
+                          key={cls.id}
+                          className="today-class-card"
+                          onClick={() => {
+                            setSelectedClass(classes.find(c => c.id === cls.id) || { id: cls.id, name: cls.name });
+                            setActiveTab('attendance');
+                          }}
+                        >
+                          <div className="class-name">{cls.name}</div>
+                          <div className="class-student-count">{cls.student_count} student{cls.student_count !== 1 ? 's' : ''}</div>
+                          {cls.attendance_taken_today ? (
+                            <div className="attendance-status completed">
+                              {cls.present_count}/{cls.student_count} present
+                            </div>
+                          ) : (
+                            <div className="attendance-status not-taken">
+                              Take attendance
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="card">
+                      <div className="empty">
+                        <p>No classes assigned yet. Contact your administrator.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Alerts — Frequent Absences */}
+                  {overviewData.frequentAbsences && overviewData.frequentAbsences.length > 0 && (
+                    <div className="overview-widget">
+                      <h4>Frequent Absences This Month</h4>
+                      <table className="overview-table">
+                        <thead>
+                          <tr>
+                            <th>Student</th>
+                            <th>Class</th>
+                            <th>Absences</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {overviewData.frequentAbsences.map((s, i) => (
+                            <tr key={i}>
+                              <td>{s.first_name} {s.last_name}</td>
+                              <td>{s.class_name}</td>
+                              <td>{s.absence_count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Fallback — no overview data */
+                <>
+                  <div className="stats-grid">
+                    <div className="stat-card">
+                      <div className="stat-value">{classes.length}</div>
+                      <div className="stat-label">Assigned Classes</div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-value">{students.length}</div>
+                      <div className="stat-label">Total Students</div>
+                    </div>
+                  </div>
+                  {classes.length > 0 ? (
+                    <div className="quick-grid">
+                      {classes.map(cls => (
+                        <div key={cls.id} className="quick-card" onClick={() => { setSelectedClass(cls); setActiveTab('attendance'); }}>
+                          <h4>{cls.name}</h4>
+                          <p>Click to take attendance</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="card">
+                      <div className="empty">
+                        <p>No classes assigned yet. Contact your administrator.</p>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

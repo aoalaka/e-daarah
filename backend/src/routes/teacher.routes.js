@@ -202,6 +202,100 @@ router.get('/my-classes', async (req, res) => {
   }
 });
 
+// Teacher overview — today's status, stats, alerts
+router.get('/overview', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const userId = req.user.id;
+    const today = new Date().toISOString().split('T')[0];
+
+    // Get active semester
+    const [activeSemesters] = await pool.query(`
+      SELECT sem.id FROM semesters sem
+      JOIN sessions sess ON sem.session_id = sess.id
+      WHERE sess.madrasah_id = ? AND sem.is_active = 1
+        AND sem.deleted_at IS NULL AND sess.deleted_at IS NULL
+      LIMIT 1
+    `, [madrasahId]);
+    const activeSemesterId = activeSemesters[0]?.id || null;
+
+    // Per-class today's attendance status
+    const [classes] = await pool.query(`
+      SELECT c.id, c.name,
+        (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL) as student_count,
+        (SELECT COUNT(*) FROM attendance a WHERE a.class_id = c.id AND a.date = ? AND a.madrasah_id = ?) as attendance_count,
+        (SELECT SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) FROM attendance a WHERE a.class_id = c.id AND a.date = ? AND a.madrasah_id = ?) as present_count
+      FROM classes c
+      INNER JOIN class_teachers ct ON c.id = ct.class_id
+      WHERE ct.user_id = ? AND c.madrasah_id = ? AND c.deleted_at IS NULL
+    `, [today, madrasahId, today, madrasahId, userId, madrasahId]);
+
+    const classData = classes.map(c => ({
+      id: c.id,
+      name: c.name,
+      student_count: c.student_count || 0,
+      attendance_taken_today: c.attendance_count > 0,
+      present_count: c.present_count || 0,
+      absent_count: c.attendance_count > 0 ? c.attendance_count - (c.present_count || 0) : 0
+    }));
+
+    // Frequent absences this month across teacher's classes
+    const [frequentAbsences] = await pool.query(`
+      SELECT s.first_name, s.last_name, c.name as class_name, COUNT(*) as absence_count
+      FROM attendance a
+      JOIN students s ON a.student_id = s.id
+      JOIN classes c ON s.class_id = c.id
+      JOIN class_teachers ct ON ct.class_id = c.id
+      WHERE ct.user_id = ? AND a.present = 0
+        AND a.date >= DATE_FORMAT(NOW(), '%Y-%m-01')
+        AND a.madrasah_id = ?
+        AND s.deleted_at IS NULL
+      GROUP BY s.id
+      HAVING absence_count >= 3
+      ORDER BY absence_count DESC
+      LIMIT 5
+    `, [userId, madrasahId]);
+
+    // Quick stats
+    const totalStudents = classData.reduce((sum, c) => sum + c.student_count, 0);
+
+    let attendanceRate = null;
+    let examsRecorded = 0;
+
+    if (activeSemesterId) {
+      const [attRate] = await pool.query(`
+        SELECT ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate
+        FROM attendance a
+        JOIN class_teachers ct ON ct.class_id = a.class_id
+        WHERE ct.user_id = ? AND a.semester_id = ? AND a.madrasah_id = ?
+      `, [userId, activeSemesterId, madrasahId]);
+      attendanceRate = attRate[0]?.rate || null;
+
+      const [examCount] = await pool.query(`
+        SELECT COUNT(*) as count
+        FROM exam_performance ep
+        JOIN students s ON ep.student_id = s.id
+        JOIN class_teachers ct ON ct.class_id = s.class_id
+        WHERE ct.user_id = ? AND ep.semester_id = ? AND ep.madrasah_id = ?
+      `, [userId, activeSemesterId, madrasahId]);
+      examsRecorded = examCount[0]?.count || 0;
+    }
+
+    res.json({
+      classes: classData,
+      frequentAbsences,
+      stats: {
+        total_students: totalStudents,
+        attendance_rate: attendanceRate,
+        exams_recorded: examsRecorded
+      }
+    });
+  } catch (error) {
+    console.error('Teacher overview error:', error);
+    res.status(500).json({ error: 'Failed to fetch overview data' });
+  }
+});
+
 // Get students in a class (scoped to madrasah)
 router.get('/classes/:classId/students', async (req, res) => {
   try {

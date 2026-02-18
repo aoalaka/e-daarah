@@ -264,9 +264,9 @@ function AdminDashboard() {
     }
   }, [selectedClassForPerformance]);
 
-  // Fetch analytics when Reports tab is active and Insights is selected
+  // Fetch analytics when Overview or Reports > Insights tab is active
   useEffect(() => {
-    if (activeTab === 'reports' && reportSubTab === 'insights' && madrasahProfile) {
+    if ((activeTab === 'overview' || (activeTab === 'reports' && reportSubTab === 'insights')) && madrasahProfile) {
       fetchAnalytics();
     }
   }, [activeTab, reportSubTab, reportSemester, madrasahProfile]);
@@ -1435,51 +1435,239 @@ function AdminDashboard() {
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <>
-              <div className="page-header">
-                <h2 className="page-title">Overview</h2>
+              {/* Greeting + Context */}
+              <div className="overview-greeting">
+                <h2 className="page-title">
+                  {(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}{user?.firstName ? `, ${user.firstName}` : ''}
+                </h2>
+                <span className="overview-context">
+                  {(() => {
+                    const activeSession = sessions.find(s => s.is_active);
+                    const activeSemester = semesters.find(s => s.is_active);
+                    const parts = [];
+                    if (activeSession) parts.push(activeSession.name);
+                    if (activeSemester) parts.push(activeSemester.name);
+                    return parts.length > 0 ? parts.join(' · ') : '';
+                  })()}
+                </span>
               </div>
 
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-value">{semesters.length}</div>
-                  <div className="stat-label">Semesters</div>
+              {/* Key Metrics */}
+              {analyticsLoading ? (
+                <div className="card" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
+                  <p style={{ color: 'var(--text-muted)' }}>Loading insights...</p>
                 </div>
-                <div className="stat-card">
-                  <div className="stat-value">{classes.length}</div>
-                  <div className="stat-label">Classes</div>
-                  <UsageIndicator type="classes" current={classes.length} plan={madrasahProfile?.pricing_plan} />
-                </div>
-                <div className="stat-card">
-                  <div className="stat-value">{teachers.length}</div>
-                  <div className="stat-label">Teachers</div>
-                  <UsageIndicator type="teachers" current={teachers.length} plan={madrasahProfile?.pricing_plan} />
-                </div>
-                <div className="stat-card">
-                  <div className="stat-value">{students.length}</div>
-                  <div className="stat-label">Students</div>
-                  <UsageIndicator type="students" current={students.length} plan={madrasahProfile?.pricing_plan} />
-                </div>
-              </div>
+              ) : analyticsData ? (
+                <>
+                  <div className="insights-summary">
+                    <div className={`summary-card ${analyticsData.summary.attendanceStatus}`}>
+                      <div className="summary-value">{analyticsData.summary.overallAttendanceRate || 0}%</div>
+                      <div className="summary-label">Attendance</div>
+                      <div className="summary-status">
+                        {analyticsData.summary.attendanceLabel}
+                        {analyticsData.monthOverMonth && analyticsData.monthOverMonth.change !== 0 && (
+                          <span style={{ marginLeft: 6, fontSize: 12, color: analyticsData.monthOverMonth.change > 0 ? 'var(--accent)' : '#c1121f' }}>
+                            {analyticsData.monthOverMonth.change > 0 ? '+' : ''}{Math.round(analyticsData.monthOverMonth.change)}% vs last month
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className={`summary-card ${analyticsData.summary.studentsWithExams > 0 ? analyticsData.summary.examStatus : 'neutral'}`}>
+                      <div className="summary-value">
+                        {analyticsData.summary.studentsWithExams > 0 ? `${analyticsData.summary.avgExamPercentage || 0}%` : '-'}
+                      </div>
+                      <div className="summary-label">Exam Average</div>
+                      <div className="summary-status">
+                        {analyticsData.summary.studentsWithExams > 0 ? analyticsData.summary.examLabel : 'No exams yet'}
+                      </div>
+                    </div>
+                    <div className={`summary-card ${analyticsData.summary.studentsNeedingAttention > 0 ? 'needs-attention' : 'good'}`}>
+                      <div className="summary-value">{analyticsData.summary.studentsNeedingAttention}</div>
+                      <div className="summary-label">Need Attention</div>
+                      <div className="summary-status">Below 70% attendance</div>
+                    </div>
+                    <div className={`summary-card ${analyticsData.summary.studentsStruggling > 0 ? 'needs-attention' : 'good'}`}>
+                      <div className="summary-value">{analyticsData.summary.studentsStruggling || 0}</div>
+                      <div className="summary-label">Struggling</div>
+                      <div className="summary-status">Below 50% exam avg</div>
+                    </div>
+                  </div>
 
-              <h3 className="section-title">Quick Actions</h3>
-              <div className="quick-grid">
-                <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('planner'); setPlannerSubTab('sessions'); } }}>
-                  <h4>New Session</h4>
-                  <p>Create a new academic year</p>
-                </div>
-                <div className="quick-card" onClick={() => { setActiveTab('reports'); setReportSubTab('insights'); }}>
-                  <h4>View Quick Insights</h4>
-                  <p>Check attendance & exam alerts</p>
-                </div>
-                <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('classes'); setShowClassForm(true); } }}>
-                  <h4>New Class</h4>
-                  <p>Add a new class group</p>
-                </div>
-                <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('students'); setShowStudentForm(true); } }}>
-                  <h4>New Student</h4>
-                  <p>Enroll a new student</p>
-                </div>
-              </div>
+                  {/* Two-Column Layout */}
+                  <div className="overview-columns">
+                    {/* Left Column — Alerts & Tables */}
+                    <div>
+                      {/* Today's Alerts */}
+                      {analyticsData.quickActions && (
+                        <div className={`alert-panel ${analyticsData.quickActions.attendanceMarkedToday && analyticsData.quickActions.classesWithoutExams === 0 ? 'success' : ''}`}>
+                          <h4 className="overview-section-title">Today</h4>
+                          {!analyticsData.quickActions.attendanceMarkedToday && (
+                            <div className="alert-panel-item">
+                              <span style={{ color: '#b86e00' }}>!</span>
+                              <span>No attendance marked today</span>
+                            </div>
+                          )}
+                          {analyticsData.quickActions.classesWithoutExams > 0 && (
+                            <div className="alert-panel-item">
+                              <span style={{ color: '#b86e00' }}>!</span>
+                              <span>{analyticsData.quickActions.classesWithoutExams} class{analyticsData.quickActions.classesWithoutExams !== 1 ? 'es' : ''} awaiting exam recording in {analyticsData.quickActions.activeSemesterName}</span>
+                            </div>
+                          )}
+                          {analyticsData.quickActions.attendanceMarkedToday && analyticsData.quickActions.classesWithoutExams === 0 && (
+                            <div className="alert-panel-item">
+                              <span>All caught up. No pending tasks.</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Classes Without Recent Attendance */}
+                      {analyticsData.classesWithoutRecentAttendance && analyticsData.classesWithoutRecentAttendance.length > 0 && (
+                        <div className="overview-widget">
+                          <h4>Classes Without Recent Attendance</h4>
+                          <table className="overview-table">
+                            <thead>
+                              <tr>
+                                <th>Class</th>
+                                <th>Weeks Missed</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {analyticsData.classesWithoutRecentAttendance.map(c => (
+                                <tr key={c.id}>
+                                  <td>{c.class_name}</td>
+                                  <td>{c.weeks_missed} week{c.weeks_missed !== 1 ? 's' : ''}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* Frequent Absences */}
+                      {analyticsData.frequentAbsences && analyticsData.frequentAbsences.length > 0 && (
+                        <div className="overview-widget">
+                          <h4>Frequent Absences This Month</h4>
+                          <table className="overview-table">
+                            <thead>
+                              <tr>
+                                <th>Student</th>
+                                <th>Class</th>
+                                <th>Absences</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {analyticsData.frequentAbsences.map(s => (
+                                <tr key={s.id}>
+                                  <td>{s.first_name} {s.last_name}</td>
+                                  <td>{s.class_name}</td>
+                                  <td>{s.absence_count}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right Column — Stats & Quick Actions */}
+                    <div>
+                      {/* This Week */}
+                      {analyticsData.thisWeekSummary && (analyticsData.thisWeekSummary.presentCount > 0 || analyticsData.thisWeekSummary.absentCount > 0) && (
+                        <div className="overview-widget">
+                          <h4>This Week</h4>
+                          <div style={{ display: 'flex', gap: 'var(--lg)' }}>
+                            <div>
+                              <div className="overview-big-number">{analyticsData.thisWeekSummary.presentCount}</div>
+                              <div className="overview-big-label">Present</div>
+                            </div>
+                            <div>
+                              <div className="overview-big-number">{analyticsData.thisWeekSummary.absentCount}</div>
+                              <div className="overview-big-label">Absent</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Month Trend */}
+                      {analyticsData.monthOverMonth && (analyticsData.monthOverMonth.currentRate > 0 || analyticsData.monthOverMonth.lastRate > 0) && (
+                        <div className="overview-widget">
+                          <h4>Month Trend</h4>
+                          <div className="month-trend">
+                            <div className="overview-big-number">{analyticsData.monthOverMonth.currentRate || 0}%</div>
+                            {analyticsData.monthOverMonth.change !== 0 && (
+                              <span className={`trend-arrow ${analyticsData.monthOverMonth.change > 0 ? 'up' : 'down'}`}>
+                                {analyticsData.monthOverMonth.change > 0 ? '+' : ''}{Math.round(analyticsData.monthOverMonth.change)}%
+                              </span>
+                            )}
+                            {analyticsData.monthOverMonth.change === 0 && (
+                              <span className="trend-arrow flat">No change</span>
+                            )}
+                          </div>
+                          <div className="overview-big-label">Attendance this month</div>
+                        </div>
+                      )}
+
+                      {/* Quick Actions */}
+                      <div className="overview-widget">
+                        <h4>Quick Actions</h4>
+                        <div className="compact-actions">
+                          <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('planner'); setPlannerSubTab('sessions'); } }}>
+                            <h4>New Session</h4>
+                            <p>Create academic year</p>
+                          </div>
+                          <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('classes'); setShowClassForm(true); } }}>
+                            <h4>New Class</h4>
+                            <p>Add a class group</p>
+                          </div>
+                          <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('students'); setShowStudentForm(true); } }}>
+                            <h4>New Student</h4>
+                            <p>Enroll a student</p>
+                          </div>
+                          <div className="quick-card" onClick={() => { setActiveTab('reports'); setReportSubTab('insights'); }}>
+                            <h4>Full Reports</h4>
+                            <p>Detailed analytics</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Fallback for new madrasahs with no analytics data */
+                <>
+                  <div className="stats-grid">
+                    <div className="stat-card">
+                      <div className="stat-value">{classes.length}</div>
+                      <div className="stat-label">Classes</div>
+                      <UsageIndicator type="classes" current={classes.length} plan={madrasahProfile?.pricing_plan} />
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-value">{teachers.length}</div>
+                      <div className="stat-label">Teachers</div>
+                      <UsageIndicator type="teachers" current={teachers.length} plan={madrasahProfile?.pricing_plan} />
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-value">{students.length}</div>
+                      <div className="stat-label">Students</div>
+                      <UsageIndicator type="students" current={students.length} plan={madrasahProfile?.pricing_plan} />
+                    </div>
+                  </div>
+                  <div className="card" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--sm)' }}>Start by adding classes, teachers, and students to see insights here.</p>
+                    <div className="quick-grid">
+                      <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('classes'); setShowClassForm(true); } }}>
+                        <h4>New Class</h4>
+                        <p>Add a class group</p>
+                      </div>
+                      <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('students'); setShowStudentForm(true); } }}>
+                        <h4>New Student</h4>
+                        <p>Enroll a student</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
 

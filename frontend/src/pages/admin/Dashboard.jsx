@@ -1506,6 +1506,25 @@ function AdminDashboard() {
                         <div className="summary-view-hint">{expandedMetric === 'attention' ? 'Hide' : 'View list'}</div>
                       )}
                     </div>
+                    {expandedMetric === 'attention' && analyticsData.atRiskStudents?.length > 0 && (
+                      <div className="metric-student-list">
+                        <div className="metric-student-list-header">
+                          <h4>{analyticsData.atRiskStudents.length} student{analyticsData.atRiskStudents.length !== 1 ? 's' : ''} below 70% attendance</h4>
+                          <button className="metric-student-list-close" onClick={() => setExpandedMetric(null)}>&times;</button>
+                        </div>
+                        <div className="metric-student-list-body">
+                          {analyticsData.atRiskStudents.map(s => (
+                            <div key={s.id} className="metric-student-row">
+                              <div className="metric-student-info">
+                                <span className="metric-student-name">{s.first_name} {s.last_name}</span>
+                                {s.class_name && <span className="metric-student-class">{s.class_name}</span>}
+                              </div>
+                              <span className="metric-student-rate low">{s.attendance_rate !== null ? `${s.attendance_rate}%` : '-'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {/* Card 4: Struggling — semester-level */}
                     <div
                       className={`summary-card ${analyticsData.summary.studentsStruggling > 0 ? 'needs-attention' : 'good'} ${analyticsData.summary.studentsStruggling > 0 ? 'clickable' : ''} ${expandedMetric === 'struggling' ? 'active' : ''}`}
@@ -1518,47 +1537,25 @@ function AdminDashboard() {
                         <div className="summary-view-hint">{expandedMetric === 'struggling' ? 'Hide' : 'View list'}</div>
                       )}
                     </div>
-                  </div>
-
-                  {/* Expanded student list for Need Attention / Struggling */}
-                  {expandedMetric === 'attention' && analyticsData.atRiskStudents?.length > 0 && (
-                    <div className="metric-student-list">
-                      <div className="metric-student-list-header">
-                        <h4>{analyticsData.atRiskStudents.length} student{analyticsData.atRiskStudents.length !== 1 ? 's' : ''} below 70% attendance</h4>
-                        <button className="metric-student-list-close" onClick={() => setExpandedMetric(null)}>&times;</button>
-                      </div>
-                      <div className="metric-student-list-body">
-                        {analyticsData.atRiskStudents.map(s => (
-                          <div key={s.id} className="metric-student-row">
-                            <div className="metric-student-info">
-                              <span className="metric-student-name">{s.first_name} {s.last_name}</span>
-                              {s.class_name && <span className="metric-student-class">{s.class_name}</span>}
+                    {expandedMetric === 'struggling' && analyticsData.strugglingStudents?.length > 0 && (
+                      <div className="metric-student-list">
+                        <div className="metric-student-list-header">
+                          <h4>{analyticsData.strugglingStudents.length} student{analyticsData.strugglingStudents.length !== 1 ? 's' : ''} below 50% exam average</h4>
+                          <button className="metric-student-list-close" onClick={() => setExpandedMetric(null)}>&times;</button>
+                        </div>
+                        <div className="metric-student-list-body">
+                          {analyticsData.strugglingStudents.map(s => (
+                            <div key={s.id} className="metric-student-row">
+                              <div className="metric-student-info">
+                                <span className="metric-student-name">{s.first_name} {s.last_name}</span>
+                                {s.class_name && <span className="metric-student-class">{s.class_name}</span>}
+                              </div>
+                              <span className="metric-student-rate low">{s.avg_percentage}%</span>
                             </div>
-                            <span className="metric-student-rate low">{s.attendance_rate !== null ? `${s.attendance_rate}%` : '-'}</span>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {expandedMetric === 'struggling' && analyticsData.strugglingStudents?.length > 0 && (
-                    <div className="metric-student-list">
-                      <div className="metric-student-list-header">
-                        <h4>{analyticsData.strugglingStudents.length} student{analyticsData.strugglingStudents.length !== 1 ? 's' : ''} below 50% exam average</h4>
-                        <button className="metric-student-list-close" onClick={() => setExpandedMetric(null)}>&times;</button>
-                      </div>
-                      <div className="metric-student-list-body">
-                        {analyticsData.strugglingStudents.map(s => (
-                          <div key={s.id} className="metric-student-row">
-                            <div className="metric-student-info">
-                              <span className="metric-student-name">{s.first_name} {s.last_name}</span>
-                              {s.class_name && <span className="metric-student-class">{s.class_name}</span>}
-                            </div>
-                            <span className="metric-student-rate low">{s.avg_percentage}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Today's Status */}
                   {analyticsData.quickActions && (

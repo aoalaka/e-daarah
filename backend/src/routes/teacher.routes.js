@@ -270,7 +270,7 @@ router.get('/overview', async (req, res) => {
         JOIN class_teachers ct ON ct.class_id = a.class_id
         WHERE ct.user_id = ? AND a.semester_id = ? AND a.madrasah_id = ?
       `, [userId, activeSemesterId, madrasahId]);
-      attendanceRate = attRate[0]?.rate || null;
+      attendanceRate = attRate[0]?.rate != null ? parseFloat(attRate[0].rate) : null;
 
       const [examCount] = await pool.query(`
         SELECT COUNT(*) as count
@@ -282,13 +282,38 @@ router.get('/overview', async (req, res) => {
       examsRecorded = examCount[0]?.count || 0;
     }
 
+    // Weekly attendance rate + last week for comparison
+    const [thisWeek] = await pool.query(`
+      SELECT
+        COUNT(*) as total_count,
+        ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate
+      FROM attendance a
+      JOIN class_teachers ct ON ct.class_id = a.class_id
+      WHERE ct.user_id = ? AND a.madrasah_id = ?
+        AND YEARWEEK(a.date, 1) = YEARWEEK(NOW(), 1)
+    `, [userId, madrasahId]);
+    const [lastWeek] = await pool.query(`
+      SELECT
+        COUNT(*) as total_count,
+        ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate
+      FROM attendance a
+      JOIN class_teachers ct ON ct.class_id = a.class_id
+      WHERE ct.user_id = ? AND a.madrasah_id = ?
+        AND YEARWEEK(a.date, 1) = YEARWEEK(NOW(), 1) - 1
+    `, [userId, madrasahId]);
+
+    const thisWeekRate = (thisWeek[0]?.total_count || 0) > 0 ? parseFloat(thisWeek[0].rate) || 0 : null;
+    const lastWeekRate = (lastWeek[0]?.total_count || 0) > 0 ? parseFloat(lastWeek[0].rate) || 0 : null;
+
     res.json({
       classes: classData,
       frequentAbsences,
       stats: {
         total_students: totalStudents,
         attendance_rate: attendanceRate,
-        exams_recorded: examsRecorded
+        exams_recorded: examsRecorded,
+        this_week_rate: thisWeekRate,
+        last_week_rate: lastWeekRate
       }
     });
   } catch (error) {

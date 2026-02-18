@@ -2733,8 +2733,9 @@ router.get('/analytics', async (req, res) => {
     `, [madrasahId]);
 
     const currentRate = currentMonthAttendance[0]?.rate || 0;
-    const lastRate = lastMonthAttendance[0]?.rate || 0;
-    const monthOverMonthChange = currentRate - lastRate;
+    const lastRate = lastMonthAttendance[0]?.rate ?? null;
+    // Only compute change if both months have data
+    const monthOverMonthChange = lastRate !== null ? Math.round((currentRate - lastRate) * 10) / 10 : null;
 
     res.json({
       summary: {

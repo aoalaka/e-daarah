@@ -1153,6 +1153,9 @@ function AdminDashboard() {
       if (reportSemester) params.append('semester_id', reportSemester);
       if (analyticsFilterClass) params.append('class_id', analyticsFilterClass);
       if (analyticsFilterGender) params.append('gender', analyticsFilterGender);
+      // Send client's local date for accurate "today" checks
+      const now = new Date();
+      params.append('today', `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
 
       const endpoint = `/admin/analytics${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await api.get(endpoint);

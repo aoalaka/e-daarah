@@ -1812,6 +1812,14 @@
 .summary-card.fair .summary-status { color: #737373; }
 .summary-card.needs-attention .summary-status { color: #525252; }
 
+.summary-view-hint {
+  font-size: 12px;
+  color: #737373;
+  margin-top: var(--sm);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .summary-card.clickable { cursor: pointer; transition: border-color 0.15s, background 0.15s; }
 .summary-card.clickable:hover { background: #fafafa; }
 .summary-card.clickable.active { background: #f5f5f5; border-color: #0a0a0a; }
@@ -1822,6 +1830,7 @@
   border: 1px solid #e5e5e5;
   border-radius: var(--radius);
   overflow: hidden;
+  margin-bottom: var(--lg);
 }
 
 .metric-student-list-header {

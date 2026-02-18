@@ -1466,14 +1466,12 @@ function AdminDashboard() {
                     <div className={`summary-card ${analyticsData.summary.attendanceStatus}`}>
                       <div className="summary-value">{analyticsData.summary.overallAttendanceRate || 0}%</div>
                       <div className="summary-label">Attendance</div>
-                      <div className="summary-status">
-                        {analyticsData.summary.attendanceLabel}
-                        {analyticsData.monthOverMonth && analyticsData.monthOverMonth.change !== null && (
-                          <span style={{ marginLeft: 6, fontSize: 12, color: analyticsData.monthOverMonth.change > 0 ? 'var(--accent)' : analyticsData.monthOverMonth.change < 0 ? '#c1121f' : 'var(--text-muted)' }}>
-                            {analyticsData.monthOverMonth.change > 0 ? `+${Math.round(analyticsData.monthOverMonth.change)}% vs last month` : analyticsData.monthOverMonth.change < 0 ? `${Math.round(analyticsData.monthOverMonth.change)}% vs last month` : 'Same as last month'}
-                          </span>
-                        )}
-                      </div>
+                      <div className="summary-status">{analyticsData.summary.attendanceLabel}</div>
+                      {analyticsData.monthOverMonth && analyticsData.monthOverMonth.change !== null && (
+                        <div style={{ fontSize: 12, marginTop: 4, color: analyticsData.monthOverMonth.change > 0 ? 'var(--accent)' : analyticsData.monthOverMonth.change < 0 ? '#c1121f' : 'var(--text-muted)' }}>
+                          {analyticsData.monthOverMonth.change > 0 ? `+${Math.round(analyticsData.monthOverMonth.change)}%` : analyticsData.monthOverMonth.change < 0 ? `${Math.round(analyticsData.monthOverMonth.change)}%` : 'No change'} vs last month
+                        </div>
+                      )}
                     </div>
                     <div className={`summary-card ${analyticsData.summary.studentsWithExams > 0 ? analyticsData.summary.examStatus : 'neutral'}`}>
                       <div className="summary-value">

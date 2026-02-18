@@ -1457,8 +1457,11 @@ function AdminDashboard() {
 
               {/* Key Metrics */}
               {analyticsLoading ? (
-                <div className="card" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
-                  <p style={{ color: 'var(--text-muted)' }}>Loading insights...</p>
+                <div className="card">
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading insights...</p>
+                  </div>
                 </div>
               ) : analyticsData ? (
                 <>
@@ -1723,7 +1726,7 @@ function AdminDashboard() {
 
                   {/* Sessions List */}
                   {sessions.length === 0 ? (
-                    <div className="card"><div className="empty"><p>No sessions yet. Create one to get started.</p></div></div>
+                    <div className="card"><div className="empty"><p>No sessions yet. Create one to get started.</p><button className="empty-action" onClick={() => setShowSessionForm(true)}>+ Create Session</button></div></div>
                   ) : (
                     <div style={{ display: 'grid', gap: '12px' }}>
                       {sessions.map(session => {
@@ -2162,6 +2165,7 @@ function AdminDashboard() {
                           <td colSpan="3">
                             <div className="empty">
                               <p>No classes yet. Create one to get started.</p>
+                              <button className="empty-action" onClick={() => setShowClassForm(true)}>+ Create Class</button>
                             </div>
                           </td>
                         </tr>
@@ -2199,7 +2203,7 @@ function AdminDashboard() {
                     );
                   })}
                   {classes.length === 0 && (
-                    <div className="empty"><p>No classes yet. Create one to get started.</p></div>
+                    <div className="empty"><p>No classes yet. Create one to get started.</p><button className="empty-action" onClick={() => setShowClassForm(true)}>+ Create Class</button></div>
                   )}
                 </div>
               </div>
@@ -3458,7 +3462,8 @@ function AdminDashboard() {
                 <>
                   {analyticsLoading ? (
                     <div className="card">
-                      <div className="card-body" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
+                      <div className="loading-state">
+                        <div className="loading-spinner"></div>
                         <p>Loading insights...</p>
                       </div>
                     </div>
@@ -5584,7 +5589,8 @@ function AdminDashboard() {
 
                       {teacherDetailLoading ? (
                         <div className="card">
-                          <div className="card-body" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
+                          <div className="loading-state">
+                            <div className="loading-spinner"></div>
                             <p>Loading teacher details...</p>
                           </div>
                         </div>
@@ -5728,7 +5734,8 @@ function AdminDashboard() {
                     <>
                       {teacherPerformanceLoading ? (
                         <div className="card">
-                          <div className="card-body" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
+                          <div className="loading-state">
+                            <div className="loading-spinner"></div>
                             <p>Loading teacher performance data...</p>
                           </div>
                         </div>

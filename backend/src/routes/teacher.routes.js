@@ -1411,6 +1411,44 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Validate type
+    if (!['hifz', 'tilawah', 'revision'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid session type. Must be hifz, tilawah, or revision.' });
+    }
+
+    // Validate surah number
+    const surah = SURAHS.find(s => s.n === parseInt(surah_number));
+    if (!surah) {
+      return res.status(400).json({ error: 'Invalid surah number' });
+    }
+
+    // Validate ayah range is required
+    if (!ayah_from || !ayah_to) {
+      return res.status(400).json({ error: 'Ayah From and Ayah To are required' });
+    }
+
+    const ayahFromInt = parseInt(ayah_from);
+    const ayahToInt = parseInt(ayah_to);
+
+    if (isNaN(ayahFromInt) || isNaN(ayahToInt) || ayahFromInt < 1 || ayahToInt < 1) {
+      return res.status(400).json({ error: 'Ayah values must be positive numbers' });
+    }
+
+    if (ayahFromInt > surah.ayahs || ayahToInt > surah.ayahs) {
+      return res.status(400).json({ error: `${surah.name} has ${surah.ayahs} ayahs. Values cannot exceed this.` });
+    }
+
+    if (ayahFromInt > ayahToInt) {
+      return res.status(400).json({ error: 'Ayah From cannot be greater than Ayah To' });
+    }
+
+    // Validate date is not in the future
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (new Date(date) > today) {
+      return res.status(400).json({ error: 'Date cannot be in the future' });
+    }
+
     // Verify teacher is assigned to this class
     const [assignment] = await pool.query(
       'SELECT * FROM class_teachers WHERE class_id = ? AND user_id = ?',
@@ -1424,13 +1462,13 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
     const [result] = await pool.query(
       `INSERT INTO quran_progress (madrasah_id, student_id, class_id, semester_id, user_id, date, type, surah_number, surah_name, juz, ayah_from, ayah_to, grade, passed, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [madrasahId, student_id, class_id, semester_id, teacherId, date, type, surah_number, surah_name, juz || null, ayah_from || null, ayah_to || null, grade || 'Good', passed !== undefined ? passed : true, notes || null]
+      [madrasahId, student_id, class_id, semester_id, teacherId, date, type, surah_number, surah_name, juz || surah.juz, ayahFromInt, ayahToInt, grade || 'Good', passed !== undefined ? passed : true, notes || null]
     );
 
     // Update student position if student passed
     if (passed !== false) {
+      const posJuz = juz || surah.juz;
       if (type === 'hifz') {
-        // Update hifz (memorization) position
         await pool.query(`
           INSERT INTO quran_student_position (madrasah_id, student_id, current_surah_number, current_surah_name, current_juz, current_ayah)
           VALUES (?, ?, ?, ?, ?, ?)
@@ -1440,9 +1478,8 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
             current_juz = VALUES(current_juz),
             current_ayah = VALUES(current_ayah),
             last_updated = CURRENT_TIMESTAMP
-        `, [madrasahId, student_id, surah_number, surah_name, juz || null, ayah_to || null]);
+        `, [madrasahId, student_id, surah_number, surah_name, posJuz, ayahToInt]);
       } else if (type === 'tilawah') {
-        // Update tilawah (recitation) position
         await pool.query(`
           INSERT INTO quran_student_position (madrasah_id, student_id, tilawah_surah_number, tilawah_surah_name, tilawah_juz, tilawah_ayah)
           VALUES (?, ?, ?, ?, ?, ?)
@@ -1452,9 +1489,8 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
             tilawah_juz = VALUES(tilawah_juz),
             tilawah_ayah = VALUES(tilawah_ayah),
             last_updated = CURRENT_TIMESTAMP
-        `, [madrasahId, student_id, surah_number, surah_name, juz || null, ayah_to || null]);
+        `, [madrasahId, student_id, surah_number, surah_name, posJuz, ayahToInt]);
       } else if (type === 'revision') {
-        // Update revision position
         await pool.query(`
           INSERT INTO quran_student_position (madrasah_id, student_id, revision_surah_number, revision_surah_name, revision_juz, revision_ayah)
           VALUES (?, ?, ?, ?, ?, ?)
@@ -1464,7 +1500,7 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
             revision_juz = VALUES(revision_juz),
             revision_ayah = VALUES(revision_ayah),
             last_updated = CURRENT_TIMESTAMP
-        `, [madrasahId, student_id, surah_number, surah_name, juz || null, ayah_to || null]);
+        `, [madrasahId, student_id, surah_number, surah_name, posJuz, ayahToInt]);
       }
     }
 

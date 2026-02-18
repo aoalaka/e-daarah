@@ -459,6 +459,35 @@ function TeacherDashboard() {
     const surah = surahs.find(s => s.n === parseInt(quranSurah));
     if (!surah) { toast.error('Invalid surah'); return; }
 
+    // Validate ayah fields
+    if (!quranAyahFrom || !quranAyahTo) {
+      toast.error('Please fill in both Ayah From and Ayah To');
+      return;
+    }
+    const ayahFrom = parseInt(quranAyahFrom);
+    const ayahTo = parseInt(quranAyahTo);
+    if (isNaN(ayahFrom) || isNaN(ayahTo) || ayahFrom < 1 || ayahTo < 1) {
+      toast.error('Ayah values must be positive numbers');
+      return;
+    }
+    if (ayahFrom > surah.ayahs || ayahTo > surah.ayahs) {
+      toast.error(`${surah.name} has ${surah.ayahs} ayahs. Values cannot exceed this.`);
+      return;
+    }
+    if (ayahFrom > ayahTo) {
+      toast.error('Ayah From cannot be greater than Ayah To');
+      return;
+    }
+
+    // Validate date
+    const selectedDate = new Date(quranDate);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (selectedDate > today) {
+      toast.error('Date cannot be in the future');
+      return;
+    }
+
     setQuranSaving(true);
     try {
       await api.post('/teacher/quran/record', {
@@ -470,8 +499,8 @@ function TeacherDashboard() {
         surah_number: surah.n,
         surah_name: surah.name,
         juz: surah.juz,
-        ayah_from: quranAyahFrom ? parseInt(quranAyahFrom) : null,
-        ayah_to: quranAyahTo ? parseInt(quranAyahTo) : null,
+        ayah_from: ayahFrom,
+        ayah_to: ayahTo,
         grade: quranGrade,
         passed: quranPassed,
         notes: quranNotes || null
@@ -3072,11 +3101,42 @@ function TeacherDashboard() {
                     </nav>
                   </div>
 
-                  {/* Record Session Sub-tab — Student approaches teacher */}
+                  {/* Record Session Sub-tab — Teacher picks type first, then records */}
                   {quranSubTab === 'record' && (
                     <div style={{ display: 'grid', gap: 'var(--md)' }}>
-                      {/* Step 1: Select the student */}
-                      <div className="card" style={{ padding: 'var(--lg)' }}>
+                      {/* Step 1: Choose session type */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--md)' }}>
+                        {[
+                          { value: 'tilawah', label: 'Tilawah', sub: 'Recitation / Reading', desc: 'Student reads from the mushaf' },
+                          { value: 'hifz', label: 'Hifz', sub: 'Memorization', desc: 'Student recites from memory' },
+                          { value: 'revision', label: 'Muraja\'ah', sub: 'Revision', desc: 'Reviewing previously memorized' }
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setQuranSessionType(opt.value)}
+                            style={{
+                              padding: 'var(--lg)',
+                              border: quranSessionType === opt.value ? '2px solid #0a0a0a' : '1px solid #e5e5e5',
+                              borderRadius: 'var(--radius)',
+                              background: quranSessionType === opt.value ? '#0a0a0a' : '#fff',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            <div style={{ fontSize: '16px', fontWeight: '700', color: quranSessionType === opt.value ? '#fff' : '#0a0a0a' }}>{opt.label}</div>
+                            <div style={{ fontSize: '12px', fontWeight: '500', color: quranSessionType === opt.value ? 'rgba(255,255,255,0.7)' : '#999', marginTop: '2px' }}>{opt.sub}</div>
+                            <div style={{ fontSize: '12px', color: quranSessionType === opt.value ? 'rgba(255,255,255,0.5)' : '#bbb', marginTop: '6px' }}>{opt.desc}</div>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Step 2: Select student + date */}
+                      <div className="card" style={{ padding: 'var(--lg)', borderTop: '3px solid #0a0a0a' }}>
+                        <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#999', marginBottom: 'var(--sm)' }}>
+                          Recording: {quranSessionType === 'tilawah' ? 'Tilawah (Recitation)' : quranSessionType === 'hifz' ? 'Hifz (Memorization)' : 'Muraja\'ah (Revision)'}
+                        </div>
                         <div className="form-grid form-grid-2">
                           <div className="form-group">
                             <label className="form-label">Student</label>
@@ -3093,97 +3153,41 @@ function TeacherDashboard() {
                           </div>
                           <div className="form-group">
                             <label className="form-label">Date</label>
-                            <input type="date" className="form-input" value={quranDate} onChange={e => setQuranDate(e.target.value)} />
+                            <input type="date" className="form-input" value={quranDate} max={getLocalDate()} onChange={e => setQuranDate(e.target.value)} />
                           </div>
                         </div>
                       </div>
 
-                      {/* Step 2: Show student's current position & record form */}
+                      {/* Step 3: Show position for selected type & record form */}
                       {quranSelectedStudent && quranStudentPosition && (
                         <>
-                          {/* Current Position Card */}
+                          {/* Current Position — only for the selected session type */}
                           <div className="card" style={{ padding: 'var(--lg)' }}>
                             <h3 style={{ margin: '0 0 var(--sm) 0', fontSize: '15px', fontWeight: '600' }}>
-                              {quranSelectedStudent.first_name} {quranSelectedStudent.last_name} — Current Position
+                              {quranSelectedStudent.first_name}'s {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifz' : 'Revision'} Position
                             </h3>
-                            {quranStudentPosition.isNew && !quranStudentPosition.hifz && !quranStudentPosition.tilawah && !quranStudentPosition.revision ? (
-                              <p style={{ color: 'var(--muted)', fontSize: '14px', margin: '8px 0 0 0' }}>
-                                New student — no previous assignments. Start with a new reading below.
-                              </p>
-                            ) : (
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginTop: '8px' }}>
-                                <div style={{ padding: '12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                  <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: '600', letterSpacing: '0.5px' }}>Hifz (Memorization)</div>
-                                  {quranStudentPosition.hifz ? (
-                                    <div style={{ marginTop: '4px', fontSize: '14px' }}>
-                                      <strong>{quranStudentPosition.hifz.surah_number}. {quranStudentPosition.hifz.surah_name}</strong>
-                                      {quranStudentPosition.hifz.ayah && <span style={{ color: 'var(--muted)' }}> — up to Ayah {quranStudentPosition.hifz.ayah}</span>}
-                                      <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Juz {quranStudentPosition.hifz.juz}</div>
-                                    </div>
-                                  ) : (
-                                    <div style={{ marginTop: '4px', fontSize: '13px', color: 'var(--muted)' }}>Not started</div>
-                                  )}
+                            {(() => {
+                              const pos = quranSessionType === 'hifz' ? quranStudentPosition.hifz
+                                : quranSessionType === 'tilawah' ? quranStudentPosition.tilawah
+                                : quranStudentPosition.revision;
+                              return pos ? (
+                                <div style={{ padding: '12px', background: '#fafafa', borderRadius: 'var(--radius)', border: '1px solid #e5e5e5' }}>
+                                  <div style={{ fontSize: '14px' }}>
+                                    <strong>{pos.surah_number}. {pos.surah_name}</strong>
+                                    {pos.ayah && <span style={{ color: '#999' }}> — up to Ayah {pos.ayah}</span>}
+                                  </div>
+                                  <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>Juz {pos.juz}</div>
                                 </div>
-                                <div style={{ padding: '12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                  <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: '600', letterSpacing: '0.5px' }}>Tilawah (Recitation)</div>
-                                  {quranStudentPosition.tilawah ? (
-                                    <div style={{ marginTop: '4px', fontSize: '14px' }}>
-                                      <strong>{quranStudentPosition.tilawah.surah_number}. {quranStudentPosition.tilawah.surah_name}</strong>
-                                      {quranStudentPosition.tilawah.ayah && <span style={{ color: 'var(--muted)' }}> — up to Ayah {quranStudentPosition.tilawah.ayah}</span>}
-                                      <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Juz {quranStudentPosition.tilawah.juz}</div>
-                                    </div>
-                                  ) : (
-                                    <div style={{ marginTop: '4px', fontSize: '13px', color: 'var(--muted)' }}>Not started</div>
-                                  )}
-                                </div>
-                                <div style={{ padding: '12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                  <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: '600', letterSpacing: '0.5px' }}>Revision</div>
-                                  {quranStudentPosition.revision ? (
-                                    <div style={{ marginTop: '4px', fontSize: '14px' }}>
-                                      <strong>{quranStudentPosition.revision.surah_number}. {quranStudentPosition.revision.surah_name}</strong>
-                                      {quranStudentPosition.revision.ayah && <span style={{ color: 'var(--muted)' }}> — up to Ayah {quranStudentPosition.revision.ayah}</span>}
-                                      <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Juz {quranStudentPosition.revision.juz}</div>
-                                    </div>
-                                  ) : (
-                                    <div style={{ marginTop: '4px', fontSize: '13px', color: 'var(--muted)' }}>Not started</div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
+                              ) : (
+                                <p style={{ color: '#999', fontSize: '14px', margin: 0 }}>
+                                  Not started yet — this will be {quranSelectedStudent.first_name}'s first {quranSessionType === 'tilawah' ? 'tilawah' : quranSessionType === 'hifz' ? 'hifz' : 'revision'} session.
+                                </p>
+                              );
+                            })()}
                           </div>
 
                           {/* Record Form */}
                           <div className="card" style={{ padding: 'var(--lg)' }}>
-                            <h3 style={{ margin: '0 0 var(--md) 0', fontSize: '15px', fontWeight: '600' }}>Record Today's Session</h3>
-
-                            {/* Session Type Toggle */}
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: 'var(--md)' }}>
-                              {[
-                                { value: 'tilawah', label: 'Tilawah (Reading)', desc: 'Student reads from the mushaf' },
-                                { value: 'hifz', label: 'Hifz (Memorization)', desc: 'Student recites from memory' },
-                                { value: 'revision', label: 'Revision', desc: 'Reviewing previously memorized' }
-                              ].map(opt => (
-                                <button
-                                  key={opt.value}
-                                  type="button"
-                                  onClick={() => setQuranSessionType(opt.value)}
-                                  style={{
-                                    flex: '1 1 140px',
-                                    minWidth: '140px',
-                                    padding: '10px 12px',
-                                    border: `2px solid ${quranSessionType === opt.value ? 'var(--primary)' : 'var(--border)'}`,
-                                    borderRadius: '8px',
-                                    background: quranSessionType === opt.value ? 'var(--primary-bg, rgba(37,99,235,0.06))' : 'var(--bg)',
-                                    cursor: 'pointer',
-                                    textAlign: 'left'
-                                  }}
-                                >
-                                  <div style={{ fontSize: '13px', fontWeight: '600', color: quranSessionType === opt.value ? 'var(--primary)' : 'var(--text)' }}>{opt.label}</div>
-                                  <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>{opt.desc}</div>
-                                </button>
-                              ))}
-                            </div>
-
                             {/* Surah & Ayah */}
                             <div className="form-grid form-grid-3" style={{ gap: '12px' }}>
                               <div className="form-group">
@@ -3196,13 +3200,16 @@ function TeacherDashboard() {
                                 </select>
                               </div>
                               <div className="form-group">
-                                <label className="form-label">Ayah From</label>
-                                <input type="number" className="form-input" min="1" placeholder="e.g. 1" value={quranAyahFrom} onChange={e => setQuranAyahFrom(e.target.value)} />
+                                <label className="form-label">Ayah From *</label>
+                                <input type="number" className="form-input" min="1"
+                                  max={quranSurah ? surahs.find(s => s.n === parseInt(quranSurah))?.ayahs : undefined}
+                                  placeholder="e.g. 1" value={quranAyahFrom} onChange={e => setQuranAyahFrom(e.target.value)} />
                               </div>
                               <div className="form-group">
-                                <label className="form-label">Ayah To</label>
+                                <label className="form-label">Ayah To *</label>
                                 <input
                                   type="number" className="form-input" min="1"
+                                  max={quranSurah ? surahs.find(s => s.n === parseInt(quranSurah))?.ayahs : undefined}
                                   placeholder={quranSurah ? `max ${surahs.find(s => s.n === parseInt(quranSurah))?.ayahs || ''}` : 'e.g. 10'}
                                   value={quranAyahTo} onChange={e => setQuranAyahTo(e.target.value)}
                                 />
@@ -3230,15 +3237,15 @@ function TeacherDashboard() {
                                       flex: 1,
                                       padding: '8px',
                                       borderRadius: '6px',
-                                      border: `2px solid ${quranPassed ? '#16a34a' : 'var(--border)'}`,
-                                      background: quranPassed ? 'rgba(22,163,74,0.08)' : 'var(--bg)',
-                                      color: quranPassed ? '#16a34a' : 'var(--muted)',
+                                      border: `2px solid ${quranPassed ? '#16a34a' : '#e5e5e5'}`,
+                                      background: quranPassed ? 'rgba(22,163,74,0.08)' : '#fff',
+                                      color: quranPassed ? '#16a34a' : '#999',
                                       fontWeight: '600',
                                       fontSize: '13px',
                                       cursor: 'pointer'
                                     }}
                                   >
-                                    ✓ Pass
+                                    Pass
                                   </button>
                                   <button
                                     type="button"
@@ -3247,15 +3254,15 @@ function TeacherDashboard() {
                                       flex: 1,
                                       padding: '8px',
                                       borderRadius: '6px',
-                                      border: `2px solid ${!quranPassed ? '#dc2626' : 'var(--border)'}`,
-                                      background: !quranPassed ? 'rgba(220,38,38,0.08)' : 'var(--bg)',
-                                      color: !quranPassed ? '#dc2626' : 'var(--muted)',
+                                      border: `2px solid ${!quranPassed ? '#dc2626' : '#e5e5e5'}`,
+                                      background: !quranPassed ? 'rgba(220,38,38,0.08)' : '#fff',
+                                      color: !quranPassed ? '#dc2626' : '#999',
                                       fontWeight: '600',
                                       fontSize: '13px',
                                       cursor: 'pointer'
                                     }}
                                   >
-                                    ✕ Repeat
+                                    Repeat
                                   </button>
                                 </div>
                               </div>
@@ -3266,7 +3273,7 @@ function TeacherDashboard() {
                             </div>
 
                             {/* Info message based on pass/fail */}
-                            <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', background: quranPassed ? 'rgba(22,163,74,0.06)' : 'rgba(220,38,38,0.06)', color: quranPassed ? '#16a34a' : '#dc2626', border: `1px solid ${quranPassed ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)'}` }}>
+                            <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: 'var(--radius)', fontSize: '13px', background: quranPassed ? 'rgba(22,163,74,0.06)' : 'rgba(220,38,38,0.06)', color: quranPassed ? '#16a34a' : '#dc2626', border: `1px solid ${quranPassed ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)'}` }}>
                               {quranPassed
                                 ? (quranSessionType === 'revision'
                                     ? 'Student passed — revision recorded.'
@@ -3282,16 +3289,15 @@ function TeacherDashboard() {
                             </div>
                           </div>
 
-                          {/* Student's Recent History */}
-                          {quranStudentHistory.length > 0 && (
+                          {/* Student's Recent History — filtered to selected type */}
+                          {quranStudentHistory.filter(r => r.type === quranSessionType).length > 0 && (
                             <div className="card" style={{ padding: 'var(--lg)' }}>
-                              <h3 style={{ margin: '0 0 var(--sm) 0', fontSize: '15px', fontWeight: '600' }}>Recent Sessions</h3>
+                              <h3 style={{ margin: '0 0 var(--sm) 0', fontSize: '15px', fontWeight: '600' }}>Recent {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifz' : 'Revision'} Sessions</h3>
                               <div className="table-wrap">
                                 <table className="table">
                                   <thead>
                                     <tr>
                                       <th>Date</th>
-                                      <th>Type</th>
                                       <th>Surah</th>
                                       <th>Ayahs</th>
                                       <th>Grade</th>
@@ -3299,14 +3305,9 @@ function TeacherDashboard() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {quranStudentHistory.map(r => (
+                                    {quranStudentHistory.filter(r => r.type === quranSessionType).map(r => (
                                       <tr key={r.id}>
                                         <td>{fmtDate(r.date)}</td>
-                                        <td>
-                                          <span className={`badge ${r.type === 'hifz' ? 'badge-success' : r.type === 'revision' ? 'badge-info' : 'badge-muted'}`}>
-                                            {r.type === 'hifz' ? 'Hifz' : r.type === 'revision' ? 'Revision' : 'Tilawah'}
-                                          </span>
-                                        </td>
                                         <td>{r.surah_number}. {r.surah_name}</td>
                                         <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : r.ayah_from ? `From ${r.ayah_from}` : '—'}</td>
                                         <td>
@@ -3316,7 +3317,7 @@ function TeacherDashboard() {
                                         </td>
                                         <td>
                                           <span style={{ color: r.passed ? '#16a34a' : '#dc2626', fontWeight: '600', fontSize: '13px' }}>
-                                            {r.passed ? '✓ Passed' : '✕ Repeat'}
+                                            {r.passed ? 'Passed' : 'Repeat'}
                                           </span>
                                         </td>
                                       </tr>

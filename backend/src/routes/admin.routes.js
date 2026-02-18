@@ -2716,26 +2716,35 @@ router.get('/analytics', async (req, res) => {
       LIMIT 1
     `, [madrasahId]);
 
-    // 15. Month-over-Month Comparison
+    // 15. Month-over-Month Comparison (filtered by semester if selected)
+    let momFilter = '';
+    const momParams = [madrasahId];
+    if (semester_id) {
+      momFilter = ' AND a.semester_id = ?';
+      momParams.push(semester_id);
+    }
     const [currentMonthAttendance] = await pool.query(`
       SELECT ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate
       FROM attendance a
       WHERE a.madrasah_id = ?
         AND YEAR(a.date) = YEAR(NOW())
-        AND MONTH(a.date) = MONTH(NOW())
-    `, [madrasahId]);
+        AND MONTH(a.date) = MONTH(NOW())${momFilter}
+    `, momParams);
+    const momParamsLast = [madrasahId];
+    if (semester_id) momParamsLast.push(semester_id);
     const [lastMonthAttendance] = await pool.query(`
       SELECT ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate
       FROM attendance a
       WHERE a.madrasah_id = ?
         AND YEAR(a.date) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))
-        AND MONTH(a.date) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH))
-    `, [madrasahId]);
+        AND MONTH(a.date) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH))${momFilter}
+    `, momParamsLast);
 
-    const currentRate = currentMonthAttendance[0]?.rate || 0;
-    const lastRate = lastMonthAttendance[0]?.rate ?? null;
+    const currentRate = parseFloat(currentMonthAttendance[0]?.rate) || 0;
+    const lastRate = lastMonthAttendance[0]?.rate != null ? parseFloat(lastMonthAttendance[0].rate) : null;
     // Only compute change if both months have data
     const monthOverMonthChange = lastRate !== null ? Math.round((currentRate - lastRate) * 10) / 10 : null;
+    console.log(`[Analytics MoM] current: ${currentRate}, last: ${lastRate}, change: ${monthOverMonthChange}`);
 
     res.json({
       summary: {

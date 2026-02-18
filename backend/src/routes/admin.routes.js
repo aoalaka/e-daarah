@@ -2724,7 +2724,9 @@ router.get('/analytics', async (req, res) => {
       momParams.push(semester_id);
     }
     const [currentMonthAttendance] = await pool.query(`
-      SELECT ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate
+      SELECT
+        ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate,
+        COUNT(*) as record_count
       FROM attendance a
       WHERE a.madrasah_id = ?
         AND YEAR(a.date) = YEAR(NOW())
@@ -2733,18 +2735,21 @@ router.get('/analytics', async (req, res) => {
     const momParamsLast = [madrasahId];
     if (semester_id) momParamsLast.push(semester_id);
     const [lastMonthAttendance] = await pool.query(`
-      SELECT ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate
+      SELECT
+        ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate,
+        COUNT(*) as record_count
       FROM attendance a
       WHERE a.madrasah_id = ?
         AND YEAR(a.date) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))
         AND MONTH(a.date) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH))${momFilter}
     `, momParamsLast);
 
-    const currentRate = parseFloat(currentMonthAttendance[0]?.rate) || 0;
-    const lastRate = lastMonthAttendance[0]?.rate != null ? parseFloat(lastMonthAttendance[0].rate) : null;
-    // Only compute change if both months have data
-    const monthOverMonthChange = lastRate !== null ? Math.round((currentRate - lastRate) * 10) / 10 : null;
-    console.log(`[Analytics MoM] current: ${currentRate}, last: ${lastRate}, change: ${monthOverMonthChange}`);
+    const currentCount = currentMonthAttendance[0]?.record_count || 0;
+    const lastCount = lastMonthAttendance[0]?.record_count || 0;
+    const currentRate = currentCount > 0 ? parseFloat(currentMonthAttendance[0].rate) || 0 : null;
+    const lastRate = lastCount > 0 ? parseFloat(lastMonthAttendance[0].rate) || 0 : null;
+    // Only compute change if both months have actual attendance records
+    const monthOverMonthChange = (currentRate !== null && lastRate !== null) ? Math.round((currentRate - lastRate) * 10) / 10 : null;
 
     res.json({
       summary: {

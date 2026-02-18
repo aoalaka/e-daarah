@@ -71,7 +71,7 @@ function AdminDashboard() {
   const [selectedClassForPerformance, setSelectedClassForPerformance] = useState(null);
   const [reportSubTab, setReportSubTab] = useState('attendance');
   const [analyticsData, setAnalyticsData] = useState(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analyticsFilterClass, setAnalyticsFilterClass] = useState('');
   const [analyticsFilterGender, setAnalyticsFilterGender] = useState('');
   const [examKpis, setExamKpis] = useState(null);

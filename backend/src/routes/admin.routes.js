@@ -2234,7 +2234,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
 router.get('/analytics', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { semester_id, class_id, gender } = req.query;
+    const { semester_id, class_id, gender, today: clientToday } = req.query;
 
     // Get date ranges for comparison
     const now = new Date();
@@ -2679,7 +2679,8 @@ router.get('/analytics', async (req, res) => {
     `, semester_id ? [madrasahId, semester_id] : [madrasahId]);
 
     // 14. Quick Actions - pending tasks
-    const today = new Date().toISOString().split('T')[0];
+    // Use client's local date if provided, otherwise fall back to server date
+    const today = clientToday || new Date().toISOString().split('T')[0];
     const [todayAttendance] = await pool.query(
       'SELECT COUNT(*) as count FROM attendance WHERE madrasah_id = ? AND date = ?',
       [madrasahId, today]

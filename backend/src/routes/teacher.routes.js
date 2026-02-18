@@ -207,7 +207,8 @@ router.get('/overview', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const userId = req.user.id;
-    const today = new Date().toISOString().split('T')[0];
+    // Use client's local date if provided, otherwise fall back to server date
+    const today = req.query.date || new Date().toISOString().split('T')[0];
 
     // Get active semester
     const [activeSemesters] = await pool.query(`

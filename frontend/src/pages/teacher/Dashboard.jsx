@@ -546,7 +546,7 @@ function TeacherDashboard() {
   const fetchOverview = async () => {
     setOverviewLoading(true);
     try {
-      const response = await api.get('/teacher/overview');
+      const response = await api.get(`/teacher/overview?date=${getLocalDate()}`);
       setOverviewData(response.data);
     } catch (error) {
       console.error('Failed to fetch overview:', error);

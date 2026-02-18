@@ -3755,24 +3755,91 @@
   margin-top: 2px;
 }
 
-/* Compact quick actions for overview */
-.compact-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+/* Overview: Highlights row — compact secondary metrics */
+.overview-highlights {
+  display: flex;
+  gap: var(--md);
+  margin-bottom: var(--lg);
 }
 
-.compact-actions .quick-card {
-  padding: 12px;
+.overview-highlight-card {
+  flex: 1;
+  padding: var(--md);
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: var(--radius);
 }
 
-.compact-actions .quick-card h4 {
-  font-size: 13px;
-  margin-bottom: 2px;
+.overview-highlight-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0a0a0a;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 
-.compact-actions .quick-card p {
+.overview-highlight-value.positive { color: var(--accent); }
+.overview-highlight-value.negative { color: #c1121f; }
+
+.overview-highlight-label {
   font-size: 11px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.overview-highlight-sub {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+
+/* Overview: Quick Actions — bottom row */
+.overview-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--sm);
+  margin-top: var(--lg);
+  padding-top: var(--lg);
+  border-top: 1px solid #e5e5e5;
+}
+
+.overview-action-card {
+  padding: var(--md);
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.overview-action-card:hover {
+  border-color: #0a0a0a;
+  background: #fafafa;
+}
+
+.overview-action-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.overview-action-card.disabled:hover {
+  border-color: #e5e5e5;
+  background: white;
+}
+
+.overview-action-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0a0a0a;
+}
+
+.overview-action-desc {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
 }
 
 /* Responsive */
@@ -3786,6 +3853,15 @@
     grid-template-columns: 1fr;
   }
 
+  .overview-highlights {
+    flex-wrap: wrap;
+  }
+
+  .overview-highlight-card {
+    flex: 1 1 calc(50% - var(--sm));
+    min-width: 120px;
+  }
+
   .compact-stats {
     grid-template-columns: 1fr;
   }
@@ -3794,7 +3870,7 @@
     grid-template-columns: 1fr;
   }
 
-  .compact-actions {
-    grid-template-columns: 1fr;
+  .overview-actions {
+    grid-template-columns: 1fr 1fr;
   }
 }

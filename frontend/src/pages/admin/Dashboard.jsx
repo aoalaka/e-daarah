@@ -1502,6 +1502,9 @@ function AdminDashboard() {
                       <div className="summary-value">{analyticsData.summary.studentsNeedingAttention}</div>
                       <div className="summary-label">Need Attention</div>
                       <div className="summary-status">Below 70% attendance</div>
+                      {analyticsData.summary.studentsNeedingAttention > 0 && (
+                        <div className="summary-view-hint">{expandedMetric === 'attention' ? 'Hide' : 'View list'}</div>
+                      )}
                     </div>
                     {/* Card 4: Struggling — semester-level */}
                     <div
@@ -1511,6 +1514,9 @@ function AdminDashboard() {
                       <div className="summary-value">{analyticsData.summary.studentsStruggling || 0}</div>
                       <div className="summary-label">Struggling</div>
                       <div className="summary-status">Below 50% exam avg</div>
+                      {analyticsData.summary.studentsStruggling > 0 && (
+                        <div className="summary-view-hint">{expandedMetric === 'struggling' ? 'Hide' : 'View list'}</div>
+                      )}
                     </div>
                   </div>
 

@@ -1413,7 +1413,7 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
 
     // Validate type
     if (!['hifz', 'tilawah', 'revision'].includes(type)) {
-      return res.status(400).json({ error: 'Invalid session type. Must be hifz, tilawah, or revision.' });
+      return res.status(400).json({ error: 'Invalid session type. Must be hifdh, tilawah, or revision.' });
     }
 
     // Validate surah number

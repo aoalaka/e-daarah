@@ -62,7 +62,7 @@ function Landing() {
           </div>
           <div className="feature">
             <h3>Qur'an Progress Tracking</h3>
-            <p>Track hifz, tilawah, and revision progress per student. Record surahs, ayahs, grades, and pass/fail status.</p>
+            <p>Track hifdh, tilawah, and revision progress per student. Record surahs, ayahs, grades, and pass/fail status.</p>
           </div>
           <div className="feature">
             <h3>Academic Planner</h3>

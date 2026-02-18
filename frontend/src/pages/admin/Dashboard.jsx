@@ -1556,12 +1556,12 @@ function AdminDashboard() {
                       </div>
                     )}
 
-                    {/* Attendance Streak */}
+                    {/* Perfect Weeks */}
                     {analyticsData.attendanceStreaks && analyticsData.attendanceStreaks.length > 0 && (
                       <div className="overview-highlight-card">
-                        <div className="overview-highlight-value">{analyticsData.attendanceStreaks[0].streak_weeks}w</div>
-                        <div className="overview-highlight-label">Best Streak</div>
-                        <div className="overview-highlight-sub">{analyticsData.attendanceStreaks[0].class_name}</div>
+                        <div className="overview-highlight-value">{analyticsData.attendanceStreaks[0].streak_weeks}</div>
+                        <div className="overview-highlight-label">Perfect Weeks</div>
+                        <div className="overview-highlight-sub">{analyticsData.attendanceStreaks[0].class_name} (last 12 wks)</div>
                       </div>
                     )}
 

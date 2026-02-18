@@ -2635,10 +2635,22 @@ router.get('/analytics', async (req, res) => {
     const [thisWeekSummary] = await pool.query(`
       SELECT
         COUNT(CASE WHEN a.present = 1 THEN 1 END) as present_count,
-        COUNT(CASE WHEN a.present = 0 THEN 1 END) as absent_count
+        COUNT(CASE WHEN a.present = 0 THEN 1 END) as absent_count,
+        COUNT(*) as total_count,
+        ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate
       FROM attendance a
       WHERE a.madrasah_id = ?
         AND YEARWEEK(a.date, 1) = YEARWEEK(NOW(), 1)
+    `, [madrasahId]);
+
+    // 11b. Last Week Summary - for week-over-week comparison
+    const [lastWeekSummary] = await pool.query(`
+      SELECT
+        COUNT(*) as total_count,
+        ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate
+      FROM attendance a
+      WHERE a.madrasah_id = ?
+        AND YEARWEEK(a.date, 1) = YEARWEEK(NOW(), 1) - 1
     `, [madrasahId]);
 
     // 12. Attendance Streak - classes with perfect attendance streaks
@@ -2786,7 +2798,9 @@ router.get('/analytics', async (req, res) => {
       },
       thisWeekSummary: {
         presentCount: thisWeekSummary[0]?.present_count || 0,
-        absentCount: thisWeekSummary[0]?.absent_count || 0
+        absentCount: thisWeekSummary[0]?.absent_count || 0,
+        rate: (thisWeekSummary[0]?.total_count || 0) > 0 ? parseFloat(thisWeekSummary[0].rate) || 0 : null,
+        lastWeekRate: (lastWeekSummary[0]?.total_count || 0) > 0 ? parseFloat(lastWeekSummary[0].rate) || 0 : null
       },
       attendanceStreaks: attendanceStreaks || [],
       topPerformer: topPerformer[0] || null,

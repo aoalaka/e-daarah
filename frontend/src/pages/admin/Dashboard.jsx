@@ -1463,30 +1463,39 @@ function AdminDashboard() {
               ) : analyticsData ? (
                 <>
                   <div className="insights-summary">
-                    <div className={`summary-card ${analyticsData.summary.attendanceStatus}`}>
-                      <div className="summary-value">{analyticsData.summary.overallAttendanceRate || 0}%</div>
-                      <div className="summary-label">Attendance</div>
-                      <div className="summary-status">{analyticsData.summary.attendanceLabel}</div>
-                      {analyticsData.monthOverMonth && analyticsData.monthOverMonth.change !== null && (
-                        <div style={{ fontSize: 12, marginTop: 4, color: analyticsData.monthOverMonth.change > 0 ? 'var(--accent)' : analyticsData.monthOverMonth.change < 0 ? '#c1121f' : 'var(--text-muted)' }}>
-                          {analyticsData.monthOverMonth.change > 0 ? `+${Math.round(analyticsData.monthOverMonth.change)}%` : analyticsData.monthOverMonth.change < 0 ? `${Math.round(analyticsData.monthOverMonth.change)}%` : 'No change'} vs last month
+                    {/* Card 1: This Week — weekly attendance rate */}
+                    <div className="summary-card">
+                      <div className="summary-value">
+                        {analyticsData.thisWeekSummary?.rate !== null && analyticsData.thisWeekSummary?.rate !== undefined
+                          ? `${analyticsData.thisWeekSummary.rate}%` : '-'}
+                      </div>
+                      <div className="summary-label">This Week</div>
+                      <div className="summary-status">
+                        {analyticsData.thisWeekSummary?.presentCount || 0} present, {analyticsData.thisWeekSummary?.absentCount || 0} absent
+                      </div>
+                      {analyticsData.thisWeekSummary?.rate !== null && analyticsData.thisWeekSummary?.lastWeekRate !== null &&
+                        analyticsData.thisWeekSummary?.lastWeekRate !== undefined && (
+                        <div style={{ fontSize: 12, marginTop: 4, color: (analyticsData.thisWeekSummary.rate - analyticsData.thisWeekSummary.lastWeekRate) > 0 ? 'var(--accent)' : (analyticsData.thisWeekSummary.rate - analyticsData.thisWeekSummary.lastWeekRate) < 0 ? '#c1121f' : 'var(--text-muted)' }}>
+                          {(() => {
+                            const diff = Math.round((analyticsData.thisWeekSummary.rate - analyticsData.thisWeekSummary.lastWeekRate) * 10) / 10;
+                            return diff > 0 ? `+${diff}%` : diff < 0 ? `${diff}%` : 'No change';
+                          })()} vs last week
                         </div>
                       )}
                     </div>
-                    <div className={`summary-card ${analyticsData.summary.studentsWithExams > 0 ? analyticsData.summary.examStatus : 'neutral'}`}>
-                      <div className="summary-value">
-                        {analyticsData.summary.studentsWithExams > 0 ? `${analyticsData.summary.avgExamPercentage || 0}%` : '-'}
-                      </div>
-                      <div className="summary-label">Exam Average</div>
-                      <div className="summary-status">
-                        {analyticsData.summary.studentsWithExams > 0 ? analyticsData.summary.examLabel : 'No exams yet'}
-                      </div>
+                    {/* Card 2: Semester Average */}
+                    <div className={`summary-card ${analyticsData.summary.attendanceStatus}`}>
+                      <div className="summary-value">{analyticsData.summary.overallAttendanceRate || 0}%</div>
+                      <div className="summary-label">Semester Average</div>
+                      <div className="summary-status">{analyticsData.summary.attendanceLabel}</div>
                     </div>
+                    {/* Card 3: Need Attention — semester-level */}
                     <div className={`summary-card ${analyticsData.summary.studentsNeedingAttention > 0 ? 'needs-attention' : 'good'}`}>
                       <div className="summary-value">{analyticsData.summary.studentsNeedingAttention}</div>
                       <div className="summary-label">Need Attention</div>
                       <div className="summary-status">Below 70% attendance</div>
                     </div>
+                    {/* Card 4: Struggling — semester-level */}
                     <div className={`summary-card ${analyticsData.summary.studentsStruggling > 0 ? 'needs-attention' : 'good'}`}>
                       <div className="summary-value">{analyticsData.summary.studentsStruggling || 0}</div>
                       <div className="summary-label">Struggling</div>
@@ -1573,46 +1582,16 @@ function AdminDashboard() {
 
                     {/* Right Column — Stats & Quick Actions */}
                     <div>
-                      {/* This Week */}
-                      {analyticsData.thisWeekSummary && (analyticsData.thisWeekSummary.presentCount > 0 || analyticsData.thisWeekSummary.absentCount > 0) && (
-                        <div className="overview-widget">
-                          <h4>This Week</h4>
-                          <div style={{ display: 'flex', gap: 'var(--lg)' }}>
-                            <div>
-                              <div className="overview-big-number">{analyticsData.thisWeekSummary.presentCount}</div>
-                              <div className="overview-big-label">Present</div>
-                            </div>
-                            <div>
-                              <div className="overview-big-number">{analyticsData.thisWeekSummary.absentCount}</div>
-                              <div className="overview-big-label">Absent</div>
-                            </div>
-                          </div>
+                      {/* Exam Average */}
+                      <div className="overview-widget">
+                        <h4>Exam Average (Semester)</h4>
+                        <div className="overview-big-number">
+                          {analyticsData.summary.studentsWithExams > 0 ? `${analyticsData.summary.avgExamPercentage || 0}%` : '-'}
                         </div>
-                      )}
-
-                      {/* Month Trend */}
-                      {analyticsData.monthOverMonth && analyticsData.monthOverMonth.currentRate > 0 && (
-                        <div className="overview-widget">
-                          <h4>Month Trend</h4>
-                          <div className="month-trend">
-                            <div className="overview-big-number">{analyticsData.monthOverMonth.currentRate || 0}%</div>
-                            {analyticsData.monthOverMonth.change !== null && analyticsData.monthOverMonth.change > 0 && (
-                              <span className="trend-arrow up">+{Math.round(analyticsData.monthOverMonth.change)}%</span>
-                            )}
-                            {analyticsData.monthOverMonth.change !== null && analyticsData.monthOverMonth.change < 0 && (
-                              <span className="trend-arrow down">{Math.round(analyticsData.monthOverMonth.change)}%</span>
-                            )}
-                            {analyticsData.monthOverMonth.change === 0 && (
-                              <span className="trend-arrow flat">Same as last month</span>
-                            )}
-                          </div>
-                          <div className="overview-big-label">
-                            {analyticsData.monthOverMonth.change === null
-                              ? 'Attendance this month'
-                              : `vs ${analyticsData.monthOverMonth.lastRate}% last month`}
-                          </div>
+                        <div className="overview-big-label">
+                          {analyticsData.summary.studentsWithExams > 0 ? analyticsData.summary.examLabel : 'No exams recorded yet'}
                         </div>
-                      )}
+                      </div>
 
                       {/* Quick Actions */}
                       <div className="overview-widget">

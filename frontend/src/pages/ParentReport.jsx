@@ -542,7 +542,7 @@ function ParentReport() {
                       {quranProgress.map(r => (
                         <tr key={r.id}>
                           <td>{fmtDate(r.date)}</td>
-                          <td>{r.type === 'memorization_new' ? 'New Memorization' : r.type === 'memorization_revision' ? 'Revision' : 'Tilawah'}</td>
+                          <td>{r.type === 'hifz' || r.type === 'memorization_new' ? 'Hifdh' : r.type === 'revision' || r.type === 'memorization_revision' ? 'Revision' : 'Tilawah'}</td>
                           <td>{r.surah_number}. {r.surah_name}</td>
                           <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : '—'}</td>
                           <td>

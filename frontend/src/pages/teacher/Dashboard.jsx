@@ -3108,7 +3108,7 @@ function TeacherDashboard() {
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--md)' }}>
                         {[
                           { value: 'tilawah', label: 'Tilawah', sub: 'Recitation / Reading', desc: 'Student reads from the mushaf' },
-                          { value: 'hifz', label: 'Hifz', sub: 'Memorization', desc: 'Student recites from memory' },
+                          { value: 'hifz', label: 'Hifdh', sub: 'Memorization', desc: 'Student recites from memory' },
                           { value: 'revision', label: 'Muraja\'ah', sub: 'Revision', desc: 'Reviewing previously memorized' }
                         ].map(opt => (
                           <button
@@ -3135,7 +3135,7 @@ function TeacherDashboard() {
                       {/* Step 2: Select student + date */}
                       <div className="card" style={{ padding: 'var(--lg)', borderTop: '3px solid #0a0a0a' }}>
                         <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#999', marginBottom: 'var(--sm)' }}>
-                          Recording: {quranSessionType === 'tilawah' ? 'Tilawah (Recitation)' : quranSessionType === 'hifz' ? 'Hifz (Memorization)' : 'Muraja\'ah (Revision)'}
+                          Recording: {quranSessionType === 'tilawah' ? 'Tilawah (Recitation)' : quranSessionType === 'hifz' ? 'Hifdh (Memorization)' : 'Muraja\'ah (Revision)'}
                         </div>
                         <div className="form-grid form-grid-2">
                           <div className="form-group">
@@ -3164,7 +3164,7 @@ function TeacherDashboard() {
                           {/* Current Position — only for the selected session type */}
                           <div className="card" style={{ padding: 'var(--lg)' }}>
                             <h3 style={{ margin: '0 0 var(--sm) 0', fontSize: '15px', fontWeight: '600' }}>
-                              {quranSelectedStudent.first_name}'s {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifz' : 'Revision'} Position
+                              {quranSelectedStudent.first_name}'s {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifdh' : 'Revision'} Position
                             </h3>
                             {(() => {
                               const pos = quranSessionType === 'hifz' ? quranStudentPosition.hifz
@@ -3180,7 +3180,7 @@ function TeacherDashboard() {
                                 </div>
                               ) : (
                                 <p style={{ color: '#999', fontSize: '14px', margin: 0 }}>
-                                  Not started yet — this will be {quranSelectedStudent.first_name}'s first {quranSessionType === 'tilawah' ? 'tilawah' : quranSessionType === 'hifz' ? 'hifz' : 'revision'} session.
+                                  Not started yet — this will be {quranSelectedStudent.first_name}'s first {quranSessionType === 'tilawah' ? 'tilawah' : quranSessionType === 'hifz' ? 'hifdh' : 'revision'} session.
                                 </p>
                               );
                             })()}
@@ -3292,7 +3292,7 @@ function TeacherDashboard() {
                           {/* Student's Recent History — filtered to selected type */}
                           {quranStudentHistory.filter(r => r.type === quranSessionType).length > 0 && (
                             <div className="card" style={{ padding: 'var(--lg)' }}>
-                              <h3 style={{ margin: '0 0 var(--sm) 0', fontSize: '15px', fontWeight: '600' }}>Recent {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifz' : 'Revision'} Sessions</h3>
+                              <h3 style={{ margin: '0 0 var(--sm) 0', fontSize: '15px', fontWeight: '600' }}>Recent {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifdh' : 'Revision'} Sessions</h3>
                               <div className="table-wrap">
                                 <table className="table">
                                   <thead>
@@ -3352,7 +3352,7 @@ function TeacherDashboard() {
                             <thead>
                               <tr>
                                 <th>Student</th>
-                                <th>Hifz Position</th>
+                                <th>Hifdh Position</th>
                                 <th>Tilawah Position</th>
                                 <th>Revision Position</th>
                                 <th>Last Updated</th>
@@ -3421,7 +3421,7 @@ function TeacherDashboard() {
                                   <td>{r.first_name} {r.last_name}</td>
                                   <td>
                                     <span className={`badge ${r.type === 'hifz' ? 'badge-success' : r.type === 'revision' ? 'badge-info' : 'badge-muted'}`}>
-                                      {r.type === 'hifz' ? 'Hifz' : r.type === 'revision' ? 'Revision' : 'Tilawah'}
+                                      {r.type === 'hifz' ? 'Hifdh' : r.type === 'revision' ? 'Revision' : 'Tilawah'}
                                     </span>
                                   </td>
                                   <td>{r.surah_number}. {r.surah_name}</td>

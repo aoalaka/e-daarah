@@ -1556,6 +1556,7 @@ function AdminDashboard() {
                         </div>
                       </div>
                     )}
+                  </div>
 
                   {/* Today's Status */}
                   {analyticsData.quickActions && (

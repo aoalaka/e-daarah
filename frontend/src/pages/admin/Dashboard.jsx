@@ -74,6 +74,7 @@ function AdminDashboard() {
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analyticsFilterClass, setAnalyticsFilterClass] = useState('');
   const [analyticsFilterGender, setAnalyticsFilterGender] = useState('');
+  const [expandedMetric, setExpandedMetric] = useState(null); // 'attention' | 'struggling' | null
   const [examKpis, setExamKpis] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [currentSubjectPage, setCurrentSubjectPage] = useState(1);
@@ -1148,6 +1149,7 @@ function AdminDashboard() {
 
   const fetchAnalytics = async () => {
     setAnalyticsLoading(true);
+    setExpandedMetric(null);
     try {
       const params = new URLSearchParams();
       if (reportSemester) params.append('semester_id', reportSemester);
@@ -1493,18 +1495,82 @@ function AdminDashboard() {
                       <div className="summary-status">{analyticsData.summary.attendanceLabel}</div>
                     </div>
                     {/* Card 3: Need Attention — semester-level */}
-                    <div className={`summary-card ${analyticsData.summary.studentsNeedingAttention > 0 ? 'needs-attention' : 'good'}`}>
+                    <div
+                      className={`summary-card ${analyticsData.summary.studentsNeedingAttention > 0 ? 'needs-attention' : 'good'} ${analyticsData.summary.studentsNeedingAttention > 0 ? 'clickable' : ''} ${expandedMetric === 'attention' ? 'active' : ''}`}
+                      onClick={() => analyticsData.summary.studentsNeedingAttention > 0 && setExpandedMetric(expandedMetric === 'attention' ? null : 'attention')}
+                    >
                       <div className="summary-value">{analyticsData.summary.studentsNeedingAttention}</div>
                       <div className="summary-label">Need Attention</div>
                       <div className="summary-status">Below 70% attendance</div>
                     </div>
                     {/* Card 4: Struggling — semester-level */}
-                    <div className={`summary-card ${analyticsData.summary.studentsStruggling > 0 ? 'needs-attention' : 'good'}`}>
+                    <div
+                      className={`summary-card ${analyticsData.summary.studentsStruggling > 0 ? 'needs-attention' : 'good'} ${analyticsData.summary.studentsStruggling > 0 ? 'clickable' : ''} ${expandedMetric === 'struggling' ? 'active' : ''}`}
+                      onClick={() => analyticsData.summary.studentsStruggling > 0 && setExpandedMetric(expandedMetric === 'struggling' ? null : 'struggling')}
+                    >
                       <div className="summary-value">{analyticsData.summary.studentsStruggling || 0}</div>
                       <div className="summary-label">Struggling</div>
                       <div className="summary-status">Below 50% exam avg</div>
                     </div>
                   </div>
+
+                  {/* Expanded student list for Need Attention / Struggling */}
+                  {expandedMetric === 'attention' && analyticsData.atRiskStudents?.length > 0 && (
+                    <div className="metric-student-list">
+                      <div className="metric-student-list-header">
+                        <h4>{analyticsData.atRiskStudents.length} student{analyticsData.atRiskStudents.length !== 1 ? 's' : ''} below 70% attendance</h4>
+                        <button className="metric-student-list-close" onClick={() => setExpandedMetric(null)}>&times;</button>
+                      </div>
+                      <div className="metric-student-list-body">
+                        <table className="metric-student-table">
+                          <thead>
+                            <tr>
+                              <th>Student</th>
+                              <th>Class</th>
+                              <th>Rate</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {analyticsData.atRiskStudents.map(s => (
+                              <tr key={s.id}>
+                                <td>{s.first_name} {s.last_name}</td>
+                                <td>{s.class_name || '-'}</td>
+                                <td className="metric-student-rate low">{s.attendance_rate !== null ? `${s.attendance_rate}%` : 'No data'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                  {expandedMetric === 'struggling' && analyticsData.strugglingStudents?.length > 0 && (
+                    <div className="metric-student-list">
+                      <div className="metric-student-list-header">
+                        <h4>{analyticsData.strugglingStudents.length} student{analyticsData.strugglingStudents.length !== 1 ? 's' : ''} below 50% exam average</h4>
+                        <button className="metric-student-list-close" onClick={() => setExpandedMetric(null)}>&times;</button>
+                      </div>
+                      <div className="metric-student-list-body">
+                        <table className="metric-student-table">
+                          <thead>
+                            <tr>
+                              <th>Student</th>
+                              <th>Class</th>
+                              <th>Avg</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {analyticsData.strugglingStudents.map(s => (
+                              <tr key={s.id}>
+                                <td>{s.first_name} {s.last_name}</td>
+                                <td>{s.class_name || '-'}</td>
+                                <td className="metric-student-rate low">{s.avg_percentage}%</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Today's Status */}
                   {analyticsData.quickActions && (

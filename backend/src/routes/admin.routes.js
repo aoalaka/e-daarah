@@ -2344,7 +2344,6 @@ router.get('/analytics', async (req, res) => {
       GROUP BY s.id
       HAVING attendance_rate < 70 OR attendance_rate IS NULL
       ORDER BY attendance_rate ASC
-      LIMIT 10
     `;
     const atRiskParams = [madrasahId, ...attendanceParams, madrasahId, ...studentParams];
     const [atRiskStudents] = await pool.query(atRiskQuery, atRiskParams);
@@ -2544,7 +2543,7 @@ router.get('/analytics', async (req, res) => {
       strugglingQuery += ' AND s.gender = ?';
       strugglingParams.push(gender);
     }
-    strugglingQuery += ' GROUP BY s.id HAVING avg_percentage < 50 ORDER BY avg_percentage ASC LIMIT 10';
+    strugglingQuery += ' GROUP BY s.id HAVING avg_percentage < 50 ORDER BY avg_percentage ASC';
     const [strugglingStudents] = await pool.query(strugglingQuery, strugglingParams);
 
     // 12. Gender breakdown (if not filtered by gender)

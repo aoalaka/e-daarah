@@ -1522,24 +1522,15 @@ function AdminDashboard() {
                         <button className="metric-student-list-close" onClick={() => setExpandedMetric(null)}>&times;</button>
                       </div>
                       <div className="metric-student-list-body">
-                        <table className="metric-student-table">
-                          <thead>
-                            <tr>
-                              <th>Student</th>
-                              <th>Class</th>
-                              <th>Rate</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {analyticsData.atRiskStudents.map(s => (
-                              <tr key={s.id}>
-                                <td>{s.first_name} {s.last_name}</td>
-                                <td>{s.class_name || '-'}</td>
-                                <td className="metric-student-rate low">{s.attendance_rate !== null ? `${s.attendance_rate}%` : 'No data'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        {analyticsData.atRiskStudents.map(s => (
+                          <div key={s.id} className="metric-student-row">
+                            <div className="metric-student-info">
+                              <span className="metric-student-name">{s.first_name} {s.last_name}</span>
+                              {s.class_name && <span className="metric-student-class">{s.class_name}</span>}
+                            </div>
+                            <span className="metric-student-rate low">{s.attendance_rate !== null ? `${s.attendance_rate}%` : '-'}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -1550,24 +1541,15 @@ function AdminDashboard() {
                         <button className="metric-student-list-close" onClick={() => setExpandedMetric(null)}>&times;</button>
                       </div>
                       <div className="metric-student-list-body">
-                        <table className="metric-student-table">
-                          <thead>
-                            <tr>
-                              <th>Student</th>
-                              <th>Class</th>
-                              <th>Avg</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {analyticsData.strugglingStudents.map(s => (
-                              <tr key={s.id}>
-                                <td>{s.first_name} {s.last_name}</td>
-                                <td>{s.class_name || '-'}</td>
-                                <td className="metric-student-rate low">{s.avg_percentage}%</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        {analyticsData.strugglingStudents.map(s => (
+                          <div key={s.id} className="metric-student-row">
+                            <div className="metric-student-info">
+                              <span className="metric-student-name">{s.first_name} {s.last_name}</span>
+                              {s.class_name && <span className="metric-student-class">{s.class_name}</span>}
+                            </div>
+                            <span className="metric-student-rate low">{s.avg_percentage}%</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

@@ -2653,20 +2653,20 @@ router.get('/analytics', async (req, res) => {
         AND YEARWEEK(a.date, 1) = YEARWEEK(NOW(), 1) - 1
     `, [madrasahId]);
 
-    // 12. Attendance Streak - classes with perfect attendance streaks
+    // 12. Perfect attendance weeks — weeks where every recorded student was present, per class
+    // A "perfect week" = a calendar week where AVG(present) = 1 across all attendance records
     const [attendanceStreaks] = await pool.query(`
-      SELECT
-        c.id,
-        c.name as class_name,
-        COUNT(DISTINCT YEARWEEK(a.date, 1)) as streak_weeks,
-        MIN(a.date) as streak_start
+      SELECT c.id, c.name as class_name, COUNT(*) as streak_weeks
       FROM classes c
-      JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?
-      WHERE c.madrasah_id = ?
-        AND c.deleted_at IS NULL
-        AND a.date >= DATE_SUB(NOW(), INTERVAL 12 WEEK)
-      GROUP BY c.id, a.date
-      HAVING AVG(a.present) = 1
+      JOIN (
+        SELECT class_id, YEARWEEK(date, 1) as yw
+        FROM attendance
+        WHERE madrasah_id = ? AND date >= DATE_SUB(NOW(), INTERVAL 12 WEEK)
+        GROUP BY class_id, YEARWEEK(date, 1)
+        HAVING AVG(present) = 1
+      ) perfect_weeks ON c.id = perfect_weeks.class_id
+      WHERE c.madrasah_id = ? AND c.deleted_at IS NULL
+      GROUP BY c.id, c.name
       ORDER BY streak_weeks DESC
       LIMIT 3
     `, [madrasahId, madrasahId]);
@@ -2758,9 +2758,9 @@ router.get('/analytics', async (req, res) => {
 
     const currentCount = currentMonthAttendance[0]?.record_count || 0;
     const lastCount = lastMonthAttendance[0]?.record_count || 0;
-    const currentRate = currentCount > 0 ? parseFloat(currentMonthAttendance[0].rate) || 0 : null;
-    const lastRate = lastCount > 0 ? parseFloat(lastMonthAttendance[0].rate) || 0 : null;
-    // Only compute change if both months have actual attendance records
+    const currentRate = currentCount >= 10 ? parseFloat(currentMonthAttendance[0].rate) || 0 : null;
+    const lastRate = lastCount >= 10 ? parseFloat(lastMonthAttendance[0].rate) || 0 : null;
+    // Only compute change if both months have enough records (>=10) to be meaningful
     const monthOverMonthChange = (currentRate !== null && lastRate !== null) ? Math.round((currentRate - lastRate) * 10) / 10 : null;
 
     res.json({

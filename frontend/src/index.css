@@ -33,7 +33,7 @@
 
   /* Border */
   --border: 1px solid var(--light);
-  --radius: 4px;
+  --radius: 8px;
 }
 
 *, *::before, *::after {

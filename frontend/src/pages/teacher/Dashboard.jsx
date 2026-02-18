@@ -1353,8 +1353,11 @@ function TeacherDashboard() {
               </div>
 
               {overviewLoading ? (
-                <div className="card" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
-                  <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+                <div className="card">
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading overview...</p>
+                  </div>
                 </div>
               ) : overviewData ? (
                 <>

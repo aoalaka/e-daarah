@@ -1468,7 +1468,7 @@ function AdminDashboard() {
                       <div className="summary-label">Attendance</div>
                       <div className="summary-status">
                         {analyticsData.summary.attendanceLabel}
-                        {analyticsData.monthOverMonth && analyticsData.monthOverMonth.change !== 0 && (
+                        {analyticsData.monthOverMonth && analyticsData.monthOverMonth.change !== null && analyticsData.monthOverMonth.change !== 0 && (
                           <span style={{ marginLeft: 6, fontSize: 12, color: analyticsData.monthOverMonth.change > 0 ? 'var(--accent)' : '#c1121f' }}>
                             {analyticsData.monthOverMonth.change > 0 ? '+' : ''}{Math.round(analyticsData.monthOverMonth.change)}% vs last month
                           </span>
@@ -1593,12 +1593,12 @@ function AdminDashboard() {
                       )}
 
                       {/* Month Trend */}
-                      {analyticsData.monthOverMonth && (analyticsData.monthOverMonth.currentRate > 0 || analyticsData.monthOverMonth.lastRate > 0) && (
+                      {analyticsData.monthOverMonth && analyticsData.monthOverMonth.currentRate > 0 && (
                         <div className="overview-widget">
                           <h4>Month Trend</h4>
                           <div className="month-trend">
                             <div className="overview-big-number">{analyticsData.monthOverMonth.currentRate || 0}%</div>
-                            {analyticsData.monthOverMonth.change !== 0 && (
+                            {analyticsData.monthOverMonth.change !== null && analyticsData.monthOverMonth.change !== 0 && (
                               <span className={`trend-arrow ${analyticsData.monthOverMonth.change > 0 ? 'up' : 'down'}`}>
                                 {analyticsData.monthOverMonth.change > 0 ? '+' : ''}{Math.round(analyticsData.monthOverMonth.change)}%
                               </span>
@@ -1607,7 +1607,9 @@ function AdminDashboard() {
                               <span className="trend-arrow flat">No change</span>
                             )}
                           </div>
-                          <div className="overview-big-label">Attendance this month</div>
+                          <div className="overview-big-label">
+                            Attendance this month{analyticsData.monthOverMonth.change === null ? ' (no prior month data)' : ''}
+                          </div>
                         </div>
                       )}
 
@@ -3632,7 +3634,7 @@ function AdminDashboard() {
                         )}
 
                         {/* Month-over-Month */}
-                        {analyticsData.monthOverMonth && analyticsData.monthOverMonth.lastRate > 0 && (
+                        {analyticsData.monthOverMonth && analyticsData.monthOverMonth.change !== null && analyticsData.monthOverMonth.lastRate > 0 && (
                           <div className="insight-widget">
                             <h4>Month Comparison</h4>
                             <div className="month-comparison">

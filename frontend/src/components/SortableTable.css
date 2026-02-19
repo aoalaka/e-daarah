@@ -179,6 +179,67 @@
   font-size: 13px;
 }
 
+/* Selectable rows */
+.table-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--black);
+}
+
+.sortable-table tr.selected-row {
+  background: #f0f4ff;
+}
+
+.sortable-table tr.selected-row:hover {
+  background: #e8edfb;
+}
+
+/* Selection toolbar */
+.table-selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px var(--md);
+  background: var(--black);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.table-selection-bar .selection-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.table-selection-bar button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+
+.table-selection-bar .btn-selection-delete {
+  background: #dc2626;
+  color: #fff;
+}
+
+.table-selection-bar .btn-selection-delete:hover {
+  background: #b91c1c;
+}
+
+.table-selection-bar .btn-selection-clear {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.table-selection-bar .btn-selection-clear:hover {
+  background: rgba(255,255,255,0.1);
+}
+
 /* iOS Safari: 16px font-size prevents auto-zoom on focus */
 @media (max-width: 768px) {
   .table-search-input {

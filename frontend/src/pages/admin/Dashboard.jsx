@@ -38,6 +38,7 @@ function AdminDashboard() {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadClass, setUploadClass] = useState('');
   const [uploadResults, setUploadResults] = useState(null);
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [newSession, setNewSession] = useState({ name: '', start_date: '', end_date: '', is_active: false });
   const [newSemester, setNewSemester] = useState({ session_id: '', name: '', start_date: '', end_date: '', is_active: false });
   const [newClass, setNewClass] = useState({ name: '', grade_level: '', school_days: [], description: '' });
@@ -741,6 +742,21 @@ function AdminDashboard() {
         loadData();
       } catch (error) {
         toast.error('Failed to delete student');
+      }
+    }
+  };
+
+  const handleBulkDeleteStudents = async () => {
+    if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
+    if (selectedStudentIds.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedStudentIds.length} student${selectedStudentIds.length > 1 ? 's' : ''}?`)) {
+      try {
+        await api.post('/admin/students/bulk-delete', { ids: selectedStudentIds });
+        setSelectedStudentIds([]);
+        loadData();
+        toast.success(`${selectedStudentIds.length} student(s) deleted`);
+      } catch (error) {
+        toast.error('Failed to delete students');
       }
     }
   };
@@ -2928,6 +2944,15 @@ function AdminDashboard() {
               )}
 
               <div className="card">
+                {selectedStudentIds.length > 0 && (
+                  <div className="table-selection-bar">
+                    <span>{selectedStudentIds.length} student{selectedStudentIds.length > 1 ? 's' : ''} selected</span>
+                    <div className="selection-actions">
+                      <button className="btn-selection-clear" onClick={() => setSelectedStudentIds([])}>Clear</button>
+                      <button className="btn-selection-delete" onClick={handleBulkDeleteStudents}>Delete selected</button>
+                    </div>
+                  </div>
+                )}
                 <SortableTable
                   columns={[
                     { key: 'student_id', label: 'ID', sortable: true, sortType: 'string' },
@@ -2993,6 +3018,9 @@ function AdminDashboard() {
                   pagination={true}
                   pageSize={25}
                   emptyMessage="No students yet. Create one to get started."
+                  selectable={true}
+                  selectedIds={selectedStudentIds}
+                  onSelectionChange={setSelectedStudentIds}
                 />
               </div>
               </>

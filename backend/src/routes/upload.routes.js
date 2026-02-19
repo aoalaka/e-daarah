@@ -75,8 +75,13 @@ function validateStudentData(row, rowIndex) {
     errors.push(`Row ${rowIndex}: Last name is required`);
   }
 
-  if (!row.gender || !['Male', 'Female'].includes(row.gender)) {
-    errors.push(`Row ${rowIndex}: Gender is required and must be either 'Male' or 'Female'`);
+  if (!row.gender) {
+    errors.push(`Row ${rowIndex}: Gender is required (Male/Female or M/F)`);
+  } else {
+    const g = row.gender.trim().toLowerCase();
+    if (!['male', 'female', 'm', 'f'].includes(g)) {
+      errors.push(`Row ${rowIndex}: Gender must be 'Male', 'Female', 'M', or 'F'`);
+    }
   }
 
   return errors;
@@ -212,7 +217,7 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
             student.first_name.trim(),
             student.last_name.trim(),
             studentId,
-            student.gender.trim(),
+            ['m', 'male'].includes(student.gender.trim().toLowerCase()) ? 'Male' : 'Female',
             student.email?.trim() || null,
             student.phone?.trim() || null,
             class_id || null,

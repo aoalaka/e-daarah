@@ -782,6 +782,9 @@ function AdminDashboard() {
       setUploadResults(response.data);
       setUploadFile(null);
       setUploadClass('');
+      // Reset the file input element
+      const fileInput = e.target.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
       loadData();
       toast.success(`Upload complete: ${response.data.successful} successful, ${response.data.failed} failed`);
     } catch (error) {
@@ -2710,7 +2713,7 @@ function AdminDashboard() {
                         }} className="btn btn-secondary">
                           Cancel
                         </button>
-                        <button type="submit" className="btn btn-primary">Upload Students</button>
+                        <button type="submit" className="btn btn-primary" disabled={!uploadFile}>Upload Students</button>
                       </div>
                     </form>
 

@@ -152,6 +152,39 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
       });
     }
 
+    // Check for duplicate student_ids within the file
+    const fileStudentIds = students
+      .map((s, i) => ({ id: s.student_id?.toString().trim(), row: i + 2 }))
+      .filter(s => s.id);
+    const seenIds = new Map();
+    for (const { id, row } of fileStudentIds) {
+      if (seenIds.has(id)) {
+        validationErrors.push(`Row ${row}: Duplicate student ID "${id}" (also in row ${seenIds.get(id)})`);
+      } else {
+        seenIds.set(id, row);
+      }
+    }
+
+    // Check provided student_ids against existing DB records
+    if (fileStudentIds.length > 0) {
+      const ids = fileStudentIds.map(s => s.id);
+      const [existing] = await pool.query(
+        'SELECT student_id FROM students WHERE madrasah_id = ? AND student_id IN (?) AND deleted_at IS NULL',
+        [madrasahId, ids]
+      );
+      for (const ex of existing) {
+        const row = fileStudentIds.find(s => s.id === ex.student_id)?.row;
+        validationErrors.push(`Row ${row}: Student ID "${ex.student_id}" already exists in this madrasah`);
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: validationErrors
+      });
+    }
+
     // Insert students
     const results = {
       success: [],
@@ -161,7 +194,9 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
     for (let i = 0; i < students.length; i++) {
       const student = students[i];
       try {
-        const studentId = await generateStudentId(madrasahId);
+        // Use provided student_id if present, otherwise auto-generate
+        const providedId = student.student_id?.toString().trim();
+        const studentId = providedId || await generateStudentId(madrasahId);
 
         // Generate parent access code (PIN)
         const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -218,9 +253,9 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
 
 // Download CSV template
 router.get('/students/template', (req, res) => {
-  const template = `first_name,last_name,gender,email,phone,parent_guardian_name,parent_guardian_relationship,parent_guardian_phone,notes
-John,Doe,Male,john.doe@example.com,1234567890,Jane Doe,Mother,0987654321,Good student
-Mary,Smith,Female,mary.smith@example.com,2345678901,Bob Smith,Father,8765432109,Needs extra support`;
+  const template = `first_name,last_name,gender,student_id,email,phone,parent_guardian_name,parent_guardian_relationship,parent_guardian_phone,notes
+John,Doe,Male,,john.doe@example.com,1234567890,Jane Doe,Mother,0987654321,Good student
+Mary,Smith,Female,STU-042,mary.smith@example.com,2345678901,Bob Smith,Father,8765432109,Needs extra support`;
 
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename=student_upload_template.csv');

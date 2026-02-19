@@ -2655,9 +2655,9 @@ function AdminDashboard() {
                       <p>Upload a CSV or Excel file with the following columns:</p>
                       <code>
                         Required: first_name, last_name, gender<br/>
-                        Optional: email, phone, parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes
+                        Optional: student_id, email, phone, parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes
                       </code>
-                      <p>Gender must be either 'Male' or 'Female'. Student IDs will be auto-generated.</p>
+                      <p>Gender must be either 'Male' or 'Female'. If student_id is provided, it will be used as-is. Leave it blank to auto-generate.</p>
                       <button onClick={downloadTemplate} className="btn btn-secondary btn-sm">
                         Download Template
                       </button>

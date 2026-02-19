@@ -20,7 +20,7 @@
   --warning: #b86e00;
 
   /* Typography */
-  --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --mono: 'SF Mono', Monaco, 'Courier New', monospace;
 
   /* Spacing */

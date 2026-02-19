@@ -41,7 +41,7 @@ export function MadrasahProvider({ children }) {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        fontFamily: "'Satoshi', system-ui, sans-serif"
+        fontFamily: "'Inter', system-ui, sans-serif"
       }}>
         Loading...
       </div>

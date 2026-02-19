@@ -2976,7 +2976,7 @@ function AdminDashboard() {
                           onChange={async (e) => {
                             const newClassId = e.target.value || null;
                             try {
-                              await api.put(`/admin/students/${row.id}`, { ...row, class_id: newClassId });
+                              await api.patch(`/admin/students/${row.id}/class`, { class_id: newClassId });
                               loadData();
                             } catch (err) {
                               toast.error('Failed to update class');

@@ -1682,36 +1682,7 @@ function AdminDashboard() {
                       )}
                     </div>
 
-                    <div>
-                      {/* Getting Started */}
-                      {analyticsData.gettingStarted && analyticsData.gettingStarted.totalClasses > 0 && (
-                        <div className="overview-widget">
-                          <h4>Getting Started</h4>
-                          <div className="progress-bar-container">
-                            <div className="progress-stat">
-                              <span className="stat-label">Classes with students</span>
-                              <span className="stat-value">
-                                {analyticsData.gettingStarted.classesWithStudents} / {analyticsData.gettingStarted.totalClasses}
-                              </span>
-                            </div>
-                            <div className="progress-bar">
-                              <div className="progress-fill" style={{ width: `${(analyticsData.gettingStarted.classesWithStudents / analyticsData.gettingStarted.totalClasses * 100)}%` }}></div>
-                            </div>
-                          </div>
-                          <div className="progress-bar-container" style={{ marginTop: 'var(--sm)' }}>
-                            <div className="progress-stat">
-                              <span className="stat-label">Classes taking attendance</span>
-                              <span className="stat-value">
-                                {analyticsData.gettingStarted.classesWithAttendance} / {analyticsData.gettingStarted.totalClasses}
-                              </span>
-                            </div>
-                            <div className="progress-bar">
-                              <div className="progress-fill" style={{ width: `${(analyticsData.gettingStarted.classesWithAttendance / analyticsData.gettingStarted.totalClasses * 100)}%` }}></div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <div></div>
                   </div>
 
                   {/* Quick Actions — separated at bottom */}

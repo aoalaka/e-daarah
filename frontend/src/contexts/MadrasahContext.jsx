@@ -41,7 +41,7 @@ export function MadrasahProvider({ children }) {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif"
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
       }}>
         Loading...
       </div>

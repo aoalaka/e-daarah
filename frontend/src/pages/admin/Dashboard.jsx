@@ -2975,10 +2975,18 @@ function AdminDashboard() {
                           onClick={(e) => e.stopPropagation()}
                           onChange={async (e) => {
                             const newClassId = e.target.value || null;
+                            const newClassName = classes.find(c => String(c.id) === String(newClassId))?.name || null;
+                            // Optimistic update — no full reload needed
+                            setStudents(prev => prev.map(s =>
+                              s.id === row.id ? { ...s, class_id: newClassId ? Number(newClassId) : null, class_name: newClassName } : s
+                            ));
                             try {
                               await api.patch(`/admin/students/${row.id}/class`, { class_id: newClassId });
-                              loadData();
                             } catch (err) {
+                              // Revert on failure
+                              setStudents(prev => prev.map(s =>
+                                s.id === row.id ? { ...s, class_id: row.class_id, class_name: row.class_name } : s
+                              ));
                               toast.error('Failed to update class');
                             }
                           }}

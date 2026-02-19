@@ -1893,11 +1893,13 @@ function AdminDashboard() {
                   <div className="card" style={{ marginBottom: 'var(--md)' }}>
                     <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>Semesters</span>
-                      <button onClick={() => {
-                        setEditingSemester(null);
-                        setNewSemester({ session_id: plannerSelectedSession.id, name: '', start_date: '', end_date: '', is_active: false });
-                        setShowSemesterForm(!showSemesterForm);
-                      }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+                      {!showSemesterForm && (
+                        <button onClick={() => {
+                          setEditingSemester(null);
+                          setNewSemester({ session_id: plannerSelectedSession.id, name: '', start_date: '', end_date: '', is_active: false });
+                          setShowSemesterForm(true);
+                        }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+                      )}
                     </div>
 
                     {showSemesterForm && (
@@ -1970,11 +1972,13 @@ function AdminDashboard() {
                   <div className="card" style={{ marginBottom: 'var(--md)' }}>
                     <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>Holidays & Closures</span>
-                      <button onClick={() => {
-                        setEditingHoliday(null);
-                        setNewHoliday({ title: '', start_date: '', end_date: '', description: '' });
-                        setShowHolidayForm(!showHolidayForm);
-                      }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+                      {!showHolidayForm && (
+                        <button onClick={() => {
+                          setEditingHoliday(null);
+                          setNewHoliday({ title: '', start_date: '', end_date: '', description: '' });
+                          setShowHolidayForm(true);
+                        }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+                      )}
                     </div>
 
                     {showHolidayForm && (
@@ -2045,11 +2049,13 @@ function AdminDashboard() {
                   <div className="card">
                     <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>Schedule Overrides</span>
-                      <button onClick={() => {
-                        setEditingOverride(null);
-                        setNewOverride({ title: '', start_date: '', end_date: '', school_days: [] });
-                        setShowOverrideForm(!showOverrideForm);
-                      }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+                      {!showOverrideForm && (
+                        <button onClick={() => {
+                          setEditingOverride(null);
+                          setNewOverride({ title: '', start_date: '', end_date: '', school_days: [] });
+                          setShowOverrideForm(true);
+                        }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+                      )}
                     </div>
                     <p style={{ padding: '0 var(--md)', fontSize: '12px', color: 'var(--muted)', margin: '8px 0 0' }}>
                       Temporarily change school days for a period (e.g., shift to Saturday-Sunday during Ramadan)

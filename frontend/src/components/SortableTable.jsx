@@ -11,7 +11,10 @@ function SortableTable({
   pagination = false,
   pageSize = 10,
   pageSizeOptions = [10, 25, 50, 100],
-  emptyMessage = 'No data available'
+  emptyMessage = 'No data available',
+  selectable = false,
+  selectedIds = [],
+  onSelectionChange = null
 }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [searchTerm, setSearchTerm] = useState('');
@@ -208,6 +211,24 @@ function SortableTable({
         <table className="table sortable-table">
           <thead>
             <tr>
+              {selectable && (
+                <th style={{ width: '40px' }}>
+                  <input
+                    type="checkbox"
+                    className="table-checkbox"
+                    checked={paginatedData.length > 0 && paginatedData.every(row => selectedIds.includes(row.id))}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        const newIds = [...new Set([...selectedIds, ...paginatedData.map(r => r.id)])];
+                        onSelectionChange(newIds);
+                      } else {
+                        const pageIds = paginatedData.map(r => r.id);
+                        onSelectionChange(selectedIds.filter(id => !pageIds.includes(id)));
+                      }
+                    }}
+                  />
+                </th>
+              )}
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -227,8 +248,25 @@ function SortableTable({
                 <tr
                   key={row.id || index}
                   onClick={() => onRowClick && onRowClick(row)}
-                  className={onRowClick ? 'clickable' : ''}
+                  className={`${onRowClick ? 'clickable' : ''} ${selectable && selectedIds.includes(row.id) ? 'selected-row' : ''}`}
                 >
+                  {selectable && (
+                    <td>
+                      <input
+                        type="checkbox"
+                        className="table-checkbox"
+                        checked={selectedIds.includes(row.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            onSelectionChange([...selectedIds, row.id]);
+                          } else {
+                            onSelectionChange(selectedIds.filter(id => id !== row.id));
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </td>
+                  )}
                   {columns.map((column) => (
                     <td key={column.key}>
                       {column.render ? column.render(row) : row[column.key]}
@@ -238,7 +276,7 @@ function SortableTable({
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length}>
+                <td colSpan={columns.length + (selectable ? 1 : 0)}>
                   <div className="empty">
                     <p>{searchTerm ? 'No matching results found' : emptyMessage}</p>
                   </div>

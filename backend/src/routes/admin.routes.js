@@ -878,6 +878,27 @@ router.delete('/students/:id', requireActiveSubscription, async (req, res) => {
   }
 });
 
+// Bulk delete students (soft delete, scoped to madrasah)
+router.post('/students/bulk-delete', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'No student IDs provided' });
+    }
+
+    const [result] = await pool.query(
+      'UPDATE students SET deleted_at = NOW() WHERE id IN (?) AND madrasah_id = ? AND deleted_at IS NULL',
+      [ids, madrasahId]
+    );
+
+    res.json({ message: `${result.affectedRows} student(s) deleted successfully`, deleted: result.affectedRows });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete students' });
+  }
+});
+
 // Regenerate parent access code for a student (scoped to madrasah, Plus only)
 router.post('/students/:id/regenerate-access-code', requireActiveSubscription, requirePlusPlan('Parent access codes'), async (req, res) => {
   try {

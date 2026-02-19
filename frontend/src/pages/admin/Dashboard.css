@@ -403,9 +403,9 @@
 
 .page-title {
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 700;
   color: #0a0a0a;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
 }
 
 .page-description {
@@ -424,7 +424,7 @@
 
 .section-header h2 {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
   color: #0a0a0a;
 }
 
@@ -437,14 +437,17 @@
   border-radius: var(--radius);
   margin-bottom: var(--md);
   padding: var(--lg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .card-header {
   padding: var(--md) var(--lg);
   border-bottom: 1px solid #e5e5e5;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #0a0a0a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .card-body {
@@ -547,7 +550,7 @@
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
   border: none;
@@ -647,8 +650,8 @@
 .form-group label,
 .form-label {
   font-size: 13px;
-  font-weight: 500;
-  color: #374151;
+  font-weight: 600;
+  color: #525252;
 }
 
 .form-group input,

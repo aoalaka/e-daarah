@@ -2968,7 +2968,27 @@ function AdminDashboard() {
                       key: 'class_name',
                       label: 'Class',
                       sortable: true,
-                      render: (row) => row.class_name || <span style={{ color: 'var(--muted)' }}>Unassigned</span>
+                      render: (row) => (
+                        <select
+                          className="inline-class-select"
+                          value={row.class_id || ''}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={async (e) => {
+                            const newClassId = e.target.value || null;
+                            try {
+                              await api.put(`/admin/students/${row.id}`, { ...row, class_id: newClassId });
+                              loadData();
+                            } catch (err) {
+                              toast.error('Failed to update class');
+                            }
+                          }}
+                        >
+                          <option value="">Unassigned</option>
+                          {classes.map(cls => (
+                            <option key={cls.id} value={cls.id}>{cls.name}</option>
+                          ))}
+                        </select>
+                      )
                     },
                     {
                       key: 'parent_guardian_name',

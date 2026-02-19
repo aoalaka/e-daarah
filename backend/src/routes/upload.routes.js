@@ -203,26 +203,41 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
         const providedId = student.student_id?.toString().trim();
         const studentId = providedId || await generateStudentId(madrasahId);
 
-        await pool.query(
-          `INSERT INTO students (
-            madrasah_id, first_name, last_name, student_id, gender, email, phone, class_id,
-            parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            madrasahId,
-            student.first_name.trim(),
-            student.last_name.trim(),
-            studentId,
-            ['m', 'male'].includes(student.gender.trim().toLowerCase()) ? 'Male' : 'Female',
-            student.email?.trim() || null,
-            student.phone?.trim() || null,
-            class_id || null,
-            student.parent_guardian_name?.trim() || null,
-            student.parent_guardian_relationship?.trim() || null,
-            student.parent_guardian_phone?.trim() || null,
-            student.notes?.trim() || null
-          ]
+        const gender = ['m', 'male'].includes(student.gender.trim().toLowerCase()) ? 'Male' : 'Female';
+        const firstName = student.first_name.trim();
+        const lastName = student.last_name.trim();
+        const email = student.email?.trim() || null;
+        const phone = student.phone?.trim() || null;
+        const parentName = student.parent_guardian_name?.trim() || null;
+        const parentRelationship = student.parent_guardian_relationship?.trim() || null;
+        const parentPhone = student.parent_guardian_phone?.trim() || null;
+        const notes = student.notes?.trim() || null;
+
+        // Check if a soft-deleted student with same student_id exists
+        const [softDeleted] = await pool.query(
+          'SELECT id FROM students WHERE madrasah_id = ? AND student_id = ? AND deleted_at IS NOT NULL',
+          [madrasahId, studentId]
         );
+
+        if (softDeleted.length > 0) {
+          // Reactivate the soft-deleted student with new data
+          await pool.query(
+            `UPDATE students SET first_name = ?, last_name = ?, gender = ?, email = ?, phone = ?, class_id = ?,
+             parent_guardian_name = ?, parent_guardian_relationship = ?, parent_guardian_phone = ?, notes = ?,
+             deleted_at = NULL WHERE id = ?`,
+            [firstName, lastName, gender, email, phone, class_id || null,
+             parentName, parentRelationship, parentPhone, notes, softDeleted[0].id]
+          );
+        } else {
+          await pool.query(
+            `INSERT INTO students (
+              madrasah_id, first_name, last_name, student_id, gender, email, phone, class_id,
+              parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [madrasahId, firstName, lastName, studentId, gender, email, phone, class_id || null,
+             parentName, parentRelationship, parentPhone, notes]
+          );
+        }
 
         results.success.push({
           name: `${student.first_name} ${student.last_name}`,

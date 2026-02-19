@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import xlsx from 'xlsx';
-import bcrypt from 'bcryptjs';
+
 import { createReadStream } from 'fs';
 import csvParser from 'csv-parser';
 import pool from '../config/database.js';
@@ -203,15 +203,11 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
         const providedId = student.student_id?.toString().trim();
         const studentId = providedId || await generateStudentId(madrasahId);
 
-        // Generate parent access code (PIN)
-        const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const hashedAccessCode = await bcrypt.hash(accessCode, 10);
-
         await pool.query(
           `INSERT INTO students (
             madrasah_id, first_name, last_name, student_id, gender, email, phone, class_id,
-            parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes, parent_access_code
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             madrasahId,
             student.first_name.trim(),
@@ -224,15 +220,13 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
             student.parent_guardian_name?.trim() || null,
             student.parent_guardian_relationship?.trim() || null,
             student.parent_guardian_phone?.trim() || null,
-            student.notes?.trim() || null,
-            hashedAccessCode
+            student.notes?.trim() || null
           ]
         );
 
         results.success.push({
           name: `${student.first_name} ${student.last_name}`,
-          student_id: studentId,
-          access_code: accessCode
+          student_id: studentId
         });
       } catch (error) {
         results.failed.push({

@@ -1077,6 +1077,22 @@
   margin-top: 16px;
 }
 
+.upload-results ul {
+  padding-left: 20px;
+  margin: 8px 0 0 0;
+}
+
+.upload-results li {
+  padding: 3px 0;
+  font-size: 14px;
+}
+
+.upload-results summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
 .upload-results.success {
   background: #f5f5f5;
 }

@@ -2726,12 +2726,9 @@ function AdminDashboard() {
                         {uploadResults.results.success.length > 0 && (
                           <details open>
                             <summary>Successful Uploads ({uploadResults.results.success.length})</summary>
-                            <p style={{ fontSize: '0.85em', color: '#0a0a0a', margin: '8px 0' }}>
-                              ⚠️ Save these access codes now — they cannot be retrieved later.
-                            </p>
                             <ul>
                               {uploadResults.results.success.map((s, i) => (
-                                <li key={i}>{s.name} — ID: {s.student_id} — Access Code: <strong>{s.access_code}</strong></li>
+                                <li key={i}>{s.name} — ID: {s.student_id}</li>
                               ))}
                             </ul>
                           </details>

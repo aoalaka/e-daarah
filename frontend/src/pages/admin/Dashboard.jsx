@@ -2650,17 +2650,30 @@ function AdminDashboard() {
                 <div className="card">
                   <div className="card-header">Bulk Upload Students</div>
                   <div className="card-body">
+                    <div className="upload-template-banner" onClick={downloadTemplate}>
+                      <div className="upload-template-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                      </div>
+                      <div className="upload-template-text">
+                        <strong>Download CSV template</strong>
+                        <span>Start here — fill in the template, then upload it below</span>
+                      </div>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4, flexShrink: 0 }}>
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </div>
                     <div className="upload-info">
-                      <h4>Required File Format</h4>
-                      <p>Upload a CSV or Excel file with the following columns:</p>
-                      <code>
-                        Required: first_name, last_name, gender<br/>
-                        Optional: student_id, email, phone, parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes
-                      </code>
-                      <p>Gender must be either 'Male' or 'Female'. If student_id is provided, it will be used as-is. Leave it blank to auto-generate.</p>
-                      <button onClick={downloadTemplate} className="btn btn-secondary btn-sm">
-                        Download Template
-                      </button>
+                      <p style={{ margin: 0, fontSize: 13, color: '#666' }}>
+                        <strong>Required:</strong> first_name, last_name, gender ·
+                        <strong> Optional:</strong> student_id, email, phone, parent details, notes
+                      </p>
+                      <p style={{ margin: '4px 0 0', fontSize: 12, color: '#999' }}>
+                        Gender must be Male or Female. If student_id is provided it will be used as-is, otherwise auto-generated.
+                      </p>
                     </div>
 
                     <form onSubmit={handleBulkUpload}>

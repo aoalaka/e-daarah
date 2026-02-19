@@ -557,6 +557,28 @@
   gap: 8px;
 }
 
+.inline-class-select {
+  padding: 4px 8px;
+  border: 1px solid var(--light);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--dark);
+  background: var(--white);
+  cursor: pointer;
+  min-width: 100px;
+  transition: border-color 0.15s;
+}
+
+.inline-class-select:hover {
+  border-color: var(--muted);
+}
+
+.inline-class-select:focus {
+  outline: none;
+  border-color: var(--dark);
+}
+
 /* ============================================
    BUTTONS
    ============================================ */

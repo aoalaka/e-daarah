@@ -148,7 +148,22 @@ router.get('/school-day-info', async (req, res) => {
     if (sessions.length === 0) return res.json({ schoolDays: [], holidays: [], overrides: [] });
 
     const session = sessions[0];
-    const schoolDays = session.default_school_days ? (typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days) : [];
+    let schoolDays = session.default_school_days ? (typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days) : [];
+
+    // If classId provided, check for class-level school days (override session default)
+    const { classId } = req.query;
+    if (classId) {
+      const [classRows] = await pool.query(
+        'SELECT school_days FROM classes WHERE id = ? AND madrasah_id = ?',
+        [classId, madrasahId]
+      );
+      if (classRows.length > 0 && classRows[0].school_days) {
+        const classDays = typeof classRows[0].school_days === 'string' ? JSON.parse(classRows[0].school_days) : classRows[0].school_days;
+        if (Array.isArray(classDays) && classDays.length > 0) {
+          schoolDays = classDays;
+        }
+      }
+    }
 
     // Get holidays for active session
     const [holidays] = await pool.query(

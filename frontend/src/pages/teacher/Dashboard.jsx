@@ -150,6 +150,11 @@ function TeacherDashboard() {
     }
   }, [activeTab]);
 
+  // Re-fetch school day info when class changes (class may have its own school days)
+  useEffect(() => {
+    fetchSchoolDayInfo(selectedClass?.id || null);
+  }, [selectedClass?.id]);
+
   // Validate attendance date against school day rules
   useEffect(() => {
     validateAttendanceDate(attendanceDate);
@@ -304,9 +309,10 @@ function TeacherDashboard() {
     }
   };
 
-  const fetchSchoolDayInfo = async () => {
+  const fetchSchoolDayInfo = async (classId = null) => {
     try {
-      const response = await api.get('/teacher/school-day-info');
+      const params = classId ? `?classId=${classId}` : '';
+      const response = await api.get(`/teacher/school-day-info${params}`);
       setSchoolDayInfo(response.data);
     } catch (error) {
       console.error('Failed to fetch school day info:', error);

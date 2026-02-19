@@ -34,15 +34,16 @@ router.get('/active-session-semester', async (req, res) => {
 });
 
 // Helper: check if a date is a valid school day
-async function isValidSchoolDay(madrasahId, dateStr) {
+// Priority: schedule override > class-level school days > session default
+async function isValidSchoolDay(madrasahId, dateStr, classId = null) {
   const date = new Date(dateStr + 'T00:00:00Z');
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const dayOfWeek = dayNames[date.getUTCDay()];
 
   // 1. Find the active session that contains this date
   const [sessions] = await pool.query(
-    `SELECT id, default_school_days FROM sessions 
-     WHERE madrasah_id = ? AND deleted_at IS NULL 
+    `SELECT id, default_school_days FROM sessions
+     WHERE madrasah_id = ? AND deleted_at IS NULL
      AND start_date <= ? AND end_date >= ?`,
     [madrasahId, dateStr, dateStr]
   );
@@ -53,8 +54,8 @@ async function isValidSchoolDay(madrasahId, dateStr) {
 
   // 2. Check if date falls within a semester
   const [semesters] = await pool.query(
-    `SELECT id FROM semesters 
-     WHERE session_id = ? AND deleted_at IS NULL 
+    `SELECT id FROM semesters
+     WHERE session_id = ? AND deleted_at IS NULL
      AND start_date <= ? AND end_date >= ?`,
     [session.id, dateStr, dateStr]
   );
@@ -64,8 +65,8 @@ async function isValidSchoolDay(madrasahId, dateStr) {
 
   // 3. Check if it's a holiday
   const [holidays] = await pool.query(
-    `SELECT title FROM academic_holidays 
-     WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL 
+    `SELECT title FROM academic_holidays
+     WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL
      AND start_date <= ? AND end_date >= ?`,
     [madrasahId, session.id, dateStr, dateStr]
   );
@@ -73,10 +74,10 @@ async function isValidSchoolDay(madrasahId, dateStr) {
     return { valid: false, reason: `Holiday: ${holidays[0].title}` };
   }
 
-  // 4. Check for schedule override covering this date
+  // 4. Check for schedule override covering this date (highest priority)
   const [overrides] = await pool.query(
-    `SELECT school_days FROM schedule_overrides 
-     WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL 
+    `SELECT school_days FROM schedule_overrides
+     WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL
      AND start_date <= ? AND end_date >= ?`,
     [madrasahId, session.id, dateStr, dateStr]
   );
@@ -85,17 +86,33 @@ async function isValidSchoolDay(madrasahId, dateStr) {
   if (overrides.length > 0) {
     // Use override school days
     schoolDays = typeof overrides[0].school_days === 'string' ? JSON.parse(overrides[0].school_days) : overrides[0].school_days;
+  } else if (classId) {
+    // 5. Check class-level school days (if class has its own schedule)
+    const [classRows] = await pool.query(
+      'SELECT school_days FROM classes WHERE id = ? AND madrasah_id = ?',
+      [classId, madrasahId]
+    );
+    if (classRows.length > 0 && classRows[0].school_days) {
+      const classDays = typeof classRows[0].school_days === 'string' ? JSON.parse(classRows[0].school_days) : classRows[0].school_days;
+      if (Array.isArray(classDays) && classDays.length > 0) {
+        schoolDays = classDays;
+      }
+    }
+    // Fall back to session default if class has no school days set
+    if (!schoolDays) {
+      schoolDays = session.default_school_days ? (typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days) : null;
+    }
   } else {
     // Use session default school days
     schoolDays = session.default_school_days ? (typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days) : null;
   }
 
-  // 5. If no school days configured, allow any day (backward compat)
+  // 6. If no school days configured, allow any day (backward compat)
   if (!schoolDays || !Array.isArray(schoolDays) || schoolDays.length === 0) {
     return { valid: true };
   }
 
-  // 6. Check if day of week is in the school days list
+  // 7. Check if day of week is in the school days list
   if (!schoolDays.includes(dayOfWeek)) {
     return { valid: false, reason: `${dayOfWeek} is not a school day` };
   }
@@ -107,10 +124,10 @@ async function isValidSchoolDay(madrasahId, dateStr) {
 router.get('/validate-attendance-date', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { date } = req.query;
+    const { date, classId } = req.query;
     if (!date) return res.status(400).json({ error: 'Date parameter required' });
 
-    const result = await isValidSchoolDay(madrasahId, date);
+    const result = await isValidSchoolDay(madrasahId, date, classId || null);
     res.json(result);
   } catch (error) {
     console.error('Validate attendance date error:', error);
@@ -404,7 +421,7 @@ router.post('/classes/:classId/attendance', requireActiveSubscription, async (re
     }
 
     // Validate the date is a valid school day
-    const schoolDayCheck = await isValidSchoolDay(madrasahId, date);
+    const schoolDayCheck = await isValidSchoolDay(madrasahId, date, classId);
     if (!schoolDayCheck.valid) {
       return res.status(400).json({ error: schoolDayCheck.reason });
     }
@@ -490,7 +507,7 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
     }
 
     // Validate the date is a valid school day
-    const bulkSchoolDayCheck = await isValidSchoolDay(madrasahId, date);
+    const bulkSchoolDayCheck = await isValidSchoolDay(madrasahId, date, classId);
     if (!bulkSchoolDayCheck.valid) {
       return res.status(400).json({ error: bulkSchoolDayCheck.reason });
     }

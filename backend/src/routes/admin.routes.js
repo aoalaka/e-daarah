@@ -863,6 +863,43 @@ router.put('/students/:id', requireActiveSubscription, async (req, res) => {
   }
 });
 
+// Update student class assignment (lightweight, scoped to madrasah)
+router.patch('/students/:id/class', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    const { class_id } = req.body;
+
+    // Verify student belongs to this madrasah
+    const [check] = await pool.query(
+      'SELECT id FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
+    if (check.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // If class_id provided, verify it belongs to this madrasah
+    if (class_id) {
+      const [classCheck] = await pool.query(
+        'SELECT id FROM classes WHERE id = ? AND madrasah_id = ?',
+        [class_id, madrasahId]
+      );
+      if (classCheck.length === 0) {
+        return res.status(400).json({ error: 'Invalid class' });
+      }
+    }
+
+    await pool.query(
+      'UPDATE students SET class_id = ? WHERE id = ? AND madrasah_id = ?',
+      [class_id || null, id, madrasahId]
+    );
+    res.json({ message: 'Class updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update class' });
+  }
+});
+
 // Delete student (soft delete, scoped to madrasah)
 router.delete('/students/:id', requireActiveSubscription, async (req, res) => {
   try {

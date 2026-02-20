@@ -2589,7 +2589,8 @@ function AdminDashboard() {
                 </div>
               )}
 
-              <div className="card">
+              {/* Desktop table */}
+              <div className="card teachers-desktop">
                 <SortableTable
                   columns={[
                     { key: 'staff_id', label: 'Staff ID', sortable: true, sortType: 'string' },
@@ -2631,6 +2632,29 @@ function AdminDashboard() {
                   pageSize={10}
                   emptyMessage="No teachers yet. Create one to get started."
                 />
+              </div>
+
+              {/* Mobile cards */}
+              <div className="admin-mobile-cards teachers-mobile-cards">
+                {teachers.length === 0 ? (
+                  <p style={{ textAlign: 'center', color: 'var(--muted)', padding: '24px 0' }}>No teachers yet. Create one to get started.</p>
+                ) : (
+                  teachers.map(t => (
+                    <div key={t.id} className="admin-mobile-card">
+                      <div className="admin-mobile-card-top">
+                        <div>
+                          <div className="admin-mobile-card-title">{t.first_name} {t.last_name}</div>
+                          <div className="admin-mobile-card-sub">ID: {t.staff_id} · {t.email}</div>
+                        </div>
+                        {t.phone && <div className="admin-mobile-card-badge">{t.phone_country_code || ''}{t.phone}</div>}
+                      </div>
+                      <div className="admin-mobile-card-actions">
+                        <button onClick={() => handleEditTeacher(t)} className="btn btn-sm btn-secondary">Edit</button>
+                        <button onClick={() => handleDeleteTeacher(t.id)} className="btn btn-sm btn-secondary btn-danger">Delete</button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </>
           )}
@@ -2994,7 +3018,8 @@ function AdminDashboard() {
                 </div>
               )}
 
-              <div className="card">
+              {/* Desktop table */}
+              <div className="card students-desktop">
                 {selectedStudentIds.length > 0 && (
                   <div className="table-selection-bar">
                     <span>{selectedStudentIds.length} student{selectedStudentIds.length > 1 ? 's' : ''} selected</span>
@@ -3027,14 +3052,12 @@ function AdminDashboard() {
                           onChange={async (e) => {
                             const newClassId = e.target.value || null;
                             const newClassName = classes.find(c => String(c.id) === String(newClassId))?.name || null;
-                            // Optimistic update — no full reload needed
                             setStudents(prev => prev.map(s =>
                               s.id === row.id ? { ...s, class_id: newClassId ? Number(newClassId) : null, class_name: newClassName } : s
                             ));
                             try {
                               await api.patch(`/admin/students/${row.id}/class`, { class_id: newClassId });
                             } catch (err) {
-                              // Revert on failure
                               setStudents(prev => prev.map(s =>
                                 s.id === row.id ? { ...s, class_id: row.class_id, class_name: row.class_name } : s
                               ));
@@ -3101,6 +3124,66 @@ function AdminDashboard() {
                   selectedIds={selectedStudentIds}
                   onSelectionChange={setSelectedStudentIds}
                 />
+              </div>
+
+              {/* Mobile cards */}
+              <div className="admin-mobile-cards students-mobile-cards">
+                {students.length === 0 ? (
+                  <p style={{ textAlign: 'center', color: 'var(--muted)', padding: '24px 0' }}>No students yet. Create one to get started.</p>
+                ) : (
+                  students.map(s => (
+                    <div key={s.id} className="admin-mobile-card">
+                      <div className="admin-mobile-card-top">
+                        <div style={{ flex: 1 }}>
+                          <div className="admin-mobile-card-title">{s.first_name} {s.last_name}</div>
+                          <div className="admin-mobile-card-sub">
+                            {s.student_id} · {s.gender || '-'} ·{' '}
+                            <select
+                              className="inline-class-select"
+                              value={s.class_id || ''}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={async (e) => {
+                                const newClassId = e.target.value || null;
+                                const newClassName = classes.find(c => String(c.id) === String(newClassId))?.name || null;
+                                setStudents(prev => prev.map(st =>
+                                  st.id === s.id ? { ...st, class_id: newClassId ? Number(newClassId) : null, class_name: newClassName } : st
+                                ));
+                                try {
+                                  await api.patch(`/admin/students/${s.id}/class`, { class_id: newClassId });
+                                } catch (err) {
+                                  setStudents(prev => prev.map(st =>
+                                    st.id === s.id ? { ...st, class_id: s.class_id, class_name: s.class_name } : st
+                                  ));
+                                  toast.error('Failed to update class');
+                                }
+                              }}
+                            >
+                              <option value="">Unassigned</option>
+                              {classes.map(cls => (
+                                <option key={cls.id} value={cls.id}>{cls.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          {s.parent_guardian_name && (
+                            <div className="admin-mobile-card-sub" style={{ marginTop: '4px' }}>
+                              {s.parent_guardian_name} ({s.parent_guardian_relationship || 'N/A'})
+                              {s.parent_guardian_phone && ` · ${s.parent_guardian_phone_country_code || ''}${s.parent_guardian_phone}`}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="admin-mobile-card-actions">
+                        {hasPlusAccess() && (
+                          <button onClick={() => handleRegenerateAccessCode(s)} className="btn btn-sm btn-secondary" title="Regenerate parent access code">
+                            🔑
+                          </button>
+                        )}
+                        <button onClick={() => handleEditStudent(s)} className="btn btn-sm btn-secondary">Edit</button>
+                        <button onClick={() => handleDeleteStudent(s.id)} className="btn btn-sm btn-secondary btn-danger">Delete</button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
               </>
               )}

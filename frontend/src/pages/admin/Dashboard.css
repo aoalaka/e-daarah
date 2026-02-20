@@ -3636,11 +3636,23 @@
 @media (max-width: 768px) {
 
   /* Hide admin desktop tables, show mobile cards */
-  .admin-table-desktop {
+  .admin-table-desktop,
+  .teachers-desktop,
+  .students-desktop {
     display: none;
   }
   .admin-mobile-cards {
     display: block;
+  }
+
+  /* Fix page-header and selection bar wrapping */
+  .page-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .table-selection-bar {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   /* At-risk students: hide table, show cards */

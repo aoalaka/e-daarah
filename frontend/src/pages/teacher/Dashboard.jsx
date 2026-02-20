@@ -7,6 +7,7 @@ import SortableTable from '../../components/SortableTable';
 import EmailVerificationBanner from '../../components/EmailVerificationBanner';
 import DemoBanner from '../../components/DemoBanner';
 import AnnouncementBanner from '../../components/AnnouncementBanner';
+import GuidedTour from '../../components/GuidedTour';
 import '../admin/Dashboard.css';
 
 function TeacherDashboard() {
@@ -104,6 +105,7 @@ function TeacherDashboard() {
   // Overview state
   const [overviewData, setOverviewData] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
@@ -142,6 +144,22 @@ function TeacherDashboard() {
     fetchSchoolDayInfo();
     fetchOverview();
   }, []);
+
+  // Auto-trigger guided tour for first-time teachers
+  useEffect(() => {
+    if (overviewData && !localStorage.getItem('tour_teacher_done')) {
+      const timer = setTimeout(() => setShowTour(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [overviewData]);
+
+  const teacherTourSteps = [
+    { target: '.sidebar-nav', title: 'Navigation', content: 'Switch between Overview, Attendance, Exam Recording, and Reports.' },
+    { target: '.today-classes-grid', title: "Today's Classes", content: 'See your assigned classes and their attendance status for today.' },
+    { target: '[data-tour="attendance"]', title: 'Mark Attendance', content: 'Select a class and date to mark student attendance, dressing, behavior, and punctuality.' },
+    { target: '[data-tour="exams"]', title: 'Record Exams', content: 'Enter exam scores for your classes after each assessment.' },
+    { target: '[data-tour="reports"]', title: 'View Reports', content: 'View and export exam results for your classes.' },
+  ];
 
   // Refresh overview when tab becomes active
   useEffect(() => {
@@ -1275,6 +1293,7 @@ function TeacherDashboard() {
           {navItems.map(item => (
             <button
               key={item.id}
+              data-tour={item.id}
               className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
               onClick={() => handleTabChange(item.id)}
             >
@@ -1282,6 +1301,19 @@ function TeacherDashboard() {
               <span>{item.label}</span>
             </button>
           ))}
+          <button
+            className="nav-item"
+            onClick={() => setShowTour(true)}
+            title="Tour guide"
+            style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>Guide</span>
+          </button>
         </nav>
         <div className="sidebar-footer" ref={profileDropdownRef}>
           <div className="sidebar-user" onClick={() => setProfileDropdownOpen(!profileDropdownOpen)} style={{ cursor: 'pointer' }}>
@@ -3827,6 +3859,13 @@ function TeacherDashboard() {
           </div>
         </div>
       )}
+
+      <GuidedTour
+        steps={teacherTourSteps}
+        isOpen={showTour}
+        onComplete={() => { setShowTour(false); localStorage.setItem('tour_teacher_done', 'true'); }}
+        onSkip={() => { setShowTour(false); localStorage.setItem('tour_teacher_done', 'true'); }}
+      />
     </div>
   );
 }

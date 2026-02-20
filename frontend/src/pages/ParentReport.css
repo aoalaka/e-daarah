@@ -42,6 +42,25 @@
   color: #0a0a0a;
 }
 
+.parent-header .guide-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.parent-header .guide-btn:hover {
+  background: #fafafa;
+  color: #0a0a0a;
+}
+
 /* Loading */
 .parent-loading {
   display: flex;

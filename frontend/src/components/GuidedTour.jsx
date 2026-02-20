@@ -5,7 +5,9 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [targetRect, setTargetRect] = useState(null);
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, placement: 'bottom' });
+  const [ready, setReady] = useState(false);
   const tooltipRef = useRef(null);
+  const rafRef = useRef(null);
 
   const step = steps[currentStep];
 
@@ -13,8 +15,9 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
     if (!step) return;
 
     const el = document.querySelector(step.target);
-    if (!el) {
-      // Skip steps with missing targets
+    // Skip if element missing or not visible (e.g. sidebar hidden on mobile)
+    const isVisible = el && el.offsetParent !== null && el.getBoundingClientRect().width > 0;
+    if (!isVisible) {
       if (currentStep < steps.length - 1) {
         setCurrentStep(prev => prev + 1);
       } else {
@@ -23,83 +26,111 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
       return;
     }
 
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    // Small delay after scroll to get accurate rect
-    requestAnimationFrame(() => {
-      const rect = el.getBoundingClientRect();
-      const padding = 8;
-      setTargetRect({
-        top: rect.top - padding,
-        left: rect.left - padding,
-        width: rect.width + padding * 2,
-        height: rect.height + padding * 2,
-      });
+    // Wait for scroll + render to settle
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      setTimeout(() => {
+        const rect = el.getBoundingClientRect();
+        const padding = 6;
+        setTargetRect({
+          top: rect.top - padding,
+          left: rect.left - padding,
+          width: rect.width + padding * 2,
+          height: rect.height + padding * 2,
+        });
 
-      // Calculate tooltip position
-      const tooltipWidth = 320;
-      const tooltipHeight = 180;
-      const gap = 16;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
+        // Measure actual tooltip if available
+        const tooltipEl = tooltipRef.current;
+        const tooltipWidth = tooltipEl ? tooltipEl.offsetWidth : 300;
+        const tooltipHeight = tooltipEl ? tooltipEl.offsetHeight : 160;
+        const gap = 12;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const isMobile = vw < 768;
 
-      let placement = 'bottom';
-      let top = rect.bottom + gap;
-      let left = rect.left + rect.width / 2 - tooltipWidth / 2;
+        let placement = 'bottom';
+        let top, left;
 
-      // If not enough space below, try above
-      if (top + tooltipHeight > vh - 20) {
-        placement = 'top';
-        top = rect.top - gap - tooltipHeight;
-      }
+        if (isMobile) {
+          // On mobile: always center horizontally, position above or below
+          const tw = Math.min(tooltipWidth, vw - 32);
+          left = (vw - tw) / 2;
 
-      // If not enough space above either, position to the right
-      if (top < 20) {
-        placement = 'right';
-        top = rect.top + rect.height / 2 - tooltipHeight / 2;
-        left = rect.right + gap;
-      }
-
-      // If not enough space on right, go left
-      if (placement === 'right' && left + tooltipWidth > vw - 20) {
-        placement = 'left';
-        left = rect.left - gap - tooltipWidth;
-      }
-
-      // On mobile, always position below or above
-      if (vw < 768) {
-        if (rect.bottom + tooltipHeight + gap < vh - 20) {
-          placement = 'bottom';
-          top = rect.bottom + gap;
+          if (rect.bottom + tooltipHeight + gap + 20 < vh) {
+            placement = 'bottom';
+            top = rect.bottom + gap;
+          } else if (rect.top - tooltipHeight - gap > 20) {
+            placement = 'top';
+            top = rect.top - gap - tooltipHeight;
+          } else {
+            // Fallback: position at bottom of screen
+            placement = 'bottom';
+            top = vh - tooltipHeight - 20;
+          }
         } else {
-          placement = 'top';
-          top = rect.top - gap - tooltipHeight;
+          // Desktop positioning
+          top = rect.bottom + gap;
+          left = rect.left + rect.width / 2 - tooltipWidth / 2;
+
+          // Try below first
+          if (top + tooltipHeight > vh - 20) {
+            // Try above
+            placement = 'top';
+            top = rect.top - gap - tooltipHeight;
+          }
+
+          // If above doesn't work, try right
+          if (top < 20) {
+            placement = 'right';
+            top = rect.top + rect.height / 2 - tooltipHeight / 2;
+            left = rect.right + gap;
+
+            // If right doesn't fit, try left
+            if (left + tooltipWidth > vw - 20) {
+              placement = 'left';
+              left = rect.left - gap - tooltipWidth;
+            }
+          }
+
+          // Clamp within viewport
+          left = Math.max(16, Math.min(left, vw - tooltipWidth - 16));
+          top = Math.max(16, Math.min(top, vh - tooltipHeight - 16));
         }
-        left = Math.max(16, (vw - Math.min(tooltipWidth, vw - 32)) / 2);
-      }
 
-      // Keep tooltip within viewport
-      left = Math.max(16, Math.min(left, vw - tooltipWidth - 16));
-      top = Math.max(16, top);
-
-      setTooltipPos({ top, left, placement });
+        setTooltipPos({ top, left, placement });
+        setReady(true);
+      }, 50);
     });
   }, [step, currentStep, steps.length, onComplete]);
 
   useEffect(() => {
     if (!isOpen) {
       setCurrentStep(0);
+      setReady(false);
       return;
     }
+    setReady(false);
     calculatePosition();
   }, [isOpen, currentStep, calculatePosition]);
 
   useEffect(() => {
     if (!isOpen) return;
-    const handleResize = () => calculatePosition();
+    const handleResize = () => {
+      setReady(false);
+      calculatePosition();
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [isOpen, calculatePosition]);
+
+  // Recalculate after tooltip renders (to get accurate height)
+  useEffect(() => {
+    if (isOpen && tooltipRef.current && !ready) {
+      calculatePosition();
+    }
+  }, [isOpen, ready, calculatePosition]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -150,7 +181,7 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
       {/* Tooltip */}
       <div
         ref={tooltipRef}
-        className={`guided-tour-tooltip guided-tour-tooltip--${tooltipPos.placement}`}
+        className={`guided-tour-tooltip guided-tour-tooltip--${tooltipPos.placement} ${ready ? 'visible' : ''}`}
         style={{ top: tooltipPos.top, left: tooltipPos.left }}
       >
         <div className="guided-tour-tooltip-header">

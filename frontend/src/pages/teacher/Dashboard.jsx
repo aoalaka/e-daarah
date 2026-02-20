@@ -155,7 +155,7 @@ function TeacherDashboard() {
 
   const teacherTourSteps = [
     { target: '.sidebar-nav', title: 'Navigation', content: 'Switch between Overview, Attendance, Exam Recording, and Reports.' },
-    { target: '.today-classes-grid', title: "Today's Classes", content: 'See your assigned classes and their attendance status for today.' },
+    { target: '.today-classes-grid', title: "Your Classes", content: 'See your assigned classes, student count, and quickly take attendance from here.' },
     { target: '[data-tour="attendance"]', title: 'Mark Attendance', content: 'Select a class and date to mark student attendance, dressing, behavior, and punctuality.' },
     { target: '[data-tour="exams"]', title: 'Record Exams', content: 'Enter exam scores for your classes after each assessment.' },
     { target: '[data-tour="reports"]', title: 'View Reports', content: 'View and export exam results for your classes.' },

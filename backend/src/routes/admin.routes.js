@@ -2709,6 +2709,18 @@ router.get('/analytics', async (req, res) => {
     const [examByClass] = await pool.query(examByClassQuery, examByClassParams);
 
     // 11. Students struggling academically (avg < 50%)
+    // If no semester filter provided, scope to active semester to avoid cross-semester noise
+    let effectiveSemesterId = semester_id;
+    if (!effectiveSemesterId) {
+      const [activeSem] = await pool.query(
+        `SELECT sem.id FROM semesters sem
+         JOIN sessions sess ON sem.session_id = sess.id
+         WHERE sess.madrasah_id = ? AND sem.is_active = 1 AND sem.deleted_at IS NULL AND sess.deleted_at IS NULL
+         LIMIT 1`,
+        [madrasahId]
+      );
+      if (activeSem.length > 0) effectiveSemesterId = activeSem[0].id;
+    }
     let strugglingQuery = `
       SELECT
         s.id,
@@ -2722,12 +2734,12 @@ router.get('/analytics', async (req, res) => {
       FROM exam_performance ep
       JOIN students s ON ep.student_id = s.id
       LEFT JOIN classes c ON s.class_id = c.id
-      WHERE ep.madrasah_id = ? AND ep.is_absent = 0
+      WHERE ep.madrasah_id = ? AND ep.is_absent = 0 AND ep.deleted_at IS NULL AND s.deleted_at IS NULL
     `;
     const strugglingParams = [madrasahId];
-    if (semester_id) {
+    if (effectiveSemesterId) {
       strugglingQuery += ' AND ep.semester_id = ?';
-      strugglingParams.push(semester_id);
+      strugglingParams.push(effectiveSemesterId);
     }
     if (class_id) {
       strugglingQuery += ' AND s.class_id = ?';

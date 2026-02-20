@@ -2867,7 +2867,8 @@ router.get('/analytics', async (req, res) => {
     // Use client's local date if provided, otherwise fall back to server date
     const today = clientToday || new Date().toISOString().split('T')[0];
 
-    // Check if today is actually a school day (respecting overrides and holidays)
+    // Check if today is actually a school day for ANY class
+    // Priority: holidays > overrides > class school_days > session defaults
     const todayDate = new Date(today + 'T00:00:00');
     const todayDayName = dayNames[todayDate.getDay()];
     let todayIsSchoolDay = false;
@@ -2875,22 +2876,43 @@ router.get('/analytics', async (req, res) => {
     if (!isHoliday(todayDate)) {
       const todayOverride = getOverrideDays(todayDate);
       if (todayOverride) {
+        // Override active — applies to all classes
         todayIsSchoolDay = todayOverride.includes(todayDayName);
       } else {
-        // Check session default school days
+        // No override — check class-level school_days, then fall back to session default
+        const [classesForToday] = await pool.query(
+          `SELECT c.school_days FROM classes c
+           WHERE c.madrasah_id = ? AND c.deleted_at IS NULL
+           AND EXISTS (SELECT 1 FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL)`,
+          [madrasahId]
+        );
         const [sessionForToday] = await pool.query(
           `SELECT default_school_days FROM sessions
            WHERE madrasah_id = ? AND deleted_at IS NULL AND start_date <= ? AND end_date >= ?`,
           [madrasahId, today, today]
         );
-        if (sessionForToday.length > 0 && sessionForToday[0].default_school_days) {
-          const sessDays = typeof sessionForToday[0].default_school_days === 'string'
-            ? JSON.parse(sessionForToday[0].default_school_days)
-            : sessionForToday[0].default_school_days;
-          todayIsSchoolDay = Array.isArray(sessDays) && sessDays.includes(todayDayName);
-        } else {
-          // No school days configured — assume any day is valid
-          todayIsSchoolDay = true;
+        const sessionDays = sessionForToday.length > 0 && sessionForToday[0].default_school_days
+          ? (typeof sessionForToday[0].default_school_days === 'string'
+              ? JSON.parse(sessionForToday[0].default_school_days)
+              : sessionForToday[0].default_school_days)
+          : null;
+
+        for (const cls of classesForToday) {
+          let classDays = null;
+          if (cls.school_days) {
+            classDays = typeof cls.school_days === 'string' ? JSON.parse(cls.school_days) : cls.school_days;
+          }
+          // Use class-level if set, otherwise session default
+          const effectiveDays = (Array.isArray(classDays) && classDays.length > 0) ? classDays : sessionDays;
+          if (!effectiveDays || effectiveDays.length === 0) {
+            // No config = any day is valid
+            todayIsSchoolDay = true;
+            break;
+          }
+          if (effectiveDays.includes(todayDayName)) {
+            todayIsSchoolDay = true;
+            break;
+          }
         }
       }
     }

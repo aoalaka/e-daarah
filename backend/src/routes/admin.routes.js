@@ -1010,7 +1010,7 @@ router.get('/classes/:classId/kpis', async (req, res) => {
         SUM(CASE WHEN a.punctuality_grade = 'Excellent' THEN 4 WHEN a.punctuality_grade = 'Good' THEN 3 WHEN a.punctuality_grade = 'Fair' THEN 2 WHEN a.punctuality_grade = 'Poor' THEN 1 ELSE 0 END) /
           NULLIF(SUM(CASE WHEN a.punctuality_grade IS NOT NULL THEN 1 ELSE 0 END), 0) as avg_punctuality_score
       FROM attendance a
-      WHERE a.class_id = ? AND a.madrasah_id = ?${semesterFilter}
+      WHERE a.class_id = ? AND a.madrasah_id = ? AND a.deleted_at IS NULL${semesterFilter}
     `, params);
 
     // Get exam statistics (join through students to filter by class)
@@ -1031,17 +1031,9 @@ router.get('/classes/:classId/kpis', async (req, res) => {
       WHERE s.class_id = ? AND s.madrasah_id = ? AND ep.deleted_at IS NULL${examStatsFilter}
     `, examStatsParams);
 
-    // Get high-risk students (low attendance < 70%, poor grades, low exam scores)
-    // Only include students who have actual attendance or exam data for the selected semester
-    let examSubFilter = 'AND ep.deleted_at IS NULL';
-    const highRiskParams = [];
-    if (semester_id) {
-      examSubFilter += ' AND ep.semester_id = ?';
-      highRiskParams.push(madrasahId, semester_id);
-    } else {
-      highRiskParams.push(madrasahId);
-    }
-    highRiskParams.push(classId, madrasahId);
+    // Get high-risk students (low attendance < 70% or poor grades below 2.5/4.0)
+    // Only include students who have actual attendance data for the selected scope
+    const highRiskParams = [classId, madrasahId];
     if (semester_id) highRiskParams.push(semester_id);
     highRiskParams.push(classId, madrasahId);
 
@@ -1056,19 +1048,18 @@ router.get('/classes/:classId/kpis', async (req, res) => {
         (SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) / NULLIF(COUNT(DISTINCT a.date), 0) * 100) as attendance_rate,
         AVG(CASE WHEN a.dressing_grade = 'Excellent' THEN 4 WHEN a.dressing_grade = 'Good' THEN 3 WHEN a.dressing_grade = 'Fair' THEN 2 WHEN a.dressing_grade = 'Poor' THEN 1 ELSE NULL END) as avg_dressing,
         AVG(CASE WHEN a.behavior_grade = 'Excellent' THEN 4 WHEN a.behavior_grade = 'Good' THEN 3 WHEN a.behavior_grade = 'Fair' THEN 2 WHEN a.behavior_grade = 'Poor' THEN 1 ELSE NULL END) as avg_behavior,
-        AVG(CASE WHEN a.punctuality_grade = 'Excellent' THEN 4 WHEN a.punctuality_grade = 'Good' THEN 3 WHEN a.punctuality_grade = 'Fair' THEN 2 WHEN a.punctuality_grade = 'Poor' THEN 1 ELSE NULL END) as avg_punctuality,
-        (SELECT AVG(ep.score) FROM exam_performance ep WHERE ep.student_id = s.id AND ep.madrasah_id = ? ${examSubFilter}) as avg_exam_score
+        AVG(CASE WHEN a.punctuality_grade = 'Excellent' THEN 4 WHEN a.punctuality_grade = 'Good' THEN 3 WHEN a.punctuality_grade = 'Fair' THEN 2 WHEN a.punctuality_grade = 'Poor' THEN 1 ELSE NULL END) as avg_punctuality
       FROM students s
-      LEFT JOIN attendance a ON s.id = a.student_id AND a.class_id = ? AND a.madrasah_id = ?${semesterFilter}
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.class_id = ? AND a.madrasah_id = ? AND a.deleted_at IS NULL${semesterFilter}
       WHERE s.class_id = ? AND s.madrasah_id = ? AND s.deleted_at IS NULL
       GROUP BY s.id
-      HAVING
-        (attendance_rate < 70 AND COUNT(DISTINCT a.date) > 0)
-        OR (avg_dressing < 2.5 AND COUNT(DISTINCT a.date) > 0)
-        OR (avg_behavior < 2.5 AND COUNT(DISTINCT a.date) > 0)
-        OR (avg_punctuality < 2.5 AND COUNT(DISTINCT a.date) > 0)
-        OR avg_exam_score < 50
-      ORDER BY attendance_rate ASC, avg_exam_score ASC
+      HAVING COUNT(DISTINCT a.date) > 0 AND (
+        attendance_rate < 70
+        OR avg_dressing < 2.5
+        OR avg_behavior < 2.5
+        OR avg_punctuality < 2.5
+      )
+      ORDER BY attendance_rate ASC
     `, highRiskParams);
 
     res.json({

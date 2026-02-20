@@ -2491,19 +2491,16 @@ router.get('/analytics', async (req, res) => {
     const [weeklyTrend] = await pool.query(trendQuery, trendParams);
 
     // 8. Classes that should be taking attendance but haven't recently
-    // Show classes that: have students, have an active semester (started), but no recent attendance
-    // Note: semesters link to sessions (session_id), and sessions have madrasah_id
-    const [classesWithoutRecentAttendance] = await pool.query(`
+    // Fetch raw data, then compute weeks_missed in JS using actual school_days schedule
+    const [classAttendanceRaw] = await pool.query(`
       SELECT
         c.id,
         c.name as class_name,
+        c.school_days as class_school_days,
+        sess.default_school_days,
+        sem.start_date as semester_start,
         (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL) as student_count,
-        (SELECT MAX(a.date) FROM attendance a WHERE a.class_id = c.id AND a.madrasah_id = ?) as last_attendance_date,
-        CASE
-          WHEN (SELECT MAX(a.date) FROM attendance a WHERE a.class_id = c.id AND a.madrasah_id = ?) IS NULL
-          THEN FLOOR(DATEDIFF(NOW(), sem.start_date) / 7)
-          ELSE FLOOR(DATEDIFF(NOW(), (SELECT MAX(a.date) FROM attendance a WHERE a.class_id = c.id AND a.madrasah_id = ?)) / 7)
-        END as weeks_missed
+        (SELECT MAX(a.date) FROM attendance a WHERE a.class_id = c.id AND a.madrasah_id = ?) as last_attendance_date
       FROM classes c
       JOIN sessions sess ON sess.madrasah_id = c.madrasah_id AND sess.deleted_at IS NULL
       JOIN semesters sem ON sem.session_id = sess.id
@@ -2514,9 +2511,56 @@ router.get('/analytics', async (req, res) => {
         AND c.deleted_at IS NULL
         AND EXISTS (SELECT 1 FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL)
       GROUP BY c.id, sem.start_date
-      HAVING weeks_missed >= 1
-      ORDER BY weeks_missed DESC
-    `, [madrasahId, madrasahId, madrasahId, madrasahId]);
+    `, [madrasahId, madrasahId]);
+
+    // Compute weeks_missed based on actual scheduled school days
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const classesWithoutRecentAttendance = classAttendanceRaw
+      .map(row => {
+        // Resolve school days: class-level > session-level > all days
+        let schoolDays = null;
+        if (row.class_school_days) {
+          schoolDays = typeof row.class_school_days === 'string' ? JSON.parse(row.class_school_days) : row.class_school_days;
+        } else if (row.default_school_days) {
+          schoolDays = typeof row.default_school_days === 'string' ? JSON.parse(row.default_school_days) : row.default_school_days;
+        }
+
+        // Count scheduled school days from reference date to now
+        const refDate = row.last_attendance_date
+          ? new Date(row.last_attendance_date)
+          : new Date(row.semester_start);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        refDate.setHours(0, 0, 0, 0);
+
+        // If no school_days configured, fall back to raw week count
+        if (!schoolDays || schoolDays.length === 0) {
+          const weeks = Math.floor((now - refDate) / (7 * 24 * 60 * 60 * 1000));
+          return weeks >= 1 ? { id: row.id, class_name: row.class_name, student_count: row.student_count, last_attendance_date: row.last_attendance_date, weeks_missed: weeks } : null;
+        }
+
+        // Count how many scheduled school days have passed since refDate
+        const schoolDayIndices = schoolDays.map(d => dayNames.indexOf(d)).filter(i => i !== -1);
+        let scheduledDays = 0;
+        const cursor = new Date(refDate);
+        cursor.setDate(cursor.getDate() + 1); // start from day after reference
+        while (cursor <= now) {
+          if (schoolDayIndices.includes(cursor.getDay())) {
+            scheduledDays++;
+          }
+          cursor.setDate(cursor.getDate() + 1);
+        }
+
+        // Convert scheduled days to weeks (1 week = number of school days per week)
+        const daysPerWeek = schoolDayIndices.length;
+        const weeksMissed = Math.floor(scheduledDays / daysPerWeek);
+
+        return weeksMissed >= 1
+          ? { id: row.id, class_name: row.class_name, student_count: row.student_count, last_attendance_date: row.last_attendance_date, weeks_missed: weeksMissed }
+          : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.weeks_missed - a.weeks_missed);
 
     // 9. Exam performance summary
     let examQuery = `

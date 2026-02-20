@@ -2944,7 +2944,7 @@ router.get('/analytics', async (req, res) => {
         AND NOT EXISTS (
           SELECT 1 FROM exam_performance ep
           JOIN students s ON ep.student_id = s.id
-          WHERE s.class_id = c.id AND ep.semester_id = sem.id
+          WHERE s.class_id = c.id AND ep.semester_id = sem.id AND ep.deleted_at IS NULL
         )
     `, [madrasahId]);
 

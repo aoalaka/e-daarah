@@ -1432,10 +1432,13 @@ function TeacherDashboard() {
                   <div className="insights-summary">
                     {/* This Week */}
                     <div className="summary-card">
+                      <div className="summary-label">Attendance This Week</div>
                       <div className="summary-value">
                         {overviewData.stats.this_week_rate !== null ? `${overviewData.stats.this_week_rate}%` : '-'}
                       </div>
-                      <div className="summary-label">This Week</div>
+                      {overviewData.stats.this_week_rate === null && (
+                        <div className="summary-status">No attendance recorded this week</div>
+                      )}
                       {overviewData.stats.this_week_rate !== null && overviewData.stats.last_week_rate !== null && (
                         <div style={{ fontSize: 12, marginTop: 4, color: (overviewData.stats.this_week_rate - overviewData.stats.last_week_rate) > 0 ? 'var(--accent)' : (overviewData.stats.this_week_rate - overviewData.stats.last_week_rate) < 0 ? '#c1121f' : 'var(--text-muted)' }}>
                           {(() => {
@@ -1447,8 +1450,11 @@ function TeacherDashboard() {
                     </div>
                     {/* Semester Average */}
                     <div className="summary-card">
+                      <div className="summary-label">Semester Attendance</div>
                       <div className="summary-value">{overviewData.stats.attendance_rate !== null ? `${overviewData.stats.attendance_rate}%` : '-'}</div>
-                      <div className="summary-label">Semester Average</div>
+                      {overviewData.stats.attendance_rate === null && (
+                        <div className="summary-status">No data yet</div>
+                      )}
                     </div>
                     {/* Students */}
                     <div className="summary-card">

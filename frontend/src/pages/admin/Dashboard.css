@@ -2224,11 +2224,11 @@
 
 @media (max-width: 480px) {
   .insights-summary {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .summary-value {
-    font-size: 28px;
+    font-size: 24px;
   }
 
   .insights-widgets {

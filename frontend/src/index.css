@@ -93,3 +93,7 @@ input, select, textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }
+
+@media (max-width: 767px) {
+  .desktop-only { display: none !important; }
+}

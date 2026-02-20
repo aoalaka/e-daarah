@@ -1375,7 +1375,7 @@ function AdminDashboard() {
             </button>
           ))}
           <button
-            className="nav-item"
+            className="nav-item desktop-only"
             onClick={() => setShowTour(true)}
             title="Tour guide"
             style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.1)' }}

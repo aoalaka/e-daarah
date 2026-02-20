@@ -2534,10 +2534,9 @@ router.get('/analytics', async (req, res) => {
         now.setHours(0, 0, 0, 0);
         refDate.setHours(0, 0, 0, 0);
 
-        // If no school_days configured, fall back to raw week count
+        // If no school_days configured, we can't determine missed weeks accurately — skip
         if (!schoolDays || schoolDays.length === 0) {
-          const weeks = Math.floor((now - refDate) / (7 * 24 * 60 * 60 * 1000));
-          return weeks >= 1 ? { id: row.id, class_name: row.class_name, student_count: row.student_count, last_attendance_date: row.last_attendance_date, weeks_missed: weeks } : null;
+          return null;
         }
 
         // Count how many scheduled school days have passed since refDate

@@ -2762,9 +2762,13 @@ router.get('/analytics', async (req, res) => {
 
     // Determine attendance status label
     const attendanceRate = overallStats[0]?.attendance_rate || 0;
+    const hasAttendanceData = (overallStats[0]?.total_records || 0) > 0;
     let attendanceStatus = 'needs-attention';
     let attendanceLabel = 'Needs Improvement';
-    if (attendanceRate >= 90) {
+    if (!hasAttendanceData) {
+      attendanceStatus = 'no-data';
+      attendanceLabel = 'No data yet';
+    } else if (attendanceRate >= 90) {
       attendanceStatus = 'excellent';
       attendanceLabel = 'Excellent';
     } else if (attendanceRate >= 80) {
@@ -2777,9 +2781,13 @@ router.get('/analytics', async (req, res) => {
 
     // Exam performance status
     const avgExamPercentage = examSummary[0]?.avg_percentage || 0;
+    const hasExamData = (examSummary[0]?.students_with_exams || 0) > 0;
     let examStatus = 'needs-attention';
     let examLabel = 'Needs Improvement';
-    if (avgExamPercentage >= 80) {
+    if (!hasExamData) {
+      examStatus = 'no-data';
+      examLabel = 'No exams yet';
+    } else if (avgExamPercentage >= 80) {
       examStatus = 'excellent';
       examLabel = 'Excellent';
     } else if (avgExamPercentage >= 65) {

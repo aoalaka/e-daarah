@@ -1529,13 +1529,15 @@ function AdminDashboard() {
                   <div className="insights-summary">
                     {/* Card 1: This Week — weekly attendance rate */}
                     <div className="summary-card">
-                      <div className="summary-label">This Week</div>
+                      <div className="summary-label">Attendance This Week</div>
                       <div className="summary-value">
                         {analyticsData.thisWeekSummary?.rate !== null && analyticsData.thisWeekSummary?.rate !== undefined
                           ? `${analyticsData.thisWeekSummary.rate}%` : '-'}
                       </div>
                       <div className="summary-status">
-                        {analyticsData.thisWeekSummary?.presentCount || 0} present, {analyticsData.thisWeekSummary?.absentCount || 0} absent
+                        {(analyticsData.thisWeekSummary?.presentCount || 0) === 0 && (analyticsData.thisWeekSummary?.absentCount || 0) === 0
+                          ? 'No attendance recorded this week'
+                          : `${analyticsData.thisWeekSummary?.presentCount || 0} present, ${analyticsData.thisWeekSummary?.absentCount || 0} absent`}
                       </div>
                       {analyticsData.thisWeekSummary?.rate !== null && analyticsData.thisWeekSummary?.lastWeekRate !== null &&
                         analyticsData.thisWeekSummary?.lastWeekRate !== undefined && (
@@ -1549,8 +1551,12 @@ function AdminDashboard() {
                     </div>
                     {/* Card 2: Semester Average */}
                     <div className="summary-card">
-                      <div className="summary-label">Semester Average</div>
-                      <div className="summary-value">{analyticsData.summary.overallAttendanceRate || 0}%</div>
+                      <div className="summary-label">Semester Attendance</div>
+                      <div className="summary-value">
+                        {analyticsData.summary.totalStudentsTracked > 0
+                          ? `${analyticsData.summary.overallAttendanceRate || 0}%`
+                          : '-'}
+                      </div>
                       <div className="summary-status">{analyticsData.summary.attendanceLabel}</div>
                     </div>
                     {/* Card 3: Need Attention — semester-level */}

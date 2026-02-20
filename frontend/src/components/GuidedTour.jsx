@@ -139,49 +139,8 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
     }
   };
 
-  if (!isOpen || !step) return null;
-
-  // Mobile: full-screen slideshow
-  if (isMobile) {
-    return (
-      <div className="tour-mobile-overlay">
-        <div className="tour-mobile-card">
-          <button className="tour-mobile-skip" onClick={onSkip}>Skip</button>
-
-          <div className="tour-mobile-icon">
-            {step.icon || (
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-              </svg>
-            )}
-          </div>
-
-          <h3 className="tour-mobile-title">{step.title}</h3>
-          <p className="tour-mobile-content">{step.content}</p>
-
-          {/* Progress dots */}
-          <div className="tour-mobile-dots">
-            {steps.map((_, i) => (
-              <span key={i} className={`tour-mobile-dot ${i === currentStep ? 'active' : ''}`} />
-            ))}
-          </div>
-
-          <div className="tour-mobile-actions">
-            {currentStep > 0 && (
-              <button className="tour-mobile-btn tour-mobile-btn--back" onClick={handleBack}>
-                Back
-              </button>
-            )}
-            <button className="tour-mobile-btn tour-mobile-btn--next" onClick={handleNext}>
-              {currentStep === steps.length - 1 ? 'Get Started' : 'Next'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Don't show tour on mobile — UI should be self-explanatory
+  if (!isOpen || !step || isMobile) return null;
 
   // Desktop: spotlight tour
   return (

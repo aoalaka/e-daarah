@@ -1523,11 +1523,11 @@ function AdminDashboard() {
                   <div className="insights-summary">
                     {/* Card 1: This Week — weekly attendance rate */}
                     <div className="summary-card">
+                      <div className="summary-label">This Week</div>
                       <div className="summary-value">
                         {analyticsData.thisWeekSummary?.rate !== null && analyticsData.thisWeekSummary?.rate !== undefined
                           ? `${analyticsData.thisWeekSummary.rate}%` : '-'}
                       </div>
-                      <div className="summary-label">This Week</div>
                       <div className="summary-status">
                         {analyticsData.thisWeekSummary?.presentCount || 0} present, {analyticsData.thisWeekSummary?.absentCount || 0} absent
                       </div>
@@ -1542,18 +1542,18 @@ function AdminDashboard() {
                       )}
                     </div>
                     {/* Card 2: Semester Average */}
-                    <div className={`summary-card ${analyticsData.summary.attendanceStatus}`}>
-                      <div className="summary-value">{analyticsData.summary.overallAttendanceRate || 0}%</div>
+                    <div className="summary-card">
                       <div className="summary-label">Semester Average</div>
+                      <div className="summary-value">{analyticsData.summary.overallAttendanceRate || 0}%</div>
                       <div className="summary-status">{analyticsData.summary.attendanceLabel}</div>
                     </div>
                     {/* Card 3: Need Attention — semester-level */}
                     <div
-                      className={`summary-card ${analyticsData.summary.studentsNeedingAttention > 0 ? 'needs-attention' : 'good'} ${analyticsData.summary.studentsNeedingAttention > 0 ? 'clickable' : ''} ${expandedMetric === 'attention' ? 'active' : ''}`}
+                      className={`summary-card ${analyticsData.summary.studentsNeedingAttention > 0 ? 'clickable' : ''} ${expandedMetric === 'attention' ? 'active' : ''}`}
                       onClick={() => analyticsData.summary.studentsNeedingAttention > 0 && setExpandedMetric(expandedMetric === 'attention' ? null : 'attention')}
                     >
-                      <div className="summary-value">{analyticsData.summary.studentsNeedingAttention}</div>
                       <div className="summary-label">Need Attention</div>
+                      <div className="summary-value">{analyticsData.summary.studentsNeedingAttention}</div>
                       <div className="summary-status">Below 70% attendance</div>
                       {analyticsData.summary.studentsNeedingAttention > 0 && (
                         <div className="summary-view-hint">{expandedMetric === 'attention' ? 'Hide' : 'View list'}</div>
@@ -1580,11 +1580,11 @@ function AdminDashboard() {
                     )}
                     {/* Card 4: Struggling — semester-level */}
                     <div
-                      className={`summary-card ${analyticsData.summary.studentsStruggling > 0 ? 'needs-attention' : 'good'} ${analyticsData.summary.studentsStruggling > 0 ? 'clickable' : ''} ${expandedMetric === 'struggling' ? 'active' : ''}`}
+                      className={`summary-card ${analyticsData.summary.studentsStruggling > 0 ? 'clickable' : ''} ${expandedMetric === 'struggling' ? 'active' : ''}`}
                       onClick={() => analyticsData.summary.studentsStruggling > 0 && setExpandedMetric(expandedMetric === 'struggling' ? null : 'struggling')}
                     >
-                      <div className="summary-value">{analyticsData.summary.studentsStruggling || 0}</div>
                       <div className="summary-label">Struggling</div>
+                      <div className="summary-value">{analyticsData.summary.studentsStruggling || 0}</div>
                       <div className="summary-status">Below 50% exam avg</div>
                       {analyticsData.summary.studentsStruggling > 0 && (
                         <div className="summary-view-hint">{expandedMetric === 'struggling' ? 'Hide' : 'View list'}</div>
@@ -1639,10 +1639,10 @@ function AdminDashboard() {
                   <div className="overview-highlights">
                     {/* Exam Average */}
                     <div className="overview-highlight-card">
+                      <div className="overview-highlight-label">Exam Average</div>
                       <div className="overview-highlight-value">
                         {analyticsData.summary.studentsWithExams > 0 ? `${analyticsData.summary.avgExamPercentage || 0}%` : '-'}
                       </div>
-                      <div className="overview-highlight-label">Exam Average</div>
                       <div className="overview-highlight-sub">
                         {analyticsData.summary.studentsWithExams > 0 ? analyticsData.summary.examLabel : 'No exams yet'}
                       </div>
@@ -1651,10 +1651,10 @@ function AdminDashboard() {
                     {/* Month Comparison */}
                     {analyticsData.monthOverMonth && analyticsData.monthOverMonth.change !== null && analyticsData.monthOverMonth.lastRate > 0 && (
                       <div className="overview-highlight-card">
+                        <div className="overview-highlight-label">vs Last Month</div>
                         <div className={`overview-highlight-value ${analyticsData.monthOverMonth.change >= 0 ? 'positive' : 'negative'}`}>
                           {analyticsData.monthOverMonth.change > 0 ? '+' : ''}{analyticsData.monthOverMonth.change.toFixed(1)}%
                         </div>
-                        <div className="overview-highlight-label">vs Last Month</div>
                         <div className="overview-highlight-sub">
                           {analyticsData.monthOverMonth.lastRate}% → {analyticsData.monthOverMonth.currentRate}%
                         </div>
@@ -1664,8 +1664,8 @@ function AdminDashboard() {
                     {/* Perfect Weeks */}
                     {analyticsData.attendanceStreaks && analyticsData.attendanceStreaks.length > 0 && (
                       <div className="overview-highlight-card">
-                        <div className="overview-highlight-value">{analyticsData.attendanceStreaks[0].streak_weeks}</div>
                         <div className="overview-highlight-label">Perfect Weeks</div>
+                        <div className="overview-highlight-value">{analyticsData.attendanceStreaks[0].streak_weeks}</div>
                         <div className="overview-highlight-sub">{analyticsData.attendanceStreaks[0].class_name} (last 12 wks)</div>
                       </div>
                     )}
@@ -1673,8 +1673,8 @@ function AdminDashboard() {
                     {/* Top Performer */}
                     {analyticsData.topPerformer && (
                       <div className="overview-highlight-card">
-                        <div className="overview-highlight-value">{analyticsData.topPerformer.percentage}%</div>
                         <div className="overview-highlight-label">Top Performer</div>
+                        <div className="overview-highlight-value">{analyticsData.topPerformer.percentage}%</div>
                         <div className="overview-highlight-sub">{analyticsData.topPerformer.first_name} {analyticsData.topPerformer.last_name}</div>
                       </div>
                     )}

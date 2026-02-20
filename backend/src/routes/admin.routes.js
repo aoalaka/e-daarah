@@ -2497,8 +2497,8 @@ router.get('/analytics', async (req, res) => {
         c.id,
         c.name as class_name,
         c.school_days as class_school_days,
-        sess.default_school_days,
-        sem.start_date as semester_start,
+        MAX(sess.default_school_days) as default_school_days,
+        MIN(sem.start_date) as semester_start,
         (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL) as student_count,
         (SELECT MAX(a.date) FROM attendance a WHERE a.class_id = c.id AND a.madrasah_id = ?) as last_attendance_date
       FROM classes c
@@ -2510,13 +2510,14 @@ router.get('/analytics', async (req, res) => {
       WHERE c.madrasah_id = ?
         AND c.deleted_at IS NULL
         AND EXISTS (SELECT 1 FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL)
-      GROUP BY c.id, sem.start_date
+      GROUP BY c.id, c.name, c.school_days
     `, [madrasahId, madrasahId]);
 
     // Compute weeks_missed based on actual scheduled school days
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const classesWithoutRecentAttendance = classAttendanceRaw
       .map(row => {
+        try {
         // Resolve school days: class-level > session-level > all days
         let schoolDays = null;
         if (row.class_school_days) {
@@ -2558,6 +2559,9 @@ router.get('/analytics', async (req, res) => {
         return weeksMissed >= 1
           ? { id: row.id, class_name: row.class_name, student_count: row.student_count, last_attendance_date: row.last_attendance_date, weeks_missed: weeksMissed }
           : null;
+        } catch (e) {
+          return null;
+        }
       })
       .filter(Boolean)
       .sort((a, b) => b.weeks_missed - a.weeks_missed);

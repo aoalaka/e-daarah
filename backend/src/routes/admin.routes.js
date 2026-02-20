@@ -1014,6 +1014,12 @@ router.get('/classes/:classId/kpis', async (req, res) => {
     `, params);
 
     // Get exam statistics (join through students to filter by class)
+    const examStatsParams = [classId, madrasahId];
+    let examStatsFilter = '';
+    if (semester_id) {
+      examStatsFilter = ' AND ep.semester_id = ?';
+      examStatsParams.push(semester_id);
+    }
     const [examStats] = await pool.query(`
       SELECT
         COUNT(*) as total_exams,
@@ -1022,10 +1028,23 @@ router.get('/classes/:classId/kpis', async (req, res) => {
         MIN(ep.score) as lowest_score
       FROM exam_performance ep
       INNER JOIN students s ON ep.student_id = s.id
-      WHERE s.class_id = ? AND s.madrasah_id = ?
-    `, [classId, madrasahId]);
+      WHERE s.class_id = ? AND s.madrasah_id = ? AND ep.deleted_at IS NULL${examStatsFilter}
+    `, examStatsParams);
 
     // Get high-risk students (low attendance < 70%, poor grades, low exam scores)
+    // Only include students who have actual attendance or exam data for the selected semester
+    let examSubFilter = 'AND ep.deleted_at IS NULL';
+    const highRiskParams = [];
+    if (semester_id) {
+      examSubFilter += ' AND ep.semester_id = ?';
+      highRiskParams.push(madrasahId, semester_id);
+    } else {
+      highRiskParams.push(madrasahId);
+    }
+    highRiskParams.push(classId, madrasahId);
+    if (semester_id) highRiskParams.push(semester_id);
+    highRiskParams.push(classId, madrasahId);
+
     const [highRiskStudents] = await pool.query(`
       SELECT
         s.id,
@@ -1038,22 +1057,19 @@ router.get('/classes/:classId/kpis', async (req, res) => {
         AVG(CASE WHEN a.dressing_grade = 'Excellent' THEN 4 WHEN a.dressing_grade = 'Good' THEN 3 WHEN a.dressing_grade = 'Fair' THEN 2 WHEN a.dressing_grade = 'Poor' THEN 1 ELSE NULL END) as avg_dressing,
         AVG(CASE WHEN a.behavior_grade = 'Excellent' THEN 4 WHEN a.behavior_grade = 'Good' THEN 3 WHEN a.behavior_grade = 'Fair' THEN 2 WHEN a.behavior_grade = 'Poor' THEN 1 ELSE NULL END) as avg_behavior,
         AVG(CASE WHEN a.punctuality_grade = 'Excellent' THEN 4 WHEN a.punctuality_grade = 'Good' THEN 3 WHEN a.punctuality_grade = 'Fair' THEN 2 WHEN a.punctuality_grade = 'Poor' THEN 1 ELSE NULL END) as avg_punctuality,
-        (SELECT AVG(ep.score) FROM exam_performance ep WHERE ep.student_id = s.id AND ep.madrasah_id = ?) as avg_exam_score
+        (SELECT AVG(ep.score) FROM exam_performance ep WHERE ep.student_id = s.id AND ep.madrasah_id = ? ${examSubFilter}) as avg_exam_score
       FROM students s
       LEFT JOIN attendance a ON s.id = a.student_id AND a.class_id = ? AND a.madrasah_id = ?${semesterFilter}
-      WHERE s.class_id = ? AND s.madrasah_id = ?
+      WHERE s.class_id = ? AND s.madrasah_id = ? AND s.deleted_at IS NULL
       GROUP BY s.id
       HAVING
-        attendance_rate < 70
-        OR avg_dressing < 2.5
-        OR avg_behavior < 2.5
-        OR avg_punctuality < 2.5
+        (attendance_rate < 70 AND COUNT(DISTINCT a.date) > 0)
+        OR (avg_dressing < 2.5 AND COUNT(DISTINCT a.date) > 0)
+        OR (avg_behavior < 2.5 AND COUNT(DISTINCT a.date) > 0)
+        OR (avg_punctuality < 2.5 AND COUNT(DISTINCT a.date) > 0)
         OR avg_exam_score < 50
       ORDER BY attendance_rate ASC, avg_exam_score ASC
-    `, semester_id
-      ? [madrasahId, classId, madrasahId, semester_id, classId, madrasahId]
-      : [madrasahId, classId, madrasahId, classId, madrasahId]
-    );
+    `, highRiskParams);
 
     res.json({
       classStats: classStats[0],
@@ -1110,6 +1126,7 @@ router.get('/classes/:classId/exam-performance', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
+    const { semester_id, subject } = req.query;
 
     // Verify class belongs to this madrasah
     const [classCheck] = await pool.query(
@@ -1120,14 +1137,26 @@ router.get('/classes/:classId/exam-performance', async (req, res) => {
       return res.status(404).json({ error: 'Class not found' });
     }
 
-    const [records] = await pool.query(
-      `SELECT ep.*, s.first_name, s.last_name, s.student_id
-       FROM exam_performance ep
-       JOIN students s ON ep.student_id = s.id
-       WHERE s.class_id = ? AND s.madrasah_id = ?
-       ORDER BY ep.exam_date DESC`,
-      [classId, madrasahId]
-    );
+    let query = `SELECT ep.*, s.first_name, s.last_name, s.student_id,
+                        sem.name as semester_name, sess.name as session_name
+                 FROM exam_performance ep
+                 JOIN students s ON ep.student_id = s.id
+                 LEFT JOIN semesters sem ON ep.semester_id = sem.id
+                 LEFT JOIN sessions sess ON sem.session_id = sess.id
+                 WHERE s.class_id = ? AND s.madrasah_id = ? AND ep.deleted_at IS NULL`;
+    const queryParams = [classId, madrasahId];
+
+    if (semester_id) {
+      query += ' AND ep.semester_id = ?';
+      queryParams.push(semester_id);
+    }
+    if (subject) {
+      query += ' AND ep.subject = ?';
+      queryParams.push(subject);
+    }
+
+    query += ' ORDER BY ep.exam_date DESC';
+    const [records] = await pool.query(query, queryParams);
     res.json(records);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch exam performance' });

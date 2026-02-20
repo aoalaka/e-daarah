@@ -744,7 +744,7 @@ router.get('/classes/:classId/exam-performance', async (req, res) => {
       INNER JOIN students s ON ep.student_id = s.id
       LEFT JOIN semesters sem ON ep.semester_id = sem.id
       LEFT JOIN sessions sess ON sem.session_id = sess.id
-      WHERE s.class_id = ? AND s.madrasah_id = ?`;
+      WHERE s.class_id = ? AND s.madrasah_id = ? AND ep.deleted_at IS NULL`;
 
     const params = [classId, madrasahId];
 

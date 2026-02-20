@@ -3810,36 +3810,33 @@ function AdminDashboard() {
                   {classKpis && classKpis.classStats && (
                     <>
                       <h3 className="subsection-title">Attendance Metrics</h3>
+                      {classKpis.classStats?.total_attendance_records > 0 ? (
                       <div className="kpi-grid">
                         <div className="kpi-card blue">
                           <div className="kpi-label">Attendance Rate</div>
                           <div className="kpi-value">
-                            {(classKpis.classStats?.attendance_rate != null && !isNaN(classKpis.classStats.attendance_rate))
-                              ? `${Number(classKpis.classStats.attendance_rate).toFixed(1)}%`
-                              : 'N/A'}
+                            {`${Number(classKpis.classStats.attendance_rate).toFixed(1)}%`}
                           </div>
-                          {classKpis.classStats?.attendance_rate != null && !isNaN(classKpis.classStats.attendance_rate) && (
-                            <div className="kpi-insight">
-                              {Number(classKpis.classStats.attendance_rate) >= 90 
-                                ? 'Excellent attendance! Class is consistently present.'
-                                : Number(classKpis.classStats.attendance_rate) >= 80
-                                ? 'Good attendance overall. Keep up the momentum.'
-                                : Number(classKpis.classStats.attendance_rate) >= 70
-                                ? 'Attendance needs attention. Consider follow-ups.'
-                                : 'Low attendance rate. Urgent intervention needed.'}
-                            </div>
-                          )}
+                          <div className="kpi-insight">
+                            {Number(classKpis.classStats.attendance_rate) >= 90
+                              ? 'Excellent attendance! Class is consistently present.'
+                              : Number(classKpis.classStats.attendance_rate) >= 80
+                              ? 'Good attendance overall. Keep up the momentum.'
+                              : Number(classKpis.classStats.attendance_rate) >= 70
+                              ? 'Attendance needs attention. Consider follow-ups.'
+                              : 'Low attendance rate. Urgent intervention needed.'}
+                          </div>
                         </div>
                         {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
                         <div className="kpi-card green">
                           <div className="kpi-label">Avg Dressing</div>
                           <div className="kpi-value">
-                            {(classKpis.classStats?.avg_dressing_score != null && !isNaN(classKpis.classStats.avg_dressing_score))
+                            {classKpis.classStats?.avg_dressing_score != null
                               ? Number(classKpis.classStats.avg_dressing_score).toFixed(2)
-                              : 'N/A'}
+                              : '-'}
                           </div>
                           <div className="kpi-sub">out of 4.0</div>
-                          {classKpis.classStats?.avg_dressing_score != null && !isNaN(classKpis.classStats.avg_dressing_score) && (
+                          {classKpis.classStats?.avg_dressing_score != null && (
                             <div className="kpi-insight">
                               {Number(classKpis.classStats.avg_dressing_score) >= 3.5
                                 ? 'Outstanding! Students are well-dressed.'
@@ -3856,12 +3853,12 @@ function AdminDashboard() {
                         <div className="kpi-card yellow">
                           <div className="kpi-label">Avg Behavior</div>
                           <div className="kpi-value">
-                            {(classKpis.classStats?.avg_behavior_score != null && !isNaN(classKpis.classStats.avg_behavior_score))
+                            {classKpis.classStats?.avg_behavior_score != null
                               ? Number(classKpis.classStats.avg_behavior_score).toFixed(2)
-                              : 'N/A'}
+                              : '-'}
                           </div>
                           <div className="kpi-sub">out of 4.0</div>
-                          {classKpis.classStats?.avg_behavior_score != null && !isNaN(classKpis.classStats.avg_behavior_score) && (
+                          {classKpis.classStats?.avg_behavior_score != null && (
                             <div className="kpi-insight">
                               {Number(classKpis.classStats.avg_behavior_score) >= 3.5
                                 ? 'Excellent behavior! Class is well-disciplined.'
@@ -3878,12 +3875,12 @@ function AdminDashboard() {
                         <div className="kpi-card purple">
                           <div className="kpi-label">Avg Punctuality</div>
                           <div className="kpi-value">
-                            {(classKpis.classStats?.avg_punctuality_score != null && !isNaN(classKpis.classStats.avg_punctuality_score))
+                            {classKpis.classStats?.avg_punctuality_score != null
                               ? Number(classKpis.classStats.avg_punctuality_score).toFixed(2)
-                              : 'N/A'}
+                              : '-'}
                           </div>
                           <div className="kpi-sub">out of 4.0</div>
-                          {classKpis.classStats?.avg_punctuality_score != null && !isNaN(classKpis.classStats.avg_punctuality_score) && (
+                          {classKpis.classStats?.avg_punctuality_score != null && (
                             <div className="kpi-insight">
                               {Number(classKpis.classStats.avg_punctuality_score) >= 3.5
                                 ? 'Excellent punctuality! Students arrive on time.'
@@ -3897,6 +3894,12 @@ function AdminDashboard() {
                         </div>
                         )}
                       </div>
+                      ) : (
+                        <div className="empty-state" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                          <p style={{ fontSize: '16px', fontWeight: 500, marginBottom: 'var(--xs)' }}>No attendance recorded yet</p>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Attendance metrics will appear here once teachers start recording attendance for this class.</p>
+                        </div>
+                      )}
 
                       {/* High Risk Students (Attendance) */}
                       {classKpis.highRiskStudents && classKpis.highRiskStudents.filter(s =>

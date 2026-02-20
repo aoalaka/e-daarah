@@ -2251,7 +2251,7 @@ function TeacherDashboard() {
                       {/* Exam Batches - Grouped by Date/Semester */}
                       {kpi.examBatches && kpi.examBatches.map((batch, batchIndex) => (
                         <div key={batchIndex} className="card" style={{ marginBottom: 'var(--md)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--md)', padding: 'var(--sm)', backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius)' }}>
+                          <div className="exam-batch-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--md)', padding: 'var(--sm)', backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius)' }}>
                             <div>
                               <strong style={{ fontSize: '15px' }}>
                                 {fmtDate(batch.exam_date)} - {batch.semester_name} (Max: {batch.max_score})
@@ -2285,32 +2285,34 @@ function TeacherDashboard() {
                           </div>
 
                           {/* Student Performance Table */}
+                          {/* Desktop table */}
+                          <div className="exam-results-desktop">
                           <SortableTable
                             columns={[
-                            { 
-                              key: 'name', 
-                              label: 'Student', 
+                            {
+                              key: 'name',
+                              label: 'Student',
                               sortable: true,
                               render: (row) => <strong>{row.first_name} {row.last_name}</strong>
                             },
                             { key: 'student_id', label: 'Student ID', sortable: true },
-                            { 
-                              key: 'exam_date', 
-                              label: 'Exam Date', 
-                              sortable: true, 
+                            {
+                              key: 'exam_date',
+                              label: 'Exam Date',
+                              sortable: true,
                               sortType: 'date',
                               render: (row) => fmtDate(row.exam_date)
                             },
-                            { 
-                              key: 'semester_name', 
-                              label: 'Semester', 
+                            {
+                              key: 'semester_name',
+                              label: 'Semester',
                               sortable: true,
                               render: (row) => row.semester_name || '-'
                             },
-                            { 
-                              key: 'score', 
-                              label: 'Score', 
-                              sortable: true, 
+                            {
+                              key: 'score',
+                              label: 'Score',
+                              sortable: true,
                               sortType: 'number',
                               render: (row) => row.is_absent ? (
                                 <span style={{ color: 'var(--gray-500)', fontStyle: 'italic' }}>Absent</span>
@@ -2318,10 +2320,10 @@ function TeacherDashboard() {
                                 <span style={{ fontWeight: '600' }}>{row.score}/{row.max_score}</span>
                               )
                             },
-                            { 
-                              key: 'percentage', 
-                              label: 'Percentage', 
-                              sortable: true, 
+                            {
+                              key: 'percentage',
+                              label: 'Percentage',
+                              sortable: true,
                               sortType: 'number',
                               render: (row) => {
                                 const percentage = row.is_absent ? null : ((row.score / row.max_score) * 100).toFixed(2);
@@ -2331,9 +2333,9 @@ function TeacherDashboard() {
                                   <span style={{
                                     fontWeight: '700',
                                     fontSize: 'var(--text-lg)',
-                                    color: percentage >= 80 ? 'var(--success)' : 
+                                    color: percentage >= 80 ? 'var(--success)' :
                                            percentage >= 70 ? '#404040' :
-                                           percentage >= 50 ? 'var(--warning)' : 
+                                           percentage >= 50 ? 'var(--warning)' :
                                            'var(--error)'
                                   }}>
                                     {percentage}%
@@ -2341,9 +2343,9 @@ function TeacherDashboard() {
                                 );
                               }
                             },
-                            { 
-                              key: 'status', 
-                              label: 'Status', 
+                            {
+                              key: 'status',
+                              label: 'Status',
                               sortable: true,
                               render: (row) => {
                                 const percentage = row.is_absent ? null : ((row.score / row.max_score) * 100).toFixed(2);
@@ -2389,9 +2391,9 @@ function TeacherDashboard() {
                                 );
                               }
                             },
-                            { 
-                              key: 'notes', 
-                              label: 'Notes', 
+                            {
+                              key: 'notes',
+                              label: 'Notes',
                               sortable: false,
                               render: (row) => row.notes || '-'
                             },
@@ -2421,6 +2423,43 @@ function TeacherDashboard() {
                           ]}
                           data={batch.records}
                         />
+                          </div>
+
+                          {/* Mobile cards */}
+                          <div className="exam-results-mobile-cards">
+                            {batch.records.map(row => {
+                              const percentage = row.is_absent ? null : ((row.score / row.max_score) * 100).toFixed(1);
+                              return (
+                                <div key={row.id} className="admin-mobile-card">
+                                  <div className="admin-mobile-card-top">
+                                    <div>
+                                      <div className="admin-mobile-card-title">{row.first_name} {row.last_name}</div>
+                                      <div className="admin-mobile-card-sub">
+                                        {row.is_absent ? (
+                                          <span style={{ color: 'var(--gray-500)', fontStyle: 'italic' }}>Absent — {row.absence_reason || 'No reason'}</span>
+                                        ) : (
+                                          <span>Score: <strong>{row.score}/{row.max_score}</strong> ({percentage}%)</span>
+                                        )}
+                                      </div>
+                                      {row.notes && <div className="admin-mobile-card-sub" style={{ marginTop: '2px' }}>{row.notes}</div>}
+                                    </div>
+                                    {!row.is_absent && (
+                                      <div className="admin-mobile-card-badge" style={{
+                                        color: percentage >= 80 ? 'var(--success)' : percentage >= 50 ? 'var(--warning)' : 'var(--error)',
+                                        fontWeight: '700'
+                                      }}>
+                                        {percentage}%
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="admin-mobile-card-actions">
+                                    <button onClick={() => handleEditExam(row)} className="btn btn-sm btn-secondary">Edit</button>
+                                    <button onClick={() => setDeleteExamId(row.id)} className="btn btn-sm btn-secondary btn-danger">Delete</button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -3607,7 +3646,7 @@ function TeacherDashboard() {
               <div className="modal-body">
                 {/* Student Info (Read-only) */}
                 <div style={{ padding: 'var(--md)', backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius)', marginBottom: 'var(--md)' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sm)' }}>
+                  <div className="edit-exam-info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sm)' }}>
                     <div>
                       <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Student</label>
                       <p style={{ margin: '4px 0 0 0', fontWeight: '600' }}>{editingExamRecord.student_name}</p>

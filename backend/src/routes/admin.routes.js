@@ -2491,13 +2491,14 @@ router.get('/analytics', async (req, res) => {
     const [weeklyTrend] = await pool.query(trendQuery, trendParams);
 
     // 8. Classes that should be taking attendance but haven't recently
-    // Fetch raw data, then compute weeks_missed in JS using actual school_days schedule
+    // Fetch raw data + schedule overrides + holidays, then compute weeks_missed in JS
     const [classAttendanceRaw] = await pool.query(`
       SELECT
         c.id,
         c.name as class_name,
         c.school_days as class_school_days,
         MAX(sess.default_school_days) as default_school_days,
+        MAX(sess.id) as session_id,
         MIN(sem.start_date) as semester_start,
         (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL) as student_count,
         (SELECT MAX(a.date) FROM attendance a WHERE a.class_id = c.id AND a.madrasah_id = ?) as last_attendance_date
@@ -2513,20 +2514,56 @@ router.get('/analytics', async (req, res) => {
       GROUP BY c.id, c.name, c.school_days
     `, [madrasahId, madrasahId]);
 
+    // Fetch schedule overrides and holidays for accurate day counting
+    const [scheduleOverrides] = await pool.query(
+      `SELECT start_date, end_date, school_days FROM schedule_overrides
+       WHERE madrasah_id = ? AND deleted_at IS NULL`,
+      [madrasahId]
+    );
+    const [holidays] = await pool.query(
+      `SELECT start_date, end_date FROM academic_holidays
+       WHERE madrasah_id = ? AND deleted_at IS NULL`,
+      [madrasahId]
+    );
+
+    // Helper: check if a date falls within any holiday
+    const isHoliday = (d) => holidays.some(h => {
+      const start = new Date(h.start_date); start.setHours(0,0,0,0);
+      const end = new Date(h.end_date); end.setHours(0,0,0,0);
+      return d >= start && d <= end;
+    });
+
+    // Helper: get override school_days for a date, or null
+    const getOverrideDays = (d) => {
+      for (const o of scheduleOverrides) {
+        const start = new Date(o.start_date); start.setHours(0,0,0,0);
+        const end = new Date(o.end_date); end.setHours(0,0,0,0);
+        if (d >= start && d <= end) {
+          const days = typeof o.school_days === 'string' ? JSON.parse(o.school_days) : o.school_days;
+          return Array.isArray(days) ? days : null;
+        }
+      }
+      return null;
+    };
+
     // Compute weeks_missed based on actual scheduled school days
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const classesWithoutRecentAttendance = classAttendanceRaw
       .map(row => {
         try {
-        // Resolve school days: class-level > session-level > all days
-        let schoolDays = null;
+        // Resolve base school days: class-level > session-level
+        let baseSchoolDays = null;
         if (row.class_school_days) {
-          schoolDays = typeof row.class_school_days === 'string' ? JSON.parse(row.class_school_days) : row.class_school_days;
+          baseSchoolDays = typeof row.class_school_days === 'string' ? JSON.parse(row.class_school_days) : row.class_school_days;
         } else if (row.default_school_days) {
-          schoolDays = typeof row.default_school_days === 'string' ? JSON.parse(row.default_school_days) : row.default_school_days;
+          baseSchoolDays = typeof row.default_school_days === 'string' ? JSON.parse(row.default_school_days) : row.default_school_days;
         }
 
-        // Count scheduled school days from reference date to now
+        // If no school_days configured at any level, skip
+        if (!baseSchoolDays || baseSchoolDays.length === 0) {
+          return null;
+        }
+
         const refDate = row.last_attendance_date
           ? new Date(row.last_attendance_date)
           : new Date(row.semester_start);
@@ -2534,25 +2571,33 @@ router.get('/analytics', async (req, res) => {
         now.setHours(0, 0, 0, 0);
         refDate.setHours(0, 0, 0, 0);
 
-        // If no school_days configured, we can't determine missed weeks accurately — skip
-        if (!schoolDays || schoolDays.length === 0) {
-          return null;
-        }
+        const baseDayIndices = baseSchoolDays.map(d => dayNames.indexOf(d)).filter(i => i !== -1);
 
-        // Count how many scheduled school days have passed since refDate
-        const schoolDayIndices = schoolDays.map(d => dayNames.indexOf(d)).filter(i => i !== -1);
+        // Count scheduled school days, respecting overrides and holidays
         let scheduledDays = 0;
         const cursor = new Date(refDate);
         cursor.setDate(cursor.getDate() + 1); // start from day after reference
         while (cursor <= now) {
-          if (schoolDayIndices.includes(cursor.getDay())) {
-            scheduledDays++;
+          if (!isHoliday(cursor)) {
+            const overrideDays = getOverrideDays(cursor);
+            if (overrideDays) {
+              // Override active: use override's school_days
+              const overrideIndices = overrideDays.map(d => dayNames.indexOf(d)).filter(i => i !== -1);
+              if (overrideIndices.includes(cursor.getDay())) {
+                scheduledDays++;
+              }
+            } else {
+              // Normal schedule
+              if (baseDayIndices.includes(cursor.getDay())) {
+                scheduledDays++;
+              }
+            }
           }
           cursor.setDate(cursor.getDate() + 1);
         }
 
         // Convert scheduled days to weeks (1 week = number of school days per week)
-        const daysPerWeek = schoolDayIndices.length;
+        const daysPerWeek = baseDayIndices.length;
         const weeksMissed = Math.floor(scheduledDays / daysPerWeek);
 
         return weeksMissed >= 1
@@ -2618,6 +2663,30 @@ router.get('/analytics', async (req, res) => {
     }
     subjectExamQuery += ' GROUP BY ep.subject ORDER BY avg_percentage DESC LIMIT 10';
     const [examBySubject] = await pool.query(subjectExamQuery, subjectExamParams);
+
+    // 10b. Exam averages by class
+    let examByClassQuery = `
+      SELECT
+        c.id as class_id,
+        c.name as class_name,
+        ROUND(AVG(ep.score / ep.max_score * 100), 1) as avg_percentage,
+        COUNT(DISTINCT ep.student_id) as students_with_exams
+      FROM exam_performance ep
+      JOIN students s ON ep.student_id = s.id
+      JOIN classes c ON s.class_id = c.id
+      WHERE ep.madrasah_id = ? AND ep.is_absent = 0
+    `;
+    const examByClassParams = [madrasahId];
+    if (semester_id) {
+      examByClassQuery += ' AND ep.semester_id = ?';
+      examByClassParams.push(semester_id);
+    }
+    if (gender) {
+      examByClassQuery += ' AND s.gender = ?';
+      examByClassParams.push(gender);
+    }
+    examByClassQuery += ' GROUP BY c.id, c.name ORDER BY avg_percentage DESC';
+    const [examByClass] = await pool.query(examByClassQuery, examByClassParams);
 
     // 11. Students struggling academically (avg < 50%)
     let strugglingQuery = `
@@ -2797,6 +2866,35 @@ router.get('/analytics', async (req, res) => {
     // 14. Quick Actions - pending tasks
     // Use client's local date if provided, otherwise fall back to server date
     const today = clientToday || new Date().toISOString().split('T')[0];
+
+    // Check if today is actually a school day (respecting overrides and holidays)
+    const todayDate = new Date(today + 'T00:00:00');
+    const todayDayName = dayNames[todayDate.getDay()];
+    let todayIsSchoolDay = false;
+
+    if (!isHoliday(todayDate)) {
+      const todayOverride = getOverrideDays(todayDate);
+      if (todayOverride) {
+        todayIsSchoolDay = todayOverride.includes(todayDayName);
+      } else {
+        // Check session default school days
+        const [sessionForToday] = await pool.query(
+          `SELECT default_school_days FROM sessions
+           WHERE madrasah_id = ? AND deleted_at IS NULL AND start_date <= ? AND end_date >= ?`,
+          [madrasahId, today, today]
+        );
+        if (sessionForToday.length > 0 && sessionForToday[0].default_school_days) {
+          const sessDays = typeof sessionForToday[0].default_school_days === 'string'
+            ? JSON.parse(sessionForToday[0].default_school_days)
+            : sessionForToday[0].default_school_days;
+          todayIsSchoolDay = Array.isArray(sessDays) && sessDays.includes(todayDayName);
+        } else {
+          // No school days configured — assume any day is valid
+          todayIsSchoolDay = true;
+        }
+      }
+    }
+
     const [todayAttendance] = await pool.query(
       'SELECT COUNT(*) as count FROM attendance WHERE madrasah_id = ? AND date = ?',
       [madrasahId, today]
@@ -2892,6 +2990,7 @@ router.get('/analytics', async (req, res) => {
       weeklyTrend,
       classesWithoutRecentAttendance,
       examBySubject,
+      examByClass,
       strugglingStudents,
       genderBreakdown,
       // New insights
@@ -2910,6 +3009,7 @@ router.get('/analytics', async (req, res) => {
       topPerformer: topPerformer[0] || null,
       quickActions: {
         attendanceMarkedToday: todayAttendance[0]?.count > 0,
+        todayIsSchoolDay,
         classesWithoutExams: classesWithoutExams[0]?.count || 0,
         activeSemesterName: activeSemester[0]?.name || 'current semester'
       },

@@ -1613,12 +1613,17 @@ function AdminDashboard() {
 
                   {/* Today's Status */}
                   {analyticsData.quickActions && (
-                    <div className={`alert-panel ${analyticsData.quickActions.attendanceMarkedToday && analyticsData.quickActions.classesWithoutExams === 0 ? 'success' : ''}`}>
+                    <div className={`alert-panel ${(analyticsData.quickActions.attendanceMarkedToday || !analyticsData.quickActions.todayIsSchoolDay) && analyticsData.quickActions.classesWithoutExams === 0 ? 'success' : ''}`}>
                       <h4 className="overview-section-title">Today</h4>
-                      {!analyticsData.quickActions.attendanceMarkedToday && (
+                      {!analyticsData.quickActions.attendanceMarkedToday && analyticsData.quickActions.todayIsSchoolDay && (
                         <div className="alert-panel-item">
                           <span style={{ color: '#b86e00' }}>!</span>
                           <span>No attendance marked today</span>
+                        </div>
+                      )}
+                      {analyticsData.quickActions.todayIsSchoolDay === false && (
+                        <div className="alert-panel-item">
+                          <span>No school today</span>
                         </div>
                       )}
                       {analyticsData.quickActions.classesWithoutExams > 0 && (
@@ -1627,7 +1632,7 @@ function AdminDashboard() {
                           <span>{analyticsData.quickActions.classesWithoutExams} class{analyticsData.quickActions.classesWithoutExams !== 1 ? 'es' : ''} awaiting exam recording in {analyticsData.quickActions.activeSemesterName}</span>
                         </div>
                       )}
-                      {analyticsData.quickActions.attendanceMarkedToday && analyticsData.quickActions.classesWithoutExams === 0 && (
+                      {(analyticsData.quickActions.attendanceMarkedToday || !analyticsData.quickActions.todayIsSchoolDay) && analyticsData.quickActions.classesWithoutExams === 0 && (
                         <div className="alert-panel-item">
                           <span>All caught up. No pending tasks.</span>
                         </div>
@@ -1637,16 +1642,22 @@ function AdminDashboard() {
 
                   {/* Highlights Row — compact secondary metrics */}
                   <div className="overview-highlights">
-                    {/* Exam Average */}
-                    <div className="overview-highlight-card">
-                      <div className="overview-highlight-label">Exam Average</div>
-                      <div className="overview-highlight-value">
-                        {analyticsData.summary.studentsWithExams > 0 ? `${analyticsData.summary.avgExamPercentage || 0}%` : '-'}
+                    {/* Exam Average by Class */}
+                    {analyticsData.examByClass && analyticsData.examByClass.length > 0 ? (
+                      analyticsData.examByClass.map(c => (
+                        <div className="overview-highlight-card" key={c.class_id}>
+                          <div className="overview-highlight-label">{c.class_name} Avg</div>
+                          <div className="overview-highlight-value">{c.avg_percentage}%</div>
+                          <div className="overview-highlight-sub">{c.students_with_exams} student{c.students_with_exams !== 1 ? 's' : ''}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="overview-highlight-card">
+                        <div className="overview-highlight-label">Exam Average</div>
+                        <div className="overview-highlight-value">-</div>
+                        <div className="overview-highlight-sub">No exams yet</div>
                       </div>
-                      <div className="overview-highlight-sub">
-                        {analyticsData.summary.studentsWithExams > 0 ? analyticsData.summary.examLabel : 'No exams yet'}
-                      </div>
-                    </div>
+                    )}
 
                     {/* Month Comparison */}
                     {analyticsData.monthOverMonth && analyticsData.monthOverMonth.change !== null && analyticsData.monthOverMonth.lastRate > 0 && (

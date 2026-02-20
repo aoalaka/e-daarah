@@ -3155,6 +3155,12 @@
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
   }
+  .exam-metric-value {
+    font-size: 22px;
+  }
+  .exam-metric-label {
+    font-size: 10px;
+  }
 
   /* Exam modal: full screen on mobile */
   .modal.modal-large {
@@ -3167,9 +3173,32 @@
   }
 
   .modal-body {
-    max-height: calc(100vh - 130px) !important;
+    max-height: calc(100vh - 160px) !important;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-footer {
+    padding: 16px 20px !important;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
+  }
+
+  /* Modal close button: larger touch target */
+  .modal-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Exam batch header: stack on mobile */
+  .exam-batch-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px;
+  }
+
+  /* Edit exam modal 2-col grid: stack on mobile */
+  .edit-exam-info-grid {
+    grid-template-columns: 1fr !important;
   }
 
   /* Exam modal: hide table, show mobile cards */
@@ -3177,6 +3206,14 @@
     display: none !important;
   }
   .exam-modal-mobile-cards {
+    display: block !important;
+  }
+
+  /* Exam results: hide desktop table, show mobile cards */
+  .exam-results-desktop {
+    display: none !important;
+  }
+  .exam-results-mobile-cards {
     display: block !important;
   }
 
@@ -3411,6 +3448,30 @@
 .admin-mobile-card-actions .btn {
   flex: 1;
   justify-content: center;
+}
+
+/* Mobile cards search + pagination */
+.mobile-cards-search {
+  padding: 0 12px 12px;
+}
+.mobile-cards-search .form-input {
+  font-size: 16px;
+}
+.mobile-cards-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+}
+.mobile-cards-page-info {
+  font-size: 13px;
+  color: #666;
+}
+
+/* Exam results mobile cards: hidden by default */
+.exam-results-mobile-cards {
+  display: none;
 }
 
 /* At-risk students mobile card */

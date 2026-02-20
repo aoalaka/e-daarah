@@ -1566,7 +1566,7 @@ function AdminDashboard() {
                     >
                       <div className="summary-label">Need Attention</div>
                       <div className="summary-value">{analyticsData.summary.studentsNeedingAttention}</div>
-                      <div className="summary-status">Below 70% attendance</div>
+                      <div className="summary-status">{analyticsData.summary.studentsNeedingAttention > 0 ? 'Below 70% attendance' : 'No attendance data yet'}</div>
                       {analyticsData.summary.studentsNeedingAttention > 0 && (
                         <div className="summary-view-hint">{expandedMetric === 'attention' ? 'Hide' : 'View list'}</div>
                       )}

@@ -2400,7 +2400,7 @@ router.get('/analytics', async (req, res) => {
       LEFT JOIN attendance a ON s.id = a.student_id AND a.madrasah_id = ?${attendanceFilters}
       WHERE s.madrasah_id = ? AND s.deleted_at IS NULL${studentFilters}
       GROUP BY s.id
-      HAVING attendance_rate < 70 OR attendance_rate IS NULL
+      HAVING attendance_rate < 70 AND COUNT(a.id) > 0
       ORDER BY attendance_rate ASC
     `;
     const atRiskParams = [madrasahId, ...attendanceParams, madrasahId, ...studentParams];
@@ -3350,7 +3350,8 @@ router.get('/teacher-performance', requirePlusPlan('teacher_performance'), async
          WHERE ep.user_id = u.id AND ep.madrasah_id = ? AND ep.deleted_at IS NULL) AS exam_records,
         GREATEST(
           COALESCE((SELECT MAX(a.date) FROM attendance a WHERE a.user_id = u.id AND a.madrasah_id = ? AND a.deleted_at IS NULL), '1970-01-01'),
-          COALESCE((SELECT MAX(ep.exam_date) FROM exam_performance ep WHERE ep.user_id = u.id AND ep.madrasah_id = ? AND ep.deleted_at IS NULL), '1970-01-01')
+          COALESCE((SELECT MAX(ep.exam_date) FROM exam_performance ep WHERE ep.user_id = u.id AND ep.madrasah_id = ? AND ep.deleted_at IS NULL), '1970-01-01'),
+          COALESCE(u.last_login_at, '1970-01-01')
         ) AS last_activity
       FROM users u
       WHERE u.madrasah_id = ?

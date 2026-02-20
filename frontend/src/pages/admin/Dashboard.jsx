@@ -11,6 +11,7 @@ import DemoBanner from '../../components/DemoBanner';
 import TrialBanner from '../../components/TrialBanner';
 import AnnouncementBanner from '../../components/AnnouncementBanner';
 import UsageIndicator from '../../components/UsageIndicator';
+import GuidedTour from '../../components/GuidedTour';
 import { handleApiError } from '../../utils/errorHandler';
 import { downloadCSV, studentColumns, attendanceColumns, getAttendanceColumns, examColumns, getDateSuffix } from '../../utils/csvExport';
 import './Dashboard.css';
@@ -145,6 +146,7 @@ function AdminDashboard() {
   const [editingOverride, setEditingOverride] = useState(null);
   const [newOverride, setNewOverride] = useState({ title: '', start_date: '', end_date: '', school_days: [] });
   const [ticketReply, setTicketReply] = useState('');
+  const [showTour, setShowTour] = useState(false);
   const user = authService.getCurrentUser();
   const navigate = useNavigate();
   const { madrasahSlug } = useParams();
@@ -200,6 +202,24 @@ function AdminDashboard() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Auto-trigger guided tour for first-time users
+  useEffect(() => {
+    if (!loading && !localStorage.getItem('tour_admin_done')) {
+      const timer = setTimeout(() => setShowTour(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  const adminTourSteps = [
+    { target: '.sidebar-nav', title: 'Navigation', content: 'Use the sidebar to switch between sections: Overview, Classes, Teachers, Students, Planner, and more.' },
+    { target: '.insights-summary', title: 'Key Metrics', content: 'See your attendance rates, students needing attention, and performance at a glance.' },
+    { target: '.alert-panel', title: "Today's Status", content: 'Check if there are pending tasks like unmarked attendance or missing exams.' },
+    { target: '.overview-actions', title: 'Quick Actions', content: 'Jump straight to creating a new session, class, or enrolling a student.' },
+    { target: '[data-tour="planner"]', title: 'Academic Planner', content: 'Set up your academic year: sessions, semesters, holidays, and schedule overrides.' },
+    { target: '[data-tour="students"]', title: 'Students', content: 'Add students individually or bulk-upload from a spreadsheet.' },
+    { target: '.sidebar-footer', title: 'Your Profile', content: 'Access settings, billing, and log out from here.' },
+  ];
 
   // Recalculate exam KPIs when subject filter changes
   useEffect(() => {
@@ -1346,6 +1366,7 @@ function AdminDashboard() {
           {navItems.map(item => (
             <button
               key={item.id}
+              data-tour={item.id}
               className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
               onClick={() => handleTabChange(item.id)}
             >
@@ -1353,6 +1374,19 @@ function AdminDashboard() {
               <span>{item.label}</span>
             </button>
           ))}
+          <button
+            className="nav-item"
+            onClick={() => setShowTour(true)}
+            title="Tour guide"
+            style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>Guide</span>
+          </button>
         </nav>
         <div className="sidebar-footer" ref={profileDropdownRef}>
           <div className="sidebar-user" onClick={() => setProfileDropdownOpen(!profileDropdownOpen)} style={{ cursor: 'pointer' }}>
@@ -6423,6 +6457,13 @@ function AdminDashboard() {
           </div>
         </div>
       )}
+
+      <GuidedTour
+        steps={adminTourSteps}
+        isOpen={showTour}
+        onComplete={() => { setShowTour(false); localStorage.setItem('tour_admin_done', 'true'); }}
+        onSkip={() => { setShowTour(false); localStorage.setItem('tour_admin_done', 'true'); }}
+      />
     </div>
   );
 }

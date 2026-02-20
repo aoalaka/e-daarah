@@ -1,0 +1,177 @@
+/* ============================================
+   Guided Tour - Overlay + Spotlight + Tooltip
+   ============================================ */
+
+.guided-tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.guided-tour-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.guided-tour-spotlight {
+  position: fixed;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  z-index: 10001;
+  pointer-events: none;
+  transition: top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease;
+}
+
+/* Tooltip */
+.guided-tour-tooltip {
+  position: fixed;
+  z-index: 10002;
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  pointer-events: auto;
+  animation: guidedTourFadeIn 0.2s ease-out;
+}
+
+@keyframes guidedTourFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Arrow */
+.guided-tour-tooltip::before {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  transform: rotate(45deg);
+  box-shadow: -1px -1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.guided-tour-tooltip--bottom::before {
+  top: -6px;
+  left: 32px;
+}
+
+.guided-tour-tooltip--top::before {
+  bottom: -6px;
+  left: 32px;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.guided-tour-tooltip--right::before {
+  left: -6px;
+  top: 24px;
+}
+
+.guided-tour-tooltip--left::before {
+  right: -6px;
+  top: 24px;
+  box-shadow: 1px -1px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* Tooltip header */
+.guided-tour-tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.guided-tour-step-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #999;
+}
+
+.guided-tour-skip {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #999;
+  cursor: pointer;
+  padding: 2px 0;
+  transition: color 0.15s;
+}
+
+.guided-tour-skip:hover {
+  color: #333;
+}
+
+/* Tooltip content */
+.guided-tour-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a0a0a;
+  margin: 0 0 6px 0;
+}
+
+.guided-tour-content {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #555;
+  margin: 0 0 16px 0;
+}
+
+/* Tooltip actions */
+.guided-tour-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.guided-tour-btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.guided-tour-btn--back {
+  background: none;
+  border: 1px solid #e0e0e0;
+  color: #555;
+}
+
+.guided-tour-btn--back:hover {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
+
+.guided-tour-btn--next {
+  background: #0a0a0a;
+  border: none;
+  color: #fff;
+}
+
+.guided-tour-btn--next:hover {
+  background: #1a1a1a;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .guided-tour-tooltip {
+    width: calc(100vw - 32px);
+    max-width: 360px;
+  }
+
+  .guided-tour-tooltip::before {
+    display: none;
+  }
+}

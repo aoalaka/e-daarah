@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '../services/api';
+import GuidedTour from '../components/GuidedTour';
 import './ParentReport.css';
 
 function ParentReport() {
@@ -25,8 +26,15 @@ function ParentReport() {
   const [selectedSession, setSelectedSession] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showTour, setShowTour] = useState(false);
   const [quranProgress, setQuranProgress] = useState([]);
   const [quranPosition, setQuranPosition] = useState(null);
+
+  const parentTourSteps = [
+    { target: '.report-filters', title: 'Filter Period', content: 'Select a session and semester to view your child\'s performance for that period.' },
+    { target: '.perf-grid', title: 'Performance Summary', content: 'See attendance rate, exam average, and conduct grades at a glance.' },
+    { target: '.exam-detail-section', title: 'Exam Details', content: 'View detailed exam scores broken down by subject.' },
+  ];
 
   useEffect(() => {
     const token = localStorage.getItem('parentToken');
@@ -36,6 +44,14 @@ function ParentReport() {
     }
     fetchReport();
   }, [selectedSession, selectedSemester]);
+
+  // Auto-trigger guided tour for first-time parents
+  useEffect(() => {
+    if (!loading && student && !localStorage.getItem('tour_parent_done')) {
+      const timer = setTimeout(() => setShowTour(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, student]);
 
   // Filter semesters when session changes
   useEffect(() => {
@@ -154,7 +170,16 @@ function ParentReport() {
       {/* Header */}
       <header className="parent-header no-print">
         <h1>Student Report</h1>
-        <button onClick={handleLogout} className="logout-btn">Logout</button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button onClick={() => setShowTour(true)} className="guide-btn" title="Tour guide">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </button>
+          <button onClick={handleLogout} className="logout-btn">Logout</button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -575,6 +600,13 @@ function ParentReport() {
           </div>
         </div>
       </main>
+
+      <GuidedTour
+        steps={parentTourSteps}
+        isOpen={showTour}
+        onComplete={() => { setShowTour(false); localStorage.setItem('tour_parent_done', 'true'); }}
+        onSkip={() => { setShowTour(false); localStorage.setItem('tour_parent_done', 'true'); }}
+      />
     </div>
   );
 }

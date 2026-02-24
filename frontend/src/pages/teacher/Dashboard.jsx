@@ -1589,7 +1589,7 @@ function TeacherDashboard() {
                           </select>
                         </div>
                       )}
-                      <table className="overview-table">
+                      <table className="overview-table fee-table-desktop">
                         <thead>
                           <tr>
                             <th>Student</th>
@@ -1613,6 +1613,22 @@ function TeacherDashboard() {
                           ))}
                         </tbody>
                       </table>
+                      <div className="fee-mobile-cards">
+                        {teacherFeeSummary.map((row, i) => (
+                          <div key={i} className="admin-mobile-card">
+                            <div className="admin-mobile-card-top">
+                              <div>
+                                <div className="admin-mobile-card-title">{row.student_name}</div>
+                                <div className="admin-mobile-card-sub">{row.template_name}</div>
+                              </div>
+                              <span className={`fee-status ${row.status}`}>
+                                {row.status === 'paid' ? 'Paid' : row.status === 'partial' ? 'Partial' : 'Unpaid'}
+                              </span>
+                            </div>
+                            <div style={{ marginTop: '8px', fontWeight: 600, fontSize: '14px' }}>Balance: {formatCurrency(row.balance)}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </>

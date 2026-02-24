@@ -4353,6 +4353,34 @@
   cursor: pointer;
 }
 
+/* Fee mobile cards: hidden by default, shown on mobile */
+.fee-mobile-cards {
+  display: none;
+}
+
+.fee-mobile-card-amounts {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.fee-mobile-card-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.fee-mobile-card-amount-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #999;
+  font-weight: 500;
+}
+
 @media (max-width: 768px) {
   .fee-summary-cards {
     grid-template-columns: repeat(2, 1fr);
@@ -4364,6 +4392,14 @@
 
   .fee-summary-card {
     padding: 14px;
+  }
+
+  .fee-table-desktop {
+    display: none;
+  }
+
+  .fee-mobile-cards {
+    display: block;
   }
 }
 

@@ -4002,23 +4002,41 @@ function AdminDashboard() {
                         </div>
                       </div>
                     ) : (
-                      <div className="card">
-                        <SortableTable
-                          columns={[
-                            { key: 'template_name', label: 'Template', sortable: true, sortType: 'string' },
-                            { key: 'assigned_to', label: 'Assigned To', sortable: true, sortType: 'string',
-                              render: (row) => row.class_name || row.student_name || '—' },
-                            { key: 'type', label: 'Type', sortable: false,
-                              render: (row) => row.class_id ? <span className="badge">Class</span> : <span className="badge badge-info">Student</span> },
-                            { key: 'actions', label: '', sortable: false,
-                              render: (row) => (
+                      <>
+                        <div className="card fee-table-desktop">
+                          <SortableTable
+                            columns={[
+                              { key: 'template_name', label: 'Template', sortable: true, sortType: 'string' },
+                              { key: 'assigned_to', label: 'Assigned To', sortable: true, sortType: 'string',
+                                render: (row) => row.class_name || row.student_name || '—' },
+                              { key: 'type', label: 'Type', sortable: false,
+                                render: (row) => row.class_id ? <span className="badge">Class</span> : <span className="badge badge-info">Student</span> },
+                              { key: 'actions', label: '', sortable: false,
+                                render: (row) => (
+                                  <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleDeleteAssignment(row.id)}>Remove</button>
+                                )}
+                            ]}
+                            data={feeAssignments}
+                            emptyMessage="No fee assignments"
+                          />
+                        </div>
+                        <div className="fee-mobile-cards">
+                          {feeAssignments.map(row => (
+                            <div key={row.id} className="admin-mobile-card">
+                              <div className="admin-mobile-card-top">
+                                <div>
+                                  <div className="admin-mobile-card-title">{row.template_name}</div>
+                                  <div className="admin-mobile-card-sub">{row.class_name || row.student_name || '—'}</div>
+                                </div>
+                                <div className="admin-mobile-card-badge">{row.class_id ? 'Class' : 'Student'}</div>
+                              </div>
+                              <div className="admin-mobile-card-actions">
                                 <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleDeleteAssignment(row.id)}>Remove</button>
-                              )}
-                          ]}
-                          data={feeAssignments}
-                          emptyMessage="No fee assignments"
-                        />
-                      </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
                     )}
                   </>
                 )}
@@ -4060,71 +4078,131 @@ function AdminDashboard() {
                         </div>
                       </div>
                     ) : (
-                      <div className="card">
-                        <SortableTable
-                          columns={[
-                            { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
-                            { key: 'class_name', label: 'Class', sortable: true, sortType: 'string' },
-                            { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
-                            { key: 'total_fee', label: 'Total', sortable: true, sortType: 'number',
-                              render: (row) => formatCurrency(row.total_fee) },
-                            { key: 'total_paid', label: 'Paid', sortable: true, sortType: 'number',
-                              render: (row) => formatCurrency(row.total_paid) },
-                            { key: 'balance', label: 'Balance', sortable: true, sortType: 'number',
-                              render: (row) => formatCurrency(row.balance) },
-                            { key: 'status', label: 'Status', sortable: true, sortType: 'string',
-                              render: (row) => (
+                      <>
+                        <div className="card fee-table-desktop">
+                          <SortableTable
+                            columns={[
+                              { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
+                              { key: 'class_name', label: 'Class', sortable: true, sortType: 'string' },
+                              { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
+                              { key: 'total_fee', label: 'Total', sortable: true, sortType: 'number',
+                                render: (row) => formatCurrency(row.total_fee) },
+                              { key: 'total_paid', label: 'Paid', sortable: true, sortType: 'number',
+                                render: (row) => formatCurrency(row.total_paid) },
+                              { key: 'balance', label: 'Balance', sortable: true, sortType: 'number',
+                                render: (row) => formatCurrency(row.balance) },
+                              { key: 'status', label: 'Status', sortable: true, sortType: 'string',
+                                render: (row) => (
+                                  <span className={`fee-status ${row.status}`}>
+                                    {row.status === 'paid' ? 'Paid' : row.status === 'partial' ? 'Partial' : 'Unpaid'}
+                                  </span>
+                                )},
+                              { key: 'actions', label: '', sortable: false,
+                                render: (row) => (
+                                  <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
+                                    setShowPaymentModal(row);
+                                    setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', period_label: '' });
+                                  }}>Record Payment</button>
+                                )}
+                            ]}
+                            data={feeSummary}
+                            searchable
+                            searchPlaceholder="Search students..."
+                            searchKeys={['student_name', 'class_name', 'template_name']}
+                            pagination
+                            pageSize={25}
+                            emptyMessage="No fee records"
+                          />
+                        </div>
+                        <div className="fee-mobile-cards">
+                          {feeSummary.map((row, idx) => (
+                            <div key={idx} className="admin-mobile-card">
+                              <div className="admin-mobile-card-top">
+                                <div>
+                                  <div className="admin-mobile-card-title">{row.student_name}</div>
+                                  <div className="admin-mobile-card-sub">{row.class_name} &middot; {row.template_name}</div>
+                                </div>
                                 <span className={`fee-status ${row.status}`}>
                                   {row.status === 'paid' ? 'Paid' : row.status === 'partial' ? 'Partial' : 'Unpaid'}
                                 </span>
-                              )},
-                            { key: 'actions', label: '', sortable: false,
-                              render: (row) => (
+                              </div>
+                              <div className="fee-mobile-card-amounts">
+                                <div className="fee-mobile-card-amount">
+                                  <span className="fee-mobile-card-amount-label">Total</span>
+                                  <span>{formatCurrency(row.total_fee)}</span>
+                                </div>
+                                <div className="fee-mobile-card-amount">
+                                  <span className="fee-mobile-card-amount-label">Paid</span>
+                                  <span>{formatCurrency(row.total_paid)}</span>
+                                </div>
+                                <div className="fee-mobile-card-amount">
+                                  <span className="fee-mobile-card-amount-label">Balance</span>
+                                  <span style={{ fontWeight: 600 }}>{formatCurrency(row.balance)}</span>
+                                </div>
+                              </div>
+                              <div className="admin-mobile-card-actions">
                                 <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
                                   setShowPaymentModal(row);
                                   setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', period_label: '' });
                                 }}>Record Payment</button>
-                              )}
-                          ]}
-                          data={feeSummary}
-                          searchable
-                          searchPlaceholder="Search students..."
-                          searchKeys={['student_name', 'class_name', 'template_name']}
-                          pagination
-                          pageSize={25}
-                          emptyMessage="No fee records"
-                        />
-                      </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
                     )}
 
                     {/* Payment History */}
                     {feePayments.length > 0 && (
-                      <div className="card" style={{ marginTop: '20px' }}>
-                        <div className="card-header">Recent Payments</div>
-                        <div className="card-body" style={{ padding: 0 }}>
-                          <SortableTable
-                            columns={[
-                              { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
-                              { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
-                              { key: 'amount_paid', label: 'Amount', sortable: true, sortType: 'number',
-                                render: (row) => formatCurrency(row.amount_paid) },
-                              { key: 'payment_date', label: 'Date', sortable: true, sortType: 'string',
-                                render: (row) => new Date(row.payment_date).toLocaleDateString() },
-                              { key: 'payment_method', label: 'Method', sortable: true, sortType: 'string',
-                                render: (row) => ({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method) },
-                              { key: 'period_label', label: 'Period', sortable: false },
-                              { key: 'actions', label: '', sortable: false,
-                                render: (row) => (
-                                  <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleVoidPayment(row.id)}>Void</button>
-                                )}
-                            ]}
-                            data={feePayments}
-                            pagination
-                            pageSize={10}
-                            emptyMessage="No payments recorded"
-                          />
+                      <>
+                        <div className="card fee-table-desktop" style={{ marginTop: '20px' }}>
+                          <div className="card-header">Recent Payments</div>
+                          <div className="card-body" style={{ padding: 0 }}>
+                            <SortableTable
+                              columns={[
+                                { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
+                                { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
+                                { key: 'amount_paid', label: 'Amount', sortable: true, sortType: 'number',
+                                  render: (row) => formatCurrency(row.amount_paid) },
+                                { key: 'payment_date', label: 'Date', sortable: true, sortType: 'string',
+                                  render: (row) => new Date(row.payment_date).toLocaleDateString() },
+                                { key: 'payment_method', label: 'Method', sortable: true, sortType: 'string',
+                                  render: (row) => ({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method) },
+                                { key: 'period_label', label: 'Period', sortable: false },
+                                { key: 'actions', label: '', sortable: false,
+                                  render: (row) => (
+                                    <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleVoidPayment(row.id)}>Void</button>
+                                  )}
+                              ]}
+                              data={feePayments}
+                              pagination
+                              pageSize={10}
+                              emptyMessage="No payments recorded"
+                            />
+                          </div>
                         </div>
-                      </div>
+                        <div className="fee-mobile-cards" style={{ marginTop: '20px' }}>
+                          <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: '#0a0a0a' }}>Recent Payments</div>
+                          {feePayments.map(row => (
+                            <div key={row.id} className="admin-mobile-card">
+                              <div className="admin-mobile-card-top">
+                                <div>
+                                  <div className="admin-mobile-card-title">{row.student_name}</div>
+                                  <div className="admin-mobile-card-sub">{row.template_name} &middot; {({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method)}</div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontWeight: 600, fontSize: '15px' }}>{formatCurrency(row.amount_paid)}</div>
+                                  <div className="admin-mobile-card-sub">{new Date(row.payment_date).toLocaleDateString()}</div>
+                                </div>
+                              </div>
+                              {row.period_label && <div className="admin-mobile-card-sub" style={{ marginTop: '4px' }}>{row.period_label}</div>}
+                              <div className="admin-mobile-card-actions">
+                                <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleVoidPayment(row.id)}>Void</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
                     )}
                   </>
                 )}

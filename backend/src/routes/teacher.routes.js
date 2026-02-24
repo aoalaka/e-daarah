@@ -1680,6 +1680,44 @@ router.get('/fee-summary', async (req, res) => {
     const [madrasah] = await pool.query('SELECT enable_fee_tracking FROM madrasahs WHERE id = ?', [madrasahId]);
     if (!madrasah[0]?.enable_fee_tracking) return res.json([]);
 
+    // Get active session/semester for period calculations
+    const [activeSessions] = await pool.query(
+      `SELECT sess.id, sess.start_date as session_start,
+       sem.start_date as semester_start
+       FROM sessions sess
+       LEFT JOIN semesters sem ON sem.session_id = sess.id AND sem.is_active = 1 AND sem.deleted_at IS NULL
+       WHERE sess.madrasah_id = ? AND sess.is_active = 1 AND sess.deleted_at IS NULL
+       LIMIT 1`,
+      [madrasahId]
+    );
+    const activeSession = activeSessions[0] || null;
+    const now = new Date();
+    let semesterCount = 1;
+    if (activeSession) {
+      const [sc] = await pool.query(
+        'SELECT COUNT(*) as cnt FROM semesters WHERE session_id = ? AND deleted_at IS NULL AND start_date <= ?',
+        [activeSession.id, now.toISOString().split('T')[0]]
+      );
+      semesterCount = Math.max(sc[0].cnt, 1);
+    }
+    const computePeriods = (frequency) => {
+      if (!activeSession) return 1;
+      const semStart = activeSession.semester_start ? new Date(activeSession.semester_start) : new Date(activeSession.session_start);
+      const sessStart = new Date(activeSession.session_start);
+      const diffDays = Math.max(Math.floor((now - semStart) / 86400000), 0);
+      switch (frequency) {
+        case 'session': return 1;
+        case 'semester': return semesterCount;
+        case 'monthly': {
+          const months = (now.getFullYear() - sessStart.getFullYear()) * 12 + (now.getMonth() - sessStart.getMonth());
+          return Math.max(months, 1);
+        }
+        case 'weekly': return Math.max(Math.ceil(diffDays / 7), 1);
+        case 'daily': return Math.max(diffDays, 1);
+        default: return 1;
+      }
+    };
+
     // Get teacher's assigned classes
     const [teacherClasses] = await pool.query(
       `SELECT ct.class_id FROM class_teachers ct
@@ -1750,7 +1788,9 @@ router.get('/fee-summary', async (req, res) => {
         if (!templateMap[a.fee_template_id] || a.student_id) templateMap[a.fee_template_id] = a;
       }
       for (const [templateId, assignment] of Object.entries(templateMap)) {
-        const totalFee = itemsByTemplate[templateId] || 0;
+        const perPeriod = itemsByTemplate[templateId] || 0;
+        const periods = computePeriods(assignment.frequency);
+        const totalFee = perPeriod * periods;
         const totalPaid = paymentsByStudentTemplate[`${student.id}_${templateId}`] || 0;
         const balance = totalFee - totalPaid;
         summary.push({

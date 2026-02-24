@@ -197,6 +197,12 @@ function AdminDashboard() {
   };
 
   // Helper to check if the account is in read-only mode (expired trial or inactive subscription)
+  const formatCurrency = (amount) => {
+    const cur = madrasahProfile?.currency || 'USD';
+    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(amount); }
+    catch { return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount); }
+  };
+
   const isReadOnly = () => {
     if (!madrasahProfile) return false;
     const status = madrasahProfile.subscription_status;
@@ -3887,7 +3893,7 @@ function AdminDashboard() {
                             { key: 'items', label: 'Items', sortable: false,
                               render: (row) => row.items?.map(i => i.name).join(', ') || '—' },
                             { key: 'total', label: 'Total', sortable: true, sortType: 'number',
-                              render: (row) => `$${(row.total || 0).toFixed(2)}` },
+                              render: (row) => formatCurrency(row.total || 0) },
                             { key: 'actions', label: '', sortable: false,
                               render: (row) => (
                                 <div className="table-actions">
@@ -4009,15 +4015,15 @@ function AdminDashboard() {
                     {feeSummary.length > 0 && (
                       <div className="fee-summary-cards">
                         <div className="fee-summary-card">
-                          <div className="fee-summary-value">${feeSummary.reduce((s, r) => s + r.total_fee, 0).toFixed(2)}</div>
+                          <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + r.total_fee, 0))}</div>
                           <div className="fee-summary-label">Total Expected</div>
                         </div>
                         <div className="fee-summary-card">
-                          <div className="fee-summary-value">${feeSummary.reduce((s, r) => s + r.total_paid, 0).toFixed(2)}</div>
+                          <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + r.total_paid, 0))}</div>
                           <div className="fee-summary-label">Collected</div>
                         </div>
                         <div className="fee-summary-card">
-                          <div className="fee-summary-value">${feeSummary.reduce((s, r) => s + Math.max(r.balance, 0), 0).toFixed(2)}</div>
+                          <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + Math.max(r.balance, 0), 0))}</div>
                           <div className="fee-summary-label">Outstanding</div>
                         </div>
                       </div>
@@ -4037,11 +4043,11 @@ function AdminDashboard() {
                             { key: 'class_name', label: 'Class', sortable: true, sortType: 'string' },
                             { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
                             { key: 'total_fee', label: 'Total', sortable: true, sortType: 'number',
-                              render: (row) => `$${row.total_fee.toFixed(2)}` },
+                              render: (row) => formatCurrency(row.total_fee) },
                             { key: 'total_paid', label: 'Paid', sortable: true, sortType: 'number',
-                              render: (row) => `$${row.total_paid.toFixed(2)}` },
+                              render: (row) => formatCurrency(row.total_paid) },
                             { key: 'balance', label: 'Balance', sortable: true, sortType: 'number',
-                              render: (row) => `$${row.balance.toFixed(2)}` },
+                              render: (row) => formatCurrency(row.balance) },
                             { key: 'status', label: 'Status', sortable: true, sortType: 'string',
                               render: (row) => (
                                 <span className={`fee-status ${row.status}`}>
@@ -4077,7 +4083,7 @@ function AdminDashboard() {
                               { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
                               { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
                               { key: 'amount_paid', label: 'Amount', sortable: true, sortType: 'number',
-                                render: (row) => `$${row.amount_paid.toFixed(2)}` },
+                                render: (row) => formatCurrency(row.amount_paid) },
                               { key: 'payment_date', label: 'Date', sortable: true, sortType: 'string',
                                 render: (row) => new Date(row.payment_date).toLocaleDateString() },
                               { key: 'payment_method', label: 'Method', sortable: true, sortType: 'string',
@@ -6795,6 +6801,106 @@ function AdminDashboard() {
                 </div>
               </div>
 
+              {/* Currency Setting */}
+              <div className="card" style={{ marginTop: '20px' }}>
+                <h3>Currency</h3>
+                <p style={{ fontSize: '13px', color: 'var(--gray)', margin: '0 0 12px' }}>
+                  Set the currency used for fee tracking and financial displays.
+                </p>
+                <select
+                  className="form-select"
+                  style={{ maxWidth: '280px' }}
+                  value={madrasahProfile?.currency || 'USD'}
+                  onChange={async (e) => {
+                    const newCurrency = e.target.value;
+                    try {
+                      const res = await api.put('/admin/settings', { currency: newCurrency });
+                      setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                      toast.success(`Currency set to ${newCurrency}`);
+                    } catch (error) {
+                      toast.error('Failed to update currency');
+                    }
+                  }}
+                >
+                  <optgroup label="Popular">
+                    <option value="USD">USD — US Dollar ($)</option>
+                    <option value="EUR">EUR — Euro (€)</option>
+                    <option value="GBP">GBP — British Pound (£)</option>
+                    <option value="CAD">CAD — Canadian Dollar (CA$)</option>
+                    <option value="AUD">AUD — Australian Dollar (A$)</option>
+                    <option value="NZD">NZD — New Zealand Dollar (NZ$)</option>
+                  </optgroup>
+                  <optgroup label="Africa">
+                    <option value="NGN">NGN — Nigerian Naira (₦)</option>
+                    <option value="ZAR">ZAR — South African Rand (R)</option>
+                    <option value="KES">KES — Kenyan Shilling (KSh)</option>
+                    <option value="GHS">GHS — Ghanaian Cedi (GH₵)</option>
+                    <option value="EGP">EGP — Egyptian Pound (E£)</option>
+                    <option value="TZS">TZS — Tanzanian Shilling (TSh)</option>
+                    <option value="UGX">UGX — Ugandan Shilling (USh)</option>
+                    <option value="ETB">ETB — Ethiopian Birr (Br)</option>
+                    <option value="MAD">MAD — Moroccan Dirham (MAD)</option>
+                    <option value="XOF">XOF — West African CFA Franc (CFA)</option>
+                    <option value="XAF">XAF — Central African CFA Franc (FCFA)</option>
+                  </optgroup>
+                  <optgroup label="Asia">
+                    <option value="MYR">MYR — Malaysian Ringgit (RM)</option>
+                    <option value="IDR">IDR — Indonesian Rupiah (Rp)</option>
+                    <option value="PKR">PKR — Pakistani Rupee (₨)</option>
+                    <option value="INR">INR — Indian Rupee (₹)</option>
+                    <option value="BDT">BDT — Bangladeshi Taka (৳)</option>
+                    <option value="SAR">SAR — Saudi Riyal (﷼)</option>
+                    <option value="AED">AED — UAE Dirham (د.إ)</option>
+                    <option value="QAR">QAR — Qatari Riyal (QR)</option>
+                    <option value="KWD">KWD — Kuwaiti Dinar (KD)</option>
+                    <option value="BHD">BHD — Bahraini Dinar (BD)</option>
+                    <option value="OMR">OMR — Omani Rial (OMR)</option>
+                    <option value="JOD">JOD — Jordanian Dinar (JD)</option>
+                    <option value="TRY">TRY — Turkish Lira (₺)</option>
+                    <option value="PHP">PHP — Philippine Peso (₱)</option>
+                    <option value="SGD">SGD — Singapore Dollar (S$)</option>
+                    <option value="JPY">JPY — Japanese Yen (¥)</option>
+                    <option value="CNY">CNY — Chinese Yuan (¥)</option>
+                    <option value="KRW">KRW — South Korean Won (₩)</option>
+                    <option value="THB">THB — Thai Baht (฿)</option>
+                    <option value="VND">VND — Vietnamese Dong (₫)</option>
+                    <option value="LKR">LKR — Sri Lankan Rupee (Rs)</option>
+                    <option value="MMK">MMK — Myanmar Kyat (K)</option>
+                    <option value="IQD">IQD — Iraqi Dinar (ع.د)</option>
+                    <option value="AFN">AFN — Afghan Afghani (؋)</option>
+                  </optgroup>
+                  <optgroup label="Europe">
+                    <option value="CHF">CHF — Swiss Franc (CHF)</option>
+                    <option value="SEK">SEK — Swedish Krona (kr)</option>
+                    <option value="NOK">NOK — Norwegian Krone (kr)</option>
+                    <option value="DKK">DKK — Danish Krone (kr)</option>
+                    <option value="PLN">PLN — Polish Zloty (zł)</option>
+                    <option value="CZK">CZK — Czech Koruna (Kč)</option>
+                    <option value="HUF">HUF — Hungarian Forint (Ft)</option>
+                    <option value="RON">RON — Romanian Leu (lei)</option>
+                    <option value="BGN">BGN — Bulgarian Lev (лв)</option>
+                    <option value="RUB">RUB — Russian Ruble (₽)</option>
+                    <option value="UAH">UAH — Ukrainian Hryvnia (₴)</option>
+                  </optgroup>
+                  <optgroup label="Americas">
+                    <option value="BRL">BRL — Brazilian Real (R$)</option>
+                    <option value="MXN">MXN — Mexican Peso (MX$)</option>
+                    <option value="ARS">ARS — Argentine Peso (ARS)</option>
+                    <option value="CLP">CLP — Chilean Peso (CLP)</option>
+                    <option value="COP">COP — Colombian Peso (COP)</option>
+                    <option value="PEN">PEN — Peruvian Sol (S/)</option>
+                    <option value="JMD">JMD — Jamaican Dollar (J$)</option>
+                    <option value="TTD">TTD — Trinidad Dollar (TT$)</option>
+                  </optgroup>
+                  <optgroup label="Oceania">
+                    <option value="FJD">FJD — Fijian Dollar (FJ$)</option>
+                    <option value="PGK">PGK — Papua New Guinean Kina (K)</option>
+                    <option value="WST">WST — Samoan Tala (WS$)</option>
+                    <option value="TOP">TOP — Tongan Pa'anga (T$)</option>
+                  </optgroup>
+                </select>
+              </div>
+
               {/* Account Info */}
               <div className="card" style={{ marginTop: '20px' }}>
                 <h3>Account Information</h3>
@@ -7157,7 +7263,7 @@ function AdminDashboard() {
               <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--lighter)', borderRadius: 'var(--radius)' }}>
                 <strong>{showPaymentModal.student_name}</strong>
                 <div style={{ fontSize: '13px', color: 'var(--gray)', marginTop: '4px' }}>
-                  {showPaymentModal.template_name} — Balance: ${showPaymentModal.balance?.toFixed(2)}
+                  {showPaymentModal.template_name} — Balance: {formatCurrency(showPaymentModal.balance || 0)}
                 </div>
               </div>
               <form onSubmit={handleRecordPayment}>

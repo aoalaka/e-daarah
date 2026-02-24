@@ -126,6 +126,12 @@ function TeacherDashboard() {
     setMobileMenuOpen(false);
   };
 
+  const formatCurrency = (amount) => {
+    const cur = madrasahProfile?.currency || 'USD';
+    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(amount); }
+    catch { return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount); }
+  };
+
   // Helper to check if the account is in read-only mode (expired trial or inactive subscription)
   const isReadOnly = () => {
     if (!madrasahProfile) return false;
@@ -1597,7 +1603,7 @@ function TeacherDashboard() {
                             <tr key={i}>
                               <td>{row.student_name}</td>
                               <td>{row.template_name}</td>
-                              <td>${row.balance.toFixed(2)}</td>
+                              <td>{formatCurrency(row.balance)}</td>
                               <td>
                                 <span className={`fee-status ${row.status}`}>
                                   {row.status === 'paid' ? 'Paid' : row.status === 'partial' ? 'Partial' : 'Unpaid'}

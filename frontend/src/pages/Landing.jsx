@@ -30,7 +30,7 @@ function Landing() {
         <h1 className="hero-title">Run Your Madrasah with Clarity</h1>
         <p className="hero-subtitle">
           The simple admin system for madrasahs, weekend schools, and community learning centers.
-          Track attendance, record exams, and keep parents informed.
+          Track attendance, record exams, manage fees, and keep parents informed.
         </p>
 
         <div className="hero-actions">
@@ -81,6 +81,10 @@ function Landing() {
             <p>Promote or retain students between classes at the end of each session with a simple bulk tool.</p>
           </div>
           <div className="feature">
+            <h3>Fee Tracking</h3>
+            <p>Create fee templates, assign them to classes or students, and record payments. Track balances and collection status in any currency.</p>
+          </div>
+          <div className="feature">
             <h3>Role-Based Access</h3>
             <p>Admins, teachers, and parents each get their own secure portal with appropriate permissions.</p>
           </div>
@@ -107,6 +111,7 @@ function Landing() {
               <li>Academic planner &amp; school days</li>
               <li>Qur'an progress tracking</li>
               <li>Exam recording &amp; ranking</li>
+              <li>Fee tracking &amp; payments</li>
               <li>Student promotion</li>
               <li>Email support</li>
             </ul>

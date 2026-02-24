@@ -1706,26 +1706,35 @@ function AdminDashboard() {
                   {/* Activity Section — tables + progress */}
                   <div className="overview-columns">
                     <div>
-                      {/* Classes Without Recent Attendance */}
-                      {analyticsData.classesWithoutRecentAttendance && analyticsData.classesWithoutRecentAttendance.length > 0 && (
+                      {/* Attendance Compliance */}
+                      {analyticsData.attendanceCompliance && analyticsData.attendanceCompliance.length > 0 && (
                         <div className="overview-widget">
-                          <h4>Classes Without Recent Attendance</h4>
-                          <table className="overview-table">
-                            <thead>
-                              <tr>
-                                <th>Class</th>
-                                <th>Weeks Missed</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {analyticsData.classesWithoutRecentAttendance.map(c => (
-                                <tr key={c.id}>
-                                  <td>{c.class_name}</td>
-                                  <td>{c.weeks_missed} week{c.weeks_missed !== 1 ? 's' : ''}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                          <h4>Attendance Compliance</h4>
+                          <div className="compliance-list">
+                            {analyticsData.attendanceCompliance.map(c => (
+                              <div key={c.id} className="compliance-row">
+                                <div className="compliance-class">{c.class_name}</div>
+                                {c.expected_days === 0 ? (
+                                  <div className="compliance-empty">No school days yet</div>
+                                ) : (
+                                  <>
+                                    <div className="compliance-bar-wrap">
+                                      <div
+                                        className={`compliance-bar ${c.compliance_rate >= 100 ? 'green' : c.compliance_rate >= 70 ? 'yellow' : 'red'}`}
+                                        style={{ width: `${Math.min(c.compliance_rate, 100)}%` }}
+                                      />
+                                    </div>
+                                    <div className="compliance-stats">
+                                      <span className="compliance-fraction">{c.marked_days}/{c.expected_days}</span>
+                                      <span className={`compliance-pct ${c.compliance_rate >= 100 ? 'green' : c.compliance_rate >= 70 ? 'yellow' : 'red'}`}>
+                                        {Math.round(c.compliance_rate)}%
+                                      </span>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 

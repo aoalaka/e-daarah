@@ -179,22 +179,31 @@ router.get('/madrasahs', authenticateSuperAdmin, async (req, res) => {
     const { status, plan, search, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
+    const { include_deleted } = req.query;
+
     let query = `
       SELECT
         m.*,
-        (SELECT COUNT(*) FROM users WHERE madrasah_id = m.id) as user_count,
-        (SELECT COUNT(*) FROM students WHERE madrasah_id = m.id) as student_count
+        (SELECT COUNT(*) FROM users WHERE madrasah_id = m.id AND deleted_at IS NULL) as user_count,
+        (SELECT COUNT(*) FROM students WHERE madrasah_id = m.id AND deleted_at IS NULL) as student_count
       FROM madrasahs m
       WHERE 1=1
     `;
     const params = [];
 
+    // By default exclude deleted madrasahs unless explicitly requested
+    if (include_deleted !== 'true') {
+      query += ' AND m.deleted_at IS NULL';
+    }
+
     if (status === 'active') {
-      query += ' AND m.is_active = TRUE';
+      query += ' AND m.is_active = TRUE AND m.deleted_at IS NULL';
     } else if (status === 'suspended') {
       query += ' AND m.is_active = FALSE';
     } else if (status === 'inactive') {
       query += ' AND m.is_active = FALSE';
+    } else if (status === 'deleted') {
+      query += ' AND m.deleted_at IS NOT NULL';
     }
 
     if (plan) {
@@ -213,9 +222,11 @@ router.get('/madrasahs', authenticateSuperAdmin, async (req, res) => {
 
     const [madrasahs] = await pool.query(query, params);
 
-    // Get total count
+    // Get total count (matching the same filter)
     const [[{ total }]] = await pool.query(
-      'SELECT COUNT(*) as total FROM madrasahs'
+      include_deleted === 'true'
+        ? 'SELECT COUNT(*) as total FROM madrasahs'
+        : 'SELECT COUNT(*) as total FROM madrasahs WHERE deleted_at IS NULL'
     );
 
     res.json({
@@ -335,6 +346,76 @@ router.post('/madrasahs/:id/reactivate', authenticateSuperAdmin, async (req, res
   } catch (error) {
     console.error('Reactivate madrasah error:', error);
     res.status(500).json({ error: 'Failed to reactivate madrasah' });
+  }
+});
+
+// Delete madrasah (soft-delete with 30-day retention)
+router.delete('/madrasahs/:id', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { confirmName } = req.body;
+
+    if (!confirmName) {
+      return res.status(400).json({ error: 'Confirmation name is required' });
+    }
+
+    // Fetch madrasah to verify name match
+    const [[madrasah]] = await pool.query('SELECT id, name FROM madrasahs WHERE id = ? AND deleted_at IS NULL', [id]);
+    if (!madrasah) {
+      return res.status(404).json({ error: 'Madrasah not found or already deleted' });
+    }
+
+    if (confirmName.trim().toLowerCase() !== madrasah.name.trim().toLowerCase()) {
+      return res.status(400).json({ error: 'Confirmation name does not match' });
+    }
+
+    // Soft-delete the madrasah
+    await pool.query('UPDATE madrasahs SET deleted_at = NOW(), is_active = FALSE WHERE id = ?', [id]);
+
+    // Soft-delete all users belonging to this madrasah
+    await pool.query('UPDATE users SET deleted_at = NOW() WHERE madrasah_id = ? AND deleted_at IS NULL', [id]);
+
+    await logAudit(req, 'DELETE', 'madrasah', id, { name: madrasah.name }, parseInt(id));
+
+    res.json({ message: 'Madrasah deleted successfully. Data will be retained for 30 days.' });
+  } catch (error) {
+    console.error('Delete madrasah error:', error);
+    res.status(500).json({ error: 'Failed to delete madrasah' });
+  }
+});
+
+// Reinstate a deleted madrasah (within 30-day window)
+router.post('/madrasahs/:id/reinstate', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [[madrasah]] = await pool.query(
+      'SELECT id, name, deleted_at FROM madrasahs WHERE id = ? AND deleted_at IS NOT NULL',
+      [id]
+    );
+
+    if (!madrasah) {
+      return res.status(404).json({ error: 'Madrasah not found or not deleted' });
+    }
+
+    // Check 30-day window
+    const daysSinceDeletion = Math.floor((Date.now() - new Date(madrasah.deleted_at).getTime()) / 86400000);
+    if (daysSinceDeletion > 30) {
+      return res.status(400).json({ error: 'Reinstatement window has expired (30 days). Data is scheduled for permanent deletion.' });
+    }
+
+    // Restore madrasah
+    await pool.query('UPDATE madrasahs SET deleted_at = NULL, is_active = TRUE WHERE id = ?', [id]);
+
+    // Restore users
+    await pool.query('UPDATE users SET deleted_at = NULL WHERE madrasah_id = ?', [id]);
+
+    await logAudit(req, 'REINSTATE', 'madrasah', id, { name: madrasah.name, daysSinceDeletion }, parseInt(id));
+
+    res.json({ message: 'Madrasah reinstated successfully' });
+  } catch (error) {
+    console.error('Reinstate madrasah error:', error);
+    res.status(500).json({ error: 'Failed to reinstate madrasah' });
   }
 });
 

@@ -1580,3 +1580,113 @@
     font-size: 11px;
   }
 }
+
+/* Deleted state */
+.status.deleted {
+  background: #fce4ec;
+  color: #b71c1c;
+}
+
+.deleted-banner {
+  margin: 0 0 20px;
+  padding: 14px 18px;
+  background: #fff3e0;
+  border: 1px solid #ffe0b2;
+  border-radius: 8px;
+  color: #e65100;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.btn.danger-outline {
+  background: transparent;
+  color: #c62828;
+  border: 1px solid #c62828;
+}
+
+.btn.danger-outline:hover {
+  background: #ffebee;
+}
+
+.madrasah-row-deleted {
+  opacity: 0.55;
+}
+
+/* Delete Confirmation Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.delete-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.delete-modal h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+.delete-modal-warning {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.delete-modal-label {
+  display: block;
+  font-size: 14px;
+  margin: 16px 0 8px;
+  color: #333;
+}
+
+.delete-modal-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+.delete-modal-input:focus {
+  outline: none;
+  border-color: #c62828;
+}
+
+.delete-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.show-deleted-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+  user-select: none;
+}
+
+.show-deleted-toggle input {
+  cursor: pointer;
+}

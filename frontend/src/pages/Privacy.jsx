@@ -104,6 +104,7 @@ function Privacy() {
             <li><strong>Canceled Subscriptions:</strong> Data retained for 90 days after cancellation</li>
             <li><strong>Expired Trials:</strong> Data retained for 90 days after trial expiry</li>
             <li><strong>Account Deletion:</strong> Data permanently deleted within 30 days of request</li>
+            <li><strong>Platform-Initiated Deletion:</strong> If your account is deleted by an administrator, all data is soft-deleted immediately and permanently removed after 30 days. During this 30-day window, reinstatement may be possible upon request.</li>
           </ul>
         </section>
 

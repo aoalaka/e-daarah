@@ -2220,7 +2220,7 @@ router.get('/profile', async (req, res) => {
       `SELECT id, name, slug, logo_url, street, city, region, country, phone, email,
        institution_type, verification_status, trial_ends_at, created_at,
        pricing_plan, subscription_status, current_period_end, stripe_customer_id,
-       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking
+       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -2263,7 +2263,7 @@ router.get('/profile', async (req, res) => {
 router.put('/settings', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking } = req.body;
+    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking } = req.body;
 
     const updates = [];
     const params = [];
@@ -2284,6 +2284,10 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
       updates.push('enable_quran_tracking = ?');
       params.push(enable_quran_tracking);
     }
+    if (typeof enable_fee_tracking === 'boolean') {
+      updates.push('enable_fee_tracking = ?');
+      params.push(enable_fee_tracking);
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No valid settings provided' });
@@ -2297,7 +2301,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
 
     // Return updated settings
     const [updated] = await pool.query(
-      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking FROM madrasahs WHERE id = ?',
+      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
 
@@ -2305,6 +2309,436 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
   } catch (error) {
     console.error('Failed to update settings:', error);
     res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
+// ============================================
+// FEE TRACKING
+// ============================================
+
+// List fee templates with items
+router.get('/fee-templates', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [templates] = await pool.query(
+      `SELECT ft.id, ft.name, ft.frequency, ft.is_active, ft.created_at
+       FROM fee_templates ft
+       WHERE ft.madrasah_id = ? AND ft.deleted_at IS NULL
+       ORDER BY ft.created_at DESC`,
+      [madrasahId]
+    );
+
+    if (templates.length === 0) return res.json([]);
+
+    const templateIds = templates.map(t => t.id);
+    const [items] = await pool.query(
+      `SELECT id, fee_template_id, name, amount
+       FROM fee_template_items
+       WHERE fee_template_id IN (?) AND deleted_at IS NULL`,
+      [templateIds]
+    );
+
+    const itemsByTemplate = {};
+    for (const item of items) {
+      if (!itemsByTemplate[item.fee_template_id]) itemsByTemplate[item.fee_template_id] = [];
+      itemsByTemplate[item.fee_template_id].push({ id: item.id, name: item.name, amount: parseFloat(item.amount) });
+    }
+
+    const result = templates.map(t => ({
+      ...t,
+      items: itemsByTemplate[t.id] || [],
+      total: (itemsByTemplate[t.id] || []).reduce((sum, i) => sum + i.amount, 0)
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error('Failed to fetch fee templates:', error);
+    res.status(500).json({ error: 'Failed to fetch fee templates' });
+  }
+});
+
+// Create fee template with items
+router.post('/fee-templates', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { name, frequency, items } = req.body;
+
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Template name is required' });
+    if (!['session', 'semester', 'monthly', 'weekly', 'daily'].includes(frequency)) {
+      return res.status(400).json({ error: 'Invalid frequency' });
+    }
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'At least one fee item is required' });
+    }
+    for (const item of items) {
+      if (!item.name || !item.name.trim()) return res.status(400).json({ error: 'All items must have a name' });
+      if (!item.amount || parseFloat(item.amount) <= 0) return res.status(400).json({ error: 'All item amounts must be greater than 0' });
+    }
+
+    const [result] = await pool.query(
+      'INSERT INTO fee_templates (madrasah_id, name, frequency) VALUES (?, ?, ?)',
+      [madrasahId, name.trim(), frequency]
+    );
+    const templateId = result.insertId;
+
+    for (const item of items) {
+      await pool.query(
+        'INSERT INTO fee_template_items (fee_template_id, name, amount) VALUES (?, ?, ?)',
+        [templateId, item.name.trim(), parseFloat(item.amount)]
+      );
+    }
+
+    const [newItems] = await pool.query(
+      'SELECT id, name, amount FROM fee_template_items WHERE fee_template_id = ? AND deleted_at IS NULL',
+      [templateId]
+    );
+
+    res.status(201).json({
+      id: templateId,
+      name: name.trim(),
+      frequency,
+      items: newItems.map(i => ({ ...i, amount: parseFloat(i.amount) })),
+      total: newItems.reduce((sum, i) => sum + parseFloat(i.amount), 0)
+    });
+  } catch (error) {
+    console.error('Failed to create fee template:', error);
+    res.status(500).json({ error: 'Failed to create fee template' });
+  }
+});
+
+// Update fee template
+router.put('/fee-templates/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    const { name, frequency, items } = req.body;
+
+    const [existing] = await pool.query(
+      'SELECT id FROM fee_templates WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
+    if (existing.length === 0) return res.status(404).json({ error: 'Fee template not found' });
+
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Template name is required' });
+    if (!['session', 'semester', 'monthly', 'weekly', 'daily'].includes(frequency)) {
+      return res.status(400).json({ error: 'Invalid frequency' });
+    }
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'At least one fee item is required' });
+    }
+
+    await pool.query(
+      'UPDATE fee_templates SET name = ?, frequency = ? WHERE id = ?',
+      [name.trim(), frequency, id]
+    );
+
+    // Soft-delete all existing items, then re-insert
+    await pool.query(
+      'UPDATE fee_template_items SET deleted_at = NOW() WHERE fee_template_id = ? AND deleted_at IS NULL',
+      [id]
+    );
+    for (const item of items) {
+      if (!item.name || !item.name.trim() || !item.amount || parseFloat(item.amount) <= 0) continue;
+      await pool.query(
+        'INSERT INTO fee_template_items (fee_template_id, name, amount) VALUES (?, ?, ?)',
+        [id, item.name.trim(), parseFloat(item.amount)]
+      );
+    }
+
+    res.json({ message: 'Fee template updated successfully' });
+  } catch (error) {
+    console.error('Failed to update fee template:', error);
+    res.status(500).json({ error: 'Failed to update fee template' });
+  }
+});
+
+// Delete fee template
+router.delete('/fee-templates/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    await pool.query(
+      'UPDATE fee_templates SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
+    res.json({ message: 'Fee template deleted successfully' });
+  } catch (error) {
+    console.error('Failed to delete fee template:', error);
+    res.status(500).json({ error: 'Failed to delete fee template' });
+  }
+});
+
+// List fee assignments
+router.get('/fee-assignments', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { class_id, template_id } = req.query;
+
+    let sql = `SELECT fa.id, fa.fee_template_id, fa.class_id, fa.student_id, fa.created_at,
+       ft.name as template_name, ft.frequency,
+       c.name as class_name,
+       CONCAT(s.first_name, ' ', s.last_name) as student_name
+       FROM fee_assignments fa
+       JOIN fee_templates ft ON ft.id = fa.fee_template_id
+       LEFT JOIN classes c ON c.id = fa.class_id
+       LEFT JOIN students s ON s.id = fa.student_id
+       WHERE fa.madrasah_id = ? AND fa.deleted_at IS NULL AND ft.deleted_at IS NULL`;
+    const params = [madrasahId];
+
+    if (class_id) { sql += ' AND fa.class_id = ?'; params.push(class_id); }
+    if (template_id) { sql += ' AND fa.fee_template_id = ?'; params.push(template_id); }
+
+    sql += ' ORDER BY fa.created_at DESC';
+    const [assignments] = await pool.query(sql, params);
+    res.json(assignments);
+  } catch (error) {
+    console.error('Failed to fetch fee assignments:', error);
+    res.status(500).json({ error: 'Failed to fetch fee assignments' });
+  }
+});
+
+// Create fee assignment
+router.post('/fee-assignments', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { fee_template_id, class_id, student_id } = req.body;
+
+    if (!fee_template_id) return res.status(400).json({ error: 'Fee template is required' });
+    if (!class_id && !student_id) return res.status(400).json({ error: 'Either a class or student must be selected' });
+    if (class_id && student_id) return res.status(400).json({ error: 'Assign to either a class or a student, not both' });
+
+    // Verify template belongs to madrasah
+    const [template] = await pool.query(
+      'SELECT id FROM fee_templates WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [fee_template_id, madrasahId]
+    );
+    if (template.length === 0) return res.status(404).json({ error: 'Fee template not found' });
+
+    // Verify class/student belongs to madrasah
+    if (class_id) {
+      const [cls] = await pool.query('SELECT id FROM classes WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [class_id, madrasahId]);
+      if (cls.length === 0) return res.status(404).json({ error: 'Class not found' });
+    }
+    if (student_id) {
+      const [stu] = await pool.query('SELECT id FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [student_id, madrasahId]);
+      if (stu.length === 0) return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Check for duplicate
+    let dupSql = 'SELECT id FROM fee_assignments WHERE madrasah_id = ? AND fee_template_id = ? AND deleted_at IS NULL';
+    const dupParams = [madrasahId, fee_template_id];
+    if (class_id) { dupSql += ' AND class_id = ?'; dupParams.push(class_id); }
+    else { dupSql += ' AND student_id = ?'; dupParams.push(student_id); }
+    const [dup] = await pool.query(dupSql, dupParams);
+    if (dup.length > 0) return res.status(400).json({ error: 'This fee is already assigned' });
+
+    const [result] = await pool.query(
+      'INSERT INTO fee_assignments (madrasah_id, fee_template_id, class_id, student_id) VALUES (?, ?, ?, ?)',
+      [madrasahId, fee_template_id, class_id || null, student_id || null]
+    );
+
+    res.status(201).json({ id: result.insertId, message: 'Fee assigned successfully' });
+  } catch (error) {
+    console.error('Failed to create fee assignment:', error);
+    res.status(500).json({ error: 'Failed to assign fee' });
+  }
+});
+
+// Delete fee assignment
+router.delete('/fee-assignments/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    await pool.query(
+      'UPDATE fee_assignments SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
+    res.json({ message: 'Fee assignment removed successfully' });
+  } catch (error) {
+    console.error('Failed to delete fee assignment:', error);
+    res.status(500).json({ error: 'Failed to remove fee assignment' });
+  }
+});
+
+// List fee payments
+router.get('/fee-payments', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { student_id, class_id, template_id, from, to } = req.query;
+
+    let sql = `SELECT fp.id, fp.student_id, fp.fee_template_id, fp.amount_paid, fp.payment_date,
+       fp.payment_method, fp.reference_note, fp.period_label, fp.created_at,
+       CONCAT(s.first_name, ' ', s.last_name) as student_name,
+       ft.name as template_name
+       FROM fee_payments fp
+       JOIN students s ON s.id = fp.student_id
+       JOIN fee_templates ft ON ft.id = fp.fee_template_id
+       WHERE fp.madrasah_id = ? AND fp.deleted_at IS NULL`;
+    const params = [madrasahId];
+
+    if (student_id) { sql += ' AND fp.student_id = ?'; params.push(student_id); }
+    if (template_id) { sql += ' AND fp.fee_template_id = ?'; params.push(template_id); }
+    if (from) { sql += ' AND fp.payment_date >= ?'; params.push(from); }
+    if (to) { sql += ' AND fp.payment_date <= ?'; params.push(to); }
+    if (class_id) { sql += ' AND s.class_id = ?'; params.push(class_id); }
+
+    sql += ' ORDER BY fp.payment_date DESC, fp.created_at DESC';
+    const [payments] = await pool.query(sql, params);
+    res.json(payments.map(p => ({ ...p, amount_paid: parseFloat(p.amount_paid) })));
+  } catch (error) {
+    console.error('Failed to fetch fee payments:', error);
+    res.status(500).json({ error: 'Failed to fetch fee payments' });
+  }
+});
+
+// Record fee payment
+router.post('/fee-payments', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const userId = req.user.id;
+    const { student_id, fee_template_id, amount_paid, payment_date, payment_method, reference_note, period_label } = req.body;
+
+    if (!student_id) return res.status(400).json({ error: 'Student is required' });
+    if (!fee_template_id) return res.status(400).json({ error: 'Fee template is required' });
+    if (!amount_paid || parseFloat(amount_paid) <= 0) return res.status(400).json({ error: 'Amount must be greater than 0' });
+    if (!payment_date) return res.status(400).json({ error: 'Payment date is required' });
+
+    // Verify student belongs to madrasah
+    const [stu] = await pool.query('SELECT id FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [student_id, madrasahId]);
+    if (stu.length === 0) return res.status(404).json({ error: 'Student not found' });
+
+    // Verify template belongs to madrasah
+    const [tmpl] = await pool.query('SELECT id FROM fee_templates WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [fee_template_id, madrasahId]);
+    if (tmpl.length === 0) return res.status(404).json({ error: 'Fee template not found' });
+
+    const method = ['cash', 'bank_transfer', 'online', 'other'].includes(payment_method) ? payment_method : 'cash';
+
+    const [result] = await pool.query(
+      `INSERT INTO fee_payments (madrasah_id, student_id, fee_template_id, amount_paid, payment_date, payment_method, reference_note, period_label, recorded_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [madrasahId, student_id, fee_template_id, parseFloat(amount_paid), payment_date, method, reference_note || null, period_label || null, userId]
+    );
+
+    res.status(201).json({ id: result.insertId, message: 'Payment recorded successfully' });
+  } catch (error) {
+    console.error('Failed to record fee payment:', error);
+    res.status(500).json({ error: 'Failed to record payment' });
+  }
+});
+
+// Void fee payment
+router.delete('/fee-payments/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    await pool.query(
+      'UPDATE fee_payments SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
+    res.json({ message: 'Payment voided successfully' });
+  } catch (error) {
+    console.error('Failed to void fee payment:', error);
+    res.status(500).json({ error: 'Failed to void payment' });
+  }
+});
+
+// Fee summary per student (for a class or all)
+router.get('/fee-summary', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { class_id } = req.query;
+
+    // Get all students (optionally filtered by class)
+    let studentSql = `SELECT s.id, s.first_name, s.last_name, s.class_id, c.name as class_name
+       FROM students s
+       LEFT JOIN classes c ON c.id = s.class_id
+       WHERE s.madrasah_id = ? AND s.deleted_at IS NULL`;
+    const studentParams = [madrasahId];
+    if (class_id) { studentSql += ' AND s.class_id = ?'; studentParams.push(class_id); }
+    studentSql += ' ORDER BY s.last_name, s.first_name';
+    const [students] = await pool.query(studentSql, studentParams);
+
+    if (students.length === 0) return res.json([]);
+
+    // Get all active fee assignments for this madrasah
+    const [assignments] = await pool.query(
+      `SELECT fa.id, fa.fee_template_id, fa.class_id, fa.student_id, ft.name as template_name, ft.frequency
+       FROM fee_assignments fa
+       JOIN fee_templates ft ON ft.id = fa.fee_template_id AND ft.deleted_at IS NULL
+       WHERE fa.madrasah_id = ? AND fa.deleted_at IS NULL`,
+      [madrasahId]
+    );
+
+    // Get template items for computing totals
+    const templateIds = [...new Set(assignments.map(a => a.fee_template_id))];
+    let itemsByTemplate = {};
+    if (templateIds.length > 0) {
+      const [items] = await pool.query(
+        'SELECT fee_template_id, SUM(amount) as total FROM fee_template_items WHERE fee_template_id IN (?) AND deleted_at IS NULL GROUP BY fee_template_id',
+        [templateIds]
+      );
+      for (const i of items) itemsByTemplate[i.fee_template_id] = parseFloat(i.total);
+    }
+
+    // Get total payments per student per template
+    const studentIds = students.map(s => s.id);
+    let paymentsByStudentTemplate = {};
+    if (studentIds.length > 0 && templateIds.length > 0) {
+      const [payments] = await pool.query(
+        `SELECT student_id, fee_template_id, SUM(amount_paid) as total_paid
+         FROM fee_payments
+         WHERE madrasah_id = ? AND deleted_at IS NULL AND student_id IN (?) AND fee_template_id IN (?)
+         GROUP BY student_id, fee_template_id`,
+        [madrasahId, studentIds, templateIds]
+      );
+      for (const p of payments) {
+        const key = `${p.student_id}_${p.fee_template_id}`;
+        paymentsByStudentTemplate[key] = parseFloat(p.total_paid);
+      }
+    }
+
+    // Build summary: for each student, find their applicable fee templates
+    const summary = [];
+    for (const student of students) {
+      // Find templates assigned to this student (direct or via class)
+      const studentAssignments = assignments.filter(a =>
+        a.student_id === student.id || a.class_id === student.class_id
+      );
+
+      // Deduplicate: student-level overrides class-level for same template
+      const templateMap = {};
+      for (const a of studentAssignments) {
+        if (!templateMap[a.fee_template_id] || a.student_id) {
+          templateMap[a.fee_template_id] = a;
+        }
+      }
+
+      for (const [templateId, assignment] of Object.entries(templateMap)) {
+        const totalFee = itemsByTemplate[templateId] || 0;
+        const key = `${student.id}_${templateId}`;
+        const totalPaid = paymentsByStudentTemplate[key] || 0;
+        const balance = totalFee - totalPaid;
+        const status = totalPaid >= totalFee ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid';
+
+        summary.push({
+          student_id: student.id,
+          student_name: `${student.first_name} ${student.last_name}`,
+          class_name: student.class_name || '',
+          fee_template_id: parseInt(templateId),
+          template_name: assignment.template_name,
+          frequency: assignment.frequency,
+          total_fee: totalFee,
+          total_paid: totalPaid,
+          balance,
+          status
+        });
+      }
+    }
+
+    res.json(summary);
+  } catch (error) {
+    console.error('Failed to fetch fee summary:', error);
+    res.status(500).json({ error: 'Failed to fetch fee summary' });
   }
 });
 

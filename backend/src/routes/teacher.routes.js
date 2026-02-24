@@ -1665,4 +1665,112 @@ router.delete('/quran-progress/:id', requireActiveSubscription, async (req, res)
   }
 });
 
+// ============================================
+// FEE TRACKING (read-only)
+// ============================================
+
+// Fee summary for teacher's assigned classes
+router.get('/fee-summary', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const userId = req.user.id;
+    const { class_id } = req.query;
+
+    // Check if fee tracking is enabled
+    const [madrasah] = await pool.query('SELECT enable_fee_tracking FROM madrasahs WHERE id = ?', [madrasahId]);
+    if (!madrasah[0]?.enable_fee_tracking) return res.json([]);
+
+    // Get teacher's assigned classes
+    const [teacherClasses] = await pool.query(
+      `SELECT ct.class_id FROM class_teachers ct
+       JOIN classes c ON c.id = ct.class_id AND c.deleted_at IS NULL
+       WHERE ct.teacher_id = ? AND c.madrasah_id = ?`,
+      [userId, madrasahId]
+    );
+    if (teacherClasses.length === 0) return res.json([]);
+
+    const allowedClassIds = teacherClasses.map(tc => tc.class_id);
+    if (class_id && !allowedClassIds.includes(parseInt(class_id))) {
+      return res.status(403).json({ error: 'Not assigned to this class' });
+    }
+    const filterClassIds = class_id ? [parseInt(class_id)] : allowedClassIds;
+
+    // Get students in these classes
+    const [students] = await pool.query(
+      `SELECT s.id, s.first_name, s.last_name, s.class_id, c.name as class_name
+       FROM students s
+       JOIN classes c ON c.id = s.class_id
+       WHERE s.madrasah_id = ? AND s.deleted_at IS NULL AND s.class_id IN (?)
+       ORDER BY s.last_name, s.first_name`,
+      [madrasahId, filterClassIds]
+    );
+    if (students.length === 0) return res.json([]);
+
+    // Get assignments
+    const [assignments] = await pool.query(
+      `SELECT fa.fee_template_id, fa.class_id, fa.student_id, ft.name as template_name, ft.frequency
+       FROM fee_assignments fa
+       JOIN fee_templates ft ON ft.id = fa.fee_template_id AND ft.deleted_at IS NULL
+       WHERE fa.madrasah_id = ? AND fa.deleted_at IS NULL`,
+      [madrasahId]
+    );
+
+    const templateIds = [...new Set(assignments.map(a => a.fee_template_id))];
+    let itemsByTemplate = {};
+    if (templateIds.length > 0) {
+      const [items] = await pool.query(
+        'SELECT fee_template_id, SUM(amount) as total FROM fee_template_items WHERE fee_template_id IN (?) AND deleted_at IS NULL GROUP BY fee_template_id',
+        [templateIds]
+      );
+      for (const i of items) itemsByTemplate[i.fee_template_id] = parseFloat(i.total);
+    }
+
+    const studentIds = students.map(s => s.id);
+    let paymentsByStudentTemplate = {};
+    if (templateIds.length > 0) {
+      const [payments] = await pool.query(
+        `SELECT student_id, fee_template_id, SUM(amount_paid) as total_paid
+         FROM fee_payments
+         WHERE madrasah_id = ? AND deleted_at IS NULL AND student_id IN (?) AND fee_template_id IN (?)
+         GROUP BY student_id, fee_template_id`,
+        [madrasahId, studentIds, templateIds]
+      );
+      for (const p of payments) {
+        paymentsByStudentTemplate[`${p.student_id}_${p.fee_template_id}`] = parseFloat(p.total_paid);
+      }
+    }
+
+    const summary = [];
+    for (const student of students) {
+      const studentAssignments = assignments.filter(a =>
+        a.student_id === student.id || a.class_id === student.class_id
+      );
+      const templateMap = {};
+      for (const a of studentAssignments) {
+        if (!templateMap[a.fee_template_id] || a.student_id) templateMap[a.fee_template_id] = a;
+      }
+      for (const [templateId, assignment] of Object.entries(templateMap)) {
+        const totalFee = itemsByTemplate[templateId] || 0;
+        const totalPaid = paymentsByStudentTemplate[`${student.id}_${templateId}`] || 0;
+        const balance = totalFee - totalPaid;
+        summary.push({
+          student_id: student.id,
+          student_name: `${student.first_name} ${student.last_name}`,
+          class_name: student.class_name,
+          template_name: assignment.template_name,
+          total_fee: totalFee,
+          total_paid: totalPaid,
+          balance,
+          status: totalPaid >= totalFee ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid'
+        });
+      }
+    }
+
+    res.json(summary);
+  } catch (error) {
+    console.error('Failed to fetch teacher fee summary:', error);
+    res.status(500).json({ error: 'Failed to fetch fee summary' });
+  }
+});
+
 export default router;

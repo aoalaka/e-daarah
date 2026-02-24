@@ -105,6 +105,9 @@ function TeacherDashboard() {
   // Overview state
   const [overviewData, setOverviewData] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
+  // Fee tracking state
+  const [teacherFeeSummary, setTeacherFeeSummary] = useState([]);
+  const [teacherFeeClassFilter, setTeacherFeeClassFilter] = useState('');
   const [showTour, setShowTour] = useState(false);
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
@@ -167,6 +170,10 @@ function TeacherDashboard() {
       fetchOverview();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'overview' && madrasahProfile?.enable_fee_tracking) fetchTeacherFeeSummary();
+  }, [activeTab, teacherFeeClassFilter, madrasahProfile?.enable_fee_tracking]);
 
   // Re-fetch school day info when class changes (class may have its own school days)
   useEffect(() => {
@@ -606,6 +613,14 @@ function TeacherDashboard() {
     } finally {
       setOverviewLoading(false);
     }
+  };
+
+  const fetchTeacherFeeSummary = async () => {
+    try {
+      const params = teacherFeeClassFilter ? `?class_id=${teacherFeeClassFilter}` : '';
+      const res = await api.get(`/teacher/fee-summary${params}`);
+      setTeacherFeeSummary(res.data || []);
+    } catch (error) { console.error('Failed to fetch teacher fee summary:', error); }
   };
 
   const fetchAllStudents = async () => {
@@ -1548,6 +1563,46 @@ function TeacherDashboard() {
                               <td>{s.first_name} {s.last_name}</td>
                               <td>{s.class_name}</td>
                               <td>{s.absence_count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Fee Status (read-only) */}
+                  {madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false && teacherFeeSummary.length > 0 && (
+                    <div className="overview-widget">
+                      <h4>Fee Status</h4>
+                      {overviewData?.classes?.length > 1 && (
+                        <div style={{ marginBottom: '12px' }}>
+                          <select className="form-select" style={{ maxWidth: '200px' }} value={teacherFeeClassFilter}
+                            onChange={(e) => setTeacherFeeClassFilter(e.target.value)}>
+                            <option value="">All Classes</option>
+                            {overviewData.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                      )}
+                      <table className="overview-table">
+                        <thead>
+                          <tr>
+                            <th>Student</th>
+                            <th>Fee</th>
+                            <th>Balance</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {teacherFeeSummary.map((row, i) => (
+                            <tr key={i}>
+                              <td>{row.student_name}</td>
+                              <td>{row.template_name}</td>
+                              <td>${row.balance.toFixed(2)}</td>
+                              <td>
+                                <span className={`fee-status ${row.status}`}>
+                                  {row.status === 'paid' ? 'Paid' : row.status === 'partial' ? 'Partial' : 'Unpaid'}
+                                </span>
+                              </td>
                             </tr>
                           ))}
                         </tbody>

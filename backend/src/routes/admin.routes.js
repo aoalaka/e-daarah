@@ -2652,6 +2652,50 @@ router.get('/fee-summary', async (req, res) => {
     const madrasahId = req.madrasahId;
     const { class_id } = req.query;
 
+    // Get active session and semester for period calculations
+    const [activeSessions] = await pool.query(
+      `SELECT sess.id, sess.start_date as session_start, sess.end_date as session_end,
+       sem.id as semester_id, sem.start_date as semester_start, sem.end_date as semester_end
+       FROM sessions sess
+       LEFT JOIN semesters sem ON sem.session_id = sess.id AND sem.is_active = 1 AND sem.deleted_at IS NULL
+       WHERE sess.madrasah_id = ? AND sess.is_active = 1 AND sess.deleted_at IS NULL
+       LIMIT 1`,
+      [madrasahId]
+    );
+    const activeSession = activeSessions[0] || null;
+    const now = new Date();
+
+    // Count semesters in the active session
+    let semesterCount = 1;
+    if (activeSession) {
+      const [semCountResult] = await pool.query(
+        'SELECT COUNT(*) as cnt FROM semesters WHERE session_id = ? AND deleted_at IS NULL AND start_date <= ?',
+        [activeSession.id, now.toISOString().split('T')[0]]
+      );
+      semesterCount = Math.max(semCountResult[0].cnt, 1);
+    }
+
+    // Compute elapsed periods by frequency
+    const computePeriods = (frequency) => {
+      if (!activeSession) return 1;
+      const semStart = activeSession.semester_start ? new Date(activeSession.semester_start) : new Date(activeSession.session_start);
+      const sessStart = new Date(activeSession.session_start);
+      const diffMs = now - semStart;
+      const diffDays = Math.max(Math.floor(diffMs / 86400000), 0);
+
+      switch (frequency) {
+        case 'session': return 1;
+        case 'semester': return semesterCount;
+        case 'monthly': {
+          const months = (now.getFullYear() - sessStart.getFullYear()) * 12 + (now.getMonth() - sessStart.getMonth());
+          return Math.max(months, 1);
+        }
+        case 'weekly': return Math.max(Math.ceil(diffDays / 7), 1);
+        case 'daily': return Math.max(diffDays, 1);
+        default: return 1;
+      }
+    };
+
     // Get all students (optionally filtered by class)
     let studentSql = `SELECT s.id, s.first_name, s.last_name, s.class_id, c.name as class_name
        FROM students s
@@ -2673,7 +2717,7 @@ router.get('/fee-summary', async (req, res) => {
       [madrasahId]
     );
 
-    // Get template items for computing totals
+    // Get template items for computing per-period totals
     const templateIds = [...new Set(assignments.map(a => a.fee_template_id))];
     let itemsByTemplate = {};
     if (templateIds.length > 0) {
@@ -2718,7 +2762,9 @@ router.get('/fee-summary', async (req, res) => {
       }
 
       for (const [templateId, assignment] of Object.entries(templateMap)) {
-        const totalFee = itemsByTemplate[templateId] || 0;
+        const perPeriod = itemsByTemplate[templateId] || 0;
+        const periods = computePeriods(assignment.frequency);
+        const totalFee = perPeriod * periods;
         const key = `${student.id}_${templateId}`;
         const totalPaid = paymentsByStudentTemplate[key] || 0;
         const balance = totalFee - totalPaid;
@@ -2731,6 +2777,8 @@ router.get('/fee-summary', async (req, res) => {
           fee_template_id: parseInt(templateId),
           template_name: assignment.template_name,
           frequency: assignment.frequency,
+          per_period: perPeriod,
+          periods,
           total_fee: totalFee,
           total_paid: totalPaid,
           balance,

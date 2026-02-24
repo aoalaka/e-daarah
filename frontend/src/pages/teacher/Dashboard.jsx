@@ -2444,7 +2444,7 @@ function TeacherDashboard() {
                               render: (row) => {
                                 const percentage = row.is_absent ? null : ((row.score / row.max_score) * 100).toFixed(2);
                                 return row.is_absent ? (
-                                  <span style={{ color: 'var(--gray-500)' }}>N/A</span>
+                                  <span style={{ color: 'var(--gray)' }}>N/A</span>
                                 ) : (
                                   <span style={{
                                     fontWeight: '700',
@@ -2472,8 +2472,8 @@ function TeacherDashboard() {
                                       borderRadius: 'var(--radius)',
                                       fontSize: 'var(--text-sm)',
                                       fontWeight: '600',
-                                      backgroundColor: 'var(--gray-100)',
-                                      color: 'var(--gray-700)'
+                                      backgroundColor: '#f5f5f5',
+                                      color: '#525252'
                                     }}>
                                       {row.absence_reason}
                                     </span>
@@ -2486,7 +2486,7 @@ function TeacherDashboard() {
                                       borderRadius: 'var(--radius)',
                                       fontSize: 'var(--text-sm)',
                                       fontWeight: '600',
-                                      backgroundColor: 'var(--success-light)',
+                                      backgroundColor: '#f0fdf4',
                                       color: 'var(--success)'
                                     }}>
                                       ✓ Passed
@@ -2499,7 +2499,7 @@ function TeacherDashboard() {
                                     borderRadius: 'var(--radius)',
                                     fontSize: 'var(--text-sm)',
                                     fontWeight: '600',
-                                    backgroundColor: 'var(--error-light)',
+                                    backgroundColor: '#fef2f2',
                                     color: 'var(--error)'
                                   }}>
                                     ✗ Failed

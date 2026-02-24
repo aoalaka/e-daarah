@@ -4908,24 +4908,24 @@ function AdminDashboard() {
                                   render: (row) => {
                                     const percentage = row.is_absent ? null : ((row.score / row.max_score) * 100).toFixed(2);
                                     return row.is_absent ? (
-                                      <span style={{ color: 'var(--gray)' }}>N/A</span>
+                                      <span style={{ color: 'var(--gray-500)' }}>N/A</span>
                                     ) : (
                                       <span style={{
                                         fontWeight: '700',
                                         fontSize: 'var(--text-lg)',
-                                        color: percentage >= 80 ? '#404040' :
-                                               percentage >= 70 ? '#525252' :
-                                               percentage >= 50 ? '#737373' :
-                                               '#0a0a0a'
+                                        color: percentage >= 80 ? 'var(--success)' :
+                                               percentage >= 70 ? '#404040' :
+                                               percentage >= 50 ? 'var(--warning)' :
+                                               'var(--error)'
                                       }}>
                                         {percentage}%
                                       </span>
                                     );
                                   }
                                 },
-                                { 
-                                  key: 'status', 
-                                  label: 'Status', 
+                                {
+                                  key: 'status',
+                                  label: 'Status',
                                   sortable: true,
                                   render: (row) => {
                                     const percentage = row.is_absent ? null : ((row.score / row.max_score) * 100).toFixed(2);
@@ -4936,8 +4936,8 @@ function AdminDashboard() {
                                           borderRadius: 'var(--radius)',
                                           fontSize: 'var(--text-sm)',
                                           fontWeight: '600',
-                                          backgroundColor: 'var(--lighter)',
-                                          color: 'var(--dark)'
+                                          backgroundColor: '#f5f5f5',
+                                          color: '#525252'
                                         }}>
                                           {row.absence_reason}
                                         </span>
@@ -4950,8 +4950,8 @@ function AdminDashboard() {
                                           borderRadius: 'var(--radius)',
                                           fontSize: 'var(--text-sm)',
                                           fontWeight: '600',
-                                          backgroundColor: '#f5f5f5',
-                                          color: '#404040'
+                                          backgroundColor: '#f0fdf4',
+                                          color: 'var(--success)'
                                         }}>
                                           ✓ Passed
                                         </span>
@@ -4963,8 +4963,8 @@ function AdminDashboard() {
                                         borderRadius: 'var(--radius)',
                                         fontSize: 'var(--text-sm)',
                                         fontWeight: '600',
-                                        backgroundColor: '#f5f5f5',
-                                        color: '#0a0a0a'
+                                        backgroundColor: '#fef2f2',
+                                        color: 'var(--error)'
                                       }}>
                                         ✗ Failed
                                       </span>
@@ -5113,10 +5113,10 @@ function AdminDashboard() {
                             <span style={{
                               fontWeight: '700',
                               fontSize: '18px',
-                              color: row.overall_percentage >= 80 ? '#404040' : 
-                                     row.overall_percentage >= 70 ? '#525252' :
-                                     row.overall_percentage >= 50 ? '#737373' : 
-                                     '#0a0a0a'
+                              color: row.overall_percentage >= 80 ? 'var(--success)' :
+                                     row.overall_percentage >= 70 ? '#404040' :
+                                     row.overall_percentage >= 50 ? 'var(--warning)' :
+                                     'var(--error)'
                             }}>
                               {row.overall_percentage}%
                             </span>
@@ -6038,7 +6038,7 @@ function AdminDashboard() {
                         {individualRankings?.rankings?.exam?.rank ? (
                           <>
                             <div className="performance-main-stat">
-                              <div className="performance-big-number" style={{ color: individualRankings?.rankings.exam.percentage >= 80 ? '#404040' : individualRankings?.rankings.exam.percentage >= 70 ? '#525252' : '#737373' }}>
+                              <div className="performance-big-number" style={{ color: individualRankings?.rankings.exam.percentage >= 80 ? 'var(--success)' : individualRankings?.rankings.exam.percentage >= 50 ? 'var(--warning)' : 'var(--error)' }}>
                                 {individualRankings.rankings.exam.percentage}%
                               </div>
                               <div className="performance-label">Overall Score</div>

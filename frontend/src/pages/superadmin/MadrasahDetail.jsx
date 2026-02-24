@@ -13,6 +13,9 @@ function MadrasahDetail() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('superAdminToken');
@@ -77,10 +80,41 @@ function MadrasahDetail() {
     }
   };
 
+  const handleDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      await api.delete(`/superadmin/madrasahs/${id}`, {
+        ...getAuthHeader(),
+        data: { confirmName: deleteConfirmName }
+      });
+      setShowDeleteModal(false);
+      setDeleteConfirmName('');
+      fetchMadrasah();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to delete madrasah');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleReinstate = async () => {
+    if (!confirm('Are you sure you want to reinstate this madrasah? All users will regain access.')) return;
+    try {
+      await api.post(`/superadmin/madrasahs/${id}/reinstate`, {}, getAuthHeader());
+      fetchMadrasah();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to reinstate madrasah');
+    }
+  };
+
   if (loading) return <div className="superadmin"><p>Loading...</p></div>;
   if (!data) return <div className="superadmin"><p>Madrasah not found</p></div>;
 
   const { madrasah, users, studentCount, recentActivity, usageStats } = data;
+  const isDeleted = !!madrasah.deleted_at;
+  const deletedDate = isDeleted ? new Date(madrasah.deleted_at) : null;
+  const permanentDeleteDate = deletedDate ? new Date(deletedDate.getTime() + 30 * 86400000) : null;
+  const nameMatches = deleteConfirmName.trim().toLowerCase() === (madrasah.name || '').trim().toLowerCase();
 
   return (
     <div className="superadmin">
@@ -92,6 +126,14 @@ function MadrasahDetail() {
       </header>
 
       <main className="superadmin-main">
+        {/* Deleted Banner */}
+        {isDeleted && (
+          <div className="deleted-banner">
+            <strong>This madrasah was deleted on {deletedDate.toLocaleDateString()}.</strong>
+            <span> Data will be permanently removed on {permanentDeleteDate.toLocaleDateString()}. Reinstate to restore access.</span>
+          </div>
+        )}
+
         {/* Madrasah Info */}
         <section className="detail-section">
           <h2>Details</h2>
@@ -103,7 +145,9 @@ function MadrasahDetail() {
             <div className="detail-item">
               <label>Status</label>
               <span>
-                {madrasah.suspended_at ? (
+                {isDeleted ? (
+                  <span className="status deleted">Deleted</span>
+                ) : madrasah.suspended_at ? (
                   <span className="status suspended">Suspended</span>
                 ) : madrasah.is_active ? (
                   <span className="status active">Active</span>
@@ -130,7 +174,7 @@ function MadrasahDetail() {
             </div>
           </div>
 
-          {madrasah.suspended_at && (
+          {madrasah.suspended_at && !isDeleted && (
             <div className="suspended-notice">
               <strong>Suspended:</strong> {madrasah.suspended_reason}
               <br />
@@ -140,6 +184,7 @@ function MadrasahDetail() {
         </section>
 
         {/* Plan Management */}
+        {!isDeleted && (
         <section className="detail-section">
           <h2>Subscription</h2>
           <div className="plan-manager">
@@ -164,19 +209,31 @@ function MadrasahDetail() {
             )}
           </div>
         </section>
+        )}
 
         {/* Actions */}
         <section className="detail-section">
           <h2>Actions</h2>
           <div className="action-buttons">
-            {madrasah.suspended_at ? (
-              <button onClick={handleReactivate} className="btn success">
-                Reactivate Madrasah
+            {isDeleted ? (
+              <button onClick={handleReinstate} className="btn success">
+                Reinstate Madrasah
               </button>
             ) : (
-              <button onClick={handleSuspend} className="btn danger">
-                Suspend Madrasah
-              </button>
+              <>
+                {madrasah.suspended_at ? (
+                  <button onClick={handleReactivate} className="btn success">
+                    Reactivate Madrasah
+                  </button>
+                ) : (
+                  <button onClick={handleSuspend} className="btn danger">
+                    Suspend Madrasah
+                  </button>
+                )}
+                <button onClick={() => setShowDeleteModal(true)} className="btn danger-outline">
+                  Delete Madrasah
+                </button>
+              </>
             )}
           </div>
         </section>
@@ -332,6 +389,48 @@ function MadrasahDetail() {
           )}
         </section>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="modal-overlay" onClick={() => { setShowDeleteModal(false); setDeleteConfirmName(''); }}>
+          <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Delete {madrasah.name}</h3>
+            <p className="delete-modal-warning">
+              This will immediately revoke access for all users. All data (students, teachers, attendance, exams) will be soft-deleted and retained for <strong>30 days</strong> before permanent removal.
+            </p>
+            <p className="delete-modal-warning">
+              During the 30-day window, the madrasah can be reinstated.
+            </p>
+            <label className="delete-modal-label">
+              Type <strong>{madrasah.name}</strong> to confirm:
+            </label>
+            <input
+              type="text"
+              value={deleteConfirmName}
+              onChange={(e) => setDeleteConfirmName(e.target.value)}
+              placeholder={madrasah.name}
+              className="delete-modal-input"
+              autoFocus
+            />
+            <div className="delete-modal-actions">
+              <button
+                onClick={() => { setShowDeleteModal(false); setDeleteConfirmName(''); }}
+                className="btn secondary"
+                disabled={deleteLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="btn danger"
+                disabled={!nameMatches || deleteLoading}
+              >
+                {deleteLoading ? 'Deleting...' : 'Delete Madrasah'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

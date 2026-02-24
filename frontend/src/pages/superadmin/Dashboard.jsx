@@ -77,6 +77,7 @@ function SuperAdminDashboard() {
   const [showEmailPreview, setShowEmailPreview] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [editingTemplateId, setEditingTemplateId] = useState(null);
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const superAdmin = JSON.parse(localStorage.getItem('superAdmin') || '{}');
 
@@ -98,7 +99,7 @@ function SuperAdminDashboard() {
 
   useEffect(() => {
     fetchMadrasahs();
-  }, [filter, page]);
+  }, [filter, page, showDeleted]);
 
   useEffect(() => {
     if (activeTab === 'security') {
@@ -134,6 +135,7 @@ function SuperAdminDashboard() {
       if (filter.status) params.append('status', filter.status);
       if (filter.plan) params.append('plan', filter.plan);
       if (filter.search) params.append('search', filter.search);
+      if (showDeleted) params.append('include_deleted', 'true');
       params.append('page', page);
 
       const response = await api.get(`/superadmin/madrasahs?${params}`, getAuthHeader());
@@ -606,6 +608,7 @@ function SuperAdminDashboard() {
                 <option value="active">Active</option>
                 <option value="suspended">Suspended</option>
                 <option value="inactive">Inactive</option>
+                <option value="deleted">Deleted</option>
               </select>
               <select
                 value={filter.plan}
@@ -617,6 +620,14 @@ function SuperAdminDashboard() {
                 <option value="plus">Plus</option>
                 <option value="enterprise">Enterprise</option>
               </select>
+              <label className="show-deleted-toggle">
+                <input
+                  type="checkbox"
+                  checked={showDeleted}
+                  onChange={(e) => { setShowDeleted(e.target.checked); setPage(1); }}
+                />
+                Show deleted
+              </label>
             </section>
 
             <section className="table-section">
@@ -640,7 +651,7 @@ function SuperAdminDashboard() {
                     </thead>
                     <tbody>
                       {madrasahs.map((m) => (
-                        <tr key={m.id} className={m.suspended_at ? 'suspended' : ''}>
+                        <tr key={m.id} className={m.deleted_at ? 'madrasah-row-deleted' : m.suspended_at ? 'suspended' : ''}>
                           <td>{m.name}</td>
                           <td><code>{m.slug}</code></td>
                           <td>
@@ -651,7 +662,9 @@ function SuperAdminDashboard() {
                           <td>{m.user_count}</td>
                           <td>{m.student_count}</td>
                           <td>
-                            {m.suspended_at ? (
+                            {m.deleted_at ? (
+                              <span className="status deleted">Deleted</span>
+                            ) : m.suspended_at ? (
                               <span className="status suspended">Suspended</span>
                             ) : m.is_active ? (
                               <span className="status active">Active</span>

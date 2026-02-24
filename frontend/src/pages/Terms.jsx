@@ -131,8 +131,10 @@ function Terms() {
           <h2>11. Termination</h2>
           <p>
             You may terminate your account at any time through your account settings.
-            We may suspend or terminate accounts that violate these terms. Upon termination,
-            you may request a copy of your data within 30 days.
+            We may suspend, delete, or terminate accounts that violate these terms or at
+            our discretion. Upon deletion, your data will be retained for 30 days, during
+            which reinstatement is possible. After 30 days, data will be permanently and
+            irreversibly removed. You may request a copy of your data within this 30-day window.
           </p>
         </section>
 

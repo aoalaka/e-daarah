@@ -203,6 +203,19 @@ function AdminDashboard() {
     catch { return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount); }
   };
 
+  const FeeProgressBar = ({ paid, total }) => {
+    const pct = total > 0 ? Math.min(Math.round((paid / total) * 100), 100) : 0;
+    const color = pct >= 100 ? '#16a34a' : pct >= 50 ? '#ca8a04' : '#dc2626';
+    return (
+      <div className="fee-progress">
+        <div className="fee-progress-bar">
+          <div className="fee-progress-fill" style={{ width: `${pct}%`, background: color }} />
+        </div>
+        <span className="fee-progress-label" style={{ color }}>{pct}%</span>
+      </div>
+    );
+  };
+
   const isReadOnly = () => {
     if (!madrasahProfile) return false;
     const status = madrasahProfile.subscription_status;
@@ -4091,12 +4104,9 @@ function AdminDashboard() {
                                 render: (row) => formatCurrency(row.total_paid) },
                               { key: 'balance', label: 'Balance', sortable: true, sortType: 'number',
                                 render: (row) => formatCurrency(row.balance) },
-                              { key: 'status', label: 'Status', sortable: true, sortType: 'string',
-                                render: (row) => (
-                                  <span className={`fee-status ${row.status}`}>
-                                    {row.status === 'paid' ? 'Paid' : row.status === 'partial' ? 'Partial' : 'Unpaid'}
-                                  </span>
-                                )},
+                              { key: 'status', label: 'Progress', sortable: true, sortType: 'number',
+                                sortValue: (row) => row.total_fee > 0 ? row.total_paid / row.total_fee : 0,
+                                render: (row) => <FeeProgressBar paid={row.total_paid} total={row.total_fee} /> },
                               { key: 'actions', label: '', sortable: false,
                                 render: (row) => (
                                   <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
@@ -4122,10 +4132,8 @@ function AdminDashboard() {
                                   <div className="admin-mobile-card-title">{row.student_name}</div>
                                   <div className="admin-mobile-card-sub">{row.class_name} &middot; {row.template_name}</div>
                                 </div>
-                                <span className={`fee-status ${row.status}`}>
-                                  {row.status === 'paid' ? 'Paid' : row.status === 'partial' ? 'Partial' : 'Unpaid'}
-                                </span>
                               </div>
+                              <FeeProgressBar paid={row.total_paid} total={row.total_fee} />
                               <div className="fee-mobile-card-amounts">
                                 <div className="fee-mobile-card-amount">
                                   <span className="fee-mobile-card-amount-label">Total</span>

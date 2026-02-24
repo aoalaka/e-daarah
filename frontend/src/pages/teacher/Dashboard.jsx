@@ -132,6 +132,19 @@ function TeacherDashboard() {
     catch { return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(amount); }
   };
 
+  const FeeProgressBar = ({ paid, total }) => {
+    const pct = total > 0 ? Math.min(Math.round((paid / total) * 100), 100) : 0;
+    const color = pct >= 100 ? '#16a34a' : pct >= 50 ? '#ca8a04' : '#dc2626';
+    return (
+      <div className="fee-progress">
+        <div className="fee-progress-bar">
+          <div className="fee-progress-fill" style={{ width: `${pct}%`, background: color }} />
+        </div>
+        <span className="fee-progress-label" style={{ color }}>{pct}%</span>
+      </div>
+    );
+  };
+
   // Helper to check if the account is in read-only mode (expired trial or inactive subscription)
   const isReadOnly = () => {
     if (!madrasahProfile) return false;
@@ -1595,7 +1608,7 @@ function TeacherDashboard() {
                             <th>Student</th>
                             <th>Fee</th>
                             <th>Balance</th>
-                            <th>Status</th>
+                            <th>Progress</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1604,11 +1617,7 @@ function TeacherDashboard() {
                               <td>{row.student_name}</td>
                               <td>{row.template_name}</td>
                               <td>{formatCurrency(row.balance)}</td>
-                              <td>
-                                <span className={`fee-status ${row.status}`}>
-                                  {row.status === 'paid' ? 'Paid' : row.status === 'partial' ? 'Partial' : 'Unpaid'}
-                                </span>
-                              </td>
+                              <td><FeeProgressBar paid={row.total_paid} total={row.total_fee} /></td>
                             </tr>
                           ))}
                         </tbody>
@@ -1621,11 +1630,9 @@ function TeacherDashboard() {
                                 <div className="admin-mobile-card-title">{row.student_name}</div>
                                 <div className="admin-mobile-card-sub">{row.template_name}</div>
                               </div>
-                              <span className={`fee-status ${row.status}`}>
-                                {row.status === 'paid' ? 'Paid' : row.status === 'partial' ? 'Partial' : 'Unpaid'}
-                              </span>
                             </div>
-                            <div style={{ marginTop: '8px', fontWeight: 600, fontSize: '14px' }}>Balance: {formatCurrency(row.balance)}</div>
+                            <FeeProgressBar paid={row.total_paid} total={row.total_fee} />
+                            <div style={{ marginTop: '4px', fontWeight: 600, fontSize: '14px' }}>Balance: {formatCurrency(row.balance)}</div>
                           </div>
                         ))}
                       </div>

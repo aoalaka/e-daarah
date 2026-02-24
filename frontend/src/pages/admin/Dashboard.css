@@ -4338,34 +4338,6 @@
   color: #dc2626;
 }
 
-@media (max-width: 600px) {
-  .fee-summary-cards {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .fee-nav {
-    width: 100%;
-  }
-
-  .fee-nav-btn {
-    flex: 1;
-    text-align: center;
-    padding: 8px 12px;
-  }
-
-  .fee-item-row {
-    flex-wrap: wrap;
-  }
-
-  .fee-item-row .form-input:first-child,
-  .fee-item-row .form-input:nth-child(2) {
-    flex: 1;
-    max-width: none;
-    min-width: 0;
-  }
-}
-
 .fee-class-checkboxes {
   display: flex;
   flex-wrap: wrap;
@@ -4379,4 +4351,73 @@
   gap: 6px;
   font-size: 13px;
   cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .fee-summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .fee-summary-value {
+    font-size: 20px;
+  }
+
+  .fee-summary-card {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .fee-summary-cards {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .fee-nav {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .fee-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .fee-nav-btn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+
+  .fee-item-row {
+    flex-wrap: wrap;
+  }
+
+  .fee-item-row .form-input:first-child,
+  .fee-item-row .form-input:nth-child(2) {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .fee-class-checkboxes {
+    gap: 12px 16px;
+  }
+
+  .fee-class-checkboxes .checkbox-label {
+    font-size: 14px;
+    min-height: 44px;
+    padding: 4px 0;
+  }
+
+  .fee-class-checkboxes .checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+
+  .modal .form-select {
+    font-size: 16px;
+  }
 }

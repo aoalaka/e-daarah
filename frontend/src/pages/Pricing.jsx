@@ -21,6 +21,7 @@ function Pricing() {
         'Academic planner & school days',
         "Qur'an progress tracking",
         'Exam recording & tie-aware ranking',
+        'Fee tracking & payment recording',
         'Student promotion tool',
         'Quick Insights report',
         'Email support (48hr)'

@@ -1723,7 +1723,7 @@ router.get('/fee-summary', async (req, res) => {
     const [teacherClasses] = await pool.query(
       `SELECT ct.class_id FROM class_teachers ct
        JOIN classes c ON c.id = ct.class_id AND c.deleted_at IS NULL
-       WHERE ct.teacher_id = ? AND c.madrasah_id = ?`,
+       WHERE ct.user_id = ? AND c.madrasah_id = ?`,
       [userId, madrasahId]
     );
     if (teacherClasses.length === 0) return res.json([]);

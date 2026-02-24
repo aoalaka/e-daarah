@@ -1590,52 +1590,58 @@ function TeacherDashboard() {
                   )}
 
                   {/* Fee Status (read-only) */}
-                  {madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false && teacherFeeSummary.length > 0 && (
+                  {madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false && madrasahProfile?.enable_fee_tracking != null && (
                     <div className="overview-widget">
                       <h4>Fee Status</h4>
-                      {overviewData?.classes?.length > 1 && (
-                        <div style={{ marginBottom: '12px' }}>
-                          <select className="form-select" style={{ maxWidth: '200px' }} value={teacherFeeClassFilter}
-                            onChange={(e) => setTeacherFeeClassFilter(e.target.value)}>
-                            <option value="">All Classes</option>
-                            {overviewData.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </select>
-                        </div>
-                      )}
-                      <table className="overview-table fee-table-desktop">
-                        <thead>
-                          <tr>
-                            <th>Student</th>
-                            <th>Fee</th>
-                            <th>Balance</th>
-                            <th>Progress</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {teacherFeeSummary.map((row, i) => (
-                            <tr key={i}>
-                              <td>{row.student_name}</td>
-                              <td>{row.template_name}</td>
-                              <td>{formatCurrency(row.balance)}</td>
-                              <td><FeeProgressBar paid={row.total_paid} total={row.total_fee} /></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      <div className="fee-mobile-cards">
-                        {teacherFeeSummary.map((row, i) => (
-                          <div key={i} className="admin-mobile-card">
-                            <div className="admin-mobile-card-top">
-                              <div>
-                                <div className="admin-mobile-card-title">{row.student_name}</div>
-                                <div className="admin-mobile-card-sub">{row.template_name}</div>
-                              </div>
+                      {teacherFeeSummary.length > 0 ? (
+                        <>
+                          {overviewData?.classes?.length > 1 && (
+                            <div style={{ marginBottom: '12px' }}>
+                              <select className="form-select" style={{ maxWidth: '200px' }} value={teacherFeeClassFilter}
+                                onChange={(e) => setTeacherFeeClassFilter(e.target.value)}>
+                                <option value="">All Classes</option>
+                                {overviewData.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                              </select>
                             </div>
-                            <FeeProgressBar paid={row.total_paid} total={row.total_fee} />
-                            <div style={{ marginTop: '4px', fontWeight: 600, fontSize: '14px' }}>Balance: {formatCurrency(row.balance)}</div>
+                          )}
+                          <table className="overview-table fee-table-desktop">
+                            <thead>
+                              <tr>
+                                <th>Student</th>
+                                <th>Fee</th>
+                                <th>Balance</th>
+                                <th>Progress</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {teacherFeeSummary.map((row, i) => (
+                                <tr key={i}>
+                                  <td>{row.student_name}</td>
+                                  <td>{row.template_name}</td>
+                                  <td>{formatCurrency(row.balance)}</td>
+                                  <td><FeeProgressBar paid={row.total_paid} total={row.total_fee} /></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          <div className="fee-mobile-cards">
+                            {teacherFeeSummary.map((row, i) => (
+                              <div key={i} className="admin-mobile-card">
+                                <div className="admin-mobile-card-top">
+                                  <div>
+                                    <div className="admin-mobile-card-title">{row.student_name}</div>
+                                    <div className="admin-mobile-card-sub">{row.template_name}</div>
+                                  </div>
+                                </div>
+                                <FeeProgressBar paid={row.total_paid} total={row.total_fee} />
+                                <div style={{ marginTop: '4px', fontWeight: 600, fontSize: '14px' }}>Balance: {formatCurrency(row.balance)}</div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </>
+                      ) : (
+                        <p style={{ color: 'var(--gray)', fontSize: '14px' }}>No fees assigned to your classes yet.</p>
+                      )}
                     </div>
                   )}
                 </>

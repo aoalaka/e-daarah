@@ -4315,27 +4315,32 @@
   letter-spacing: 0.5px;
 }
 
-.fee-status {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 12px;
+.fee-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+}
+
+.fee-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.fee-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.fee-progress-label {
   font-size: 12px;
-  font-weight: 500;
-}
-
-.fee-status.paid {
-  background: #f0fdf4;
-  color: #16a34a;
-}
-
-.fee-status.partial {
-  background: #fefce8;
-  color: #ca8a04;
-}
-
-.fee-status.unpaid {
-  background: #fef2f2;
-  color: #dc2626;
+  font-weight: 600;
+  min-width: 32px;
+  text-align: right;
 }
 
 .fee-class-checkboxes {

@@ -1368,9 +1368,9 @@ function TeacherDashboard() {
                 <div className="user-avatar" style={{ width: 36, height: 36, minWidth: 36, fontSize: 14 }}>
                   {user?.firstName?.charAt(0) || 'T'}
                 </div>
-                <div>
-                  <div style={{ fontWeight: 500, fontSize: 13 }}>{user?.firstName} {user?.lastName}</div>
-                  <div style={{ fontSize: 11, color: '#888' }}>{user?.email}</div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 500, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.firstName} {user?.lastName}</div>
+                  <div style={{ fontSize: 11, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
                 </div>
               </div>
               <div className="profile-dropdown-divider" />

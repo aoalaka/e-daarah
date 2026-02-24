@@ -1504,6 +1504,32 @@ function TeacherDashboard() {
                     </div>
                   )}
 
+                  {/* Attendance Compliance */}
+                  {overviewData.attendanceCompliance && overviewData.attendanceCompliance.some(c => c.expected_days > 0) && (
+                    <div className="overview-widget">
+                      <h4>Attendance Compliance</h4>
+                      <div className="compliance-list">
+                        {overviewData.attendanceCompliance.filter(c => c.expected_days > 0).map(c => (
+                          <div key={c.id} className="compliance-row">
+                            <div className="compliance-class">{c.class_name}</div>
+                            <div className="compliance-bar-wrap">
+                              <div
+                                className={`compliance-bar ${c.compliance_rate >= 100 ? 'green' : c.compliance_rate >= 70 ? 'yellow' : 'red'}`}
+                                style={{ width: `${Math.min(c.compliance_rate, 100)}%` }}
+                              />
+                            </div>
+                            <div className="compliance-stats">
+                              <span className="compliance-fraction">{c.marked_days}/{c.expected_days}</span>
+                              <span className={`compliance-pct ${c.compliance_rate >= 100 ? 'green' : c.compliance_rate >= 70 ? 'yellow' : 'red'}`}>
+                                {Math.round(c.compliance_rate)}%
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Alerts — Frequent Absences */}
                   {overviewData.frequentAbsences && overviewData.frequentAbsences.length > 0 && (
                     <div className="overview-widget">

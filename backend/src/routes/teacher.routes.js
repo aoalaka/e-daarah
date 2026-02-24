@@ -337,9 +337,113 @@ router.get('/overview', async (req, res) => {
     const thisWeekRate = (thisWeek[0]?.total_count || 0) > 0 ? parseFloat(thisWeek[0].rate) || 0 : null;
     const lastWeekRate = (lastWeek[0]?.total_count || 0) > 0 ? parseFloat(lastWeek[0].rate) || 0 : null;
 
+    // Attendance compliance — marked vs expected days per class
+    let complianceData = [];
+    if (activeSemesterId && classData.length > 0) {
+      // Get semester start date and class school_days
+      const [complianceRaw] = await pool.query(`
+        SELECT
+          c.id,
+          c.name as class_name,
+          c.school_days as class_school_days,
+          MAX(sess.default_school_days) as default_school_days,
+          MIN(sem.start_date) as semester_start
+        FROM classes c
+        INNER JOIN class_teachers ct ON c.id = ct.class_id
+        JOIN sessions sess ON sess.madrasah_id = c.madrasah_id AND sess.deleted_at IS NULL
+        JOIN semesters sem ON sem.session_id = sess.id
+          AND sem.is_active = 1 AND sem.start_date <= CURDATE() AND sem.deleted_at IS NULL
+        WHERE ct.user_id = ? AND c.madrasah_id = ? AND c.deleted_at IS NULL
+        GROUP BY c.id, c.name, c.school_days
+      `, [userId, madrasahId]);
+
+      if (complianceRaw.length > 0) {
+        // Get marked days per class
+        const [markedDaysRaw] = await pool.query(`
+          SELECT a.class_id, COUNT(DISTINCT a.date) as marked_days
+          FROM attendance a
+          WHERE a.madrasah_id = ? AND a.deleted_at IS NULL
+            AND a.semester_id = ?
+            AND a.class_id IN (${complianceRaw.map(() => '?').join(',')})
+          GROUP BY a.class_id
+        `, [madrasahId, activeSemesterId, ...complianceRaw.map(r => r.id)]);
+        const markedMap = {};
+        markedDaysRaw.forEach(r => { markedMap[r.class_id] = r.marked_days; });
+
+        // Fetch schedule overrides and holidays
+        const [overrides] = await pool.query(
+          'SELECT start_date, end_date, school_days FROM schedule_overrides WHERE madrasah_id = ? AND deleted_at IS NULL',
+          [madrasahId]
+        );
+        const [hols] = await pool.query(
+          'SELECT start_date, end_date FROM academic_holidays WHERE madrasah_id = ? AND deleted_at IS NULL',
+          [madrasahId]
+        );
+
+        const isHol = (d) => hols.some(h => {
+          const s = new Date(h.start_date); s.setHours(0,0,0,0);
+          const e = new Date(h.end_date); e.setHours(0,0,0,0);
+          return d >= s && d <= e;
+        });
+        const getOvr = (d) => {
+          for (const o of overrides) {
+            const s = new Date(o.start_date); s.setHours(0,0,0,0);
+            const e = new Date(o.end_date); e.setHours(0,0,0,0);
+            if (d >= s && d <= e) {
+              const days = typeof o.school_days === 'string' ? JSON.parse(o.school_days) : o.school_days;
+              return Array.isArray(days) ? days : null;
+            }
+          }
+          return null;
+        };
+
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const nowDate = new Date(); nowDate.setHours(0,0,0,0);
+
+        complianceData = complianceRaw.map(row => {
+          try {
+            let baseDays = row.class_school_days
+              ? (typeof row.class_school_days === 'string' ? JSON.parse(row.class_school_days) : row.class_school_days)
+              : (row.default_school_days ? (typeof row.default_school_days === 'string' ? JSON.parse(row.default_school_days) : row.default_school_days) : null);
+
+            if (!baseDays || baseDays.length === 0) {
+              return { id: row.id, class_name: row.class_name, expected_days: 0, marked_days: 0, compliance_rate: null };
+            }
+
+            const semStart = new Date(row.semester_start); semStart.setHours(0,0,0,0);
+            const baseIdx = baseDays.map(d => dayNames.indexOf(d)).filter(i => i !== -1);
+
+            let expected = 0;
+            const cur = new Date(semStart);
+            while (cur <= nowDate) {
+              if (!isHol(cur)) {
+                const ovr = getOvr(cur);
+                if (ovr) {
+                  if (ovr.map(d => dayNames.indexOf(d)).filter(i => i !== -1).includes(cur.getDay())) expected++;
+                } else {
+                  if (baseIdx.includes(cur.getDay())) expected++;
+                }
+              }
+              cur.setDate(cur.getDate() + 1);
+            }
+
+            const marked = markedMap[row.id] || 0;
+            return {
+              id: row.id,
+              class_name: row.class_name,
+              expected_days: expected,
+              marked_days: marked,
+              compliance_rate: expected > 0 ? Math.round(marked / expected * 1000) / 10 : null
+            };
+          } catch (e) { return null; }
+        }).filter(Boolean);
+      }
+    }
+
     res.json({
       classes: classData,
       frequentAbsences,
+      attendanceCompliance: complianceData,
       stats: {
         total_students: totalStudents,
         attendance_rate: attendanceRate,

@@ -4151,3 +4151,73 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ============================================
+   Attendance Compliance Widget
+   ============================================ */
+.compliance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compliance-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.compliance-class {
+  min-width: 90px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  flex-shrink: 0;
+}
+
+.compliance-bar-wrap {
+  flex: 1;
+  height: 8px;
+  background: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.compliance-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.compliance-bar.green { background: #22c55e; }
+.compliance-bar.yellow { background: #eab308; }
+.compliance-bar.red { background: #ef4444; }
+
+.compliance-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 70px;
+  justify-content: flex-end;
+}
+
+.compliance-fraction {
+  font-size: 12px;
+  color: #666;
+}
+
+.compliance-pct {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.compliance-pct.green { color: #16a34a; }
+.compliance-pct.yellow { color: #ca8a04; }
+.compliance-pct.red { color: #dc2626; }
+
+.compliance-empty {
+  font-size: 12px;
+  color: #999;
+  font-style: italic;
+}

@@ -2510,18 +2510,15 @@ router.get('/analytics', async (req, res) => {
     trendQuery += ' GROUP BY YEARWEEK(a.date, 1) ORDER BY year_week ASC';
     const [weeklyTrend] = await pool.query(trendQuery, trendParams);
 
-    // 8. Classes that should be taking attendance but haven't recently
-    // Fetch raw data + schedule overrides + holidays, then compute weeks_missed in JS
-    const [classAttendanceRaw] = await pool.query(`
+    // 8. Attendance compliance — marked vs expected days per class (cumulative from semester start)
+    const [complianceRaw] = await pool.query(`
       SELECT
         c.id,
         c.name as class_name,
         c.school_days as class_school_days,
         MAX(sess.default_school_days) as default_school_days,
-        MAX(sess.id) as session_id,
         MIN(sem.start_date) as semester_start,
-        (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL) as student_count,
-        (SELECT MAX(a.date) FROM attendance a WHERE a.class_id = c.id AND a.madrasah_id = ?) as last_attendance_date
+        MIN(sem.id) as semester_id
       FROM classes c
       JOIN sessions sess ON sess.madrasah_id = c.madrasah_id AND sess.deleted_at IS NULL
       JOIN semesters sem ON sem.session_id = sess.id
@@ -2532,7 +2529,21 @@ router.get('/analytics', async (req, res) => {
         AND c.deleted_at IS NULL
         AND EXISTS (SELECT 1 FROM students s WHERE s.class_id = c.id AND s.deleted_at IS NULL)
       GROUP BY c.id, c.name, c.school_days
-    `, [madrasahId, madrasahId]);
+    `, [madrasahId]);
+
+    // Get marked days per class in the active semester
+    const [markedDaysRaw] = complianceRaw.length > 0
+      ? await pool.query(`
+          SELECT a.class_id, COUNT(DISTINCT a.date) as marked_days
+          FROM attendance a
+          WHERE a.madrasah_id = ? AND a.deleted_at IS NULL
+            AND a.semester_id = ?
+            AND a.class_id IN (${complianceRaw.map(() => '?').join(',')})
+          GROUP BY a.class_id
+        `, [madrasahId, complianceRaw[0]?.semester_id, ...complianceRaw.map(r => r.id)])
+      : [[]];
+    const markedDaysMap = {};
+    markedDaysRaw.forEach(r => { markedDaysMap[r.class_id] = r.marked_days; });
 
     // Fetch schedule overrides and holidays for accurate day counting
     const [scheduleOverrides] = await pool.query(
@@ -2566,69 +2577,66 @@ router.get('/analytics', async (req, res) => {
       return null;
     };
 
-    // Compute weeks_missed based on actual scheduled school days
+    // Compute expected days per class from semester start to today
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const classesWithoutRecentAttendance = classAttendanceRaw
+    const attendanceCompliance = complianceRaw
       .map(row => {
         try {
-        // Resolve base school days: class-level > session-level
-        let baseSchoolDays = null;
-        if (row.class_school_days) {
-          baseSchoolDays = typeof row.class_school_days === 'string' ? JSON.parse(row.class_school_days) : row.class_school_days;
-        } else if (row.default_school_days) {
-          baseSchoolDays = typeof row.default_school_days === 'string' ? JSON.parse(row.default_school_days) : row.default_school_days;
-        }
+          let baseSchoolDays = null;
+          if (row.class_school_days) {
+            baseSchoolDays = typeof row.class_school_days === 'string' ? JSON.parse(row.class_school_days) : row.class_school_days;
+          } else if (row.default_school_days) {
+            baseSchoolDays = typeof row.default_school_days === 'string' ? JSON.parse(row.default_school_days) : row.default_school_days;
+          }
 
-        // If no school_days configured at any level, skip
-        if (!baseSchoolDays || baseSchoolDays.length === 0) {
-          return null;
-        }
+          if (!baseSchoolDays || baseSchoolDays.length === 0) {
+            return { id: row.id, class_name: row.class_name, expected_days: 0, marked_days: 0, compliance_rate: null, missed_days: 0 };
+          }
 
-        const refDate = row.last_attendance_date
-          ? new Date(row.last_attendance_date)
-          : new Date(row.semester_start);
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        refDate.setHours(0, 0, 0, 0);
+          const semStart = new Date(row.semester_start);
+          semStart.setHours(0, 0, 0, 0);
+          const now = new Date();
+          now.setHours(0, 0, 0, 0);
 
-        const baseDayIndices = baseSchoolDays.map(d => dayNames.indexOf(d)).filter(i => i !== -1);
+          const baseDayIndices = baseSchoolDays.map(d => dayNames.indexOf(d)).filter(i => i !== -1);
 
-        // Count scheduled school days, respecting overrides and holidays
-        let scheduledDays = 0;
-        const cursor = new Date(refDate);
-        cursor.setDate(cursor.getDate() + 1); // start from day after reference
-        while (cursor <= now) {
-          if (!isHoliday(cursor)) {
-            const overrideDays = getOverrideDays(cursor);
-            if (overrideDays) {
-              // Override active: use override's school_days
-              const overrideIndices = overrideDays.map(d => dayNames.indexOf(d)).filter(i => i !== -1);
-              if (overrideIndices.includes(cursor.getDay())) {
-                scheduledDays++;
-              }
-            } else {
-              // Normal schedule
-              if (baseDayIndices.includes(cursor.getDay())) {
-                scheduledDays++;
+          // Count expected school days from semester start to today (inclusive)
+          let expectedDays = 0;
+          const cursor = new Date(semStart);
+          while (cursor <= now) {
+            if (!isHoliday(cursor)) {
+              const overrideDays = getOverrideDays(cursor);
+              if (overrideDays) {
+                const overrideIndices = overrideDays.map(d => dayNames.indexOf(d)).filter(i => i !== -1);
+                if (overrideIndices.includes(cursor.getDay())) {
+                  expectedDays++;
+                }
+              } else {
+                if (baseDayIndices.includes(cursor.getDay())) {
+                  expectedDays++;
+                }
               }
             }
+            cursor.setDate(cursor.getDate() + 1);
           }
-          cursor.setDate(cursor.getDate() + 1);
-        }
 
-        // Convert scheduled days to weeks (1 week = number of school days per week)
-        const daysPerWeek = baseDayIndices.length;
-        const weeksMissed = Math.floor(scheduledDays / daysPerWeek);
+          const markedDays = markedDaysMap[row.id] || 0;
+          const complianceRate = expectedDays > 0 ? Math.round(markedDays / expectedDays * 1000) / 10 : null;
 
-        return weeksMissed >= 1
-          ? { id: row.id, class_name: row.class_name, student_count: row.student_count, last_attendance_date: row.last_attendance_date, weeks_missed: weeksMissed }
-          : null;
+          return {
+            id: row.id,
+            class_name: row.class_name,
+            expected_days: expectedDays,
+            marked_days: markedDays,
+            compliance_rate: complianceRate,
+            missed_days: Math.max(0, expectedDays - markedDays)
+          };
         } catch (e) {
           return null;
         }
       })
       .filter(Boolean)
-      .sort((a, b) => b.weeks_missed - a.weeks_missed);
+      .sort((a, b) => (a.compliance_rate ?? 999) - (b.compliance_rate ?? 999));
 
     // 9. Exam performance summary
     let examQuery = `
@@ -3050,7 +3058,7 @@ router.get('/analytics', async (req, res) => {
       classComparison: classAttendance,
       frequentAbsences,
       weeklyTrend,
-      classesWithoutRecentAttendance,
+      attendanceCompliance,
       examBySubject,
       examByClass,
       strugglingStudents,

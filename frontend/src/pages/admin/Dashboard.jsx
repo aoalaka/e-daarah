@@ -145,7 +145,7 @@ function AdminDashboard() {
   const [editingFeeTemplate, setEditingFeeTemplate] = useState(null);
   const [newFeeTemplate, setNewFeeTemplate] = useState({ name: '', frequency: 'semester', items: [{ name: '', amount: '' }] });
   const [showAssignForm, setShowAssignForm] = useState(false);
-  const [newAssignment, setNewAssignment] = useState({ fee_template_id: '', assign_type: 'class', class_id: '', student_id: '' });
+  const [newAssignment, setNewAssignment] = useState({ fee_template_id: '', assign_type: 'class', class_ids: [], student_id: '' });
   const [showPaymentModal, setShowPaymentModal] = useState(null); // { student_id, student_name, fee_template_id, template_name, total_fee, balance }
   const [newPayment, setNewPayment] = useState({ amount_paid: '', payment_date: '', payment_method: 'cash', reference_note: '', period_label: '' });
   const [feeClassFilter, setFeeClassFilter] = useState('');
@@ -459,14 +459,24 @@ function AdminDashboard() {
     e.preventDefault();
     if (isReadOnly()) return;
     try {
-      const body = {
-        fee_template_id: newAssignment.fee_template_id,
-        ...(newAssignment.assign_type === 'class' ? { class_id: newAssignment.class_id } : { student_id: newAssignment.student_id })
-      };
-      await api.post('/admin/fee-assignments', body);
-      toast.success('Fee assigned successfully');
+      if (newAssignment.assign_type === 'class') {
+        if (newAssignment.class_ids.length === 0) { toast.error('Select at least one class'); return; }
+        let succeeded = 0;
+        let failed = 0;
+        for (const classId of newAssignment.class_ids) {
+          try {
+            await api.post('/admin/fee-assignments', { fee_template_id: newAssignment.fee_template_id, class_id: classId });
+            succeeded++;
+          } catch { failed++; }
+        }
+        if (succeeded > 0) toast.success(`Fee assigned to ${succeeded} class${succeeded !== 1 ? 'es' : ''}`);
+        if (failed > 0) toast.error(`${failed} class${failed !== 1 ? 'es' : ''} already assigned or failed`);
+      } else {
+        await api.post('/admin/fee-assignments', { fee_template_id: newAssignment.fee_template_id, student_id: newAssignment.student_id });
+        toast.success('Fee assigned successfully');
+      }
       setShowAssignForm(false);
-      setNewAssignment({ fee_template_id: '', assign_type: 'class', class_id: '', student_id: '' });
+      setNewAssignment({ fee_template_id: '', assign_type: 'class', class_ids: [], student_id: '' });
       loadFeeAssignments();
       loadFeeSummary();
     } catch (error) {
@@ -3940,19 +3950,33 @@ function AdminDashboard() {
                               <div className="form-group">
                                 <label className="form-label">Assign To</label>
                                 <select className="form-select" value={newAssignment.assign_type}
-                                  onChange={(e) => setNewAssignment({ ...newAssignment, assign_type: e.target.value, class_id: '', student_id: '' })}>
+                                  onChange={(e) => setNewAssignment({ ...newAssignment, assign_type: e.target.value, class_ids: [], student_id: '' })}>
                                   <option value="class">Class</option>
                                   <option value="student">Individual Student</option>
                                 </select>
                               </div>
                               <div className="form-group">
-                                <label className="form-label">{newAssignment.assign_type === 'class' ? 'Class' : 'Student'}</label>
+                                <label className="form-label">{newAssignment.assign_type === 'class' ? 'Classes' : 'Student'}</label>
                                 {newAssignment.assign_type === 'class' ? (
-                                  <select className="form-select" value={newAssignment.class_id}
-                                    onChange={(e) => setNewAssignment({ ...newAssignment, class_id: e.target.value })} required>
-                                    <option value="">Select class</option>
-                                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                  </select>
+                                  <div className="fee-class-checkboxes">
+                                    {classes.map(c => (
+                                      <label key={c.id} className="checkbox-label">
+                                        <input type="checkbox"
+                                          checked={newAssignment.class_ids.includes(String(c.id))}
+                                          onChange={(e) => {
+                                            const id = String(c.id);
+                                            setNewAssignment(prev => ({
+                                              ...prev,
+                                              class_ids: e.target.checked
+                                                ? [...prev.class_ids, id]
+                                                : prev.class_ids.filter(x => x !== id)
+                                            }));
+                                          }}
+                                        />
+                                        {c.name}
+                                      </label>
+                                    ))}
+                                  </div>
                                 ) : (
                                   <select className="form-select" value={newAssignment.student_id}
                                     onChange={(e) => setNewAssignment({ ...newAssignment, student_id: e.target.value })} required>

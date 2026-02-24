@@ -1317,7 +1317,8 @@ router.get('/madrasah-info', async (req, res) => {
     const madrasahId = req.madrasahId;
     const [madrasahs] = await pool.query(
       `SELECT pricing_plan, subscription_status, trial_ends_at,
-       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking
+       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking,
+       enable_fee_tracking, currency
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );

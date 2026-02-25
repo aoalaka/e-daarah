@@ -1010,12 +1010,12 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       WHERE qp.student_id = ? AND qp.madrasah_id = ? AND qp.deleted_at IS NULL
     `;
     const quranParams = [studentId, student.madrasah_id];
-    if (semesterId) {
+    if (semester_id) {
       quranQuery += ' AND qp.semester_id = ?';
-      quranParams.push(semesterId);
-    } else if (sessionId) {
+      quranParams.push(semester_id);
+    } else if (session_id) {
       quranQuery += ' AND qp.semester_id IN (SELECT id FROM semesters WHERE session_id = ? AND deleted_at IS NULL)';
-      quranParams.push(sessionId);
+      quranParams.push(session_id);
     }
     quranQuery += ' ORDER BY qp.date DESC';
     const [quranProgress] = await pool.query(quranQuery, quranParams);

@@ -643,11 +643,15 @@
 }
 
 .btn-danger {
-  color: #525252;
+  color: var(--error);
 }
 
 .btn-danger:hover {
-  background: #f5f5f5;
+  background: #fef2f2;
+}
+
+.btn-danger:active {
+  transform: scale(0.98);
 }
 
 .btn-sm.btn-edit,
@@ -664,12 +668,16 @@
 }
 
 .btn-sm.btn-delete {
-  color: #525252;
-  border-color: #d4d4d4;
+  color: var(--error);
+  border-color: #fecaca;
 }
 
 .btn-sm.btn-delete:hover {
-  background: #f5f5f5;
+  background: #fef2f2;
+}
+
+.btn-sm.btn-delete:active {
+  transform: scale(0.98);
 }
 
 /* ============================================
@@ -729,6 +737,19 @@
   outline: none;
   border-color: #0a0a0a;
   box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.06);
+}
+
+/* Keyboard focus indicators */
+button:focus-visible,
+a:focus-visible,
+.nav-item:focus-visible,
+.btn:focus-visible,
+.subtab-btn:focus-visible,
+.report-tab-btn:focus-visible,
+.fee-nav-btn:focus-visible,
+.modal-close:focus-visible {
+  outline: 2px solid #0a0a0a;
+  outline-offset: 2px;
 }
 
 .form-hint {
@@ -800,28 +821,28 @@
 }
 
 .badge-success {
-  background: #f5f5f5 !important;
-  color: #404040 !important;
+  background: #f0fdf4;
+  color: var(--success);
 }
 
 .badge-muted {
-  background: #f5f5f5 !important;
-  color: #666 !important;
+  background: #f5f5f5;
+  color: #666;
 }
 
 .badge-danger {
-  background: #f5f5f5 !important;
-  color: #525252 !important;
+  background: #fef2f2;
+  color: var(--error);
 }
 
 .badge-info {
-  background: #eff6ff !important;
-  color: #1e40af !important;
+  background: #eff6ff;
+  color: #1e40af;
 }
 
 .badge-warning {
-  background: #fffbeb !important;
-  color: #92400e !important;
+  background: #fffbeb;
+  color: #92400e;
 }
 
 /* ============================================

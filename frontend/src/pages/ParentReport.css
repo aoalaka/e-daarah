@@ -318,6 +318,14 @@
   font-size: 13px;
 }
 
+.quran-position-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+  max-width: 400px;
+}
+
 /* Exam Detail Section */
 .exam-detail-section {
   margin-bottom: 24px;

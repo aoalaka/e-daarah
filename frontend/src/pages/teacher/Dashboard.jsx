@@ -560,12 +560,27 @@ function TeacherDashboard() {
         passed: quranPassed,
         notes: quranNotes || null
       });
-      toast.success(quranPassed ? 'Passed — position updated ✓' : 'Repeat recorded — student to come back');
+      toast.success(quranPassed ? 'Passed — position updated' : 'Repeat recorded — student to come back');
       fetchStudentPosition(quranSelectedStudent.id);
       fetchStudentHistory(quranSelectedStudent.id);
       fetchQuranPositions(selectedClass.id);
       fetchQuranProgress(selectedClass.id);
-      setQuranAyahTo('');
+
+      // Auto-advance: if passed and completed all ayahs, move form to next surah
+      if (quranPassed && ayahTo >= surah.ayahs) {
+        const nextSurah = surahs.find(s => s.n === surah.n + 1);
+        if (nextSurah) {
+          setQuranSurah(String(nextSurah.n));
+          setQuranAyahFrom('1');
+          setQuranAyahTo('');
+        } else {
+          setQuranAyahFrom('');
+          setQuranAyahTo('');
+        }
+      } else {
+        setQuranAyahFrom(quranPassed ? String(ayahTo + 1) : String(ayahFrom));
+        setQuranAyahTo('');
+      }
       setQuranGrade('Good');
       setQuranPassed(true);
       setQuranNotes('');
@@ -3304,40 +3319,30 @@ function TeacherDashboard() {
                     </nav>
                   </div>
 
-                  {/* Record Session Sub-tab — Teacher picks type first, then records */}
+                  {/* Record Session Sub-tab */}
                   {quranSubTab === 'record' && (
                     <div style={{ display: 'grid', gap: 'var(--md)' }}>
-                      {/* Step 1: Choose session type */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--md)' }}>
+                      {/* Session type pills */}
+                      <div className="qp-type-pills">
                         {[
-                          { value: 'tilawah', label: 'Tilawah', sub: 'Recitation / Reading', desc: 'Student reads from the mushaf' },
-                          { value: 'hifz', label: 'Hifdh', sub: 'Memorization', desc: 'Student recites from memory' },
-                          { value: 'revision', label: 'Muraja\'ah', sub: 'Revision', desc: 'Reviewing previously memorized' }
+                          { value: 'tilawah', label: 'Tilawah', sub: 'Recitation' },
+                          { value: 'hifz', label: 'Hifdh', sub: 'Memorization' },
+                          { value: 'revision', label: 'Muraja\'ah', sub: 'Revision' }
                         ].map(opt => (
                           <button
                             key={opt.value}
                             type="button"
+                            className={`qp-type-pill${quranSessionType === opt.value ? ' active' : ''}`}
                             onClick={() => setQuranSessionType(opt.value)}
-                            style={{
-                              padding: 'var(--lg)',
-                              border: quranSessionType === opt.value ? '2px solid #0a0a0a' : '1px solid #e5e5e5',
-                              borderRadius: 'var(--radius)',
-                              background: quranSessionType === opt.value ? '#0a0a0a' : '#fff',
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              transition: 'all 0.15s'
-                            }}
                           >
-                            <div style={{ fontSize: '16px', fontWeight: '700', color: quranSessionType === opt.value ? '#fff' : '#0a0a0a' }}>{opt.label}</div>
-                            <div style={{ fontSize: '12px', fontWeight: '500', color: quranSessionType === opt.value ? 'rgba(255,255,255,0.7)' : '#999', marginTop: '2px' }}>{opt.sub}</div>
-                            <div style={{ fontSize: '12px', color: quranSessionType === opt.value ? 'rgba(255,255,255,0.5)' : '#bbb', marginTop: '6px' }}>{opt.desc}</div>
+                            {opt.label}<span className="qp-type-sub">{opt.sub}</span>
                           </button>
                         ))}
                       </div>
 
-                      {/* Step 2: Select student + date */}
-                      <div className="card" style={{ padding: 'var(--lg)', borderTop: '3px solid #0a0a0a' }}>
-                        <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#999', marginBottom: 'var(--sm)' }}>
+                      {/* Unified session card */}
+                      <div className="card">
+                        <div className="qp-section-label">
                           Recording: {quranSessionType === 'tilawah' ? 'Tilawah (Recitation)' : quranSessionType === 'hifz' ? 'Hifdh (Memorization)' : 'Muraja\'ah (Revision)'}
                         </div>
                         <div className="form-grid form-grid-2">
@@ -3359,40 +3364,30 @@ function TeacherDashboard() {
                             <input type="date" className="form-input" value={quranDate} max={getLocalDate()} onChange={e => setQuranDate(e.target.value)} />
                           </div>
                         </div>
-                      </div>
 
-                      {/* Step 3: Show position for selected type & record form */}
-                      {quranSelectedStudent && quranStudentPosition && (
-                        <>
-                          {/* Current Position — only for the selected session type */}
-                          <div className="card" style={{ padding: 'var(--lg)' }}>
-                            <h3 style={{ margin: '0 0 var(--sm) 0', fontSize: '15px', fontWeight: '600' }}>
-                              {quranSelectedStudent.first_name}'s {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifdh' : 'Revision'} Position
-                            </h3>
+                        {/* Position banner + form (shown when student selected) */}
+                        {quranSelectedStudent && quranStudentPosition && (
+                          <>
                             {(() => {
                               const pos = quranSessionType === 'hifz' ? quranStudentPosition.hifz
                                 : quranSessionType === 'tilawah' ? quranStudentPosition.tilawah
                                 : quranStudentPosition.revision;
                               return pos ? (
-                                <div style={{ padding: '12px', background: '#fafafa', borderRadius: 'var(--radius)', border: '1px solid #e5e5e5' }}>
-                                  <div style={{ fontSize: '14px' }}>
+                                <div className="qp-position-banner">
+                                  <div>
                                     <strong>{pos.surah_number}. {pos.surah_name}</strong>
-                                    {pos.ayah && <span style={{ color: '#999' }}> — up to Ayah {pos.ayah}</span>}
+                                    {pos.ayah && <span className="qp-pos-detail"> — up to Ayah {pos.ayah}</span>}
                                   </div>
-                                  <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>Juz {pos.juz}</div>
+                                  <div className="qp-pos-juz">Juz {pos.juz}</div>
                                 </div>
                               ) : (
-                                <p style={{ color: '#999', fontSize: '14px', margin: 0 }}>
+                                <div className="qp-position-banner qp-new-student">
                                   Not started yet — this will be {quranSelectedStudent.first_name}'s first {quranSessionType === 'tilawah' ? 'tilawah' : quranSessionType === 'hifz' ? 'hifdh' : 'revision'} session.
-                                </p>
+                                </div>
                               );
                             })()}
-                          </div>
 
-                          {/* Record Form */}
-                          <div className="card" style={{ padding: 'var(--lg)' }}>
-                            {/* Surah & Ayah */}
-                            <div className="form-grid form-grid-3" style={{ gap: '12px' }}>
+                            <div className="form-grid form-grid-3">
                               <div className="form-group">
                                 <label className="form-label">Surah</label>
                                 <select className="form-select" value={quranSurah} onChange={e => { setQuranSurah(e.target.value); setQuranAyahFrom(''); setQuranAyahTo(''); }}>
@@ -3419,8 +3414,7 @@ function TeacherDashboard() {
                               </div>
                             </div>
 
-                            {/* Grade + Pass/Fail + Notes */}
-                            <div className="form-grid form-grid-3" style={{ gap: '12px', marginTop: '12px' }}>
+                            <div className="form-grid form-grid-3" style={{ marginTop: '12px' }}>
                               <div className="form-group">
                                 <label className="form-label">Grade</label>
                                 <select className="form-select" value={quranGrade} onChange={e => setQuranGrade(e.target.value)}>
@@ -3432,41 +3426,9 @@ function TeacherDashboard() {
                               </div>
                               <div className="form-group">
                                 <label className="form-label">Outcome</label>
-                                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => setQuranPassed(true)}
-                                    style={{
-                                      flex: 1,
-                                      padding: '8px',
-                                      borderRadius: '6px',
-                                      border: `2px solid ${quranPassed ? '#16a34a' : '#e5e5e5'}`,
-                                      background: quranPassed ? 'rgba(22,163,74,0.08)' : '#fff',
-                                      color: quranPassed ? '#16a34a' : '#999',
-                                      fontWeight: '600',
-                                      fontSize: '13px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Pass
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setQuranPassed(false)}
-                                    style={{
-                                      flex: 1,
-                                      padding: '8px',
-                                      borderRadius: '6px',
-                                      border: `2px solid ${!quranPassed ? '#dc2626' : '#e5e5e5'}`,
-                                      background: !quranPassed ? 'rgba(220,38,38,0.08)' : '#fff',
-                                      color: !quranPassed ? '#dc2626' : '#999',
-                                      fontWeight: '600',
-                                      fontSize: '13px',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Repeat
-                                  </button>
+                                <div className="qp-outcome-toggle">
+                                  <button type="button" className={`qp-outcome-btn pass${quranPassed ? ' active' : ''}`} onClick={() => setQuranPassed(true)}>Pass</button>
+                                  <button type="button" className={`qp-outcome-btn repeat${!quranPassed ? ' active' : ''}`} onClick={() => setQuranPassed(false)}>Repeat</button>
                                 </div>
                               </div>
                               <div className="form-group">
@@ -3475,8 +3437,7 @@ function TeacherDashboard() {
                               </div>
                             </div>
 
-                            {/* Info message based on pass/fail */}
-                            <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: 'var(--radius)', fontSize: '13px', background: quranPassed ? 'rgba(22,163,74,0.06)' : 'rgba(220,38,38,0.06)', color: quranPassed ? '#16a34a' : '#dc2626', border: `1px solid ${quranPassed ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)'}` }}>
+                            <div className={`qp-info-banner ${quranPassed ? 'pass' : 'fail'}`}>
                               {quranPassed
                                 ? (quranSessionType === 'revision'
                                     ? 'Student passed — revision recorded.'
@@ -3490,54 +3451,58 @@ function TeacherDashboard() {
                                 {quranSaving ? 'Saving…' : quranPassed ? 'Save & Advance' : 'Save as Repeat'}
                               </button>
                             </div>
-                          </div>
+                          </>
+                        )}
 
-                          {/* Student's Recent History — filtered to selected type */}
-                          {quranStudentHistory.filter(r => r.type === quranSessionType).length > 0 && (
-                            <div className="card" style={{ padding: 'var(--lg)' }}>
-                              <h3 style={{ margin: '0 0 var(--sm) 0', fontSize: '15px', fontWeight: '600' }}>Recent {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifdh' : 'Revision'} Sessions</h3>
-                              <div className="table-wrap">
-                                <table className="table">
-                                  <thead>
-                                    <tr>
-                                      <th>Date</th>
-                                      <th>Surah</th>
-                                      <th>Ayahs</th>
-                                      <th>Grade</th>
-                                      <th>Result</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {quranStudentHistory.filter(r => r.type === quranSessionType).map(r => (
-                                      <tr key={r.id}>
-                                        <td>{fmtDate(r.date)}</td>
-                                        <td>{r.surah_number}. {r.surah_name}</td>
-                                        <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : r.ayah_from ? `From ${r.ayah_from}` : '—'}</td>
-                                        <td>
-                                          <span className={`badge ${r.grade === 'Excellent' ? 'badge-success' : r.grade === 'Good' ? 'badge-info' : r.grade === 'Fair' ? 'badge-warning' : 'badge-danger'}`}>
-                                            {r.grade}
-                                          </span>
-                                        </td>
-                                        <td>
-                                          <span style={{ color: r.passed ? '#16a34a' : '#dc2626', fontWeight: '600', fontSize: '13px' }}>
-                                            {r.passed ? 'Passed' : 'Repeat'}
-                                          </span>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
+                        {/* Empty state — no student selected */}
+                        {!quranSelectedStudent && (
+                          <div style={{ textAlign: 'center', padding: 'var(--lg) 0' }}>
+                            <div className="empty-icon">
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                              </svg>
                             </div>
-                          )}
-                        </>
-                      )}
+                            <p className="empty">Select a student to begin recording</p>
+                          </div>
+                        )}
+                      </div>
 
-                      {/* No student selected prompt */}
-                      {!quranSelectedStudent && (
-                        <div className="card" style={{ padding: 'var(--xl)', textAlign: 'center' }}>
-                          <div style={{ fontSize: '32px', marginBottom: '8px' }}>📖</div>
-                          <p style={{ color: 'var(--muted)', fontSize: '14px', margin: 0 }}>Select a student who has come to recite or read</p>
+                      {/* Student's recent history — filtered to selected type */}
+                      {quranSelectedStudent && quranStudentPosition && quranStudentHistory.filter(r => r.type === quranSessionType).length > 0 && (
+                        <div className="card">
+                          <h3>Recent {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifdh' : 'Revision'} Sessions</h3>
+                          <div className="table-wrap">
+                            <table className="table">
+                              <thead>
+                                <tr>
+                                  <th>Date</th>
+                                  <th>Surah</th>
+                                  <th>Ayahs</th>
+                                  <th>Grade</th>
+                                  <th>Result</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {quranStudentHistory.filter(r => r.type === quranSessionType).map(r => (
+                                  <tr key={r.id}>
+                                    <td>{fmtDate(r.date)}</td>
+                                    <td>{r.surah_number}. {r.surah_name}</td>
+                                    <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : r.ayah_from ? `From ${r.ayah_from}` : '—'}</td>
+                                    <td>
+                                      <span className={`badge ${r.grade === 'Excellent' ? 'badge-success' : r.grade === 'Good' ? 'badge-info' : r.grade === 'Fair' ? 'badge-warning' : 'badge-danger'}`}>
+                                        {r.grade}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <span className={`qp-result ${r.passed ? 'pass' : 'fail'}`}>
+                                        {r.passed ? 'Passed' : 'Repeat'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -3545,8 +3510,8 @@ function TeacherDashboard() {
 
                   {/* Class Overview Sub-tab */}
                   {quranSubTab === 'positions' && (
-                    <div className="card" style={{ padding: 'var(--md)' }}>
-                      <h3 style={{ margin: '0 0 var(--md) 0', fontSize: '16px' }}>Class Overview — Current Positions</h3>
+                    <div className="card">
+                      <h3>Class Overview — Current Positions</h3>
                       {quranPositions.length === 0 ? (
                         <p className="empty">No students found in this class.</p>
                       ) : (
@@ -3564,26 +3529,26 @@ function TeacherDashboard() {
                             <tbody>
                               {quranPositions.map(s => (
                                 <tr key={s.id}>
-                                  <td style={{ fontWeight: '500' }}>{s.first_name} {s.last_name}</td>
+                                  <td><strong>{s.first_name} {s.last_name}</strong></td>
                                   <td>
                                     {s.current_surah_name ? (
                                       <span>{s.current_surah_number}. {s.current_surah_name}{s.current_ayah ? ` (Ayah ${s.current_ayah})` : ''}</span>
                                     ) : (
-                                      <span style={{ color: 'var(--muted)' }}>Not started</span>
+                                      <span className="text-muted">Not started</span>
                                     )}
                                   </td>
                                   <td>
                                     {s.tilawah_surah_name ? (
                                       <span>{s.tilawah_surah_number}. {s.tilawah_surah_name}{s.tilawah_ayah ? ` (Ayah ${s.tilawah_ayah})` : ''}</span>
                                     ) : (
-                                      <span style={{ color: 'var(--muted)' }}>Not started</span>
+                                      <span className="text-muted">Not started</span>
                                     )}
                                   </td>
                                   <td>
                                     {s.revision_surah_name ? (
                                       <span>{s.revision_surah_number}. {s.revision_surah_name}{s.revision_ayah ? ` (Ayah ${s.revision_ayah})` : ''}</span>
                                     ) : (
-                                      <span style={{ color: 'var(--muted)' }}>Not started</span>
+                                      <span className="text-muted">Not started</span>
                                     )}
                                   </td>
                                   <td>{s.last_updated ? fmtDate(s.last_updated) : '—'}</td>
@@ -3598,8 +3563,8 @@ function TeacherDashboard() {
 
                   {/* History Sub-tab */}
                   {quranSubTab === 'history' && (
-                    <div className="card" style={{ padding: 'var(--md)' }}>
-                      <h3 style={{ margin: '0 0 var(--md) 0', fontSize: '16px' }}>Progress History</h3>
+                    <div className="card">
+                      <h3>Progress History</h3>
                       {quranRecords.length === 0 ? (
                         <p className="empty">No records found for this semester.</p>
                       ) : (
@@ -3635,8 +3600,8 @@ function TeacherDashboard() {
                                     </span>
                                   </td>
                                   <td>
-                                    <span style={{ color: r.passed ? '#16a34a' : '#dc2626', fontWeight: '600', fontSize: '13px' }}>
-                                      {r.passed ? '✓ Pass' : '✕ Repeat'}
+                                    <span className={`qp-result ${r.passed ? 'pass' : 'fail'}`}>
+                                      {r.passed ? 'Pass' : 'Repeat'}
                                     </span>
                                   </td>
                                   <td>

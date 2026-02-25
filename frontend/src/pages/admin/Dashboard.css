@@ -58,7 +58,7 @@
   align-items: center;
   justify-content: center;
   margin-left: auto;
-  transition: color 0.15s;
+  transition: color var(--transition-normal);
   flex-shrink: 0;
 }
 
@@ -74,7 +74,7 @@
 .sidebar-logo-img {
   height: 36px;
   width: auto;
-  transition: height 0.2s ease;
+  transition: height var(--transition-slow) ease;
   flex-shrink: 0;
 }
 
@@ -87,7 +87,7 @@
   font-weight: 600;
   color: #ffffff;
   white-space: nowrap;
-  transition: opacity 0.2s ease, width 0.2s ease;
+  transition: opacity var(--transition-slow) ease, width var(--transition-slow) ease;
   overflow: hidden;
 }
 
@@ -115,7 +115,7 @@
   font-size: 14px;
   color: #a1a1a1;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-normal);
   position: relative;
 }
 
@@ -126,7 +126,7 @@
 
 .nav-item span {
   white-space: nowrap;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition-slow) ease;
 }
 
 .sidebar.collapsed .nav-item span {
@@ -138,7 +138,7 @@
 .nav-item svg {
   min-width: 18px;
   opacity: 0.7;
-  transition: opacity 0.15s;
+  transition: opacity var(--transition-normal);
 }
 
 .nav-item:hover {
@@ -181,7 +181,7 @@
   padding: 6px;
   overflow: hidden;
   z-index: 200;
-  animation: profileDropdownIn 0.15s ease-out;
+  animation: profileDropdownIn var(--transition-normal) ease-out;
 }
 
 @keyframes profileDropdownIn {
@@ -228,7 +228,7 @@
   color: #333;
   cursor: pointer;
   text-align: left;
-  transition: background 0.12s;
+  transition: background var(--transition-fast);
 }
 
 .profile-dropdown-item:hover {
@@ -268,7 +268,7 @@
   gap: 12px;
   padding: 8px;
   border-radius: 8px;
-  transition: background-color 0.15s ease;
+  transition: background-color var(--transition-normal) ease;
 }
 
 .sidebar.collapsed .sidebar-user {
@@ -299,7 +299,7 @@
 .user-info {
   flex: 1;
   min-width: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition-slow) ease;
 }
 
 .sidebar.collapsed .user-info,
@@ -333,7 +333,7 @@
   font-size: 12px;
   color: #888;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-normal);
 }
 
 .logout-btn:hover {
@@ -447,7 +447,7 @@
   margin-bottom: var(--md);
   padding: var(--lg);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: box-shadow var(--transition-slow), border-color var(--transition-slow);
 }
 
 .card-header {
@@ -536,7 +536,7 @@
 }
 
 .table tbody tr {
-  transition: background 0.15s;
+  transition: background var(--transition-normal);
 }
 
 .table tbody tr:hover {
@@ -562,7 +562,7 @@
   background: var(--white);
   cursor: pointer;
   min-width: 100px;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition-normal);
 }
 
 .inline-class-select:hover {
@@ -587,7 +587,7 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-normal);
   border: none;
 }
 
@@ -726,7 +726,7 @@
   font-size: 14px;
   color: var(--text-primary);
   background: #ffffff;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition-normal);
 }
 
 .form-group input:focus,
@@ -782,7 +782,7 @@ a:focus-visible,
   font-size: 13px;
   color: var(--gray);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-normal);
 }
 
 .day-btn:hover {
@@ -858,7 +858,7 @@ a:focus-visible,
   justify-content: center;
   padding: 24px;
   z-index: 200;
-  animation: modalOverlayIn 0.15s ease-out;
+  animation: modalOverlayIn var(--transition-normal) ease-out;
 }
 
 @keyframes modalOverlayIn {
@@ -876,7 +876,7 @@ a:focus-visible,
   display: flex;
   flex-direction: column;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: modalIn 0.15s ease-out;
+  animation: modalIn var(--transition-normal) ease-out;
 }
 
 @keyframes modalIn {
@@ -980,7 +980,7 @@ a:focus-visible,
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-normal);
 }
 
 .empty .empty-action:hover {
@@ -1055,7 +1055,7 @@ a:focus-visible,
   border-radius: var(--radius);
   padding: var(--lg);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-normal);
 }
 
 .quick-card:hover {
@@ -1115,7 +1115,7 @@ a:focus-visible,
   border-radius: var(--radius);
   cursor: pointer;
   margin-bottom: 12px;
-  transition: background 0.15s, transform 0.1s;
+  transition: background var(--transition-normal), transform var(--transition-fast);
 }
 
 .upload-template-banner:hover {
@@ -1218,7 +1218,7 @@ a:focus-visible,
   font-weight: 500;
   color: var(--gray);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-normal);
 }
 
 .report-tab-btn:hover {
@@ -1579,7 +1579,7 @@ a:focus-visible,
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
-  transition: background 0.2s ease;
+  transition: background var(--transition-slow) ease;
 }
 
 .setting-switch.on {
@@ -1599,7 +1599,7 @@ a:focus-visible,
   height: 20px;
   border-radius: 50%;
   background: #fff;
-  transition: transform 0.2s ease;
+  transition: transform var(--transition-slow) ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
@@ -1635,7 +1635,7 @@ a:focus-visible,
   height: 2px;
   background: var(--text-primary);
   border-radius: 1px;
-  transition: all 0.2s;
+  transition: all var(--transition-slow);
 }
 
 .sidebar-overlay {
@@ -1672,7 +1672,7 @@ a:focus-visible,
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
-    transition: transform 0.25s ease;
+    transition: transform var(--transition-slow) ease;
     width: 240px; /* Reset to full width on mobile */
   }
 
@@ -1989,7 +1989,7 @@ a:focus-visible,
   text-underline-offset: 2px;
 }
 
-.summary-card.clickable { cursor: pointer; transition: border-color 0.15s; }
+.summary-card.clickable { cursor: pointer; transition: border-color var(--transition-normal); }
 .summary-card.clickable:hover { border-color: #d1d5db; }
 .summary-card.clickable.active { border-color: #111827; }
 
@@ -2551,7 +2551,7 @@ a:focus-visible,
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-normal);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2751,7 +2751,7 @@ a:focus-visible,
   font-size: 14px;
   font-family: inherit;
   resize: vertical;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
 
 .comment-textarea:focus {
@@ -3748,7 +3748,7 @@ a:focus-visible,
   font-size: 14px;
   color: var(--text-primary);
   background: #ffffff;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition-normal);
   margin-bottom: 12px;
   resize: vertical;
 }
@@ -4042,7 +4042,7 @@ a:focus-visible,
   border-radius: var(--radius);
   padding: var(--md);
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition-normal);
 }
 
 .today-class-card:hover {
@@ -4167,7 +4167,7 @@ a:focus-visible,
   border: 1px solid var(--light);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.2s;
+  transition: border-color var(--transition-normal), background var(--transition-normal), box-shadow var(--transition-slow);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
@@ -4326,7 +4326,7 @@ a:focus-visible,
   font-weight: 500;
   color: var(--gray);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-normal) ease;
 }
 
 .fee-nav-btn:hover {

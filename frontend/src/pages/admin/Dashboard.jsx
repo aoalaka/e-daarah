@@ -1648,12 +1648,22 @@ function AdminDashboard() {
 
               {/* Key Metrics */}
               {analyticsLoading ? (
-                <div className="card">
-                  <div className="loading-state">
-                    <div className="loading-spinner"></div>
-                    <p>Loading insights...</p>
+                <>
+                  <div className="stats-grid">
+                    {[1,2,3,4].map(i => (
+                      <div key={i} className="stat-card">
+                        <div className="skeleton skeleton-text" style={{ width: '50%', height: '28px', marginBottom: '8px' }} />
+                        <div className="skeleton skeleton-text short" style={{ height: '12px' }} />
+                      </div>
+                    ))}
                   </div>
-                </div>
+                  <div className="card" style={{ marginTop: 'var(--md)' }}>
+                    <div style={{ padding: 'var(--lg)' }}>
+                      <div className="skeleton skeleton-text" style={{ width: '30%', height: '16px', marginBottom: '16px' }} />
+                      <div className="skeleton" style={{ height: '120px' }} />
+                    </div>
+                  </div>
+                </>
               ) : analyticsData ? (
                 <>
                   <div className="insights-summary">

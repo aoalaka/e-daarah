@@ -30,6 +30,7 @@ function AdminDashboard() {
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [confirmModal, setConfirmModal] = useState(null);
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [showSemesterForm, setShowSemesterForm] = useState(false);
   const [showClassForm, setShowClassForm] = useState(false);
@@ -458,13 +459,11 @@ function AdminDashboard() {
     }
   };
 
-  const handleDeleteFeeTemplate = async (id) => {
-    if (!window.confirm('Delete this fee template?')) return;
-    try {
-      await api.delete(`/admin/fee-templates/${id}`);
-      toast.success('Fee template deleted');
-      loadFeeTemplates();
-    } catch (error) { toast.error('Failed to delete fee template'); }
+  const handleDeleteFeeTemplate = (id) => {
+    setConfirmModal({ title: 'Delete Fee Template', message: 'Are you sure you want to delete this fee template?', danger: true, confirmLabel: 'Delete', onConfirm: async () => {
+      try { await api.delete(`/admin/fee-templates/${id}`); toast.success('Fee template deleted'); loadFeeTemplates(); }
+      catch (error) { toast.error('Failed to delete fee template'); }
+    }});
   };
 
   // Fee assignments
@@ -497,14 +496,11 @@ function AdminDashboard() {
     }
   };
 
-  const handleDeleteAssignment = async (id) => {
-    if (!window.confirm('Remove this fee assignment?')) return;
-    try {
-      await api.delete(`/admin/fee-assignments/${id}`);
-      toast.success('Assignment removed');
-      loadFeeAssignments();
-      loadFeeSummary();
-    } catch (error) { toast.error('Failed to remove assignment'); }
+  const handleDeleteAssignment = (id) => {
+    setConfirmModal({ title: 'Remove Assignment', message: 'Remove this fee assignment?', danger: true, confirmLabel: 'Remove', onConfirm: async () => {
+      try { await api.delete(`/admin/fee-assignments/${id}`); toast.success('Assignment removed'); loadFeeAssignments(); loadFeeSummary(); }
+      catch (error) { toast.error('Failed to remove assignment'); }
+    }});
   };
 
   // Fee payments
@@ -531,14 +527,11 @@ function AdminDashboard() {
     }
   };
 
-  const handleVoidPayment = async (id) => {
-    if (!window.confirm('Void this payment? This cannot be undone.')) return;
-    try {
-      await api.delete(`/admin/fee-payments/${id}`);
-      toast.success('Payment voided');
-      loadFeeSummary();
-      loadFeePayments();
-    } catch (error) { toast.error('Failed to void payment'); }
+  const handleVoidPayment = (id) => {
+    setConfirmModal({ title: 'Void Payment', message: 'Void this payment? This cannot be undone.', danger: true, confirmLabel: 'Void', onConfirm: async () => {
+      try { await api.delete(`/admin/fee-payments/${id}`); toast.success('Payment voided'); loadFeeSummary(); loadFeePayments(); }
+      catch (error) { toast.error('Failed to void payment'); }
+    }});
   };
 
   const handleCreateSession = async (e) => {
@@ -578,15 +571,12 @@ function AdminDashboard() {
     setShowSessionForm(true);
   };
 
-  const handleDeleteSession = async (id) => {
+  const handleDeleteSession = (id) => {
     if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
-    if (!confirm('Are you sure you want to delete this session? This will also delete all associated semesters.')) return;
-    try {
-      await api.delete(`/admin/sessions/${id}`);
-      loadData();
-    } catch (error) {
-      toast.error('Failed to delete session');
-    }
+    setConfirmModal({ title: 'Delete Session', message: 'Are you sure? This will also delete all associated semesters.', danger: true, confirmLabel: 'Delete', onConfirm: async () => {
+      try { await api.delete(`/admin/sessions/${id}`); loadData(); }
+      catch (error) { toast.error('Failed to delete session'); }
+    }});
   };
 
   const handleCreateSemester = async (e) => {
@@ -623,15 +613,12 @@ function AdminDashboard() {
     setShowSemesterForm(true);
   };
 
-  const handleDeleteSemester = async (id) => {
+  const handleDeleteSemester = (id) => {
     if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
-    if (!confirm('Are you sure you want to delete this semester? This will also delete all associated attendance records.')) return;
-    try {
-      await api.delete(`/admin/semesters/${id}`);
-      loadData();
-    } catch (error) {
-      toast.error('Failed to delete semester');
-    }
+    setConfirmModal({ title: 'Delete Semester', message: 'Are you sure? This will also delete all associated attendance records.', danger: true, confirmLabel: 'Delete', onConfirm: async () => {
+      try { await api.delete(`/admin/semesters/${id}`); loadData(); }
+      catch (error) { toast.error('Failed to delete semester'); }
+    }});
   };
 
   // ============ PLANNER HANDLERS ============
@@ -684,15 +671,11 @@ function AdminDashboard() {
     setShowHolidayForm(true);
   };
 
-  const handleDeleteHoliday = async (id) => {
-    if (!confirm('Delete this holiday?')) return;
-    try {
-      await api.delete(`/admin/holidays/${id}`);
-      setPlannerHolidays(prev => prev.filter(h => h.id !== id));
-      toast.success('Holiday deleted');
-    } catch (error) {
-      toast.error('Failed to delete holiday');
-    }
+  const handleDeleteHoliday = (id) => {
+    setConfirmModal({ title: 'Delete Holiday', message: 'Delete this holiday?', danger: true, confirmLabel: 'Delete', onConfirm: async () => {
+      try { await api.delete(`/admin/holidays/${id}`); setPlannerHolidays(prev => prev.filter(h => h.id !== id)); toast.success('Holiday deleted'); }
+      catch (error) { toast.error('Failed to delete holiday'); }
+    }});
   };
 
   const handleCreateOverride = async (e) => {
@@ -732,15 +715,11 @@ function AdminDashboard() {
     setShowOverrideForm(true);
   };
 
-  const handleDeleteOverride = async (id) => {
-    if (!confirm('Delete this schedule override?')) return;
-    try {
-      await api.delete(`/admin/schedule-overrides/${id}`);
-      setPlannerOverrides(prev => prev.filter(o => o.id !== id));
-      toast.success('Override deleted');
-    } catch (error) {
-      toast.error('Failed to delete override');
-    }
+  const handleDeleteOverride = (id) => {
+    setConfirmModal({ title: 'Delete Override', message: 'Delete this schedule override?', danger: true, confirmLabel: 'Delete', onConfirm: async () => {
+      try { await api.delete(`/admin/schedule-overrides/${id}`); setPlannerOverrides(prev => prev.filter(o => o.id !== id)); toast.success('Override deleted'); }
+      catch (error) { toast.error('Failed to delete override'); }
+    }});
   };
 
   const toggleSchoolDay = (day, arr, setter) => {
@@ -794,18 +773,12 @@ function AdminDashboard() {
     setShowClassForm(true);
   };
 
-  const handleDeleteClass = async (cls) => {
+  const handleDeleteClass = (cls) => {
     if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
-    if (!confirm(`Are you sure you want to delete "${cls.name}"? Students in this class will be unassigned.`)) {
-      return;
-    }
-    try {
-      await api.delete(`/admin/classes/${cls.id}`);
-      toast.success('Class deleted successfully');
-      loadData();
-    } catch (error) {
-      toast.error('Failed to delete class');
-    }
+    setConfirmModal({ title: 'Delete Class', message: `Are you sure you want to delete "${cls.name}"? Students in this class will be unassigned.`, danger: true, confirmLabel: 'Delete', onConfirm: async () => {
+      try { await api.delete(`/admin/classes/${cls.id}`); toast.success('Class deleted successfully'); loadData(); }
+      catch (error) { toast.error('Failed to delete class'); }
+    }});
   };
 
   const toggleClassSchoolDay = (day) => {
@@ -872,16 +845,12 @@ function AdminDashboard() {
     setShowTeacherForm(true);
   };
 
-  const handleDeleteTeacher = async (id) => {
+  const handleDeleteTeacher = (id) => {
     if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
-    if (window.confirm('Are you sure you want to delete this teacher?')) {
-      try {
-        await api.delete(`/admin/teachers/${id}`);
-        loadData();
-      } catch (error) {
-        toast.error('Failed to delete teacher');
-      }
-    }
+    setConfirmModal({ title: 'Delete Teacher', message: 'Are you sure you want to delete this teacher?', danger: true, confirmLabel: 'Delete', onConfirm: async () => {
+      try { await api.delete(`/admin/teachers/${id}`); loadData(); }
+      catch (error) { toast.error('Failed to delete teacher'); }
+    }});
   };
 
   const handleCreateStudent = async (e) => {
@@ -941,47 +910,32 @@ function AdminDashboard() {
     setShowStudentForm(true);
   };
 
-  const handleDeleteStudent = async (id) => {
+  const handleDeleteStudent = (id) => {
     if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
-    if (window.confirm('Are you sure you want to delete this student?')) {
-      try {
-        await api.delete(`/admin/students/${id}`);
-        loadData();
-      } catch (error) {
-        toast.error('Failed to delete student');
-      }
-    }
+    setConfirmModal({ title: 'Delete Student', message: 'Are you sure you want to delete this student?', danger: true, confirmLabel: 'Delete', onConfirm: async () => {
+      try { await api.delete(`/admin/students/${id}`); loadData(); }
+      catch (error) { toast.error('Failed to delete student'); }
+    }});
   };
 
-  const handleBulkDeleteStudents = async () => {
+  const handleBulkDeleteStudents = () => {
     if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     if (selectedStudentIds.length === 0) return;
-    if (window.confirm(`Are you sure you want to delete ${selectedStudentIds.length} student${selectedStudentIds.length > 1 ? 's' : ''}?`)) {
-      try {
-        await api.post('/admin/students/bulk-delete', { ids: selectedStudentIds });
-        setSelectedStudentIds([]);
-        loadData();
-        toast.success(`${selectedStudentIds.length} student(s) deleted`);
-      } catch (error) {
-        toast.error('Failed to delete students');
-      }
-    }
+    const count = selectedStudentIds.length;
+    setConfirmModal({ title: 'Delete Students', message: `Are you sure you want to delete ${count} student${count > 1 ? 's' : ''}?`, danger: true, confirmLabel: 'Delete', onConfirm: async () => {
+      try { await api.post('/admin/students/bulk-delete', { ids: selectedStudentIds }); setSelectedStudentIds([]); loadData(); toast.success(`${count} student(s) deleted`); }
+      catch (error) { toast.error('Failed to delete students'); }
+    }});
   };
 
-  const handleRegenerateAccessCode = async (student) => {
+  const handleRegenerateAccessCode = (student) => {
     if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
-    if (window.confirm(`Regenerate parent access code for ${student.first_name} ${student.last_name}? The old code will stop working.`)) {
+    setConfirmModal({ title: 'Regenerate Access Code', message: `Regenerate parent access code for ${student.first_name} ${student.last_name}? The old code will stop working.`, confirmLabel: 'Regenerate', onConfirm: async () => {
       try {
         const response = await api.post(`/admin/students/${student.id}/regenerate-access-code`);
-        setAccessCodeModal({
-          studentName: response.data.student_name,
-          studentId: response.data.student_id,
-          accessCode: response.data.access_code
-        });
-      } catch (error) {
-        toast.error('Failed to regenerate access code');
-      }
-    }
+        setAccessCodeModal({ studentName: response.data.student_name, studentId: response.data.student_id, accessCode: response.data.access_code });
+      } catch (error) { toast.error('Failed to regenerate access code'); }
+    }});
   };
 
   const handleBulkUpload = async (e) => {
@@ -1077,17 +1031,12 @@ function AdminDashboard() {
     }
   };
 
-  const handleRemoveTeacher = async (teacherId) => {
+  const handleRemoveTeacher = (teacherId) => {
     if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
-    if (window.confirm('Remove this teacher from the class?')) {
-      try {
-        await api.delete(`/admin/classes/${selectedClass.id}/teachers/${teacherId}`);
-        const response = await api.get(`/admin/classes/${selectedClass.id}/teachers`);
-        setClassTeachers(response.data);
-      } catch (error) {
-        toast.error('Failed to remove teacher');
-      }
-    }
+    setConfirmModal({ title: 'Remove Teacher', message: 'Remove this teacher from the class?', danger: true, confirmLabel: 'Remove', onConfirm: async () => {
+      try { await api.delete(`/admin/classes/${selectedClass.id}/teachers/${teacherId}`); const response = await api.get(`/admin/classes/${selectedClass.id}/teachers`); setClassTeachers(response.data); }
+      catch (error) { toast.error('Failed to remove teacher'); }
+    }});
   };
 
   const fetchStudentReport = async (studentId) => {
@@ -7431,6 +7380,27 @@ function AdminDashboard() {
         onComplete={() => { setShowTour(false); localStorage.setItem('tour_admin_done', 'true'); }}
         onSkip={() => { setShowTour(false); localStorage.setItem('tour_admin_done', 'true'); }}
       />
+
+      {/* Confirmation Modal */}
+      {confirmModal && (
+        <div className="modal-overlay" onClick={() => setConfirmModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">{confirmModal.title}</h3>
+              <button onClick={() => setConfirmModal(null)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: '14px', color: '#525252', lineHeight: 1.6 }}>{confirmModal.message}</p>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setConfirmModal(null)} className="btn btn-secondary">Cancel</button>
+              <button onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }} className={`btn ${confirmModal.danger ? 'btn-danger' : 'btn-primary'}`}>
+                {confirmModal.confirmLabel || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

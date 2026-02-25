@@ -638,8 +638,9 @@
 }
 
 .btn-sm {
-  padding: 6px 12px;
+  padding: 8px 14px;
   font-size: 13px;
+  min-height: 36px;
 }
 
 .btn-danger {
@@ -656,7 +657,7 @@
 
 .btn-sm.btn-edit,
 .btn-sm.btn-delete {
-  padding: 4px 10px;
+  padding: 6px 12px;
   font-size: 12px;
   background: transparent;
   border: 1px solid #e5e5e5;
@@ -898,8 +899,8 @@ a:focus-visible,
 }
 
 .modal-close {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3263,7 +3264,16 @@ a:focus-visible,
     padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
   }
 
-  /* Modal close button: larger touch target */
+  /* Touch targets: 44px minimum on mobile */
+  .btn-sm {
+    min-height: 44px;
+  }
+
+  .btn-sm.btn-edit,
+  .btn-sm.btn-delete {
+    min-height: 44px;
+  }
+
   .modal-close {
     width: 44px;
     height: 44px;

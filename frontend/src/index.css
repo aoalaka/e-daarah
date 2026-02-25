@@ -42,6 +42,11 @@
   /* Border */
   --border: 1px solid var(--light);
   --radius: 8px;
+
+  /* Transitions */
+  --transition-fast: 0.12s;
+  --transition-normal: 0.15s;
+  --transition-slow: 0.25s;
 }
 
 *, *::before, *::after {

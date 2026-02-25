@@ -72,6 +72,19 @@ function ParentReport() {
       setQuranProgress(data.quranProgress || []);
       setQuranPosition(data.quranPosition || null);
 
+      // Default to active session/semester on first load
+      if (!selectedSession && !selectedSemester && data.sessions?.length) {
+        const activeSession = data.sessions.find(s => s.is_active);
+        if (activeSession) {
+          const activeSemester = data.semesters?.find(s => s.session_id === activeSession.id && s.is_active);
+          setSelectedSession(String(activeSession.id));
+          if (activeSemester) {
+            setSelectedSemester(String(activeSemester.id));
+          }
+          return; // will re-fetch with the active filters
+        }
+      }
+
       // Group exams by subject with stats
       const grouped = data.exams.reduce((acc, exam) => {
         const subject = exam.subject || 'Other';
@@ -511,51 +524,66 @@ function ParentReport() {
           )}
 
           {/* Qur'an Progress */}
-          {(quranProgress.length > 0 || quranPosition) && (
-            <div className="exam-scores-section">
-              <h3>Qur'an Progress</h3>
+          {(madrasah?.enable_quran_tracking !== 0 && madrasah?.enable_quran_tracking !== false) && (quranProgress.length > 0 || quranPosition) && (
+            <div className="exam-detail-section">
+              <h3 className="section-title">Qur'an Progress</h3>
 
               {quranPosition && (
-                <div className="performance-grid" style={{ marginBottom: 'var(--md)' }}>
-                  <div className="performance-card">
-                    <div className="perf-label">Current Surah</div>
-                    <div className="perf-value">{quranPosition.current_surah_number}. {quranPosition.current_surah_name}</div>
-                  </div>
-                  <div className="performance-card">
-                    <div className="perf-label">Current Juz</div>
-                    <div className="perf-value">{quranPosition.current_juz || '—'}</div>
+                <div className="quran-position-grid">
+                  <div className="perf-card">
+                    <div className="perf-card-header">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                      </svg>
+                      <span>Current Position</span>
+                    </div>
+                    <div className="perf-card-body">
+                      <div className="perf-details">
+                        <div className="perf-row">
+                          <span>Surah:</span>
+                          <strong>{quranPosition.current_surah_number}. {quranPosition.current_surah_name}</strong>
+                        </div>
+                        <div className="perf-row">
+                          <span>Juz:</span>
+                          <strong>{quranPosition.current_juz || '—'}</strong>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
               {quranProgress.length > 0 && (
-                <div className="subject-block">
-                  <table className="subject-exam-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Surah</th>
-                        <th>Ayahs</th>
-                        <th>Grade</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                <div className="exam-subjects">
+                  <div className="subject-block">
+                    <div className="exam-table">
+                      <div className="exam-table-header" style={{ gridTemplateColumns: '1fr 0.7fr 1.2fr 0.7fr 0.7fr' }}>
+                        <span>Date</span>
+                        <span>Type</span>
+                        <span>Surah</span>
+                        <span>Ayahs</span>
+                        <span>Grade</span>
+                      </div>
                       {quranProgress.map(r => (
-                        <tr key={r.id}>
-                          <td>{fmtDate(r.date)}</td>
-                          <td>{r.type === 'hifz' || r.type === 'memorization_new' ? 'Hifdh' : r.type === 'revision' || r.type === 'memorization_revision' ? 'Revision' : 'Tilawah'}</td>
-                          <td>{r.surah_number}. {r.surah_name}</td>
-                          <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : '—'}</td>
-                          <td>
-                            <span className={`grade-badge ${r.grade === 'Excellent' ? 'excellent' : r.grade === 'Good' ? 'good' : r.grade === 'Fair' ? 'fair' : 'poor'}`}>
-                              {r.grade}
-                            </span>
-                          </td>
-                        </tr>
+                        <div key={r.id} className="exam-table-row" style={{ gridTemplateColumns: '1fr 0.7fr 1.2fr 0.7fr 0.7fr' }}>
+                          <span className="exam-date">{fmtDate(r.date)}</span>
+                          <span className="exam-type">
+                            {r.type === 'hifz' || r.type === 'memorization_new' ? 'Hifdh' : r.type === 'revision' || r.type === 'memorization_revision' ? 'Revision' : 'Tilawah'}
+                          </span>
+                          <span>{r.surah_number}. {r.surah_name}</span>
+                          <span>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : '—'}</span>
+                          <span className="stat-badge" style={{
+                            background: r.grade === 'Excellent' ? '#f0fdf4' : r.grade === 'Good' ? '#f5f5f5' : r.grade === 'Fair' ? '#fff7ed' : '#fef2f2',
+                            color: r.grade === 'Excellent' ? '#2d6a4f' : r.grade === 'Good' ? '#525252' : r.grade === 'Fair' ? '#b86e00' : '#c1121f',
+                            fontSize: '12px'
+                          }}>
+                            {r.grade}
+                          </span>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

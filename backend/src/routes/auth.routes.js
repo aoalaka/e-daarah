@@ -742,7 +742,7 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
 
     // Get madrasah profile for report header
     const [madrasahProfile] = await pool.query(
-      'SELECT name, logo_url, enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade FROM madrasahs WHERE id = ?',
+      'SELECT name, logo_url, enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
 

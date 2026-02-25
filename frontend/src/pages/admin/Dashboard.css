@@ -101,6 +101,27 @@
   flex: 1;
   padding: 12px 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-group {
+  padding: 4px 0;
+}
+
+.nav-group-label {
+  padding: 8px 20px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.nav-group-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 16px;
 }
 
 .nav-item {

@@ -113,12 +113,16 @@ function TeacherDashboard() {
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
-  const navItems = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'attendance', label: 'Attendance' },
-    ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? [{ id: 'quran', label: "Qur'an Tracker" }] : []),
-    { id: 'exams', label: 'Exam Recording' },
-    { id: 'reports', label: 'Exam Reports' }
+  const navGroups = [
+    { items: [{ id: 'overview', label: 'Overview' }] },
+    { label: 'Teach', items: [
+      { id: 'attendance', label: 'Attendance' },
+      ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? [{ id: 'quran', label: "Qur'an Tracker" }] : []),
+      { id: 'exams', label: 'Exam Recording' },
+    ]},
+    { label: 'Reports', items: [
+      { id: 'reports', label: 'Exam Reports' },
+    ]},
   ];
 
   // Close mobile menu when tab changes
@@ -1318,16 +1322,22 @@ function TeacherDashboard() {
           </button>
         </div>
         <nav className="sidebar-nav">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              data-tour={item.id}
-              className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-              onClick={() => handleTabChange(item.id)}
-            >
-              {getNavIcon(item.id)}
-              <span>{item.label}</span>
-            </button>
+          {navGroups.map((group, gi) => (
+            <div key={gi} className="nav-group">
+              {group.label && !sidebarCollapsed && <div className="nav-group-label">{group.label}</div>}
+              {gi > 0 && sidebarCollapsed && <div className="nav-group-divider" />}
+              {group.items.map(item => (
+                <button
+                  key={item.id}
+                  data-tour={item.id}
+                  className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+                  onClick={() => handleTabChange(item.id)}
+                >
+                  {getNavIcon(item.id)}
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
           ))}
           <button
             className="nav-item desktop-only"

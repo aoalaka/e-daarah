@@ -230,14 +230,20 @@ function AdminDashboard() {
     return false;
   };
 
-  const navItems = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'classes', label: 'Classes' },
-    { id: 'teachers', label: 'Teachers' },
-    { id: 'students', label: 'Students' },
-    { id: 'planner', label: 'Planner' },
-    ...(hasPlusAccess() ? [{ id: 'reports', label: 'Reports' }] : []),
-    { id: 'support', label: 'Support' }
+  const navGroups = [
+    { items: [{ id: 'overview', label: 'Overview' }] },
+    { label: 'Manage', items: [
+      { id: 'classes', label: 'Classes' },
+      { id: 'teachers', label: 'Teachers' },
+      { id: 'students', label: 'Students' },
+    ]},
+    { label: 'Tools', items: [
+      { id: 'planner', label: 'Planner' },
+      ...(hasPlusAccess() ? [{ id: 'reports', label: 'Reports' }] : []),
+    ]},
+    { label: 'Help', items: [
+      { id: 'support', label: 'Support' },
+    ]},
   ];
 
   useEffect(() => {
@@ -1499,16 +1505,22 @@ function AdminDashboard() {
           </button>
         </div>
         <nav className="sidebar-nav">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              data-tour={item.id}
-              className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-              onClick={() => handleTabChange(item.id)}
-            >
-              {getNavIcon(item.id)}
-              <span>{item.label}</span>
-            </button>
+          {navGroups.map((group, gi) => (
+            <div key={gi} className="nav-group">
+              {group.label && !sidebarCollapsed && <div className="nav-group-label">{group.label}</div>}
+              {gi > 0 && sidebarCollapsed && <div className="nav-group-divider" />}
+              {group.items.map(item => (
+                <button
+                  key={item.id}
+                  data-tour={item.id}
+                  className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+                  onClick={() => handleTabChange(item.id)}
+                >
+                  {getNavIcon(item.id)}
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
           ))}
           <button
             className="nav-item desktop-only"

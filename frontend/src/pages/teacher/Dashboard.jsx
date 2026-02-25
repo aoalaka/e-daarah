@@ -27,6 +27,7 @@ function TeacherDashboard() {
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [confirmModal, setConfirmModal] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [semesters, setSemesters] = useState([]);
   const [selectedSemester, setSelectedSemester] = useState(null);
@@ -595,22 +596,15 @@ function TeacherDashboard() {
     }
   }, [quranSessionType]);
 
-  const handleDeleteQuranRecord = async (id) => {
-    if (!window.confirm('Delete this record?')) return;
-    try {
-      await api.delete(`/teacher/quran-progress/${id}`);
-      toast.success('Deleted');
-      if (selectedClass) {
-        fetchQuranProgress(selectedClass.id);
-        fetchQuranPositions(selectedClass.id);
-      }
-      if (quranSelectedStudent) {
-        fetchStudentHistory(quranSelectedStudent.id);
-        fetchStudentPosition(quranSelectedStudent.id);
-      }
-    } catch (error) {
-      toast.error('Failed to delete');
-    }
+  const handleDeleteQuranRecord = (id) => {
+    setConfirmModal({ title: 'Delete Record', message: 'Delete this Quran progress record?', danger: true, confirmLabel: 'Delete', onConfirm: async () => {
+      try {
+        await api.delete(`/teacher/quran-progress/${id}`);
+        toast.success('Deleted');
+        if (selectedClass) { fetchQuranProgress(selectedClass.id); fetchQuranPositions(selectedClass.id); }
+        if (quranSelectedStudent) { fetchStudentHistory(quranSelectedStudent.id); fetchStudentPosition(quranSelectedStudent.id); }
+      } catch (error) { toast.error('Failed to delete'); }
+    }});
   };
 
   const fetchClasses = async () => {
@@ -4027,6 +4021,27 @@ function TeacherDashboard() {
         onComplete={() => { setShowTour(false); localStorage.setItem('tour_teacher_done', 'true'); }}
         onSkip={() => { setShowTour(false); localStorage.setItem('tour_teacher_done', 'true'); }}
       />
+
+      {/* Confirmation Modal */}
+      {confirmModal && (
+        <div className="modal-overlay" onClick={() => setConfirmModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">{confirmModal.title}</h3>
+              <button onClick={() => setConfirmModal(null)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: '14px', color: '#525252', lineHeight: 1.6 }}>{confirmModal.message}</p>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setConfirmModal(null)} className="btn btn-secondary">Cancel</button>
+              <button onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }} className={`btn ${confirmModal.danger ? 'btn-danger' : 'btn-primary'}`}>
+                {confirmModal.confirmLabel || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

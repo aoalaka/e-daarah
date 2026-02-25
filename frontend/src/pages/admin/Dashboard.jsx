@@ -2034,7 +2034,7 @@ function AdminDashboard() {
 
                   {/* Sessions List */}
                   {sessions.length === 0 ? (
-                    <div className="card"><div className="empty"><p>No sessions yet. Create one to get started.</p><button className="empty-action" onClick={() => setShowSessionForm(true)}>+ Create Session</button></div></div>
+                    <div className="card"><div className="empty"><div className="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p>No sessions yet. Create one to get started.</p><button className="empty-action" onClick={() => setShowSessionForm(true)}>+ Create Session</button></div></div>
                   ) : (
                     <div style={{ display: 'grid', gap: '12px' }}>
                       {sessions.map(session => {
@@ -2478,6 +2478,7 @@ function AdminDashboard() {
                         <tr>
                           <td colSpan="3">
                             <div className="empty">
+                              <div className="empty-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
                               <p>No classes yet. Create one to get started.</p>
                               <button className="empty-action" onClick={() => setShowClassForm(true)}>+ Create Class</button>
                             </div>
@@ -3862,6 +3863,7 @@ function AdminDashboard() {
                     {feeTemplates.length === 0 ? (
                       <div className="card">
                         <div className="empty">
+                          <div className="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
                           <p>No fee templates yet. Create one to start tracking fees.</p>
                         </div>
                       </div>
@@ -4046,6 +4048,7 @@ function AdminDashboard() {
                     {feeSummary.length === 0 ? (
                       <div className="card">
                         <div className="empty">
+                          <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
                           <p>No fee data yet. Create fee templates and assign them to classes or students to start tracking.</p>
                         </div>
                       </div>

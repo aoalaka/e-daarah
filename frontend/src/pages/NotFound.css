@@ -23,12 +23,12 @@
 .not-found-title {
   font-size: 24px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--black);
   margin: 0 0 var(--md) 0;
 }
 
 .not-found-message {
-  color: var(--text-muted);
+  color: var(--gray);
   margin: 0 0 var(--lg) 0;
   line-height: 1.5;
 }
@@ -45,7 +45,7 @@
 }
 
 .not-found-link:hover {
-  background: var(--accent-hover);
+  background: var(--dark);
 }
 
 @media (max-width: 480px) {

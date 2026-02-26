@@ -1049,10 +1049,10 @@ function AdminDashboard() {
     try {
       const params = {};
       if (reportFilterSession) {
-        params.sessionId = reportFilterSession;
+        params.session_id = reportFilterSession;
       }
       if (reportFilterSemester) {
-        params.semesterId = reportFilterSemester;
+        params.semester_id = reportFilterSemester;
       }
       
       console.log('fetchStudentReport params:', params, 'filters:', { reportFilterSession, reportFilterSemester });
@@ -1679,39 +1679,58 @@ function AdminDashboard() {
               ) : analyticsData ? (
                 <>
                   <div className="insights-summary">
-                    {/* Card 1: This Week — weekly attendance rate */}
+                    {/* Card 1: Total Students */}
                     <div className="summary-card">
-                      <div className="summary-label">Attendance This Week</div>
-                      <div className="summary-value">
-                        {analyticsData.thisWeekSummary?.rate !== null && analyticsData.thisWeekSummary?.rate !== undefined
-                          ? `${analyticsData.thisWeekSummary.rate}%` : '-'}
-                      </div>
+                      <div className="summary-label">Total Students</div>
+                      <div className="summary-value">{analyticsData.totalStudents ?? '-'}</div>
+                      <div className="summary-status">Enrolled in school</div>
+                    </div>
+                    {/* Card 2: Dropouts */}
+                    <div className="summary-card">
+                      <div className="summary-label">Dropouts</div>
+                      <div className="summary-value">{analyticsData.dropoutCount ?? 0}</div>
                       <div className="summary-status">
-                        {(analyticsData.thisWeekSummary?.presentCount || 0) === 0 && (analyticsData.thisWeekSummary?.absentCount || 0) === 0
-                          ? 'No attendance recorded this week'
-                          : `${analyticsData.thisWeekSummary?.presentCount || 0} present, ${analyticsData.thisWeekSummary?.absentCount || 0} absent`}
+                        {analyticsData.totalStudents > 0 && analyticsData.dropoutCount > 0
+                          ? `${((analyticsData.dropoutCount / (analyticsData.totalStudents + analyticsData.dropoutCount)) * 100).toFixed(1)}% of total`
+                          : 'No dropouts recorded'}
                       </div>
-                      {analyticsData.thisWeekSummary?.rate !== null && analyticsData.thisWeekSummary?.lastWeekRate !== null &&
-                        analyticsData.thisWeekSummary?.lastWeekRate !== undefined && (
-                        <div style={{ fontSize: 12, marginTop: 4, color: (analyticsData.thisWeekSummary.rate - analyticsData.thisWeekSummary.lastWeekRate) > 0 ? 'var(--accent)' : (analyticsData.thisWeekSummary.rate - analyticsData.thisWeekSummary.lastWeekRate) < 0 ? '#c1121f' : 'var(--text-muted)' }}>
-                          {(() => {
-                            const diff = Math.round((analyticsData.thisWeekSummary.rate - analyticsData.thisWeekSummary.lastWeekRate) * 10) / 10;
-                            return diff > 0 ? `+${diff}%` : diff < 0 ? `${diff}%` : 'No change';
-                          })()} vs last week
-                        </div>
+                    </div>
+                    {/* Card 3: Poor Behaviour (hidden if behaviour recording is off) */}
+                    {analyticsData.behaviorEnabled && (
+                    <>
+                    <div
+                      className={`summary-card ${(analyticsData.poorBehaviorStudents?.length || 0) > 0 ? 'clickable' : ''} ${expandedMetric === 'behavior' ? 'active' : ''}`}
+                      onClick={() => (analyticsData.poorBehaviorStudents?.length || 0) > 0 && setExpandedMetric(expandedMetric === 'behavior' ? null : 'behavior')}
+                    >
+                      <div className="summary-label">Poor Behaviour</div>
+                      <div className="summary-value">{analyticsData.poorBehaviorStudents?.length || 0}</div>
+                      <div className="summary-status">{(analyticsData.poorBehaviorStudents?.length || 0) > 0 ? 'Rated "Poor" 3+ times' : 'No recurring issues'}</div>
+                      {(analyticsData.poorBehaviorStudents?.length || 0) > 0 && (
+                        <div className="summary-view-hint">{expandedMetric === 'behavior' ? 'Hide' : 'View list'}</div>
                       )}
                     </div>
-                    {/* Card 2: Semester Average */}
-                    <div className="summary-card">
-                      <div className="summary-label">Semester Attendance</div>
-                      <div className="summary-value">
-                        {analyticsData.summary.totalStudentsTracked > 0
-                          ? `${analyticsData.summary.overallAttendanceRate || 0}%`
-                          : '-'}
+                    {expandedMetric === 'behavior' && analyticsData.poorBehaviorStudents?.length > 0 && (
+                      <div className="metric-student-list">
+                        <div className="metric-student-list-header">
+                          <h4>{analyticsData.poorBehaviorStudents.length} student{analyticsData.poorBehaviorStudents.length !== 1 ? 's' : ''} with 3+ poor behaviour ratings</h4>
+                          <button className="metric-student-list-close" onClick={() => setExpandedMetric(null)}>&times;</button>
+                        </div>
+                        <div className="metric-student-list-body">
+                          {analyticsData.poorBehaviorStudents.map(s => (
+                            <div key={s.id} className="metric-student-row">
+                              <div className="metric-student-info">
+                                <span className="metric-student-name">{s.first_name} {s.last_name}</span>
+                                {s.class_name && <span className="metric-student-class">{s.class_name}</span>}
+                              </div>
+                              <span className="metric-student-rate low">{s.poor_count}x</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="summary-status">{analyticsData.summary.attendanceLabel}</div>
-                    </div>
-                    {/* Card 3: Need Attention — semester-level */}
+                    )}
+                    </>
+                    )}
+                    {/* Card 4: Need Attention — semester-level */}
                     <div
                       className={`summary-card ${analyticsData.summary.studentsNeedingAttention > 0 ? 'clickable' : ''} ${expandedMetric === 'attention' ? 'active' : ''}`}
                       onClick={() => analyticsData.summary.studentsNeedingAttention > 0 && setExpandedMetric(expandedMetric === 'attention' ? null : 'attention')}
@@ -1737,37 +1756,6 @@ function AdminDashboard() {
                                 {s.class_name && <span className="metric-student-class">{s.class_name}</span>}
                               </div>
                               <span className="metric-student-rate low">{s.attendance_rate !== null ? `${s.attendance_rate}%` : '-'}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {/* Card 4: Struggling — semester-level */}
-                    <div
-                      className={`summary-card ${analyticsData.summary.studentsStruggling > 0 ? 'clickable' : ''} ${expandedMetric === 'struggling' ? 'active' : ''}`}
-                      onClick={() => analyticsData.summary.studentsStruggling > 0 && setExpandedMetric(expandedMetric === 'struggling' ? null : 'struggling')}
-                    >
-                      <div className="summary-label">Struggling</div>
-                      <div className="summary-value">{analyticsData.summary.studentsStruggling || 0}</div>
-                      <div className="summary-status">{analyticsData.summary.studentsStruggling > 0 ? 'Below 50% exam avg' : analyticsData.summary.studentsWithExams > 0 ? 'All students above 50%' : 'No exam data yet'}</div>
-                      {analyticsData.summary.studentsStruggling > 0 && (
-                        <div className="summary-view-hint">{expandedMetric === 'struggling' ? 'Hide' : 'View list'}</div>
-                      )}
-                    </div>
-                    {expandedMetric === 'struggling' && analyticsData.strugglingStudents?.length > 0 && (
-                      <div className="metric-student-list">
-                        <div className="metric-student-list-header">
-                          <h4>{analyticsData.strugglingStudents.length} student{analyticsData.strugglingStudents.length !== 1 ? 's' : ''} below 50% exam average</h4>
-                          <button className="metric-student-list-close" onClick={() => setExpandedMetric(null)}>&times;</button>
-                        </div>
-                        <div className="metric-student-list-body">
-                          {analyticsData.strugglingStudents.map(s => (
-                            <div key={s.id} className="metric-student-row">
-                              <div className="metric-student-info">
-                                <span className="metric-student-name">{s.first_name} {s.last_name}</span>
-                                {s.class_name && <span className="metric-student-class">{s.class_name}</span>}
-                              </div>
-                              <span className="metric-student-rate low">{s.avg_percentage}%</span>
                             </div>
                           ))}
                         </div>
@@ -2907,7 +2895,7 @@ function AdminDashboard() {
                     Manage
                   </button>
                   <button className={`report-tab-btn ${studentsSubTab === 'promotion' ? 'active' : ''}`} onClick={() => setStudentsSubTab('promotion')}>
-                    Promotion
+                    Student Status
                   </button>
                   {madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false && (
                     <button className={`report-tab-btn ${studentsSubTab === 'fees' ? 'active' : ''}`} onClick={() => setStudentsSubTab('fees')}>
@@ -3584,10 +3572,11 @@ function AdminDashboard() {
                             <option value="transferred">Transfer to class</option>
                             <option value="repeated">Repeat (move to class)</option>
                             <option value="graduated">Graduate (remove from class)</option>
+                            <option value="dropped_out">Drop out (remove from class)</option>
                           </select>
                         </div>
 
-                        {promotionType !== 'graduated' && (
+                        {promotionType !== 'graduated' && promotionType !== 'dropped_out' && (
                           <div className="form-group">
                             <label className="form-label">Destination Class</label>
                             <select className="form-select" value={promotionDestClass} onChange={(e) => setPromotionDestClass(e.target.value)}>
@@ -3625,7 +3614,7 @@ function AdminDashboard() {
                         <button className="btn btn-secondary" onClick={() => setPromotionStep(2)}>← Back</button>
                         <button
                           className="btn btn-primary"
-                          disabled={promotionType !== 'graduated' && !promotionDestClass}
+                          disabled={promotionType !== 'graduated' && promotionType !== 'dropped_out' && !promotionDestClass}
                           onClick={() => setPromotionStep(4)}
                         >
                           Review →
@@ -3640,10 +3629,10 @@ function AdminDashboard() {
                     const sourceName = promotionSourceClass === 'unassigned'
                       ? 'Unassigned'
                       : classes.find(c => String(c.id) === String(promotionSourceClass))?.name || '—';
-                    const destName = promotionType === 'graduated'
-                      ? 'Graduated (removed)'
+                    const destName = (promotionType === 'graduated' || promotionType === 'dropped_out')
+                      ? (promotionType === 'graduated' ? 'Graduated (removed)' : 'Dropped out (removed)')
                       : classes.find(c => String(c.id) === String(promotionDestClass))?.name || '—';
-                    const actionLabel = { promoted: 'Promote', transferred: 'Transfer', repeated: 'Repeat', graduated: 'Graduate' }[promotionType];
+                    const actionLabel = { promoted: 'Promote', transferred: 'Transfer', repeated: 'Repeat', graduated: 'Graduate', dropped_out: 'Drop Out' }[promotionType];
 
                     return (
                       <div>
@@ -3679,9 +3668,11 @@ function AdminDashboard() {
                           </table>
                         </div>
 
-                        {promotionType === 'graduated' && (
+                        {(promotionType === 'graduated' || promotionType === 'dropped_out') && (
                           <p style={{ color: '#d97706', fontSize: '13px', marginBottom: '16px' }}>
-                            ⚠️ Graduating students will remove them from their class. They will appear as &quot;Unassigned&quot; and can be re-assigned later.
+                            {promotionType === 'graduated'
+                              ? '⚠️ Graduating students will remove them from their class. They will appear as "Unassigned" and can be re-assigned later.'
+                              : '⚠️ Dropping out students will remove them from their class. They will appear as "Unassigned" and can be re-assigned later.'}
                           </p>
                         )}
 
@@ -3698,7 +3689,7 @@ function AdminDashboard() {
                                   promotions: selectedStudents.map(s => ({
                                     student_id: s.id,
                                     from_class_id: s.class_id || null,
-                                    to_class_id: promotionType === 'graduated' ? null : Number(promotionDestClass),
+                                    to_class_id: (promotionType === 'graduated' || promotionType === 'dropped_out') ? null : Number(promotionDestClass),
                                     type: promotionType,
                                     notes: promotionNotes
                                   }))
@@ -5944,7 +5935,7 @@ function AdminDashboard() {
                       </div>
                       <div className="info-item">
                         <div className="info-label">Report Date</div>
-                        <div className="info-value">{fmtDate()}</div>
+                        <div className="info-value">{fmtDate(new Date())}</div>
                       </div>
                     </div>
                   </div>

@@ -17,6 +17,7 @@ export const checkTrialExpirations = async () => {
         m.id as madrasah_id,
         m.name as madrasah_name,
         m.trial_ends_at,
+        m.trial_reminder_sent,
         u.id as admin_id,
         u.email as admin_email,
         u.first_name as admin_first_name,
@@ -42,7 +43,9 @@ export const checkTrialExpirations = async () => {
       let remindersSent = {};
       if (trial.trial_reminder_sent) {
         try {
-          remindersSent = JSON.parse(trial.trial_reminder_sent);
+          remindersSent = typeof trial.trial_reminder_sent === 'string'
+            ? JSON.parse(trial.trial_reminder_sent)
+            : trial.trial_reminder_sent;
         } catch (e) {
           remindersSent = {};
         }

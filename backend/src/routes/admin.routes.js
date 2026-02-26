@@ -2120,14 +2120,20 @@ router.get('/students/:id/report', async (req, res) => {
       }
     };
 
+    const punctualityGrades = attendance.filter(a => a.punctuality_grade).map(a => a.punctuality_grade);
+
     const dressingScores = dressingGrades.map(gradeToNumber);
     const behaviorScores = behaviorGrades.map(gradeToNumber);
+    const punctualityScores = punctualityGrades.map(gradeToNumber);
 
     const avgDressing = dressingScores.length > 0
       ? dressingScores.reduce((a, b) => a + b, 0) / dressingScores.length
       : null;
     const avgBehavior = behaviorScores.length > 0
       ? behaviorScores.reduce((a, b) => a + b, 0) / behaviorScores.length
+      : null;
+    const avgPunctuality = punctualityScores.length > 0
+      ? punctualityScores.reduce((a, b) => a + b, 0) / punctualityScores.length
       : null;
 
     // Calculate class position based on average exam scores
@@ -2181,7 +2187,8 @@ router.get('/students/:id/report', async (req, res) => {
       },
       dressingBehavior: {
         avgDressing,
-        avgBehavior
+        avgBehavior,
+        avgPunctuality
       },
       exams,
       classPosition: {
@@ -3246,6 +3253,51 @@ router.get('/analytics', async (req, res) => {
     strugglingQuery += ' GROUP BY s.id HAVING avg_percentage < 50 ORDER BY avg_percentage ASC';
     const [strugglingStudents] = await pool.query(strugglingQuery, strugglingParams);
 
+    // 11b. Total students count
+    const [totalStudentsResult] = await pool.query(
+      'SELECT COUNT(*) as total FROM students WHERE madrasah_id = ? AND deleted_at IS NULL',
+      [madrasahId]
+    );
+    const totalStudents = totalStudentsResult[0]?.total || 0;
+
+    // 11c. Dropout count (students marked as dropped_out in promotion history)
+    let dropoutQuery = 'SELECT COUNT(DISTINCT sp.student_id) as total FROM student_promotions sp WHERE sp.madrasah_id = ? AND sp.promotion_type = ?';
+    const dropoutParams = [madrasahId, 'dropped_out'];
+    if (effectiveSemesterId) {
+      dropoutQuery += ' AND sp.session_id IN (SELECT sess.id FROM sessions sess JOIN semesters sem ON sem.session_id = sess.id WHERE sem.id = ?)';
+      dropoutParams.push(effectiveSemesterId);
+    }
+    const [dropoutResult] = await pool.query(dropoutQuery, dropoutParams);
+    const dropoutCount = dropoutResult[0]?.total || 0;
+
+    // 11d. Poor behaviour count (students with 3+ "Poor" behaviour ratings)
+    const [madrasahSettings] = await pool.query(
+      'SELECT enable_behavior_grade FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+    const behaviorEnabled = madrasahSettings[0]?.enable_behavior_grade !== 0;
+    let poorBehaviorStudents = [];
+    if (behaviorEnabled) {
+      let poorBehaviorQuery = `
+        SELECT s.id, s.first_name, s.last_name, c.name as class_name, COUNT(*) as poor_count
+        FROM attendance a
+        JOIN students s ON a.student_id = s.id
+        LEFT JOIN classes c ON s.class_id = c.id
+        WHERE a.madrasah_id = ? AND a.behavior_grade = 'Poor' AND s.deleted_at IS NULL
+      `;
+      const poorBehaviorParams = [madrasahId];
+      if (effectiveSemesterId) {
+        poorBehaviorQuery += ' AND a.semester_id = ?';
+        poorBehaviorParams.push(effectiveSemesterId);
+      }
+      if (class_id) {
+        poorBehaviorQuery += ' AND s.class_id = ?';
+        poorBehaviorParams.push(class_id);
+      }
+      poorBehaviorQuery += ' GROUP BY s.id HAVING poor_count >= 3 ORDER BY poor_count DESC';
+      [poorBehaviorStudents] = await pool.query(poorBehaviorQuery, poorBehaviorParams);
+    }
+
     // 12. Gender breakdown (if not filtered by gender)
     let genderBreakdown = null;
     if (!gender) {
@@ -3573,7 +3625,11 @@ router.get('/analytics', async (req, res) => {
         currentRate,
         lastRate,
         change: monthOverMonthChange
-      }
+      },
+      totalStudents,
+      dropoutCount,
+      poorBehaviorStudents,
+      behaviorEnabled
     });
   } catch (error) {
     console.error('Analytics error:', error);
@@ -3788,8 +3844,8 @@ router.post('/promotion/promote', requireActiveSubscription, async (req, res) =>
       if (!student_id || !type) continue;
 
       // Update student's class
-      if (type === 'graduated') {
-        // Set class_id to NULL (graduated / archived)
+      if (type === 'graduated' || type === 'dropped_out') {
+        // Set class_id to NULL (graduated / dropped out / archived)
         await pool.query(
           'UPDATE students SET class_id = NULL, updated_at = NOW() WHERE id = ? AND madrasah_id = ?',
           [student_id, madrasahId]

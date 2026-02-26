@@ -26,23 +26,25 @@ function Landing() {
 
       {/* Hero */}
       <section className="hero">
-        <p className="hero-arabic">نظام إدارة المدارس الدينية</p>
-        <h1 className="hero-title">Run Your Madrasah with Clarity</h1>
-        <p className="hero-subtitle">
-          The simple admin system for madrasahs, weekend schools, and community learning centers.
-          Track attendance, record exams, manage fees, and keep parents informed.
-        </p>
+        <div className="hero-content">
+          <p className="hero-arabic">نظام إدارة المدارس الدينية</p>
+          <h1 className="hero-title">Run Your Madrasah with Clarity</h1>
+          <p className="hero-subtitle">
+            The simple admin system for madrasahs, weekend schools, and community learning centers.
+            Track attendance, record exams, manage fees, and keep parents informed.
+          </p>
 
-        <div className="hero-actions">
-          <button onClick={() => navigate('/register')} className="btn primary">
-            Start Free Trial
-          </button>
-          <button onClick={() => navigate('/demo')} className="btn secondary">
-            View Demo
-          </button>
+          <div className="hero-actions">
+            <button onClick={() => navigate('/register')} className="btn primary">
+              Start Free Trial
+            </button>
+            <button onClick={() => navigate('/demo')} className="btn secondary">
+              View Demo
+            </button>
+          </div>
+
+          <p className="hero-signin">Already have an account? <Link to="/signin">Sign in</Link></p>
         </div>
-
-        <p className="hero-signin">Already have an account? <Link to="/signin">Sign in</Link></p>
       </section>
 
       {/* How It Works */}
@@ -69,48 +71,50 @@ function Landing() {
 
       {/* Features */}
       <section className="features">
-        <h2 className="section-title">Everything Your School Needs</h2>
-        <p className="section-subtitle">Core tools to manage your madrasah, all in one place.</p>
+        <div className="features-inner">
+          <h2 className="section-title">Everything Your School Needs</h2>
+          <p className="section-subtitle">Core tools to manage your madrasah, all in one place.</p>
 
-        <div className="hero-features">
-          <div className="hero-feature">
-            <h3>Daily Attendance</h3>
-            <p>Mark attendance, grade dressing, behavior, and punctuality — all in one step. Bulk-save for the whole class.</p>
+          <div className="hero-features">
+            <div className="hero-feature">
+              <h3>Daily Attendance</h3>
+              <p>Mark attendance, grade dressing, behavior, and punctuality — all in one step. Bulk-save for the whole class.</p>
+            </div>
+            <div className="hero-feature">
+              <h3>Qur'an Progress Tracking</h3>
+              <p>Track hifdh, tilawah, and revision progress per student. Record surahs, ayahs, grades, and pass/fail status.</p>
+            </div>
+            <div className="hero-feature">
+              <h3>Parent Portal</h3>
+              <p>Parents log in to view their child's attendance rate, conduct grades, exam results, and teacher comments.</p>
+            </div>
           </div>
-          <div className="hero-feature">
-            <h3>Qur'an Progress Tracking</h3>
-            <p>Track hifdh, tilawah, and revision progress per student. Record surahs, ayahs, grades, and pass/fail status.</p>
-          </div>
-          <div className="hero-feature">
-            <h3>Parent Portal</h3>
-            <p>Parents log in to view their child's attendance rate, conduct grades, exam results, and teacher comments.</p>
-          </div>
-        </div>
 
-        <div className="feature-list">
-          <div className="feature">
-            <h3>Academic Planner</h3>
-            <p>Set flexible school days, manage holidays and closures, and schedule temporary overrides like Ramadan timetables.</p>
-          </div>
-          <div className="feature">
-            <h3>Exam Recording</h3>
-            <p>Record scores for any subject with tie-aware ranking. View class-wide and per-student performance reports.</p>
-          </div>
-          <div className="feature">
-            <h3>Student Promotion</h3>
-            <p>Promote or retain students between classes at the end of each session with a simple bulk tool.</p>
-          </div>
-          <div className="feature">
-            <h3>Fee Tracking</h3>
-            <p>Create fee templates, assign them to classes or students, and record payments. Track balances and collection status in any currency.</p>
-          </div>
-          <div className="feature">
-            <h3>Role-Based Access</h3>
-            <p>Admins, teachers, and parents each get their own secure portal with appropriate permissions.</p>
-          </div>
-          <div className="feature">
-            <h3>Reports &amp; Exports</h3>
-            <p>Generate detailed student reports, class performance summaries, and export data as CSV or PDF.</p>
+          <div className="feature-list">
+            <div className="feature">
+              <h3>Academic Planner</h3>
+              <p>Set flexible school days, manage holidays and closures, and schedule temporary overrides like Ramadan timetables.</p>
+            </div>
+            <div className="feature">
+              <h3>Exam Recording</h3>
+              <p>Record scores for any subject with tie-aware ranking. View class-wide and per-student performance reports.</p>
+            </div>
+            <div className="feature">
+              <h3>Student Promotion</h3>
+              <p>Promote or retain students between classes at the end of each session with a simple bulk tool.</p>
+            </div>
+            <div className="feature">
+              <h3>Fee Tracking</h3>
+              <p>Create fee templates, assign them to classes or students, and record payments. Track balances and collection status in any currency.</p>
+            </div>
+            <div className="feature">
+              <h3>Role-Based Access</h3>
+              <p>Admins, teachers, and parents each get their own secure portal with appropriate permissions.</p>
+            </div>
+            <div className="feature">
+              <h3>Reports &amp; Exports</h3>
+              <p>Generate detailed student reports, class performance summaries, and export data as CSV or PDF.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -137,31 +141,33 @@ function Landing() {
 
       {/* Pricing Teaser */}
       <section id="pricing" className="pricing">
-        <h2 className="section-title">Simple, Transparent Pricing</h2>
-        <p className="pricing-teaser-text">
-          Start with a 14-day free trial. No credit card needed.<br />
-          <span className="pricing-note">All prices in USD</span>
-        </p>
-        <div className="pricing-teaser">
-          <div className="pricing-teaser-card">
-            <span className="teaser-plan">Standard</span>
-            <span className="teaser-price">$12<span>/mo</span></span>
-            <span className="teaser-desc">Up to 100 students • USD</span>
+        <div className="pricing-inner">
+          <h2 className="section-title">Simple, Transparent Pricing</h2>
+          <p className="pricing-teaser-text">
+            Start with a 14-day free trial. No credit card needed.<br />
+            <span className="pricing-note">All prices in USD</span>
+          </p>
+          <div className="pricing-teaser">
+            <div className="pricing-teaser-card">
+              <span className="teaser-plan">Standard</span>
+              <span className="teaser-price">$12<span>/mo</span></span>
+              <span className="teaser-desc">Up to 100 students • USD</span>
+            </div>
+            <div className="pricing-teaser-card featured">
+              <span className="teaser-plan">Plus</span>
+              <span className="teaser-price">$29<span>/mo</span></span>
+              <span className="teaser-desc">Up to 500 students • USD</span>
+            </div>
+            <div className="pricing-teaser-card">
+              <span className="teaser-plan">Enterprise</span>
+              <span className="teaser-price">Custom</span>
+              <span className="teaser-desc">Unlimited students</span>
+            </div>
           </div>
-          <div className="pricing-teaser-card featured">
-            <span className="teaser-plan">Plus</span>
-            <span className="teaser-price">$29<span>/mo</span></span>
-            <span className="teaser-desc">Up to 500 students • USD</span>
+          <div className="pricing-teaser-actions">
+            <Link to="/register" className="btn primary">Start Free Trial</Link>
+            <Link to="/pricing" className="pricing-link">See full plan details →</Link>
           </div>
-          <div className="pricing-teaser-card">
-            <span className="teaser-plan">Enterprise</span>
-            <span className="teaser-price">Custom</span>
-            <span className="teaser-desc">Unlimited students</span>
-          </div>
-        </div>
-        <div className="pricing-teaser-actions">
-          <Link to="/register" className="btn primary">Start Free Trial</Link>
-          <Link to="/pricing" className="pricing-link">See full plan details →</Link>
         </div>
       </section>
 

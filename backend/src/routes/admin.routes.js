@@ -977,7 +977,7 @@ router.get('/classes/:classId/kpis', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { semester_id } = req.query;
+    const { semester_id, date_from, date_to } = req.query;
 
     // Verify class belongs to this madrasah
     const [classCheck] = await pool.query(
@@ -992,8 +992,16 @@ router.get('/classes/:classId/kpis', async (req, res) => {
     const params = [classId, madrasahId];
 
     if (semester_id) {
-      semesterFilter = ' AND a.semester_id = ?';
+      semesterFilter += ' AND a.semester_id = ?';
       params.push(semester_id);
+    }
+    if (date_from) {
+      semesterFilter += ' AND a.date >= ?';
+      params.push(date_from);
+    }
+    if (date_to) {
+      semesterFilter += ' AND a.date <= ?';
+      params.push(date_to);
     }
 
     // Get overall class statistics
@@ -1035,6 +1043,8 @@ router.get('/classes/:classId/kpis', async (req, res) => {
     // Only include students who have actual attendance data for the selected scope
     const highRiskParams = [classId, madrasahId];
     if (semester_id) highRiskParams.push(semester_id);
+    if (date_from) highRiskParams.push(date_from);
+    if (date_to) highRiskParams.push(date_to);
     highRiskParams.push(classId, madrasahId);
 
     const [highRiskStudents] = await pool.query(`
@@ -1078,7 +1088,7 @@ router.get('/classes/:classId/attendance-performance', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { semester_id } = req.query;
+    const { semester_id, date_from, date_to } = req.query;
 
     // Verify class belongs to this madrasah
     const [classCheck] = await pool.query(
@@ -1101,6 +1111,14 @@ router.get('/classes/:classId/attendance-performance', async (req, res) => {
     if (semester_id) {
       query += ' AND a.semester_id = ?';
       params.push(semester_id);
+    }
+    if (date_from) {
+      query += ' AND a.date >= ?';
+      params.push(date_from);
+    }
+    if (date_to) {
+      query += ' AND a.date <= ?';
+      params.push(date_to);
     }
 
     query += ' ORDER BY a.date DESC';

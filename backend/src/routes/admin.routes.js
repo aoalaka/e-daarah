@@ -3869,10 +3869,10 @@ router.post('/promotion/promote', requireActiveSubscription, async (req, res) =>
       );
     }
 
-    res.json({ message: `${promoted} promoted, ${graduated} graduated`, promoted, graduated });
+    res.json({ message: `${promoted} moved, ${graduated} removed from class`, promoted, graduated });
   } catch (error) {
-    console.error('Promote students error:', error);
-    res.status(500).json({ error: 'Failed to promote students' });
+    console.error('Student status update error:', error);
+    res.status(500).json({ error: 'Failed to update student status' });
   }
 });
 

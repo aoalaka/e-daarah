@@ -171,9 +171,10 @@
 }
 
 .hero {
-  padding: 72px 20px 56px;
+  padding: 72px 20px 0;
   text-align: center;
   border-bottom: 1px solid var(--light);
+  overflow: hidden;
 }
 
 .hero-content {
@@ -228,6 +229,22 @@
 
 .hero-signin a:hover {
   text-decoration: underline;
+}
+
+.hero-preview {
+  max-width: 1000px;
+  margin: 48px auto 0;
+  animation: fadeInUp 0.5s ease-out 0.25s both;
+}
+
+.hero-preview-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid var(--light);
+  border-bottom: none;
+  box-shadow: 0 -4px 40px rgba(0, 0, 0, 0.08);
 }
 
 /* ── How It Works ── */
@@ -602,7 +619,7 @@
   }
 
   .hero {
-    padding: 96px 40px 72px;
+    padding: 96px 40px 0;
   }
 
   .hero-title {
@@ -722,7 +739,7 @@
   }
 
   .hero {
-    padding: 48px 16px 40px;
+    padding: 48px 16px 0;
   }
 
   .hero-title {

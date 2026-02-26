@@ -177,7 +177,7 @@
 }
 
 .hero-inner {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   text-align: center;
 }
@@ -709,16 +709,13 @@
 /* ── Desktop ── */
 @media (min-width: 1024px) {
   .hero {
-    padding: 0 40px;
-    min-height: calc(100vh - 65px);
-    display: flex;
-    align-items: center;
+    padding: 80px 40px 0;
   }
 
   .hero-inner {
     display: grid;
-    grid-template-columns: 1fr 1.1fr;
-    gap: 48px;
+    grid-template-columns: 5fr 7fr;
+    gap: 40px;
     align-items: center;
     text-align: left;
     width: 100%;
@@ -733,7 +730,7 @@
   }
 
   .hero-title {
-    font-size: 48px;
+    font-size: 44px;
   }
 
   .hero-actions {
@@ -756,8 +753,12 @@
 }
 
 @media (min-width: 1200px) {
+  .hero-inner {
+    gap: 56px;
+  }
+
   .hero-title {
-    font-size: 52px;
+    font-size: 48px;
   }
 }
 

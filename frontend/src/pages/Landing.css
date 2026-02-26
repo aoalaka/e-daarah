@@ -746,6 +746,15 @@
     margin-bottom: 32px;
   }
 
+  .hero-preview {
+    max-width: 280px;
+  }
+
+  .hero-preview-img {
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -2px 24px rgba(0, 0, 0, 0.1);
+  }
+
   .hero-title {
     font-size: 30px;
   }

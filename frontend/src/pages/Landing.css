@@ -709,16 +709,21 @@
 /* ── Desktop ── */
 @media (min-width: 1024px) {
   .hero {
-    padding: 80px 40px 0;
+    padding: 0 60px;
+    min-height: calc(100vh - 53px);
+    display: flex;
+    align-items: center;
+    overflow: visible;
   }
 
   .hero-inner {
     display: grid;
-    grid-template-columns: 5fr 7fr;
-    gap: 40px;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 56px;
     align-items: center;
     text-align: left;
     width: 100%;
+    padding: 40px 0;
   }
 
   .hero-content {
@@ -733,6 +738,10 @@
     font-size: 44px;
   }
 
+  .hero-subtitle {
+    font-size: 17px;
+  }
+
   .hero-actions {
     justify-content: flex-start;
   }
@@ -743,7 +752,7 @@
 
   .hero-preview-img {
     border-radius: 8px;
-    border-bottom: 1px solid var(--light);
+    border: 1px solid var(--light);
     box-shadow: 0 4px 40px rgba(0, 0, 0, 0.08);
   }
 
@@ -753,8 +762,12 @@
 }
 
 @media (min-width: 1200px) {
+  .hero {
+    padding: 0 80px;
+  }
+
   .hero-inner {
-    gap: 56px;
+    gap: 72px;
   }
 
   .hero-title {

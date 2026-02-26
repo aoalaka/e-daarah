@@ -3261,13 +3261,11 @@ router.get('/analytics', async (req, res) => {
     const totalStudents = totalStudentsResult[0]?.total || 0;
 
     // 11c. Dropout count (students marked as dropped_out in promotion history)
-    let dropoutQuery = 'SELECT COUNT(DISTINCT sp.student_id) as total FROM student_promotions sp WHERE sp.madrasah_id = ? AND sp.promotion_type = ?';
-    const dropoutParams = [madrasahId, 'dropped_out'];
-    if (effectiveSemesterId) {
-      dropoutQuery += ' AND sp.session_id IN (SELECT sess.id FROM sessions sess JOIN semesters sem ON sem.session_id = sess.id WHERE sem.id = ?)';
-      dropoutParams.push(effectiveSemesterId);
-    }
-    const [dropoutResult] = await pool.query(dropoutQuery, dropoutParams);
+    // Not filtered by semester — dropouts are cumulative for the madrasah
+    const [dropoutResult] = await pool.query(
+      'SELECT COUNT(DISTINCT sp.student_id) as total FROM student_promotions sp WHERE sp.madrasah_id = ? AND sp.promotion_type = ?',
+      [madrasahId, 'dropped_out']
+    );
     const dropoutCount = dropoutResult[0]?.total || 0;
 
     // 11d. Poor behaviour count (students with 3+ "Poor" behaviour ratings)
@@ -3865,7 +3863,7 @@ router.post('/promotion/promote', requireActiveSubscription, async (req, res) =>
       await pool.query(
         `INSERT INTO student_promotions (madrasah_id, student_id, from_class_id, to_class_id, session_id, promotion_type, notes, promoted_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [madrasahId, student_id, from_class_id || null, type === 'graduated' ? null : (to_class_id || null), session_id || null, type, notes || null, userId]
+        [madrasahId, student_id, from_class_id || null, (type === 'graduated' || type === 'dropped_out') ? null : (to_class_id || null), session_id || null, type, notes || null, userId]
       );
     }
 

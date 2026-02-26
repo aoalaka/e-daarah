@@ -41,14 +41,8 @@ function Landing() {
             View Demo
           </button>
         </div>
-      </section>
 
-      {/* Finder */}
-      <section className="finder">
-        <p className="finder-label">Already have an account?</p>
-        <button onClick={() => navigate('/signin')} className="btn primary finder-btn">
-          Sign In
-        </button>
+        <p className="hero-signin">Already have an account? <Link to="/signin">Sign in</Link></p>
       </section>
 
       {/* Features */}
@@ -98,7 +92,7 @@ function Landing() {
       {/* Pricing */}
       <section id="pricing" className="pricing">
         <h2 className="section-title">Simple Pricing</h2>
-        <p className="section-subtitle">14-day free trial. No credit card needed.<br /><br /><span style={{color:'#888',fontSize:'13px'}}>All prices in USD</span></p>
+        <p className="section-subtitle">14-day free trial. No credit card needed.<br /><br /><span className="pricing-note">All prices in USD</span></p>
 
         <div className="pricing-cards">
           <div className="pricing-card">
@@ -176,8 +170,8 @@ function Landing() {
               <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="footer-logo-img" />
               <span className="footer-logo-text">e-Daarah</span>
             </div>
-            <p style={{ marginTop: 4 }}>{'نظام إدارة المدارس الدينية'}</p>
-            <p style={{ fontSize: 12, color: '#999', marginTop: 2 }}>Designed for madrasahs. Ready for any school.</p>
+            <p className="footer-tagline">{'نظام إدارة المدارس الدينية'}</p>
+            <p className="footer-sub">Designed for madrasahs. Ready for any school.</p>
           </div>
           <div className="footer-links">
             <Link to="/signin">Sign In</Link>

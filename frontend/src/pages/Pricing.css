@@ -121,6 +121,11 @@
   margin-bottom: 2rem;
 }
 
+.pricing-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 /* Billing Toggle */
 .billing-toggle {
   display: flex;

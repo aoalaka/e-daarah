@@ -99,7 +99,7 @@ function Pricing() {
         <h1 className="pricing-title">Simple Pricing for School Management</h1>
         <p className="pricing-subtitle">
           Start with a 14-day free trial. No credit card required.<br />
-          <span style={{color:'#888',fontSize:'13px'}}>All prices in USD</span>
+          <span className="pricing-note">All prices in USD</span>
         </p>
 
         {/* Billing Toggle */}

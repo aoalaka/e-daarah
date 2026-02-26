@@ -6,14 +6,14 @@
   align-items: center;
   justify-content: center;
   padding: 24px 20px;
-  background: #f5f5f5;
+  background: var(--lighter);
 }
 
 .signin-card {
   width: 100%;
   max-width: 400px;
   background: #fff;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--light);
   border-radius: 8px;
   padding: 32px;
 }
@@ -42,7 +42,7 @@
 .signin-logo-text {
   font-size: 18px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--black);
 }
 
 /* Header */
@@ -54,13 +54,13 @@
 .signin-header h1 {
   font-size: 22px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--black);
   margin-bottom: 4px;
 }
 
 .signin-header p {
   font-size: 14px;
-  color: #999;
+  color: var(--muted);
 }
 
 /* Search */
@@ -73,7 +73,7 @@
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: #333;
+  color: var(--dark);
   margin-bottom: 6px;
 }
 
@@ -85,21 +85,21 @@
   width: 100%;
   height: 48px;
   padding: 0 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--light);
   border-radius: 6px;
   font-size: 16px;
-  color: #1a1a1a;
+  color: var(--black);
   background: #fff;
   transition: border-color 0.15s;
 }
 
 .signin-input-wrapper input:focus {
   outline: none;
-  border-color: #1a1a1a;
+  border-color: var(--black);
 }
 
 .signin-input-wrapper input::placeholder {
-  color: #bbb;
+  color: var(--muted);
 }
 
 .signin-spinner {
@@ -109,8 +109,8 @@
   transform: translateY(-50%);
   width: 18px;
   height: 18px;
-  border: 2px solid #e5e5e5;
-  border-top-color: #1a1a1a;
+  border: 2px solid var(--light);
+  border-top-color: var(--black);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -126,7 +126,7 @@
   left: 0;
   right: 0;
   background: #fff;
-  border: 1px solid #ddd;
+  border: 1px solid var(--light);
   border-radius: 6px;
   list-style: none;
   padding: 4px;
@@ -145,7 +145,7 @@
 }
 
 .signin-results li:hover {
-  background: #f5f5f5;
+  background: var(--lighter);
 }
 
 .result-info {
@@ -157,17 +157,17 @@
 .result-name {
   font-size: 15px;
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--black);
 }
 
 .result-url {
   font-size: 12px;
-  color: #999;
+  color: var(--muted);
 }
 
 .result-arrow {
   font-size: 16px;
-  color: #999;
+  color: var(--muted);
 }
 
 .signin-no-results {
@@ -176,7 +176,7 @@
   left: 0;
   right: 0;
   background: #fff;
-  border: 1px solid #ddd;
+  border: 1px solid var(--light);
   border-radius: 6px;
   padding: 16px;
   z-index: 10;
@@ -186,13 +186,13 @@
 
 .signin-no-results p {
   font-size: 14px;
-  color: #666;
+  color: var(--gray);
   margin-bottom: 2px;
 }
 
 .signin-no-results-hint {
   font-size: 13px;
-  color: #999;
+  color: var(--muted);
 }
 
 /* Divider */
@@ -209,7 +209,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: #e5e5e5;
+  background: var(--light);
 }
 
 .signin-divider span {
@@ -217,7 +217,7 @@
   background: #fff;
   padding: 0 12px;
   font-size: 13px;
-  color: #999;
+  color: var(--muted);
 }
 
 /* Alternatives */
@@ -235,27 +235,28 @@
   width: 100%;
   height: 44px;
   background: #fff;
-  color: #1a1a1a;
-  border: 1px solid #ddd;
+  color: var(--black);
+  border: 1px solid var(--light);
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   text-decoration: none;
-  transition: background 0.15s;
+  transition: all var(--transition-normal);
 }
 
 .signin-alt-btn:hover {
-  background: #f9f9f9;
+  background: var(--bg);
+  border-color: var(--black);
 }
 
 .signin-alt-link {
   font-size: 14px;
-  color: #666;
+  color: var(--gray);
   text-decoration: none;
 }
 
 .signin-alt-link:hover {
-  color: #1a1a1a;
+  color: var(--black);
 }
 
 /* Footer */
@@ -266,10 +267,10 @@
 
 .signin-footer a {
   font-size: 13px;
-  color: #999;
+  color: var(--muted);
   text-decoration: none;
 }
 
 .signin-footer a:hover {
-  color: #666;
+  color: var(--gray);
 }

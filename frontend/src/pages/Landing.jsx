@@ -45,6 +45,9 @@ function Landing() {
           </div>
           <p className="hero-signin">Already have an account? <Link to="/signin">Sign in</Link></p>
         </div>
+        <div className="hero-preview">
+          <img src="/dashboard-preview.png" alt="e-Daarah admin dashboard" className="hero-preview-img" />
+        </div>
       </section>
 
       {/* How It Works */}

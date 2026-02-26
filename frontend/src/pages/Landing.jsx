@@ -88,6 +88,18 @@ function Landing() {
 
           <div className="feature-grid">
             <div className="feature-card">
+              <h3>Daily Attendance</h3>
+              <p>Mark attendance, grade dressing, behavior, and punctuality — all in one step. Bulk-save for the whole class.</p>
+            </div>
+            <div className="feature-card">
+              <h3>Qur'an Progress Tracking</h3>
+              <p>Track hifdh, tilawah, and revision progress per student. Record surahs, ayahs, grades, and pass/fail status.</p>
+            </div>
+            <div className="feature-card">
+              <h3>Parent Portal</h3>
+              <p>Parents log in to view their child's attendance rate, conduct grades, exam results, and teacher comments.</p>
+            </div>
+            <div className="feature-card">
               <h3>Academic Planner</h3>
               <p>Set flexible school days, manage holidays and closures, and schedule temporary overrides like Ramadan timetables.</p>
             </div>
@@ -117,26 +129,43 @@ function Landing() {
 
       {/* Social Proof */}
       <section className="social-proof">
-        <div className="section-inner">
-          <p className="section-label">Trusted</p>
-          <h2 className="section-heading">Used by madrasahs in New Zealand and beyond</h2>
-          <div className="proof-grid">
-            <div className="proof-card">
+        <p className="section-label">Trusted by madrasahs in New Zealand and beyond</p>
+        <div className="marquee">
+          <div className="marquee-track">
+            <div className="marquee-item">
               <span className="proof-name">Tauranga Masjid Madrasah</span>
               <span className="proof-detail">Tauranga, New Zealand</span>
-              <span className="proof-tag">Pilot Partner</span>
             </div>
-            <div className="proof-card">
+            <span className="marquee-dot">·</span>
+            <div className="marquee-item">
               <span className="proof-name">MMA Madrasah</span>
               <span className="proof-detail">Palmerston North, NZ</span>
             </div>
-            <div className="proof-card">
+            <span className="marquee-dot">·</span>
+            <div className="marquee-item">
               <span className="proof-name">Al-Modrasatu Ath-Thaqafiyyah</span>
               <span className="proof-detail">Ibadan, Nigeria</span>
             </div>
+            <span className="marquee-dot">·</span>
+            {/* Duplicate for seamless loop */}
+            <div className="marquee-item">
+              <span className="proof-name">Tauranga Masjid Madrasah</span>
+              <span className="proof-detail">Tauranga, New Zealand</span>
+            </div>
+            <span className="marquee-dot">·</span>
+            <div className="marquee-item">
+              <span className="proof-name">MMA Madrasah</span>
+              <span className="proof-detail">Palmerston North, NZ</span>
+            </div>
+            <span className="marquee-dot">·</span>
+            <div className="marquee-item">
+              <span className="proof-name">Al-Modrasatu Ath-Thaqafiyyah</span>
+              <span className="proof-detail">Ibadan, Nigeria</span>
+            </div>
+            <span className="marquee-dot">·</span>
           </div>
-          <p className="proof-cta">Interested in a demo for your madrasah? <a href="mailto:support@e-daarah.com?subject=Demo%20Request">Get in touch</a></p>
         </div>
+        <p className="proof-cta">Interested in a demo? <a href="mailto:support@e-daarah.com?subject=Demo%20Request">Get in touch</a></p>
       </section>
 
       {/* Pricing */}
@@ -148,13 +177,13 @@ function Landing() {
           <div className="pricing-grid">
             <div className="price-card">
               <h3>Standard</h3>
-              <div className="price">$12<span>/mo</span></div>
+              <div className="price"><span className="price-currency">USD</span> $12<span>/mo</span></div>
               <p>Up to 100 students</p>
               <button onClick={() => navigate('/register')} className="btn secondary">Start Trial</button>
             </div>
             <div className="price-card featured">
               <h3>Plus</h3>
-              <div className="price">$29<span>/mo</span></div>
+              <div className="price"><span className="price-currency">USD</span> $29<span>/mo</span></div>
               <p>Up to 500 students</p>
               <button onClick={() => navigate('/register')} className="btn primary">Start Trial</button>
             </div>

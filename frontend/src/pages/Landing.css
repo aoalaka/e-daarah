@@ -329,48 +329,71 @@
 
 /* ── Social Proof ── */
 .social-proof {
-  padding: 80px 20px;
+  padding: 48px 0;
   border-top: 1px solid var(--light);
+  border-bottom: 1px solid var(--light);
+  overflow: hidden;
 }
 
-.proof-grid {
-  display: grid;
-  gap: 16px;
-  margin-bottom: 32px;
+.social-proof .section-label {
+  padding: 0 20px;
+  margin-bottom: 20px;
 }
 
-.proof-card {
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  margin-bottom: 20px;
+}
+
+.marquee-track {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  width: max-content;
+  animation: marquee 20s linear infinite;
+}
+
+.marquee-item {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 2px;
-  padding: 20px 24px;
-  border: 1px solid var(--light);
-  border-radius: var(--radius);
-  text-align: center;
+  flex-shrink: 0;
+}
+
+.marquee-dot {
+  font-size: 24px;
+  color: var(--light);
+  flex-shrink: 0;
 }
 
 .proof-name {
   font-size: 15px;
   font-weight: 600;
   color: var(--black);
+  white-space: nowrap;
 }
 
 .proof-detail {
   font-size: 13px;
   color: var(--gray);
-}
-
-.proof-tag {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--muted);
-  margin-top: 4px;
+  white-space: nowrap;
 }
 
 .proof-cta {
   font-size: 14px;
   color: var(--gray);
   text-align: center;
+  padding: 0 20px;
 }
 
 .proof-cta a {
@@ -429,6 +452,13 @@
   font-weight: 700;
   letter-spacing: -1px;
   margin-bottom: 4px;
+}
+
+.price-currency {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.5px;
 }
 
 .price-card .price span {
@@ -645,11 +675,7 @@
   }
 
   .social-proof {
-    padding: 96px 40px;
-  }
-
-  .proof-grid {
-    grid-template-columns: repeat(3, 1fr);
+    padding: 56px 0;
   }
 
   .pricing {
@@ -685,10 +711,6 @@
 /* ── Medium ── */
 @media (min-width: 640px) and (max-width: 899px) {
   .feature-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .proof-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -821,10 +843,13 @@
 
   .how-it-works,
   .features,
-  .social-proof,
   .pricing,
   .cta {
     padding: 56px 16px;
+  }
+
+  .social-proof {
+    padding: 40px 0;
   }
 
   .cta h2 {

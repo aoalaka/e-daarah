@@ -140,23 +140,24 @@ function Landing() {
       <section id="pricing" className="pricing">
         <h2 className="section-title">Simple, Transparent Pricing</h2>
         <p className="pricing-teaser-text">
-          Start with a 14-day free trial. No credit card needed.
+          Start with a 14-day free trial. No credit card needed.<br />
+          <span className="pricing-note">All prices in USD</span>
         </p>
         <div className="pricing-teaser">
           <div className="pricing-teaser-card">
             <span className="teaser-plan">Standard</span>
             <span className="teaser-price">$12<span>/mo</span></span>
-            <span className="teaser-desc">Up to 100 students</span>
+            <span className="teaser-desc">Up to 100 students • USD</span>
           </div>
           <div className="pricing-teaser-card featured">
             <span className="teaser-plan">Plus</span>
             <span className="teaser-price">$29<span>/mo</span></span>
-            <span className="teaser-desc">Up to 500 students</span>
+            <span className="teaser-desc">Up to 500 students • USD</span>
           </div>
           <div className="pricing-teaser-card">
             <span className="teaser-plan">Enterprise</span>
             <span className="teaser-price">Custom</span>
-            <span className="teaser-desc">Unlimited</span>
+            <span className="teaser-desc">Unlimited students</span>
           </div>
         </div>
         <div className="pricing-teaser-actions">

@@ -478,6 +478,11 @@
   gap: 12px;
 }
 
+.pricing-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .pricing-link {
   color: var(--black);
   font-size: 15px;

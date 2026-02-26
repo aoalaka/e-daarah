@@ -45,19 +45,48 @@ function Landing() {
         <p className="hero-signin">Already have an account? <Link to="/signin">Sign in</Link></p>
       </section>
 
+      {/* How It Works */}
+      <section className="how-it-works">
+        <h2 className="section-title">Get Started in Minutes</h2>
+        <div className="steps">
+          <div className="step">
+            <span className="step-number">1</span>
+            <h3>Register Your School</h3>
+            <p>Create your madrasah profile, add classes, and invite teachers.</p>
+          </div>
+          <div className="step">
+            <span className="step-number">2</span>
+            <h3>Set Up Your Schedule</h3>
+            <p>Configure school days, holidays, and semester dates.</p>
+          </div>
+          <div className="step">
+            <span className="step-number">3</span>
+            <h3>Start Teaching</h3>
+            <p>Take attendance, track Qur'an progress, and record exams from day one.</p>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="features">
-        <h2 className="section-title">Built for Islamic Schools. Ready for Any School.</h2>
+        <h2 className="section-title">Everything Your School Needs</h2>
 
-        <div className="feature-list">
-          <div className="feature">
+        <div className="hero-features">
+          <div className="hero-feature">
             <h3>Daily Attendance</h3>
             <p>Mark attendance, grade dressing, behavior, and punctuality — all in one step. Bulk-save for the whole class.</p>
           </div>
-          <div className="feature">
+          <div className="hero-feature">
             <h3>Qur'an Progress Tracking</h3>
             <p>Track hifdh, tilawah, and revision progress per student. Record surahs, ayahs, grades, and pass/fail status.</p>
           </div>
+          <div className="hero-feature">
+            <h3>Parent Portal</h3>
+            <p>Parents log in to view their child's attendance rate, conduct grades, exam results, and teacher comments.</p>
+          </div>
+        </div>
+
+        <div className="feature-list">
           <div className="feature">
             <h3>Academic Planner</h3>
             <p>Set flexible school days, manage holidays and closures, and schedule temporary overrides like Ramadan timetables.</p>
@@ -65,10 +94,6 @@ function Landing() {
           <div className="feature">
             <h3>Exam Recording</h3>
             <p>Record scores for any subject with tie-aware ranking. View class-wide and per-student performance reports.</p>
-          </div>
-          <div className="feature">
-            <h3>Parent Portal</h3>
-            <p>Parents log in to view their child's attendance rate, conduct grades, exam results, and teacher comments.</p>
           </div>
           <div className="feature">
             <h3>Student Promotion</h3>
@@ -89,77 +114,55 @@ function Landing() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="pricing">
-        <h2 className="section-title">Simple Pricing</h2>
-        <p className="section-subtitle">14-day free trial. No credit card needed.<br /><br /><span className="pricing-note">All prices in USD</span></p>
-
-        <div className="pricing-cards">
-          <div className="pricing-card">
-            <h3>Standard</h3>
-            <div className="price">$12<span>/month USD</span></div>
-            <ul>
-              <li>Up to 100 students</li>
-              <li>Up to 20 teachers</li>
-              <li>Attendance &amp; conduct grading</li>
-              <li>Academic planner &amp; school days</li>
-              <li>Qur'an progress tracking</li>
-              <li>Exam recording &amp; ranking</li>
-              <li>Fee tracking &amp; payments</li>
-              <li>Student promotion</li>
-              <li>Email support</li>
-            </ul>
-            <button onClick={() => navigate('/register')} className="btn secondary">
-              Start Trial
-            </button>
+      {/* Social Proof */}
+      <section className="social-proof">
+        <p className="proof-label">Trusted by madrasahs in New Zealand and beyond</p>
+        <div className="proof-logos">
+          <div className="proof-item">
+            <span className="proof-name">Tauranga Masjid Madrasah</span>
+            <span className="proof-status">Pilot Partner</span>
           </div>
-
-          <div className="pricing-card featured">
-            <h3>Plus</h3>
-            <div className="price">$29<span>/month USD</span></div>
-            <ul>
-              <li>Up to 500 students</li>
-              <li>Up to 50 teachers</li>
-              <li>Everything in Standard</li>
-              <li>Parent portal access</li>
-              <li>Reports, CSV &amp; PDF exports</li>
-              <li>Holidays &amp; schedule overrides</li>
-              <li>Priority support</li>
-            </ul>
-            <button onClick={() => navigate('/register')} className="btn primary">
-              Start Trial
-            </button>
+          <div className="proof-divider"></div>
+          <div className="proof-item">
+            <span className="proof-name">MMA Madrasah</span>
+            <span className="proof-status">Palmerston North, NZ</span>
           </div>
-
-          <div className="pricing-card">
-            <h3>Enterprise</h3>
-            <div className="price">Custom</div>
-            <ul>
-              <li>Unlimited students</li>
-              <li>Unlimited teachers</li>
-              <li>Everything in Plus</li>
-              <li>Custom integrations</li>
-              <li>Dedicated support</li>
-              <li>SLA guarantee</li>
-            </ul>
-            <a href="mailto:support@e-daarah.com?subject=Enterprise%20Plan%20Inquiry" className="btn secondary enterprise-btn">
-              Contact Us
-            </a>
+          <div className="proof-divider"></div>
+          <div className="proof-item">
+            <span className="proof-name">Al-Modrasatu Ath-Thaqafiyyah</span>
+            <span className="proof-status">Ibadan, Nigeria</span>
           </div>
         </div>
+        <p className="proof-cta">Interested in a demo for your madrasah? <a href="mailto:support@e-daarah.com?subject=Demo%20Request">Get in touch</a></p>
+      </section>
 
-        <p className="pricing-cta">
-          <Link to="/pricing" className="pricing-link">See full plan comparison →</Link>
+      {/* Pricing Teaser */}
+      <section id="pricing" className="pricing">
+        <h2 className="section-title">Simple, Transparent Pricing</h2>
+        <p className="pricing-teaser-text">
+          Start with a 14-day free trial. No credit card needed.
         </p>
-
-        {/* <div className="regional-discount">
-          <p className="discount-text">
-            <strong>50% off the Plus ANNUAL PLAN for schools in Australia &amp; New Zealand</strong>
-          </p>
-          <p className="discount-subtext">
-            Email <a href="mailto:support@e-daarah.com?subject=NZ/AU%20Plus%20Discount%20Request">support@e-daarah.com</a> to get your coupon code.
-          </p>
-        </div> */}
+        <div className="pricing-teaser">
+          <div className="pricing-teaser-card">
+            <span className="teaser-plan">Standard</span>
+            <span className="teaser-price">$12<span>/mo</span></span>
+            <span className="teaser-desc">Up to 100 students</span>
+          </div>
+          <div className="pricing-teaser-card featured">
+            <span className="teaser-plan">Plus</span>
+            <span className="teaser-price">$29<span>/mo</span></span>
+            <span className="teaser-desc">Up to 500 students</span>
+          </div>
+          <div className="pricing-teaser-card">
+            <span className="teaser-plan">Enterprise</span>
+            <span className="teaser-price">Custom</span>
+            <span className="teaser-desc">Unlimited</span>
+          </div>
+        </div>
+        <div className="pricing-teaser-actions">
+          <Link to="/register" className="btn primary">Start Free Trial</Link>
+          <Link to="/pricing" className="pricing-link">See full plan details →</Link>
+        </div>
       </section>
 
       {/* Footer */}

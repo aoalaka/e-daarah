@@ -70,6 +70,7 @@ function Landing() {
       {/* Features */}
       <section className="features">
         <h2 className="section-title">Everything Your School Needs</h2>
+        <p className="section-subtitle">Core tools to manage your madrasah, all in one place.</p>
 
         <div className="hero-features">
           <div className="hero-feature">
@@ -122,12 +123,10 @@ function Landing() {
             <span className="proof-name">Tauranga Masjid Madrasah</span>
             <span className="proof-status">Pilot Partner</span>
           </div>
-          <div className="proof-divider"></div>
           <div className="proof-item">
             <span className="proof-name">MMA Madrasah</span>
             <span className="proof-status">Palmerston North, NZ</span>
           </div>
-          <div className="proof-divider"></div>
           <div className="proof-item">
             <span className="proof-name">Al-Modrasatu Ath-Thaqafiyyah</span>
             <span className="proof-status">Ibadan, Nigeria</span>

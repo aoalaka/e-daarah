@@ -27,29 +27,31 @@ function Landing() {
 
       {/* Hero */}
       <section className="hero">
-        <div className="hero-content">
-          <p className="hero-arabic">نظام إدارة المدارس الدينية</p>
-          <h1 className="hero-title">Run Your Madrasah<br />with Clarity</h1>
-          <p className="hero-subtitle">
-            The simple admin system for madrasahs, weekend schools, and community
-            learning centers. Track attendance, record exams, manage fees, and keep
-            parents informed.
-          </p>
-          <div className="hero-actions">
-            <button onClick={() => navigate('/register')} className="btn primary">
-              Start Free Trial
-            </button>
-            <button onClick={() => navigate('/demo')} className="btn secondary">
-              View Demo
-            </button>
+        <div className="hero-inner">
+          <div className="hero-content">
+            <p className="hero-arabic">نظام إدارة المدارس الدينية</p>
+            <h1 className="hero-title">Run Your Madrasah<br />with Clarity</h1>
+            <p className="hero-subtitle">
+              The simple admin system for madrasahs, weekend schools, and community
+              learning centers. Track attendance, record exams, manage fees, and keep
+              parents informed.
+            </p>
+            <div className="hero-actions">
+              <button onClick={() => navigate('/register')} className="btn primary">
+                Start Free Trial
+              </button>
+              <button onClick={() => navigate('/demo')} className="btn secondary">
+                View Demo
+              </button>
+            </div>
+            <p className="hero-signin">Already have an account? <Link to="/signin">Sign in</Link></p>
           </div>
-          <p className="hero-signin">Already have an account? <Link to="/signin">Sign in</Link></p>
-        </div>
-        <div className="hero-preview">
-          <picture>
-            <source media="(max-width: 480px)" srcSet="/mobile-attendance-taking-preview.jpeg" />
-            <img src="/dashboard-preview.png" alt="e-Daarah admin dashboard" className="hero-preview-img" />
-          </picture>
+          <div className="hero-preview">
+            <picture>
+              <source media="(max-width: 480px)" srcSet="/mobile-attendance-taking-preview.jpeg" />
+              <img src="/dashboard-preview.png" alt="e-Daarah admin dashboard" className="hero-preview-img" />
+            </picture>
+          </div>
         </div>
       </section>
 

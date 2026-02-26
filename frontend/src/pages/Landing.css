@@ -308,10 +308,6 @@
   margin-bottom: 0;
 }
 
-.feature-grid.main .feature-card {
-  border-left: 2px solid var(--black);
-}
-
 .feature-card {
   padding: 24px 28px;
   background: #fff;

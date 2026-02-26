@@ -71,6 +71,8 @@ function AdminDashboard() {
   const [classAttendance, setClassAttendance] = useState([]);
   const [classExams, setClassExams] = useState([]);
   const [classKpis, setClassKpis] = useState(null);
+  const [attendanceDateFrom, setAttendanceDateFrom] = useState('');
+  const [attendanceDateTo, setAttendanceDateTo] = useState('');
   const [selectedClassForPerformance, setSelectedClassForPerformance] = useState(null);
   const [reportSubTab, setReportSubTab] = useState('attendance');
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -1078,11 +1080,14 @@ function AdminDashboard() {
     }
   };
 
-  const fetchClassAttendance = async (classId) => {
+  const fetchClassAttendance = async (classId, dateFrom, dateTo) => {
     try {
-      const url = reportSemester
-        ? `/admin/classes/${classId}/attendance-performance?semester_id=${reportSemester}`
-        : `/admin/classes/${classId}/attendance-performance`;
+      const params = new URLSearchParams();
+      if (reportSemester) params.append('semester_id', reportSemester);
+      if (dateFrom) params.append('date_from', dateFrom);
+      if (dateTo) params.append('date_to', dateTo);
+      const qs = params.toString();
+      const url = `/admin/classes/${classId}/attendance-performance${qs ? `?${qs}` : ''}`;
       const response = await api.get(url);
       setClassAttendance(response.data);
     } catch (error) {
@@ -1308,11 +1313,14 @@ function AdminDashboard() {
     }
   };
 
-  const fetchClassKpis = async (classId) => {
+  const fetchClassKpis = async (classId, dateFrom, dateTo) => {
     try {
-      const endpoint = reportSemester
-        ? `/admin/classes/${classId}/kpis?semester_id=${reportSemester}`
-        : `/admin/classes/${classId}/kpis`;
+      const params = new URLSearchParams();
+      if (reportSemester) params.append('semester_id', reportSemester);
+      if (dateFrom) params.append('date_from', dateFrom);
+      if (dateTo) params.append('date_to', dateTo);
+      const qs = params.toString();
+      const endpoint = `/admin/classes/${classId}/kpis${qs ? `?${qs}` : ''}`;
       const response = await api.get(endpoint);
       console.log('KPIs response:', response.data);
       setClassKpis(response.data);
@@ -4282,8 +4290,8 @@ function AdminDashboard() {
                             setSelectedClassForPerformance(cls);
                             if (cls) {
                               if (reportSubTab !== 'student-reports') {
-                                fetchClassKpis(cls.id);
-                                fetchClassAttendance(cls.id);
+                                fetchClassKpis(cls.id, attendanceDateFrom, attendanceDateTo);
+                                fetchClassAttendance(cls.id, attendanceDateFrom, attendanceDateTo);
                                 fetchClassExams(cls.id);
                               }
                               // student-reports will be fetched by useEffect when selectedClassForPerformance changes
@@ -4296,6 +4304,51 @@ function AdminDashboard() {
                           ))}
                         </select>
                       </div>
+                    )}
+                    {reportSubTab === 'attendance' && selectedClassForPerformance && (
+                      <>
+                        <div className="form-group">
+                          <label className="form-label">From</label>
+                          <input
+                            type="date"
+                            className="form-input"
+                            value={attendanceDateFrom}
+                            onChange={(e) => {
+                              setAttendanceDateFrom(e.target.value);
+                              fetchClassKpis(selectedClassForPerformance.id, e.target.value, attendanceDateTo);
+                              fetchClassAttendance(selectedClassForPerformance.id, e.target.value, attendanceDateTo);
+                            }}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">To</label>
+                          <input
+                            type="date"
+                            className="form-input"
+                            value={attendanceDateTo}
+                            onChange={(e) => {
+                              setAttendanceDateTo(e.target.value);
+                              fetchClassKpis(selectedClassForPerformance.id, attendanceDateFrom, e.target.value);
+                              fetchClassAttendance(selectedClassForPerformance.id, attendanceDateFrom, e.target.value);
+                            }}
+                          />
+                        </div>
+                        {(attendanceDateFrom || attendanceDateTo) && (
+                          <div className="form-group" style={{ alignSelf: 'flex-end' }}>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => {
+                                setAttendanceDateFrom('');
+                                setAttendanceDateTo('');
+                                fetchClassKpis(selectedClassForPerformance.id, '', '');
+                                fetchClassAttendance(selectedClassForPerformance.id, '', '');
+                              }}
+                            >
+                              Clear dates
+                            </button>
+                          </div>
+                        )}
+                      </>
                     )}
                     {reportSubTab === 'student-reports' && selectedClassForPerformance && (
                       <div className="form-group">

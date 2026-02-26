@@ -86,21 +86,6 @@ function Landing() {
           <p className="section-label">Features</p>
           <h2 className="section-heading">Everything your school needs</h2>
 
-          <div className="feature-grid main">
-            <div className="feature-card">
-              <h3>Daily Attendance</h3>
-              <p>Mark attendance, grade dressing, behavior, and punctuality — all in one step. Bulk-save for the whole class.</p>
-            </div>
-            <div className="feature-card">
-              <h3>Qur'an Progress Tracking</h3>
-              <p>Track hifdh, tilawah, and revision progress per student. Record surahs, ayahs, grades, and pass/fail status.</p>
-            </div>
-            <div className="feature-card">
-              <h3>Parent Portal</h3>
-              <p>Parents log in to view their child's attendance rate, conduct grades, exam results, and teacher comments.</p>
-            </div>
-          </div>
-
           <div className="feature-grid">
             <div className="feature-card">
               <h3>Academic Planner</h3>

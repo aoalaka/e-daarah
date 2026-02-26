@@ -301,11 +301,6 @@
 .feature-grid {
   display: grid;
   gap: 16px;
-  margin-bottom: 16px;
-}
-
-.feature-grid:last-child {
-  margin-bottom: 0;
 }
 
 .feature-card {

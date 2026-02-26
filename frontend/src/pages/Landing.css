@@ -171,19 +171,19 @@
 }
 
 .hero {
-  padding: 72px 20px 0;
+  padding: 64px 20px 0;
   text-align: center;
-  border-bottom: 1px solid var(--light);
+  background: var(--bg);
   overflow: hidden;
 }
 
 .hero-content {
   max-width: 680px;
-  margin: 0 auto;
+  margin: 0 auto 48px;
 }
 
 .hero-arabic {
-  font-size: 18px;
+  font-size: 17px;
   color: var(--muted);
   margin-bottom: 16px;
   direction: rtl;
@@ -203,7 +203,7 @@
   font-size: 18px;
   color: var(--gray);
   line-height: 1.6;
-  margin-bottom: 36px;
+  margin-bottom: 32px;
   animation: fadeInUp 0.4s ease-out 0.1s both;
 }
 
@@ -217,7 +217,7 @@
 .hero-signin {
   font-size: 14px;
   color: var(--muted);
-  margin-top: 20px;
+  margin-top: 16px;
   animation: fadeInUp 0.4s ease-out 0.2s both;
 }
 
@@ -232,8 +232,8 @@
 }
 
 .hero-preview {
-  max-width: 1000px;
-  margin: 48px auto 0;
+  max-width: 960px;
+  margin: 0 auto;
   animation: fadeInUp 0.5s ease-out 0.25s both;
 }
 
@@ -244,7 +244,7 @@
   border-radius: 8px 8px 0 0;
   border: 1px solid var(--light);
   border-bottom: none;
-  box-shadow: 0 -4px 40px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -2px 32px rgba(0, 0, 0, 0.06);
 }
 
 /* ── How It Works ── */
@@ -619,7 +619,7 @@
   }
 
   .hero {
-    padding: 96px 40px 0;
+    padding: 80px 40px 0;
   }
 
   .hero-title {
@@ -739,7 +739,11 @@
   }
 
   .hero {
-    padding: 48px 16px 0;
+    padding: 40px 16px 0;
+  }
+
+  .hero-content {
+    margin-bottom: 32px;
   }
 
   .hero-title {

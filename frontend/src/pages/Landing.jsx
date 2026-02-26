@@ -127,7 +127,7 @@ function Landing() {
         </div>
       </section>
 
-      {/* Social Proof */}
+      {/* Social Proof — uncomment when we have more users
       <section className="social-proof">
         <p className="section-label">Trusted by madrasahs in New Zealand and beyond</p>
         <div className="marquee">
@@ -147,7 +147,6 @@ function Landing() {
               <span className="proof-detail">Ibadan, Nigeria</span>
             </div>
             <span className="marquee-dot">·</span>
-            {/* Duplicate for seamless loop */}
             <div className="marquee-item">
               <span className="proof-name">Tauranga Masjid Madrasah</span>
               <span className="proof-detail">Tauranga, New Zealand</span>
@@ -167,6 +166,7 @@ function Landing() {
         </div>
         <p className="proof-cta">Interested in a demo? <a href="mailto:support@e-daarah.com?subject=Demo%20Request">Get in touch</a></p>
       </section>
+      */}
 
       {/* Pricing */}
       <section id="pricing" className="pricing">

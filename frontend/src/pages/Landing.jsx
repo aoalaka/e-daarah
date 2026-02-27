@@ -32,7 +32,7 @@ function Landing() {
             <p className="hero-arabic">نظام إدارة المدارس الدينية</p>
             <h1 className="hero-title">Stop Losing Track<br />of Your Students</h1>
             <p className="hero-subtitle">
-              Paper registers get lost. Spreadsheets fall behind. Parents keep asking
+              Paper registers get lost. Fee records don't add up. Parents keep asking
               "was my child there today?" — e-Daarah replaces all of that with one
               simple system your teachers will actually use.
             </p>
@@ -96,6 +96,10 @@ function Landing() {
               <p>See which students are missing too many days before it becomes a problem. Get alerts, not surprises.</p>
             </div>
             <div className="feature-card">
+              <h3>Fee Collection That Adds Up</h3>
+              <p>Know exactly who has paid and who hasn't. Create fee schedules, record payments, and chase outstanding balances — no more guesswork.</p>
+            </div>
+            <div className="feature-card">
               <h3>Parents Stay in the Loop</h3>
               <p>Parents log in and see their child's attendance, conduct, and results. No more "was my child there?" messages.</p>
             </div>
@@ -110,10 +114,6 @@ function Landing() {
             <div className="feature-card">
               <h3>Year-End Promotions</h3>
               <p>Move students between classes at the end of each session. Bulk promote, retain, or mark as graduated.</p>
-            </div>
-            <div className="feature-card">
-              <h3>Fee Collection</h3>
-              <p>Track who has paid and who hasn't. Create fee schedules, record payments, and see outstanding balances.</p>
             </div>
             <div className="feature-card">
               <h3>Separate Logins</h3>

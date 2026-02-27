@@ -8,8 +8,8 @@ function Landing() {
   return (
     <div className="landing">
       <SEO
-        title="e-Daarah — School Management for Madrasahs & Islamic Schools"
-        description="Simple admin system for madrasahs, Islamic schools, and weekend programs. Track attendance, record exams, grade conduct, and keep parents informed."
+        title="e-Daarah — Attendance & Admin for Madrasahs"
+        description="Stop losing track of who showed up. e-Daarah replaces paper registers with a simple system madrasah teachers actually use. Attendance, reports, and parent updates — all in one place."
       />
 
       {/* Header */}
@@ -30,11 +30,11 @@ function Landing() {
         <div className="hero-inner">
           <div className="hero-content">
             <p className="hero-arabic">نظام إدارة المدارس الدينية</p>
-            <h1 className="hero-title">Run Your Madrasah<br />with Clarity</h1>
+            <h1 className="hero-title">Stop Losing Track<br />of Your Students</h1>
             <p className="hero-subtitle">
-              The simple admin system for madrasahs, weekend schools, and community
-              learning centers. Track attendance, record exams, manage fees, and keep
-              parents informed.
+              Paper registers get lost. Spreadsheets fall behind. Parents keep asking
+              "was my child there today?" — e-Daarah replaces all of that with one
+              simple system your teachers will actually use.
             </p>
             <div className="hero-actions">
               <button onClick={() => navigate('/register')} className="btn primary">
@@ -59,22 +59,22 @@ function Landing() {
       <section className="how-it-works">
         <div className="section-inner">
           <p className="section-label">How It Works</p>
-          <h2 className="section-heading">Get started in minutes</h2>
+          <h2 className="section-heading">Taking attendance shouldn't be hard</h2>
           <div className="steps">
             <div className="step">
               <span className="step-number">1</span>
-              <h3>Register Your School</h3>
-              <p>Create your madrasah profile, add classes, and invite teachers.</p>
+              <h3>Add Your Classes</h3>
+              <p>Register your madrasah, create classes, and add your students. Takes about 10 minutes.</p>
             </div>
             <div className="step">
               <span className="step-number">2</span>
-              <h3>Set Up Your Schedule</h3>
-              <p>Configure school days, holidays, and semester dates.</p>
+              <h3>Teachers Take Attendance</h3>
+              <p>Each teacher opens their class, taps present or absent, and saves. Done in under a minute.</p>
             </div>
             <div className="step">
               <span className="step-number">3</span>
-              <h3>Start Teaching</h3>
-              <p>Take attendance, track Qur'an progress, and record exams from day one.</p>
+              <h3>Everyone Stays Informed</h3>
+              <p>Parents see attendance instantly. Admins see who's falling behind. No chasing, no phone calls.</p>
             </div>
           </div>
         </div>
@@ -83,45 +83,45 @@ function Landing() {
       {/* Features */}
       <section className="features">
         <div className="section-inner">
-          <p className="section-label">Features</p>
-          <h2 className="section-heading">Everything your school needs</h2>
+          <p className="section-label">More than just attendance</p>
+          <h2 className="section-heading">Once attendance is sorted, everything else gets easier</h2>
 
           <div className="feature-grid">
             <div className="feature-card">
-              <h3>Daily Attendance</h3>
-              <p>Mark attendance, grade dressing, behavior, and punctuality — all in one step. Bulk-save for the whole class.</p>
+              <h3>Attendance in One Tap</h3>
+              <p>Teachers mark the whole class in under a minute. Grade dressing, behavior, and punctuality at the same time. No paper needed.</p>
             </div>
             <div className="feature-card">
-              <h3>Qur'an Progress Tracking</h3>
-              <p>Track hifdh, tilawah, and revision progress per student. Record surahs, ayahs, grades, and pass/fail status.</p>
+              <h3>Know Who's Falling Behind</h3>
+              <p>See which students are missing too many days before it becomes a problem. Get alerts, not surprises.</p>
             </div>
             <div className="feature-card">
-              <h3>Parent Portal</h3>
-              <p>Parents log in to view their child's attendance rate, conduct grades, exam results, and teacher comments.</p>
+              <h3>Parents Stay in the Loop</h3>
+              <p>Parents log in and see their child's attendance, conduct, and results. No more "was my child there?" messages.</p>
             </div>
             <div className="feature-card">
-              <h3>Academic Planner</h3>
-              <p>Set flexible school days, manage holidays and closures, and schedule temporary overrides like Ramadan timetables.</p>
+              <h3>Qur'an Progress</h3>
+              <p>Track hifdh, tilawah, and revision per student. Know exactly where each child is in their memorisation journey.</p>
             </div>
             <div className="feature-card">
-              <h3>Exam Recording</h3>
-              <p>Record scores for any subject with tie-aware ranking. View class-wide and per-student performance reports.</p>
+              <h3>Exam Results &amp; Rankings</h3>
+              <p>Record scores, generate rankings, and see class performance at a glance. End-of-term reports in seconds, not weekends.</p>
             </div>
             <div className="feature-card">
-              <h3>Student Promotion</h3>
-              <p>Promote or retain students between classes at the end of each session with a simple bulk tool.</p>
+              <h3>Year-End Promotions</h3>
+              <p>Move students between classes at the end of each session. Bulk promote, retain, or mark as graduated.</p>
             </div>
             <div className="feature-card">
-              <h3>Fee Tracking</h3>
-              <p>Create fee templates, assign them to classes or students, and record payments. Track balances in any currency.</p>
+              <h3>Fee Collection</h3>
+              <p>Track who has paid and who hasn't. Create fee schedules, record payments, and see outstanding balances.</p>
             </div>
             <div className="feature-card">
-              <h3>Role-Based Access</h3>
-              <p>Admins, teachers, and parents each get their own secure portal with appropriate permissions.</p>
+              <h3>Separate Logins</h3>
+              <p>Admins manage everything. Teachers see only their classes. Parents see only their children. Everyone gets what they need.</p>
             </div>
             <div className="feature-card">
               <h3>Reports &amp; Exports</h3>
-              <p>Generate detailed student reports, class performance summaries, and export data as CSV or PDF.</p>
+              <p>Download attendance records, student reports, and exam results as CSV or PDF. Ready for your committee meetings.</p>
             </div>
           </div>
         </div>
@@ -201,8 +201,8 @@ function Landing() {
       {/* CTA */}
       <section className="cta">
         <div className="section-inner">
-          <h2>Ready to simplify your school management?</h2>
-          <p>Join madrasahs across New Zealand and Nigeria already using e-Daarah.</p>
+          <h2>Try it free for 14 days</h2>
+          <p>Set up your madrasah in 10 minutes. No credit card required.</p>
           <div className="cta-actions">
             <button onClick={() => navigate('/register')} className="btn primary">Start Your Free Trial</button>
             <button onClick={() => navigate('/demo')} className="btn secondary">View Live Demo</button>
@@ -219,7 +219,7 @@ function Landing() {
               <span className="footer-logo-text">e-Daarah</span>
             </div>
             <p className="footer-tagline">نظام إدارة المدارس الدينية</p>
-            <p className="footer-sub">Designed for madrasahs. Ready for any school.</p>
+            <p className="footer-sub">Attendance and admin for madrasahs.</p>
           </div>
           <div className="footer-cols">
             <div className="footer-col">

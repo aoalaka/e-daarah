@@ -32,9 +32,9 @@ function Landing() {
             <p className="hero-arabic">نظام إدارة المدارس الدينية</p>
             <h1 className="hero-title">Stop Losing Track<br />of Your Students</h1>
             <p className="hero-subtitle">
-              Paper registers get lost. Fee records don't add up. Parents keep asking
-              "was my child there today?" — e-Daarah replaces all of that with one
-              simple system your teachers will actually use.
+              Paper registers get lost. Parents owe fees but there's no clear record
+              to show them. And everyone keeps asking "was my child there today?" —
+              e-Daarah replaces all of that with one simple system.
             </p>
             <div className="hero-actions">
               <button onClick={() => navigate('/register')} className="btn primary">
@@ -96,8 +96,8 @@ function Landing() {
               <p>See which students are missing too many days before it becomes a problem. Get alerts, not surprises.</p>
             </div>
             <div className="feature-card">
-              <h3>Fee Collection That Adds Up</h3>
-              <p>Know exactly who has paid and who hasn't. Create fee schedules, record payments, and chase outstanding balances — no more guesswork.</p>
+              <h3>Fee Records Parents Can See</h3>
+              <p>Parents see exactly what they owe and what they've paid — no arguments. You see who's behind at a glance, so you can follow up before it piles up.</p>
             </div>
             <div className="feature-card">
               <h3>Parents Stay in the Loop</h3>

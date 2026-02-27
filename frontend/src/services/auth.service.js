@@ -12,16 +12,36 @@ export const authService = {
     return response.data;
   },
 
-  // Parent login (scoped to madrasah with tenant isolation)
-  parentLogin: async (madrasahSlug, studentId, accessCode) => {
+  // Parent login with phone + PIN
+  parentLogin: async (madrasahSlug, phone, phoneCountryCode, pin) => {
     const response = await api.post('/auth/parent-login', {
-      studentId,
-      accessCode,
+      phone,
+      phoneCountryCode,
+      pin,
       madrasahSlug
     });
     if (response.data.token) {
       localStorage.setItem('parentToken', response.data.token);
-      localStorage.setItem('parentStudent', JSON.stringify(response.data.student));
+      localStorage.setItem('parentChildren', JSON.stringify(response.data.children));
+      localStorage.setItem('parentInfo', JSON.stringify(response.data.parent));
+      localStorage.setItem('madrasah', JSON.stringify(response.data.madrasah));
+    }
+    return response.data;
+  },
+
+  // Parent registration (first-time PIN setup)
+  parentRegister: async (madrasahSlug, phone, phoneCountryCode, pin, name) => {
+    const response = await api.post('/auth/parent-register', {
+      phone,
+      phoneCountryCode,
+      pin,
+      name,
+      madrasahSlug
+    });
+    if (response.data.token) {
+      localStorage.setItem('parentToken', response.data.token);
+      localStorage.setItem('parentChildren', JSON.stringify(response.data.children));
+      localStorage.setItem('parentInfo', JSON.stringify(response.data.parent));
       localStorage.setItem('madrasah', JSON.stringify(response.data.madrasah));
     }
     return response.data;
@@ -61,6 +81,15 @@ export const authService = {
     localStorage.removeItem('madrasah');
     localStorage.removeItem('parentToken');
     localStorage.removeItem('parentStudent');
+    localStorage.removeItem('parentChildren');
+    localStorage.removeItem('parentInfo');
+  },
+
+  parentLogout: () => {
+    localStorage.removeItem('parentToken');
+    localStorage.removeItem('parentStudent');
+    localStorage.removeItem('parentChildren');
+    localStorage.removeItem('parentInfo');
   },
 
   getCurrentUser: () => {

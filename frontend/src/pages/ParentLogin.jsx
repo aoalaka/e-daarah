@@ -4,11 +4,28 @@ import { authService } from '../services/auth.service';
 import { useMadrasah } from '../contexts/MadrasahContext';
 import './Login.css';
 
+const COUNTRY_CODES = [
+  { code: '+64', label: 'NZ +64' },
+  { code: '+61', label: 'AU +61' },
+  { code: '+234', label: 'NG +234' },
+  { code: '+1', label: 'US +1' },
+  { code: '+44', label: 'UK +44' },
+  { code: '+91', label: 'IN +91' },
+  { code: '+92', label: 'PK +92' },
+  { code: '+27', label: 'ZA +27' },
+  { code: '+60', label: 'MY +60' },
+  { code: '+62', label: 'ID +62' },
+];
+
 function ParentLogin() {
   const { madrasahSlug } = useParams();
   const { madrasah } = useMadrasah();
-  const [studentId, setStudentId] = useState('');
-  const [accessCode, setAccessCode] = useState('');
+  const [mode, setMode] = useState('login'); // 'login' or 'register'
+  const [phone, setPhone] = useState('');
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+64');
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -16,13 +33,27 @@ function ParentLogin() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
+    if (!/^\d{6}$/.test(pin)) {
+      setError('PIN must be exactly 6 digits');
+      return;
+    }
+
+    if (mode === 'register' && pin !== confirmPin) {
+      setError('PINs do not match');
+      return;
+    }
+
+    setLoading(true);
     try {
-      await authService.parentLogin(madrasahSlug, studentId, accessCode);
+      if (mode === 'register') {
+        await authService.parentRegister(madrasahSlug, phone, phoneCountryCode, pin, name);
+      } else {
+        await authService.parentLogin(madrasahSlug, phone, phoneCountryCode, pin);
+      }
       navigate(`/${madrasahSlug}/parent`);
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid student ID or access code');
+      setError(err.response?.data?.error || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -33,76 +64,106 @@ function ParentLogin() {
       <div className="login-card">
         <div className="login-header">
           <h1>{madrasah?.name || 'Parent Portal'}</h1>
-          <p>View your child's report</p>
+          <p>{mode === 'register' ? 'Set up your parent account' : 'View your children\'s reports and fees'}</p>
         </div>
-
-        {madrasahSlug === 'demo' && (
-          <div className="demo-hint">
-            <strong>Demo Credentials:</strong>
-            <div style={{ marginTop: '8px', fontSize: '0.9em' }}>
-              <div>Student ID: <code>100001</code></div>
-              <div>Access Code: <code>123456</code></div>
-              <div style={{ marginTop: '4px', fontSize: '0.85em', opacity: 0.8 }}>
-                (All demo students use access code 123456)
-              </div>
-            </div>
-          </div>
-        )}
 
         {error && <div className="error-message">{error}</div>}
 
         <form className="login-form" onSubmit={handleSubmit}>
+          {mode === 'register' && (
+            <div className="field">
+              <label htmlFor="name">Your Name (optional)</label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Fatima Ali"
+                autoComplete="name"
+              />
+            </div>
+          )}
+
           <div className="field">
-            <label htmlFor="studentId">Student ID</label>
-            <input
-              id="studentId"
-              type="text"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              placeholder="e.g., 001"
-              required
-              autoComplete="username"
-            />
+            <label htmlFor="phone">Phone Number</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select
+                value={phoneCountryCode}
+                onChange={(e) => setPhoneCountryCode(e.target.value)}
+                style={{ width: '110px', flexShrink: 0 }}
+              >
+                {COUNTRY_CODES.map(cc => (
+                  <option key={cc.code} value={cc.code}>{cc.label}</option>
+                ))}
+              </select>
+              <input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, ''))}
+                placeholder="Phone number"
+                required
+                autoComplete="tel"
+                style={{ flex: 1 }}
+              />
+            </div>
+            <small style={{ color: '#737373', marginTop: '4px', display: 'block' }}>
+              Use the phone number your school has on file
+            </small>
           </div>
 
           <div className="field">
-            <label htmlFor="accessCode">Access Code</label>
+            <label htmlFor="pin">{mode === 'register' ? 'Choose a 6-digit PIN' : 'PIN'}</label>
             <input
-              id="accessCode"
-              type="text"
+              id="pin"
+              type="password"
               inputMode="numeric"
-              value={accessCode}
-              onChange={(e) => setAccessCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="6-digit code from your school"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="6-digit PIN"
               maxLength="6"
               required
-              autoComplete="current-password"
+              autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
             />
           </div>
 
+          {mode === 'register' && (
+            <div className="field">
+              <label htmlFor="confirmPin">Confirm PIN</label>
+              <input
+                id="confirmPin"
+                type="password"
+                inputMode="numeric"
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="Re-enter your PIN"
+                maxLength="6"
+                required
+                autoComplete="new-password"
+              />
+            </div>
+          )}
+
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? 'Signing in...' : 'View Report'}
+            {loading
+              ? (mode === 'register' ? 'Setting up...' : 'Signing in...')
+              : (mode === 'register' ? 'Create Account' : 'Sign In')
+            }
           </button>
         </form>
+
+        <div style={{ textAlign: 'center', margin: '16px 0', fontSize: '14px', color: '#525252' }}>
+          {mode === 'login' ? (
+            <span>First time? <button type="button" onClick={() => { setMode('register'); setError(''); }} style={{ background: 'none', border: 'none', color: '#0a0a0a', fontWeight: 500, cursor: 'pointer', padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}>Set up your account</button></span>
+          ) : (
+            <span>Already have an account? <button type="button" onClick={() => { setMode('login'); setError(''); }} style={{ background: 'none', border: 'none', color: '#0a0a0a', fontWeight: 500, cursor: 'pointer', padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}>Sign in</button></span>
+          )}
+        </div>
 
         <div className="login-links">
           <Link to={`/${madrasahSlug}/login`}>Teacher/Admin Login</Link>
           <span className="divider">|</span>
           <Link to="/">Back to Home</Link>
-        </div>
-
-        <div className="demo-info">
-          <h4>How to Login</h4>
-          <div className="credentials">
-            <div className="cred">
-              <div className="cred-label">Student ID</div>
-              <div className="cred-value">Provided by the school</div>
-            </div>
-            <div className="cred">
-              <div className="cred-label">Access Code</div>
-              <div className="cred-value">6-digit code from the school</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

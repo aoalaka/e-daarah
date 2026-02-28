@@ -793,7 +793,9 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [madrasahId, first_name, last_name, student_id, gender, email, class_id || null,
        student_phone, student_phone_country_code, street, city, state, country, date_of_birth,
-       parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes, hashedAccessCode]
+       parent_guardian_name, parent_guardian_relationship,
+       parent_guardian_phone ? parent_guardian_phone.replace(/\D/g, '').replace(/^0+/, '') : parent_guardian_phone,
+       parent_guardian_phone_country_code, notes, hashedAccessCode]
     );
     const responseData = { id: result.insertId, first_name, last_name, student_id };
     if (accessCode) responseData.access_code = accessCode;
@@ -854,7 +856,9 @@ router.put('/students/:id', requireActiveSubscription, async (req, res) => {
       [first_name, last_name, student_id, gender, email,
        student_phone, student_phone_country_code, street, city, state, country,
        class_id || null, date_of_birth,
-       parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes, id, madrasahId]
+       parent_guardian_name, parent_guardian_relationship,
+       parent_guardian_phone ? parent_guardian_phone.replace(/\D/g, '').replace(/^0+/, '') : parent_guardian_phone,
+       parent_guardian_phone_country_code, notes, id, madrasahId]
     );
     res.json({ message: 'Student updated successfully' });
   } catch (error) {

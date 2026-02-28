@@ -613,14 +613,21 @@ async function resolveParentMadrasah(madrasahSlug) {
   return { ...m, hasParentPortal };
 }
 
+// Helper: normalize phone number — strip non-digits and leading zeros for consistent matching
+function normalizePhone(phone) {
+  if (!phone) return '';
+  return phone.replace(/\D/g, '').replace(/^0+/, '');
+}
+
 // Helper: find all children linked to a parent by phone
 async function findChildrenByPhone(madrasahId, phone, phoneCountryCode) {
+  const normalized = normalizePhone(phone);
   const [children] = await pool.query(
     `SELECT s.id, s.first_name, s.last_name, s.student_id, s.class_id, c.name as class_name
      FROM students s LEFT JOIN classes c ON s.class_id = c.id
-     WHERE s.madrasah_id = ? AND s.parent_guardian_phone = ? AND s.parent_guardian_phone_country_code = ? AND s.deleted_at IS NULL
+     WHERE s.madrasah_id = ? AND TRIM(LEADING '0' FROM REGEXP_REPLACE(s.parent_guardian_phone, '[^0-9]', '')) = ? AND s.parent_guardian_phone_country_code = ? AND s.deleted_at IS NULL
      ORDER BY s.first_name`,
-    [madrasahId, phone, phoneCountryCode]
+    [madrasahId, normalized, phoneCountryCode]
   );
   return children;
 }
@@ -637,6 +644,12 @@ router.post('/parent-register', async (req, res) => {
       return res.status(400).json({ error: 'PIN must be exactly 6 digits' });
     }
 
+    // Normalize phone: strip non-digits and leading zeros for consistent matching
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) {
+      return res.status(400).json({ error: 'Invalid phone number' });
+    }
+
     const madrasah = await resolveParentMadrasah(madrasahSlug);
     if (!madrasah) return res.status(404).json({ error: 'School not found' });
     if (!madrasah.hasParentPortal) return res.status(403).json({ error: 'Parent portal is not available on this plan. Please contact your school administrator.' });
@@ -644,15 +657,15 @@ router.post('/parent-register', async (req, res) => {
     const madrasahId = madrasah.id;
 
     // Verify at least one student exists with this phone in the madrasah
-    const children = await findChildrenByPhone(madrasahId, phone, phoneCountryCode);
+    const children = await findChildrenByPhone(madrasahId, normalizedPhone, phoneCountryCode);
     if (children.length === 0) {
       return res.status(404).json({ error: 'No students found with this phone number. Please check with your school that your phone number is on file.' });
     }
 
-    // Check if parent already registered
+    // Check if parent already registered (also normalize stored phone for lookup)
     const [existing] = await pool.query(
       'SELECT id FROM parent_users WHERE madrasah_id = ? AND phone = ? AND phone_country_code = ?',
-      [madrasahId, phone, phoneCountryCode]
+      [madrasahId, normalizedPhone, phoneCountryCode]
     );
     if (existing.length > 0) {
       return res.status(409).json({ error: 'An account with this phone number already exists. Please sign in instead.' });
@@ -661,7 +674,7 @@ router.post('/parent-register', async (req, res) => {
     const pinHash = await bcrypt.hash(pin, 10);
     const [result] = await pool.query(
       'INSERT INTO parent_users (madrasah_id, phone, phone_country_code, pin_hash, name) VALUES (?, ?, ?, ?, ?)',
-      [madrasahId, phone, phoneCountryCode, pinHash, name || null]
+      [madrasahId, normalizedPhone, phoneCountryCode, pinHash, name || null]
     );
 
     const parentId = result.insertId;
@@ -733,9 +746,12 @@ router.post('/parent-login', async (req, res) => {
       return res.status(400).json({ error: 'Phone number, country code, and PIN are required' });
     }
 
+    // Normalize phone: strip non-digits and leading zeros
+    const normalizedPhone = normalizePhone(phone);
+
     const [parents] = await pool.query(
       'SELECT id, name, phone, phone_country_code, pin_hash FROM parent_users WHERE madrasah_id = ? AND phone = ? AND phone_country_code = ?',
-      [madrasahId, phone, phoneCountryCode]
+      [madrasahId, normalizedPhone, phoneCountryCode]
     );
 
     if (parents.length === 0) {

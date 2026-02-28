@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
-import { isValidEmail, isValidPhone, isValidName, isValidStaffId, isValidStudentId, isRequired, isValidPassword } from '../utils/validation.js';
+import { isValidEmail, isValidPhone, isValidName, isValidStaffId, isValidStudentId, isRequired, isValidPassword, normalizePhone } from '../utils/validation.js';
 import { sendEmailVerification, sendWelcomeEmail } from '../services/email.service.js';
 import crypto from 'crypto';
 import { PLAN_LIMITS } from '../middleware/plan-limits.middleware.js';
@@ -613,21 +613,26 @@ async function resolveParentMadrasah(madrasahSlug) {
   return { ...m, hasParentPortal };
 }
 
-// Helper: normalize phone number — strip non-digits and leading zeros for consistent matching
-function normalizePhone(phone) {
-  if (!phone) return '';
-  return phone.replace(/\D/g, '').replace(/^0+/, '');
-}
-
 // Helper: find all children linked to a parent by phone
 async function findChildrenByPhone(madrasahId, phone, phoneCountryCode) {
-  const normalized = normalizePhone(phone);
+  const normalized = normalizePhone(phone, phoneCountryCode);
+  const ccDigits = phoneCountryCode ? phoneCountryCode.replace(/\D/g, '') : '';
+  // Normalize DB-side phone: strip non-digits, strip country code prefix if present, strip leading zeros
   const [children] = await pool.query(
     `SELECT s.id, s.first_name, s.last_name, s.student_id, s.class_id, c.name as class_name
      FROM students s LEFT JOIN classes c ON s.class_id = c.id
-     WHERE s.madrasah_id = ? AND TRIM(LEADING '0' FROM REGEXP_REPLACE(s.parent_guardian_phone, '[^0-9]', '')) = ? AND s.parent_guardian_phone_country_code = ? AND s.deleted_at IS NULL
+     WHERE s.madrasah_id = ?
+       AND TRIM(LEADING '0' FROM
+         CASE
+           WHEN REGEXP_REPLACE(s.parent_guardian_phone, '[^0-9]', '') LIKE CONCAT(?, '%')
+           THEN SUBSTRING(REGEXP_REPLACE(s.parent_guardian_phone, '[^0-9]', ''), LENGTH(?) + 1)
+           ELSE REGEXP_REPLACE(s.parent_guardian_phone, '[^0-9]', '')
+         END
+       ) = ?
+       AND s.parent_guardian_phone_country_code = ?
+       AND s.deleted_at IS NULL
      ORDER BY s.first_name`,
-    [madrasahId, normalized, phoneCountryCode]
+    [madrasahId, ccDigits, ccDigits, normalized, phoneCountryCode]
   );
   return children;
 }
@@ -644,8 +649,8 @@ router.post('/parent-register', async (req, res) => {
       return res.status(400).json({ error: 'PIN must be exactly 6 digits' });
     }
 
-    // Normalize phone: strip non-digits and leading zeros for consistent matching
-    const normalizedPhone = normalizePhone(phone);
+    // Normalize phone: strip non-digits, country code prefix, and leading zeros
+    const normalizedPhone = normalizePhone(phone, phoneCountryCode);
     if (!normalizedPhone) {
       return res.status(400).json({ error: 'Invalid phone number' });
     }
@@ -746,8 +751,8 @@ router.post('/parent-login', async (req, res) => {
       return res.status(400).json({ error: 'Phone number, country code, and PIN are required' });
     }
 
-    // Normalize phone: strip non-digits and leading zeros
-    const normalizedPhone = normalizePhone(phone);
+    // Normalize phone: strip non-digits, country code prefix, and leading zeros
+    const normalizedPhone = normalizePhone(phone, phoneCountryCode);
 
     const [parents] = await pool.query(
       'SELECT id, name, phone, phone_country_code, pin_hash FROM parent_users WHERE madrasah_id = ? AND phone = ? AND phone_country_code = ?',

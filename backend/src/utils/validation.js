@@ -7,6 +7,21 @@ export const isValidEmail = (email) => {
   return emailRegex.test(email);
 };
 
+// Normalize phone number — strip non-digits, accidental country code prefix, and leading zeros
+export const normalizePhone = (phone, countryCode) => {
+  if (!phone) return '';
+  let digits = phone.replace(/\D/g, '');
+  // Strip country code digits if the user accidentally included them
+  // e.g. countryCode='+64', phone='6421123456' → '21123456'
+  if (countryCode) {
+    const ccDigits = countryCode.replace(/\D/g, '');
+    if (ccDigits && digits.startsWith(ccDigits)) {
+      digits = digits.substring(ccDigits.length);
+    }
+  }
+  return digits.replace(/^0+/, '');
+};
+
 // Phone validation
 export const isValidPhone = (phone) => {
   if (!phone) return true; // Optional

@@ -499,10 +499,11 @@ function AdminDashboard() {
 
   const handleClearFee = (row) => {
     if (isReadOnly()) return;
-    showConfirmDialog({
+    setConfirmModal({
       title: 'Clear Expected Fee',
       message: `Remove the expected fee for ${row.student_name}? This student will no longer appear in the Fees tab.`,
-      confirmText: 'Clear Fee',
+      danger: true,
+      confirmLabel: 'Clear Fee',
       onConfirm: async () => {
         try {
           await api.put(`/admin/students/${row.student_id}/fee`, { expected_fee: null, fee_note: null });
@@ -3837,7 +3838,7 @@ function AdminDashboard() {
                                   <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
                                     setShowPaymentModal(row);
                                     setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '', _labelCategory: '' });
-                                  }}>Pay</button>
+                                  }}>Record</button>
                                   <button className="btn btn-sm btn-secondary" disabled={isReadOnly()} onClick={() => setEditingFee({ student_id: row.student_id, expected_fee: row.total_fee, fee_note: row.fee_note || '', student_name: row.student_name })} title="Edit fee">Edit</button>
                                   <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleClearFee(row)} title="Clear fee">×</button>
                                 </div>

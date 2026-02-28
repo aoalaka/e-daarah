@@ -237,6 +237,7 @@ function AdminDashboard() {
       { id: 'classes', label: 'Classes' },
       { id: 'teachers', label: 'Teachers' },
       { id: 'students', label: 'Students' },
+      ...(madrasahProfile?.enable_fee_tracking ? [{ id: 'fees', label: 'Fees' }] : []),
     ]},
     { label: 'Tools', items: [
       { id: 'planner', label: 'Planner' },
@@ -260,7 +261,7 @@ function AdminDashboard() {
   }, [loading]);
 
   const adminTourSteps = [
-    { target: '.sidebar-nav', title: 'Navigation', content: 'Use the sidebar to switch between sections: Overview, Classes, Teachers, Students, Planner, and more.' },
+    { target: '.sidebar-nav', title: 'Navigation', content: 'Use the sidebar to switch between sections: Overview, Classes, Teachers, Students, Fees, Planner, and more.' },
     { target: '.insights-summary', title: 'Key Metrics', content: 'See your attendance rates, students needing attention, and performance at a glance.' },
     { target: '.alert-panel', title: "Today's Status", content: 'Check if there are pending tasks like unmarked attendance or missing exams.' },
     { target: '.overview-actions', title: 'Quick Actions', content: 'Jump straight to creating a new session, class, or enrolling a student.' },
@@ -364,8 +365,8 @@ function AdminDashboard() {
   }, [reportFilterSession, reportFilterSemester, selectedStudentForReport?.id]);
 
   useEffect(() => {
-    if (activeTab === 'students' && studentsSubTab === 'fees') loadFeeData();
-  }, [activeTab, studentsSubTab, feeClassFilter]);
+    if (activeTab === 'fees') loadFeeData();
+  }, [activeTab, feeClassFilter]);
 
   const loadData = async () => {
     setLoading(true);
@@ -1473,6 +1474,8 @@ function AdminDashboard() {
         return <svg {...iconProps}><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>;
       case 'reports':
         return <svg {...iconProps}><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>;
+      case 'fees':
+        return <svg {...iconProps}><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>;
       case 'support':
         return <svg {...iconProps}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>;
       default:
@@ -2896,11 +2899,6 @@ function AdminDashboard() {
                   <button className={`report-tab-btn ${studentsSubTab === 'promotion' ? 'active' : ''}`} onClick={() => setStudentsSubTab('promotion')}>
                     Student Status
                   </button>
-                  {madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false && (
-                    <button className={`report-tab-btn ${studentsSubTab === 'fees' ? 'active' : ''}`} onClick={() => setStudentsSubTab('fees')}>
-                      Fees
-                    </button>
-                  )}
                 </nav>
               </div>
 
@@ -3768,417 +3766,422 @@ function AdminDashboard() {
               </>
               )}
 
-              {/* Fees Sub-Tab */}
-              {studentsSubTab === 'fees' && (
-              <>
-                {/* Fee Internal Navigation */}
-                <div className="fee-nav">
-                  <button className={`fee-nav-btn ${feeView === 'collect' ? 'active' : ''}`} onClick={() => setFeeView('collect')}>Collect</button>
-                  <button className={`fee-nav-btn ${feeView === 'templates' ? 'active' : ''}`} onClick={() => setFeeView('templates')}>Templates</button>
-                  <button className={`fee-nav-btn ${feeView === 'assign' ? 'active' : ''}`} onClick={() => setFeeView('assign')}>Assign</button>
-                </div>
+            </>
+          )}
 
-                {feeLoading && <div className="loading-state"><div className="loading-spinner" /></div>}
+          {/* Fees Tab */}
+          {activeTab === 'fees' && (
+            <>
+              <div className="page-header no-print">
+                <h2 className="page-title">Fees</h2>
+              </div>
 
-                {/* Templates View */}
-                {!feeLoading && feeView === 'templates' && (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-                      <button onClick={() => {
-                        setEditingFeeTemplate(null);
-                        setNewFeeTemplate({ name: '', frequency: 'semester', items: [{ name: '', amount: '' }] });
-                        setShowFeeTemplateForm(!showFeeTemplateForm);
-                      }} className="btn btn-primary" disabled={isReadOnly()}>
-                        + New Template
-                      </button>
+              {/* Fee Internal Navigation */}
+              <div className="fee-nav">
+                <button className={`fee-nav-btn ${feeView === 'collect' ? 'active' : ''}`} onClick={() => setFeeView('collect')}>Collect</button>
+                <button className={`fee-nav-btn ${feeView === 'templates' ? 'active' : ''}`} onClick={() => setFeeView('templates')}>Templates</button>
+                <button className={`fee-nav-btn ${feeView === 'assign' ? 'active' : ''}`} onClick={() => setFeeView('assign')}>Assign</button>
+              </div>
+
+              {feeLoading && <div className="loading-state"><div className="loading-spinner" /></div>}
+
+              {/* Templates View */}
+              {!feeLoading && feeView === 'templates' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                    <button onClick={() => {
+                      setEditingFeeTemplate(null);
+                      setNewFeeTemplate({ name: '', frequency: 'semester', items: [{ name: '', amount: '' }] });
+                      setShowFeeTemplateForm(!showFeeTemplateForm);
+                    }} className="btn btn-primary" disabled={isReadOnly()}>
+                      + New Template
+                    </button>
+                  </div>
+
+                  {showFeeTemplateForm && (
+                    <div className="card" style={{ marginBottom: '20px' }}>
+                      <div className="card-header">{editingFeeTemplate ? 'Edit Fee Template' : 'Create Fee Template'}</div>
+                      <div className="card-body">
+                        <form onSubmit={handleSaveFeeTemplate}>
+                          <div className="form-grid form-grid-2">
+                            <div className="form-group">
+                              <label className="form-label">Template Name</label>
+                              <input type="text" className="form-input" placeholder="e.g. Standard Package"
+                                value={newFeeTemplate.name}
+                                onChange={(e) => setNewFeeTemplate({ ...newFeeTemplate, name: e.target.value })}
+                                required />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Frequency</label>
+                              <select className="form-select" value={newFeeTemplate.frequency}
+                                onChange={(e) => setNewFeeTemplate({ ...newFeeTemplate, frequency: e.target.value })}>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="semester">Per Semester</option>
+                                <option value="session">Per Session</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="fee-items-editor">
+                            <label className="form-label">Fee Items</label>
+                            {newFeeTemplate.items.map((item, idx) => (
+                              <div key={idx} className="fee-item-row">
+                                <input type="text" className="form-input" placeholder="Item name"
+                                  value={item.name}
+                                  onChange={(e) => {
+                                    const items = [...newFeeTemplate.items];
+                                    items[idx] = { ...items[idx], name: e.target.value };
+                                    setNewFeeTemplate({ ...newFeeTemplate, items });
+                                  }} />
+                                <input type="number" className="form-input" placeholder="Amount" step="0.01" min="0"
+                                  value={item.amount}
+                                  onChange={(e) => {
+                                    const items = [...newFeeTemplate.items];
+                                    items[idx] = { ...items[idx], amount: e.target.value };
+                                    setNewFeeTemplate({ ...newFeeTemplate, items });
+                                  }} />
+                                {newFeeTemplate.items.length > 1 && (
+                                  <button type="button" className="btn btn-sm btn-secondary btn-danger" onClick={() => {
+                                    const items = newFeeTemplate.items.filter((_, i) => i !== idx);
+                                    setNewFeeTemplate({ ...newFeeTemplate, items });
+                                  }}>Remove</button>
+                                )}
+                              </div>
+                            ))}
+                            <button type="button" className="btn btn-sm btn-secondary" onClick={() => {
+                              setNewFeeTemplate({ ...newFeeTemplate, items: [...newFeeTemplate.items, { name: '', amount: '' }] });
+                            }}>+ Add Item</button>
+                            <div className="fee-total-row">
+                              Total: {newFeeTemplate.items.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0).toFixed(2)}
+                            </div>
+                          </div>
+
+                          <div className="form-actions">
+                            <button type="button" onClick={() => { setShowFeeTemplateForm(false); setEditingFeeTemplate(null); }} className="btn btn-secondary">Cancel</button>
+                            <button type="submit" className="btn btn-primary">{editingFeeTemplate ? 'Update' : 'Create'}</button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
+                  )}
 
-                    {showFeeTemplateForm && (
-                      <div className="card" style={{ marginBottom: '20px' }}>
-                        <div className="card-header">{editingFeeTemplate ? 'Edit Fee Template' : 'Create Fee Template'}</div>
-                        <div className="card-body">
-                          <form onSubmit={handleSaveFeeTemplate}>
-                            <div className="form-grid form-grid-2">
-                              <div className="form-group">
-                                <label className="form-label">Template Name</label>
-                                <input type="text" className="form-input" placeholder="e.g. Standard Package"
-                                  value={newFeeTemplate.name}
-                                  onChange={(e) => setNewFeeTemplate({ ...newFeeTemplate, name: e.target.value })}
-                                  required />
+                  {feeTemplates.length === 0 ? (
+                    <div className="card">
+                      <div className="empty">
+                        <div className="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                        <p>No fee templates yet. Create one to start tracking fees.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="card">
+                      <SortableTable
+                        columns={[
+                          { key: 'name', label: 'Template', sortable: true, sortType: 'string' },
+                          { key: 'frequency', label: 'Frequency', sortable: true, sortType: 'string',
+                            render: (row) => ({ daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', semester: 'Per Semester', session: 'Per Session' }[row.frequency] || row.frequency) },
+                          { key: 'items', label: 'Items', sortable: false,
+                            render: (row) => row.items?.map(i => i.name).join(', ') || '—' },
+                          { key: 'total', label: 'Total', sortable: true, sortType: 'number',
+                            render: (row) => formatCurrency(row.total || 0) },
+                          { key: 'actions', label: '', sortable: false,
+                            render: (row) => (
+                              <div className="table-actions">
+                                <button className="btn btn-sm btn-secondary" disabled={isReadOnly()} onClick={() => {
+                                  setEditingFeeTemplate(row);
+                                  setNewFeeTemplate({ name: row.name, frequency: row.frequency, items: row.items?.length ? row.items.map(i => ({ name: i.name, amount: String(i.amount) })) : [{ name: '', amount: '' }] });
+                                  setShowFeeTemplateForm(true);
+                                }}>Edit</button>
+                                <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleDeleteFeeTemplate(row.id)}>Delete</button>
                               </div>
-                              <div className="form-group">
-                                <label className="form-label">Frequency</label>
-                                <select className="form-select" value={newFeeTemplate.frequency}
-                                  onChange={(e) => setNewFeeTemplate({ ...newFeeTemplate, frequency: e.target.value })}>
-                                  <option value="daily">Daily</option>
-                                  <option value="weekly">Weekly</option>
-                                  <option value="monthly">Monthly</option>
-                                  <option value="semester">Per Semester</option>
-                                  <option value="session">Per Session</option>
-                                </select>
-                              </div>
+                            )}
+                        ]}
+                        data={feeTemplates}
+                        emptyMessage="No fee templates"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Assign View */}
+              {!feeLoading && feeView === 'assign' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                    <button onClick={() => setShowAssignForm(!showAssignForm)} className="btn btn-primary" disabled={isReadOnly()}>
+                      + Assign Fee
+                    </button>
+                  </div>
+
+                  {showAssignForm && (
+                    <div className="card" style={{ marginBottom: '20px' }}>
+                      <div className="card-header">Assign Fee Template</div>
+                      <div className="card-body">
+                        <form onSubmit={handleCreateAssignment}>
+                          <div className="form-grid form-grid-3">
+                            <div className="form-group">
+                              <label className="form-label">Fee Template</label>
+                              <select className="form-select" value={newAssignment.fee_template_id}
+                                onChange={(e) => setNewAssignment({ ...newAssignment, fee_template_id: e.target.value })} required>
+                                <option value="">Select template</option>
+                                {feeTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                              </select>
                             </div>
-
-                            <div className="fee-items-editor">
-                              <label className="form-label">Fee Items</label>
-                              {newFeeTemplate.items.map((item, idx) => (
-                                <div key={idx} className="fee-item-row">
-                                  <input type="text" className="form-input" placeholder="Item name"
-                                    value={item.name}
-                                    onChange={(e) => {
-                                      const items = [...newFeeTemplate.items];
-                                      items[idx] = { ...items[idx], name: e.target.value };
-                                      setNewFeeTemplate({ ...newFeeTemplate, items });
-                                    }} />
-                                  <input type="number" className="form-input" placeholder="Amount" step="0.01" min="0"
-                                    value={item.amount}
-                                    onChange={(e) => {
-                                      const items = [...newFeeTemplate.items];
-                                      items[idx] = { ...items[idx], amount: e.target.value };
-                                      setNewFeeTemplate({ ...newFeeTemplate, items });
-                                    }} />
-                                  {newFeeTemplate.items.length > 1 && (
-                                    <button type="button" className="btn btn-sm btn-secondary btn-danger" onClick={() => {
-                                      const items = newFeeTemplate.items.filter((_, i) => i !== idx);
-                                      setNewFeeTemplate({ ...newFeeTemplate, items });
-                                    }}>Remove</button>
-                                  )}
+                            <div className="form-group">
+                              <label className="form-label">Assign To</label>
+                              <select className="form-select" value={newAssignment.assign_type}
+                                onChange={(e) => setNewAssignment({ ...newAssignment, assign_type: e.target.value, class_ids: [], student_id: '' })}>
+                                <option value="class">Class</option>
+                                <option value="student">Individual Student</option>
+                              </select>
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">{newAssignment.assign_type === 'class' ? 'Classes' : 'Student'}</label>
+                              {newAssignment.assign_type === 'class' ? (
+                                <div className="fee-class-checkboxes">
+                                  {classes.map(c => (
+                                    <label key={c.id} className="checkbox-label">
+                                      <input type="checkbox"
+                                        checked={newAssignment.class_ids.includes(String(c.id))}
+                                        onChange={(e) => {
+                                          const id = String(c.id);
+                                          setNewAssignment(prev => ({
+                                            ...prev,
+                                            class_ids: e.target.checked
+                                              ? [...prev.class_ids, id]
+                                              : prev.class_ids.filter(x => x !== id)
+                                          }));
+                                        }}
+                                      />
+                                      {c.name}
+                                    </label>
+                                  ))}
                                 </div>
-                              ))}
-                              <button type="button" className="btn btn-sm btn-secondary" onClick={() => {
-                                setNewFeeTemplate({ ...newFeeTemplate, items: [...newFeeTemplate.items, { name: '', amount: '' }] });
-                              }}>+ Add Item</button>
-                              <div className="fee-total-row">
-                                Total: {newFeeTemplate.items.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0).toFixed(2)}
-                              </div>
+                              ) : (
+                                <select className="form-select" value={newAssignment.student_id}
+                                  onChange={(e) => setNewAssignment({ ...newAssignment, student_id: e.target.value })} required>
+                                  <option value="">Select student</option>
+                                  {students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}
+                                </select>
+                              )}
                             </div>
-
-                            <div className="form-actions">
-                              <button type="button" onClick={() => { setShowFeeTemplateForm(false); setEditingFeeTemplate(null); }} className="btn btn-secondary">Cancel</button>
-                              <button type="submit" className="btn btn-primary">{editingFeeTemplate ? 'Update' : 'Create'}</button>
-                            </div>
-                          </form>
-                        </div>
+                          </div>
+                          <div className="form-actions">
+                            <button type="button" onClick={() => setShowAssignForm(false)} className="btn btn-secondary">Cancel</button>
+                            <button type="submit" className="btn btn-primary">Assign</button>
+                          </div>
+                        </form>
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {feeTemplates.length === 0 ? (
-                      <div className="card">
-                        <div className="empty">
-                          <div className="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-                          <p>No fee templates yet. Create one to start tracking fees.</p>
-                        </div>
+                  {feeAssignments.length === 0 ? (
+                    <div className="card">
+                      <div className="empty">
+                        <p>No fees assigned yet. Assign a fee template to a class or student.</p>
                       </div>
-                    ) : (
-                      <div className="card">
+                    </div>
+                  ) : (
+                    <>
+                      <div className="card fee-table-desktop">
                         <SortableTable
                           columns={[
-                            { key: 'name', label: 'Template', sortable: true, sortType: 'string' },
-                            { key: 'frequency', label: 'Frequency', sortable: true, sortType: 'string',
-                              render: (row) => ({ daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', semester: 'Per Semester', session: 'Per Session' }[row.frequency] || row.frequency) },
-                            { key: 'items', label: 'Items', sortable: false,
-                              render: (row) => row.items?.map(i => i.name).join(', ') || '—' },
-                            { key: 'total', label: 'Total', sortable: true, sortType: 'number',
-                              render: (row) => formatCurrency(row.total || 0) },
+                            { key: 'template_name', label: 'Template', sortable: true, sortType: 'string' },
+                            { key: 'assigned_to', label: 'Assigned To', sortable: true, sortType: 'string',
+                              render: (row) => row.class_name || row.student_name || '—' },
+                            { key: 'type', label: 'Type', sortable: false,
+                              render: (row) => row.class_id ? <span className="badge">Class</span> : <span className="badge badge-info">Student</span> },
                             { key: 'actions', label: '', sortable: false,
                               render: (row) => (
-                                <div className="table-actions">
-                                  <button className="btn btn-sm btn-secondary" disabled={isReadOnly()} onClick={() => {
-                                    setEditingFeeTemplate(row);
-                                    setNewFeeTemplate({ name: row.name, frequency: row.frequency, items: row.items?.length ? row.items.map(i => ({ name: i.name, amount: String(i.amount) })) : [{ name: '', amount: '' }] });
-                                    setShowFeeTemplateForm(true);
-                                  }}>Edit</button>
-                                  <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleDeleteFeeTemplate(row.id)}>Delete</button>
-                                </div>
+                                <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleDeleteAssignment(row.id)}>Remove</button>
                               )}
                           ]}
-                          data={feeTemplates}
-                          emptyMessage="No fee templates"
+                          data={feeAssignments}
+                          emptyMessage="No fee assignments"
                         />
                       </div>
-                    )}
-                  </>
-                )}
+                      <div className="fee-mobile-cards">
+                        {feeAssignments.map(row => (
+                          <div key={row.id} className="admin-mobile-card">
+                            <div className="admin-mobile-card-top">
+                              <div>
+                                <div className="admin-mobile-card-title">{row.template_name}</div>
+                                <div className="admin-mobile-card-sub">{row.class_name || row.student_name || '—'}</div>
+                              </div>
+                              <div className="admin-mobile-card-badge">{row.class_id ? 'Class' : 'Student'}</div>
+                            </div>
+                            <div className="admin-mobile-card-actions">
+                              <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleDeleteAssignment(row.id)}>Remove</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
 
-                {/* Assign View */}
-                {!feeLoading && feeView === 'assign' && (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-                      <button onClick={() => setShowAssignForm(!showAssignForm)} className="btn btn-primary" disabled={isReadOnly()}>
-                        + Assign Fee
-                      </button>
+              {/* Collect View */}
+              {!feeLoading && feeView === 'collect' && (
+                <>
+                  {/* Class filter */}
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    <select className="form-select" style={{ maxWidth: '220px' }} value={feeClassFilter}
+                      onChange={(e) => setFeeClassFilter(e.target.value)}>
+                      <option value="">All Classes</option>
+                      {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Summary cards */}
+                  {feeSummary.length > 0 && (
+                    <div className="fee-summary-cards">
+                      <div className="fee-summary-card">
+                        <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + r.total_fee, 0))}</div>
+                        <div className="fee-summary-label">Total Expected</div>
+                      </div>
+                      <div className="fee-summary-card">
+                        <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + r.total_paid, 0))}</div>
+                        <div className="fee-summary-label">Collected</div>
+                      </div>
+                      <div className="fee-summary-card">
+                        <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + Math.max(r.balance, 0), 0))}</div>
+                        <div className="fee-summary-label">Outstanding</div>
+                      </div>
                     </div>
+                  )}
 
-                    {showAssignForm && (
-                      <div className="card" style={{ marginBottom: '20px' }}>
-                        <div className="card-header">Assign Fee Template</div>
-                        <div className="card-body">
-                          <form onSubmit={handleCreateAssignment}>
-                            <div className="form-grid form-grid-3">
-                              <div className="form-group">
-                                <label className="form-label">Fee Template</label>
-                                <select className="form-select" value={newAssignment.fee_template_id}
-                                  onChange={(e) => setNewAssignment({ ...newAssignment, fee_template_id: e.target.value })} required>
-                                  <option value="">Select template</option>
-                                  {feeTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                </select>
-                              </div>
-                              <div className="form-group">
-                                <label className="form-label">Assign To</label>
-                                <select className="form-select" value={newAssignment.assign_type}
-                                  onChange={(e) => setNewAssignment({ ...newAssignment, assign_type: e.target.value, class_ids: [], student_id: '' })}>
-                                  <option value="class">Class</option>
-                                  <option value="student">Individual Student</option>
-                                </select>
-                              </div>
-                              <div className="form-group">
-                                <label className="form-label">{newAssignment.assign_type === 'class' ? 'Classes' : 'Student'}</label>
-                                {newAssignment.assign_type === 'class' ? (
-                                  <div className="fee-class-checkboxes">
-                                    {classes.map(c => (
-                                      <label key={c.id} className="checkbox-label">
-                                        <input type="checkbox"
-                                          checked={newAssignment.class_ids.includes(String(c.id))}
-                                          onChange={(e) => {
-                                            const id = String(c.id);
-                                            setNewAssignment(prev => ({
-                                              ...prev,
-                                              class_ids: e.target.checked
-                                                ? [...prev.class_ids, id]
-                                                : prev.class_ids.filter(x => x !== id)
-                                            }));
-                                          }}
-                                        />
-                                        {c.name}
-                                      </label>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <select className="form-select" value={newAssignment.student_id}
-                                    onChange={(e) => setNewAssignment({ ...newAssignment, student_id: e.target.value })} required>
-                                    <option value="">Select student</option>
-                                    {students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}
-                                  </select>
-                                )}
-                              </div>
-                            </div>
-                            <div className="form-actions">
-                              <button type="button" onClick={() => setShowAssignForm(false)} className="btn btn-secondary">Cancel</button>
-                              <button type="submit" className="btn btn-primary">Assign</button>
-                            </div>
-                          </form>
-                        </div>
+                  {feeSummary.length === 0 ? (
+                    <div className="card">
+                      <div className="empty">
+                        <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                        <p>No fee data yet. Create fee templates and assign them to classes or students to start tracking.</p>
                       </div>
-                    )}
-
-                    {feeAssignments.length === 0 ? (
-                      <div className="card">
-                        <div className="empty">
-                          <p>No fees assigned yet. Assign a fee template to a class or student.</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="card fee-table-desktop">
-                          <SortableTable
-                            columns={[
-                              { key: 'template_name', label: 'Template', sortable: true, sortType: 'string' },
-                              { key: 'assigned_to', label: 'Assigned To', sortable: true, sortType: 'string',
-                                render: (row) => row.class_name || row.student_name || '—' },
-                              { key: 'type', label: 'Type', sortable: false,
-                                render: (row) => row.class_id ? <span className="badge">Class</span> : <span className="badge badge-info">Student</span> },
-                              { key: 'actions', label: '', sortable: false,
-                                render: (row) => (
-                                  <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleDeleteAssignment(row.id)}>Remove</button>
-                                )}
-                            ]}
-                            data={feeAssignments}
-                            emptyMessage="No fee assignments"
-                          />
-                        </div>
-                        <div className="fee-mobile-cards">
-                          {feeAssignments.map(row => (
-                            <div key={row.id} className="admin-mobile-card">
-                              <div className="admin-mobile-card-top">
-                                <div>
-                                  <div className="admin-mobile-card-title">{row.template_name}</div>
-                                  <div className="admin-mobile-card-sub">{row.class_name || row.student_name || '—'}</div>
-                                </div>
-                                <div className="admin-mobile-card-badge">{row.class_id ? 'Class' : 'Student'}</div>
-                              </div>
-                              <div className="admin-mobile-card-actions">
-                                <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleDeleteAssignment(row.id)}>Remove</button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-
-                {/* Collect View */}
-                {!feeLoading && feeView === 'collect' && (
-                  <>
-                    {/* Class filter */}
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
-                      <select className="form-select" style={{ maxWidth: '220px' }} value={feeClassFilter}
-                        onChange={(e) => setFeeClassFilter(e.target.value)}>
-                        <option value="">All Classes</option>
-                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
                     </div>
-
-                    {/* Summary cards */}
-                    {feeSummary.length > 0 && (
-                      <div className="fee-summary-cards">
-                        <div className="fee-summary-card">
-                          <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + r.total_fee, 0))}</div>
-                          <div className="fee-summary-label">Total Expected</div>
-                        </div>
-                        <div className="fee-summary-card">
-                          <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + r.total_paid, 0))}</div>
-                          <div className="fee-summary-label">Collected</div>
-                        </div>
-                        <div className="fee-summary-card">
-                          <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + Math.max(r.balance, 0), 0))}</div>
-                          <div className="fee-summary-label">Outstanding</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {feeSummary.length === 0 ? (
-                      <div className="card">
-                        <div className="empty">
-                          <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-                          <p>No fee data yet. Create fee templates and assign them to classes or students to start tracking.</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="card fee-table-desktop">
-                          <SortableTable
-                            columns={[
-                              { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
-                              { key: 'class_name', label: 'Class', sortable: true, sortType: 'string' },
-                              { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
-                              { key: 'total_fee', label: 'Total', sortable: true, sortType: 'number',
-                                render: (row) => formatCurrency(row.total_fee) },
-                              { key: 'total_paid', label: 'Paid', sortable: true, sortType: 'number',
-                                render: (row) => formatCurrency(row.total_paid) },
-                              { key: 'balance', label: 'Balance', sortable: true, sortType: 'number',
-                                render: (row) => formatCurrency(row.balance) },
-                              { key: 'status', label: 'Progress', sortable: true, sortType: 'number',
-                                sortValue: (row) => row.total_fee > 0 ? row.total_paid / row.total_fee : 0,
-                                render: (row) => <FeeProgressBar paid={row.total_paid} total={row.total_fee} /> },
-                              { key: 'actions', label: '', sortable: false,
-                                render: (row) => (
-                                  <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
-                                    setShowPaymentModal(row);
-                                    setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', period_label: '' });
-                                  }}>Record Payment</button>
-                                )}
-                            ]}
-                            data={feeSummary}
-                            searchable
-                            searchPlaceholder="Search students..."
-                            searchKeys={['student_name', 'class_name', 'template_name']}
-                            pagination
-                            pageSize={25}
-                            emptyMessage="No fee records"
-                          />
-                        </div>
-                        <div className="fee-mobile-cards">
-                          {feeSummary.map((row, idx) => (
-                            <div key={idx} className="admin-mobile-card">
-                              <div className="admin-mobile-card-top">
-                                <div>
-                                  <div className="admin-mobile-card-title">{row.student_name}</div>
-                                  <div className="admin-mobile-card-sub">{row.class_name} &middot; {row.template_name}</div>
-                                </div>
-                              </div>
-                              <FeeProgressBar paid={row.total_paid} total={row.total_fee} />
-                              <div className="fee-mobile-card-amounts">
-                                <div className="fee-mobile-card-amount">
-                                  <span className="fee-mobile-card-amount-label">Total</span>
-                                  <span>{formatCurrency(row.total_fee)}</span>
-                                </div>
-                                <div className="fee-mobile-card-amount">
-                                  <span className="fee-mobile-card-amount-label">Paid</span>
-                                  <span>{formatCurrency(row.total_paid)}</span>
-                                </div>
-                                <div className="fee-mobile-card-amount">
-                                  <span className="fee-mobile-card-amount-label">Balance</span>
-                                  <span style={{ fontWeight: 600 }}>{formatCurrency(row.balance)}</span>
-                                </div>
-                              </div>
-                              <div className="admin-mobile-card-actions">
+                  ) : (
+                    <>
+                      <div className="card fee-table-desktop">
+                        <SortableTable
+                          columns={[
+                            { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
+                            { key: 'class_name', label: 'Class', sortable: true, sortType: 'string' },
+                            { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
+                            { key: 'total_fee', label: 'Total', sortable: true, sortType: 'number',
+                              render: (row) => formatCurrency(row.total_fee) },
+                            { key: 'total_paid', label: 'Paid', sortable: true, sortType: 'number',
+                              render: (row) => formatCurrency(row.total_paid) },
+                            { key: 'balance', label: 'Balance', sortable: true, sortType: 'number',
+                              render: (row) => formatCurrency(row.balance) },
+                            { key: 'status', label: 'Progress', sortable: true, sortType: 'number',
+                              sortValue: (row) => row.total_fee > 0 ? row.total_paid / row.total_fee : 0,
+                              render: (row) => <FeeProgressBar paid={row.total_paid} total={row.total_fee} /> },
+                            { key: 'actions', label: '', sortable: false,
+                              render: (row) => (
                                 <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
                                   setShowPaymentModal(row);
                                   setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', period_label: '' });
                                 }}>Record Payment</button>
+                              )}
+                          ]}
+                          data={feeSummary}
+                          searchable
+                          searchPlaceholder="Search students..."
+                          searchKeys={['student_name', 'class_name', 'template_name']}
+                          pagination
+                          pageSize={25}
+                          emptyMessage="No fee records"
+                        />
+                      </div>
+                      <div className="fee-mobile-cards">
+                        {feeSummary.map((row, idx) => (
+                          <div key={idx} className="admin-mobile-card">
+                            <div className="admin-mobile-card-top">
+                              <div>
+                                <div className="admin-mobile-card-title">{row.student_name}</div>
+                                <div className="admin-mobile-card-sub">{row.class_name} &middot; {row.template_name}</div>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-
-                    {/* Payment History */}
-                    {feePayments.length > 0 && (
-                      <>
-                        <div className="card fee-table-desktop" style={{ marginTop: '20px' }}>
-                          <div className="card-header">Recent Payments</div>
-                          <div className="card-body" style={{ padding: 0 }}>
-                            <SortableTable
-                              columns={[
-                                { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
-                                { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
-                                { key: 'amount_paid', label: 'Amount', sortable: true, sortType: 'number',
-                                  render: (row) => formatCurrency(row.amount_paid) },
-                                { key: 'payment_date', label: 'Date', sortable: true, sortType: 'string',
-                                  render: (row) => new Date(row.payment_date).toLocaleDateString() },
-                                { key: 'payment_method', label: 'Method', sortable: true, sortType: 'string',
-                                  render: (row) => ({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method) },
-                                { key: 'period_label', label: 'Period', sortable: false },
-                                { key: 'actions', label: '', sortable: false,
-                                  render: (row) => (
-                                    <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleVoidPayment(row.id)}>Void</button>
-                                  )}
-                              ]}
-                              data={feePayments}
-                              pagination
-                              pageSize={10}
-                              emptyMessage="No payments recorded"
-                            />
+                            <FeeProgressBar paid={row.total_paid} total={row.total_fee} />
+                            <div className="fee-mobile-card-amounts">
+                              <div className="fee-mobile-card-amount">
+                                <span className="fee-mobile-card-amount-label">Total</span>
+                                <span>{formatCurrency(row.total_fee)}</span>
+                              </div>
+                              <div className="fee-mobile-card-amount">
+                                <span className="fee-mobile-card-amount-label">Paid</span>
+                                <span>{formatCurrency(row.total_paid)}</span>
+                              </div>
+                              <div className="fee-mobile-card-amount">
+                                <span className="fee-mobile-card-amount-label">Balance</span>
+                                <span style={{ fontWeight: 600 }}>{formatCurrency(row.balance)}</span>
+                              </div>
+                            </div>
+                            <div className="admin-mobile-card-actions">
+                              <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
+                                setShowPaymentModal(row);
+                                setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', period_label: '' });
+                              }}>Record Payment</button>
+                            </div>
                           </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Payment History */}
+                  {feePayments.length > 0 && (
+                    <>
+                      <div className="card fee-table-desktop" style={{ marginTop: '20px' }}>
+                        <div className="card-header">Recent Payments</div>
+                        <div className="card-body" style={{ padding: 0 }}>
+                          <SortableTable
+                            columns={[
+                              { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
+                              { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
+                              { key: 'amount_paid', label: 'Amount', sortable: true, sortType: 'number',
+                                render: (row) => formatCurrency(row.amount_paid) },
+                              { key: 'payment_date', label: 'Date', sortable: true, sortType: 'string',
+                                render: (row) => new Date(row.payment_date).toLocaleDateString() },
+                              { key: 'payment_method', label: 'Method', sortable: true, sortType: 'string',
+                                render: (row) => ({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method) },
+                              { key: 'period_label', label: 'Period', sortable: false },
+                              { key: 'actions', label: '', sortable: false,
+                                render: (row) => (
+                                  <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleVoidPayment(row.id)}>Void</button>
+                                )}
+                            ]}
+                            data={feePayments}
+                            pagination
+                            pageSize={10}
+                            emptyMessage="No payments recorded"
+                          />
                         </div>
-                        <div className="fee-mobile-cards" style={{ marginTop: '20px' }}>
-                          <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: '#0a0a0a' }}>Recent Payments</div>
-                          {feePayments.map(row => (
-                            <div key={row.id} className="admin-mobile-card">
-                              <div className="admin-mobile-card-top">
-                                <div>
-                                  <div className="admin-mobile-card-title">{row.student_name}</div>
-                                  <div className="admin-mobile-card-sub">{row.template_name} &middot; {({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method)}</div>
-                                </div>
-                                <div style={{ textAlign: 'right' }}>
-                                  <div style={{ fontWeight: 600, fontSize: '15px' }}>{formatCurrency(row.amount_paid)}</div>
-                                  <div className="admin-mobile-card-sub">{new Date(row.payment_date).toLocaleDateString()}</div>
-                                </div>
+                      </div>
+                      <div className="fee-mobile-cards" style={{ marginTop: '20px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: '#0a0a0a' }}>Recent Payments</div>
+                        {feePayments.map(row => (
+                          <div key={row.id} className="admin-mobile-card">
+                            <div className="admin-mobile-card-top">
+                              <div>
+                                <div className="admin-mobile-card-title">{row.student_name}</div>
+                                <div className="admin-mobile-card-sub">{row.template_name} &middot; {({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method)}</div>
                               </div>
-                              {row.period_label && <div className="admin-mobile-card-sub" style={{ marginTop: '4px' }}>{row.period_label}</div>}
-                              <div className="admin-mobile-card-actions">
-                                <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleVoidPayment(row.id)}>Void</button>
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontWeight: 600, fontSize: '15px' }}>{formatCurrency(row.amount_paid)}</div>
+                                <div className="admin-mobile-card-sub">{new Date(row.payment_date).toLocaleDateString()}</div>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-              </>
+                            {row.period_label && <div className="admin-mobile-card-sub" style={{ marginTop: '4px' }}>{row.period_label}</div>}
+                            <div className="admin-mobile-card-actions">
+                              <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleVoidPayment(row.id)}>Void</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
               )}
             </>
           )}

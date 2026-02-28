@@ -1,21 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 import { authService } from '../services/auth.service';
 import { useMadrasah } from '../contexts/MadrasahContext';
 import './Login.css';
-
-const COUNTRY_CODES = [
-  { code: '+64', label: 'NZ +64' },
-  { code: '+61', label: 'AU +61' },
-  { code: '+234', label: 'NG +234' },
-  { code: '+1', label: 'US +1' },
-  { code: '+44', label: 'UK +44' },
-  { code: '+91', label: 'IN +91' },
-  { code: '+92', label: 'PK +92' },
-  { code: '+27', label: 'ZA +27' },
-  { code: '+60', label: 'MY +60' },
-  { code: '+62', label: 'ID +62' },
-];
 
 function ParentLogin() {
   const { madrasahSlug } = useParams();
@@ -30,9 +19,20 @@ function ParentLogin() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const handlePhoneChange = (value, country) => {
+    const dialCode = country.dialCode;
+    setPhoneCountryCode('+' + dialCode);
+    setPhone(value.substring(dialCode.length));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!phone) {
+      setError('Phone number is required');
+      return;
+    }
 
     if (!/^\d{6}$/.test(pin)) {
       setError('PIN must be exactly 6 digits');
@@ -85,28 +85,18 @@ function ParentLogin() {
           )}
 
           <div className="field">
-            <label htmlFor="phone">Phone Number</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <select
-                value={phoneCountryCode}
-                onChange={(e) => setPhoneCountryCode(e.target.value)}
-                style={{ width: '110px', flexShrink: 0 }}
-              >
-                {COUNTRY_CODES.map(cc => (
-                  <option key={cc.code} value={cc.code}>{cc.label}</option>
-                ))}
-              </select>
-              <input
-                id="phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, ''))}
-                placeholder="Phone number"
-                required
-                autoComplete="tel"
-                style={{ flex: 1 }}
-              />
-            </div>
+            <label>Phone Number</label>
+            <PhoneInput
+              country={'nz'}
+              value={phoneCountryCode.replace('+', '') + phone}
+              onChange={handlePhoneChange}
+              inputProps={{
+                required: true,
+                autoComplete: 'tel'
+              }}
+              containerStyle={{ width: '100%' }}
+              inputStyle={{ width: '100%', height: '44px', fontSize: '16px' }}
+            />
             <small style={{ color: '#737373', marginTop: '4px', display: 'block' }}>
               Use the phone number your school has on file
             </small>

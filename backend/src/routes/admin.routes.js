@@ -797,6 +797,31 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
   }
 });
 
+// Bulk set expected fee for multiple students (must be before /students/:id)
+router.put('/students/bulk-fee', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { student_ids, expected_fee, fee_note } = req.body;
+
+    if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) {
+      return res.status(400).json({ error: 'Select at least one student' });
+    }
+    if (expected_fee == null || parseFloat(expected_fee) < 0) {
+      return res.status(400).json({ error: 'Expected fee must be 0 or greater' });
+    }
+
+    await pool.query(
+      `UPDATE students SET expected_fee = ?, fee_note = ? WHERE id IN (?) AND madrasah_id = ? AND deleted_at IS NULL`,
+      [parseFloat(expected_fee), fee_note || null, student_ids, madrasahId]
+    );
+
+    res.json({ message: `Expected fee updated for ${student_ids.length} student(s)` });
+  } catch (error) {
+    console.error('Failed to bulk update fees:', error);
+    res.status(500).json({ error: 'Failed to update fees' });
+  }
+});
+
 // Update student (scoped to madrasah)
 router.put('/students/:id', requireActiveSubscription, async (req, res) => {
   try {
@@ -2339,31 +2364,6 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
 // ============================================
 // FEE TRACKING
 // ============================================
-
-// Bulk set expected fee for multiple students
-router.put('/students/bulk-fee', requireActiveSubscription, async (req, res) => {
-  try {
-    const madrasahId = req.madrasahId;
-    const { student_ids, expected_fee, fee_note } = req.body;
-
-    if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) {
-      return res.status(400).json({ error: 'Select at least one student' });
-    }
-    if (expected_fee == null || parseFloat(expected_fee) < 0) {
-      return res.status(400).json({ error: 'Expected fee must be 0 or greater' });
-    }
-
-    await pool.query(
-      `UPDATE students SET expected_fee = ?, fee_note = ? WHERE id IN (?) AND madrasah_id = ? AND deleted_at IS NULL`,
-      [parseFloat(expected_fee), fee_note || null, student_ids, madrasahId]
-    );
-
-    res.json({ message: `Expected fee updated for ${student_ids.length} student(s)` });
-  } catch (error) {
-    console.error('Failed to bulk update fees:', error);
-    res.status(500).json({ error: 'Failed to update fees' });
-  }
-});
 
 // List fee payments
 router.get('/fee-payments', async (req, res) => {

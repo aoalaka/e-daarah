@@ -773,33 +773,18 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
       }
     }
 
-    // Generate parent access code (PIN) only for Plus/Enterprise/Trial plans
-    const [madrasahRows] = await pool.query('SELECT pricing_plan, subscription_status FROM madrasahs WHERE id = ?', [madrasahId]);
-    const plan = madrasahRows[0]?.pricing_plan;
-    const subStatus = madrasahRows[0]?.subscription_status;
-    const hasParentPortal = plan === 'plus' || plan === 'enterprise' || (plan === 'trial' && subStatus === 'trialing');
-
-    let accessCode = null;
-    let hashedAccessCode = null;
-    if (hasParentPortal) {
-      accessCode = generateAccessCode();
-      hashedAccessCode = await bcrypt.hash(accessCode, 10);
-    }
-
     const [result] = await pool.query(
       `INSERT INTO students (madrasah_id, first_name, last_name, student_id, gender, email, class_id,
        student_phone, student_phone_country_code, street, city, state, country, date_of_birth,
-       parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes, parent_access_code)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [madrasahId, first_name, last_name, student_id, gender, email, class_id || null,
        student_phone, student_phone_country_code, street, city, state, country, date_of_birth,
        parent_guardian_name, parent_guardian_relationship,
        normalizePhone(parent_guardian_phone, parent_guardian_phone_country_code),
-       parent_guardian_phone_country_code, notes, hashedAccessCode]
+       parent_guardian_phone_country_code, notes]
     );
-    const responseData = { id: result.insertId, first_name, last_name, student_id };
-    if (accessCode) responseData.access_code = accessCode;
-    res.status(201).json(responseData);
+    res.status(201).json({ id: result.insertId, first_name, last_name, student_id });
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ error: 'Student ID already exists in this madrasah' });
@@ -940,41 +925,56 @@ router.post('/students/bulk-delete', requireActiveSubscription, async (req, res)
   }
 });
 
-// Regenerate parent access code for a student (scoped to madrasah, Plus only)
-router.post('/students/:id/regenerate-access-code', requireActiveSubscription, requirePlusPlan('Parent access codes'), async (req, res) => {
+// Reset parent PIN (scoped to madrasah, Plus only)
+router.post('/students/:id/reset-parent-pin', requireActiveSubscription, requirePlusPlan('Parent portal'), async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
 
-    // Verify student belongs to this madrasah
+    // Get student and their parent phone
     const [students] = await pool.query(
-      'SELECT id, first_name, last_name, student_id FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      'SELECT id, first_name, last_name, student_id, parent_guardian_phone, parent_guardian_phone_country_code FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
       [id, madrasahId]
     );
-    if (students.length === 0) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-
-    const accessCode = generateAccessCode();
-    const hashedAccessCode = await bcrypt.hash(accessCode, 10);
-
-    await pool.query(
-      'UPDATE students SET parent_access_code = ? WHERE id = ? AND madrasah_id = ?',
-      [hashedAccessCode, id, madrasahId]
-    );
+    if (students.length === 0) return res.status(404).json({ error: 'Student not found' });
 
     const student = students[0];
+    if (!student.parent_guardian_phone) {
+      return res.status(400).json({ error: 'This student has no parent phone number on file' });
+    }
+
+    const phone = normalizePhone(student.parent_guardian_phone, student.parent_guardian_phone_country_code);
+    const phoneCountryCode = student.parent_guardian_phone_country_code;
+
+    // Find the parent_user
+    const [parents] = await pool.query(
+      'SELECT id FROM parent_users WHERE madrasah_id = ? AND phone = ? AND phone_country_code = ?',
+      [madrasahId, phone, phoneCountryCode]
+    );
+    if (parents.length === 0) {
+      return res.status(404).json({ error: 'No parent account found for this phone number. The parent may not have registered yet.' });
+    }
+
+    // Generate new PIN and update
+    const newPin = generateAccessCode(); // reuse 6-digit generator
+    const pinHash = await bcrypt.hash(newPin, 10);
+    await pool.query(
+      'UPDATE parent_users SET pin_hash = ? WHERE id = ?',
+      [pinHash, parents[0].id]
+    );
+
     res.json({
-      message: 'Parent access code regenerated successfully',
-      student_id: student.student_id,
+      message: 'Parent PIN reset successfully',
       student_name: `${student.first_name} ${student.last_name}`,
-      access_code: accessCode
+      parent_phone: `${phoneCountryCode} ${student.parent_guardian_phone}`,
+      new_pin: newPin
     });
   } catch (error) {
-    console.error('Failed to regenerate access code:', error);
-    res.status(500).json({ error: 'Failed to regenerate access code' });
+    console.error('Failed to reset parent PIN:', error);
+    res.status(500).json({ error: 'Failed to reset parent PIN' });
   }
 });
+
 
 // Get class KPIs with high-risk students (scoped to madrasah)
 router.get('/classes/:classId/kpis', async (req, res) => {

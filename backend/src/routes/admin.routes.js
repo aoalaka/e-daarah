@@ -925,15 +925,14 @@ router.post('/students/bulk-delete', requireActiveSubscription, async (req, res)
   }
 });
 
-// Reset parent PIN (scoped to madrasah, Plus only)
+// Reset parent account — deletes parent_users row so parent can re-register with a new PIN
 router.post('/students/:id/reset-parent-pin', requireActiveSubscription, requirePlusPlan('Parent portal'), async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
 
-    // Get student and their parent phone
     const [students] = await pool.query(
-      'SELECT id, first_name, last_name, student_id, parent_guardian_phone, parent_guardian_phone_country_code FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      'SELECT id, first_name, last_name, parent_guardian_phone, parent_guardian_phone_country_code FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
       [id, madrasahId]
     );
     if (students.length === 0) return res.status(404).json({ error: 'Student not found' });
@@ -944,34 +943,20 @@ router.post('/students/:id/reset-parent-pin', requireActiveSubscription, require
     }
 
     const phone = normalizePhone(student.parent_guardian_phone, student.parent_guardian_phone_country_code);
-    const phoneCountryCode = student.parent_guardian_phone_country_code;
 
-    // Find the parent_user
-    const [parents] = await pool.query(
-      'SELECT id FROM parent_users WHERE madrasah_id = ? AND phone = ? AND phone_country_code = ?',
-      [madrasahId, phone, phoneCountryCode]
+    const [result] = await pool.query(
+      'DELETE FROM parent_users WHERE madrasah_id = ? AND phone = ? AND phone_country_code = ?',
+      [madrasahId, phone, student.parent_guardian_phone_country_code]
     );
-    if (parents.length === 0) {
+
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'No parent account found for this phone number. The parent may not have registered yet.' });
     }
 
-    // Generate new PIN and update
-    const newPin = generateAccessCode(); // reuse 6-digit generator
-    const pinHash = await bcrypt.hash(newPin, 10);
-    await pool.query(
-      'UPDATE parent_users SET pin_hash = ? WHERE id = ?',
-      [pinHash, parents[0].id]
-    );
-
-    res.json({
-      message: 'Parent PIN reset successfully',
-      student_name: `${student.first_name} ${student.last_name}`,
-      parent_phone: `${phoneCountryCode} ${student.parent_guardian_phone}`,
-      new_pin: newPin
-    });
+    res.json({ message: 'Parent account reset. The parent can now set up a new PIN on the login page.' });
   } catch (error) {
-    console.error('Failed to reset parent PIN:', error);
-    res.status(500).json({ error: 'Failed to reset parent PIN' });
+    console.error('Failed to reset parent account:', error);
+    res.status(500).json({ error: 'Failed to reset parent account' });
   }
 });
 

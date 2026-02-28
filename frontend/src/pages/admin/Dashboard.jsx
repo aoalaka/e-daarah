@@ -148,6 +148,8 @@ function AdminDashboard() {
   const [bulkFeeAmount, setBulkFeeAmount] = useState('');
   const [bulkFeeNote, setBulkFeeNote] = useState('');
   const [selectedStudentsForFee, setSelectedStudentsForFee] = useState([]);
+  const [editingFee, setEditingFee] = useState(null);
+  const [bulkFeeClassFilter, setBulkFeeClassFilter] = useState('');
   // Support tickets state
   const [supportTickets, setSupportTickets] = useState([]);
   const [showTicketForm, setShowTicketForm] = useState(false);
@@ -478,6 +480,37 @@ function AdminDashboard() {
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to set fees');
     }
+  };
+
+  const handleUpdateFee = async () => {
+    if (isReadOnly() || !editingFee) return;
+    try {
+      await api.put(`/admin/students/${editingFee.student_id}/fee`, {
+        expected_fee: editingFee.expected_fee ? parseFloat(editingFee.expected_fee) : null,
+        fee_note: editingFee.fee_note || null
+      });
+      toast.success('Expected fee updated');
+      setEditingFee(null);
+      loadFeeSummary();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to update fee');
+    }
+  };
+
+  const handleClearFee = (row) => {
+    if (isReadOnly()) return;
+    showConfirmDialog({
+      title: 'Clear Expected Fee',
+      message: `Remove the expected fee for ${row.student_name}? This student will no longer appear in the Fees tab.`,
+      confirmText: 'Clear Fee',
+      onConfirm: async () => {
+        try {
+          await api.put(`/admin/students/${row.student_id}/fee`, { expected_fee: null, fee_note: null });
+          toast.success('Fee cleared');
+          loadFeeSummary();
+        } catch (error) { toast.error('Failed to clear fee'); }
+      }
+    });
   };
 
   const handleCreateSession = async (e) => {
@@ -3739,6 +3772,7 @@ function AdminDashboard() {
                   setSelectedStudentsForFee([]);
                   setBulkFeeAmount('');
                   setBulkFeeNote('');
+                  setBulkFeeClassFilter('');
                   setShowBulkFeeModal(true);
                 }}>Set Expected Fee</button>
               </div>
@@ -3799,10 +3833,14 @@ function AdminDashboard() {
                               render: (row) => <FeeProgressBar paid={row.total_paid} total={row.total_fee} /> },
                             { key: 'actions', label: '', sortable: false,
                               render: (row) => (
-                                <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
-                                  setShowPaymentModal(row);
-                                  setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '' });
-                                }}>Record Payment</button>
+                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                                  <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
+                                    setShowPaymentModal(row);
+                                    setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '', _labelCategory: '' });
+                                  }}>Pay</button>
+                                  <button className="btn btn-sm btn-secondary" disabled={isReadOnly()} onClick={() => setEditingFee({ student_id: row.student_id, expected_fee: row.total_fee, fee_note: row.fee_note || '', student_name: row.student_name })} title="Edit fee">Edit</button>
+                                  <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleClearFee(row)} title="Clear fee">×</button>
+                                </div>
                               )}
                           ]}
                           data={feeSummary}
@@ -3841,8 +3879,10 @@ function AdminDashboard() {
                             <div className="admin-mobile-card-actions">
                               <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
                                 setShowPaymentModal(row);
-                                setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '' });
+                                setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '', _labelCategory: '' });
                               }}>Record Payment</button>
+                              <button className="btn btn-sm btn-secondary" disabled={isReadOnly()} onClick={() => setEditingFee({ student_id: row.student_id, expected_fee: row.total_fee, fee_note: row.fee_note || '', student_name: row.student_name })}>Edit Fee</button>
+                              <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleClearFee(row)}>Clear</button>
                             </div>
                           </div>
                         ))}
@@ -7044,7 +7084,41 @@ function AdminDashboard() {
         </main>
       </div>
 
-      {/* Record Payment Modal */}
+      {/* Edit Fee Modal */}
+      {editingFee && (
+        <div className="modal-overlay" onClick={() => setEditingFee(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Edit Expected Fee</h3>
+              <button onClick={() => setEditingFee(null)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--lighter)', borderRadius: 'var(--radius)' }}>
+                <strong>{editingFee.student_name}</strong>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Expected Fee</label>
+                <input type="number" className="form-input" step="0.01" min="0" placeholder="0.00"
+                  value={editingFee.expected_fee}
+                  onChange={(e) => setEditingFee({ ...editingFee, expected_fee: e.target.value })}
+                  autoFocus />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Note (optional)</label>
+                <input type="text" className="form-input" placeholder="e.g. Scholarship 50%"
+                  value={editingFee.fee_note}
+                  onChange={(e) => setEditingFee({ ...editingFee, fee_note: e.target.value })} />
+              </div>
+              <div className="form-actions">
+                <button type="button" onClick={() => setEditingFee(null)} className="btn btn-secondary">Cancel</button>
+                <button type="button" className="btn btn-primary" onClick={handleUpdateFee}
+                  disabled={!editingFee.expected_fee || parseFloat(editingFee.expected_fee) < 0}>Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bulk Fee Modal */}
       {showBulkFeeModal && (
         <div className="modal-overlay" onClick={() => setShowBulkFeeModal(false)}>
@@ -7059,38 +7133,53 @@ function AdminDashboard() {
               </p>
               <div className="form-group">
                 <label className="form-label">Select Students</label>
-                <div style={{ maxHeight: '240px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                    <thead>
-                      <tr style={{ position: 'sticky', top: 0, background: 'var(--lighter, #f9fafb)', borderBottom: '1px solid var(--border)' }}>
-                        <th style={{ width: '36px', padding: '8px', textAlign: 'center' }}>
-                          <input type="checkbox"
-                            checked={students.length > 0 && selectedStudentsForFee.length === students.length}
-                            onChange={(e) => setSelectedStudentsForFee(e.target.checked ? students.map(s => s.id) : [])} />
-                        </th>
-                        <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600 }}>Name</th>
-                        <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: 'var(--gray)' }}>Class</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map(s => (
-                        <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                          onClick={() => setSelectedStudentsForFee(prev =>
-                            prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
-                          )}>
-                          <td style={{ padding: '6px 8px', textAlign: 'center' }}>
-                            <input type="checkbox" checked={selectedStudentsForFee.includes(s.id)} readOnly />
-                          </td>
-                          <td style={{ padding: '6px 8px' }}>{s.first_name} {s.last_name}</td>
-                          <td style={{ padding: '6px 8px', color: 'var(--gray)', fontSize: '13px' }}>{s.class_name || ''}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {selectedStudentsForFee.length > 0 && (
-                  <div style={{ fontSize: '13px', color: 'var(--gray)', marginTop: '4px' }}>{selectedStudentsForFee.length} student{selectedStudentsForFee.length !== 1 ? 's' : ''} selected</div>
-                )}
+                <select className="form-select" style={{ marginBottom: '8px' }} value={bulkFeeClassFilter}
+                  onChange={(e) => setBulkFeeClassFilter(e.target.value)}>
+                  <option value="">All Classes</option>
+                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                {(() => {
+                  const filtered = bulkFeeClassFilter ? students.filter(s => String(s.class_id) === bulkFeeClassFilter) : students;
+                  const filteredIds = filtered.map(s => s.id);
+                  return (
+                    <>
+                      <div style={{ maxHeight: '240px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                          <thead>
+                            <tr style={{ position: 'sticky', top: 0, background: 'var(--lighter, #f9fafb)', borderBottom: '1px solid var(--border)' }}>
+                              <th style={{ width: '36px', padding: '8px', textAlign: 'center' }}>
+                                <input type="checkbox"
+                                  checked={filtered.length > 0 && filtered.every(s => selectedStudentsForFee.includes(s.id))}
+                                  onChange={(e) => setSelectedStudentsForFee(prev =>
+                                    e.target.checked ? [...new Set([...prev, ...filteredIds])] : prev.filter(id => !filteredIds.includes(id))
+                                  )} />
+                              </th>
+                              <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600 }}>Name</th>
+                              {!bulkFeeClassFilter && <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: 'var(--gray)' }}>Class</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filtered.map(s => (
+                              <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                                onClick={() => setSelectedStudentsForFee(prev =>
+                                  prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                )}>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                                  <input type="checkbox" checked={selectedStudentsForFee.includes(s.id)} readOnly />
+                                </td>
+                                <td style={{ padding: '6px 8px' }}>{s.first_name} {s.last_name}</td>
+                                {!bulkFeeClassFilter && <td style={{ padding: '6px 8px', color: 'var(--gray)', fontSize: '13px' }}>{s.class_name || ''}</td>}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {selectedStudentsForFee.length > 0 && (
+                        <div style={{ fontSize: '13px', color: 'var(--gray)', marginTop: '4px' }}>{selectedStudentsForFee.length} student{selectedStudentsForFee.length !== 1 ? 's' : ''} selected</div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               <div className="form-grid form-grid-2">
                 <div className="form-group">
@@ -7159,36 +7248,82 @@ function AdminDashboard() {
                       <option value="other">Other</option>
                     </select>
                   </div>
-                  <div className="form-group">
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                     <label className="form-label">Payment For</label>
-                    <select className="form-select" value={newPayment.payment_label}
-                      onChange={(e) => setNewPayment({ ...newPayment, payment_label: e.target.value === '__custom__' ? '' : e.target.value, _customLabel: e.target.value === '__custom__' })}>
-                      <option value="">— Select —</option>
-                      <optgroup label="Monthly">
-                        {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => <option key={m} value={m}>{m}</option>)}
-                      </optgroup>
-                      <optgroup label="Weekly">
-                        {Array.from({length: 52}, (_, i) => <option key={`w${i+1}`} value={`Week ${i+1}`}>Week {i+1}</option>)}
-                      </optgroup>
-                      <optgroup label="Instalment">
-                        {Array.from({length: 12}, (_, i) => <option key={`inst${i+1}`} value={`Instalment ${i+1}`}>Instalment {i+1}</option>)}
-                      </optgroup>
-                      <optgroup label="Other">
-                        <option value="Registration">Registration</option>
-                        <option value="Exam Fee">Exam Fee</option>
-                        <option value="__custom__">Custom...</option>
-                      </optgroup>
-                    </select>
-                  </div>
-                  {newPayment._customLabel && (
-                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                      <label className="form-label">Custom Label</label>
-                      <input type="text" className="form-input" placeholder="e.g. Semester 1 2025"
+                    {/* Category chips */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                      {[{ key: 'monthly', label: 'Monthly' }, { key: 'weekly', label: 'Weekly' }, { key: 'instalment', label: 'Instalment' }, { key: 'other', label: 'Other' }].map(cat => (
+                        <button key={cat.key} type="button"
+                          style={{ padding: '6px 14px', borderRadius: '20px', border: '1px solid var(--border)', background: newPayment._labelCategory === cat.key ? 'var(--primary, #404040)' : 'var(--lighter, #f9fafb)', color: newPayment._labelCategory === cat.key ? '#fff' : 'inherit', fontSize: '13px', cursor: 'pointer', minHeight: '36px' }}
+                          onClick={() => setNewPayment({ ...newPayment, _labelCategory: newPayment._labelCategory === cat.key ? '' : cat.key, payment_label: '', _customLabel: false })}>
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Value chips based on category */}
+                    {newPayment._labelCategory === 'monthly' && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => {
+                          const full = ['January','February','March','April','May','June','July','August','September','October','November','December'][i];
+                          return (
+                            <button key={m} type="button"
+                              style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: newPayment.payment_label === full ? 'var(--primary, #404040)' : '#fff', color: newPayment.payment_label === full ? '#fff' : 'inherit', fontSize: '13px', cursor: 'pointer', minHeight: '36px' }}
+                              onClick={() => setNewPayment({ ...newPayment, payment_label: full })}>
+                              {m}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {newPayment._labelCategory === 'weekly' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px' }}>Week</span>
+                        <input type="number" className="form-input" min="1" max="52" placeholder="1-52"
+                          style={{ width: '80px' }}
+                          value={newPayment.payment_label ? newPayment.payment_label.replace('Week ', '') : ''}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value);
+                            setNewPayment({ ...newPayment, payment_label: n && n >= 1 && n <= 52 ? `Week ${n}` : '' });
+                          }} />
+                      </div>
+                    )}
+                    {newPayment._labelCategory === 'instalment' && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {Array.from({length: 12}, (_, i) => i + 1).map(n => (
+                          <button key={n} type="button"
+                            style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: newPayment.payment_label === `Instalment ${n}` ? 'var(--primary, #404040)' : '#fff', color: newPayment.payment_label === `Instalment ${n}` ? '#fff' : 'inherit', fontSize: '13px', cursor: 'pointer', minWidth: '44px', minHeight: '36px', textAlign: 'center' }}
+                            onClick={() => setNewPayment({ ...newPayment, payment_label: `Instalment ${n}` })}>
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {newPayment._labelCategory === 'other' && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {['Registration', 'Exam Fee'].map(label => (
+                          <button key={label} type="button"
+                            style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: newPayment.payment_label === label ? 'var(--primary, #404040)' : '#fff', color: newPayment.payment_label === label ? '#fff' : 'inherit', fontSize: '13px', cursor: 'pointer', minHeight: '36px' }}
+                            onClick={() => setNewPayment({ ...newPayment, payment_label: label, _customLabel: false })}>
+                            {label}
+                          </button>
+                        ))}
+                        <button type="button"
+                          style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: newPayment._customLabel ? 'var(--primary, #404040)' : '#fff', color: newPayment._customLabel ? '#fff' : 'inherit', fontSize: '13px', cursor: 'pointer', minHeight: '36px' }}
+                          onClick={() => setNewPayment({ ...newPayment, _customLabel: true, payment_label: '' })}>
+                          Custom
+                        </button>
+                      </div>
+                    )}
+                    {newPayment._customLabel && (
+                      <input type="text" className="form-input" placeholder="e.g. Semester 1 2025" style={{ marginTop: '8px' }}
                         value={newPayment.payment_label}
                         onChange={(e) => setNewPayment({ ...newPayment, payment_label: e.target.value })}
                         autoFocus />
-                    </div>
-                  )}
+                    )}
+                    {newPayment.payment_label && (
+                      <div style={{ fontSize: '13px', color: 'var(--gray)', marginTop: '6px' }}>Selected: <strong>{newPayment.payment_label}</strong></div>
+                    )}
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Reference / Note</label>

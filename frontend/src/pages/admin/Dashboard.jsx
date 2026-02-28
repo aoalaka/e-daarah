@@ -7059,24 +7059,34 @@ function AdminDashboard() {
               </p>
               <div className="form-group">
                 <label className="form-label">Select Students</label>
-                <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 4px', cursor: 'pointer', fontWeight: 600, borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
-                    <input type="checkbox"
-                      checked={students.length > 0 && selectedStudentsForFee.length === students.length}
-                      onChange={(e) => setSelectedStudentsForFee(e.target.checked ? students.map(s => s.id) : [])} />
-                    Select All
-                  </label>
-                  {students.map(s => (
-                    <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px', cursor: 'pointer' }}>
-                      <input type="checkbox"
-                        checked={selectedStudentsForFee.includes(s.id)}
-                        onChange={(e) => setSelectedStudentsForFee(prev =>
-                          e.target.checked ? [...prev, s.id] : prev.filter(id => id !== s.id)
-                        )} />
-                      {s.first_name} {s.last_name}
-                      <span style={{ fontSize: '12px', color: 'var(--gray)', marginLeft: 'auto' }}>{s.class_name || ''}</span>
-                    </label>
-                  ))}
+                <div style={{ maxHeight: '240px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                    <thead>
+                      <tr style={{ position: 'sticky', top: 0, background: 'var(--lighter, #f9fafb)', borderBottom: '1px solid var(--border)' }}>
+                        <th style={{ width: '36px', padding: '8px', textAlign: 'center' }}>
+                          <input type="checkbox"
+                            checked={students.length > 0 && selectedStudentsForFee.length === students.length}
+                            onChange={(e) => setSelectedStudentsForFee(e.target.checked ? students.map(s => s.id) : [])} />
+                        </th>
+                        <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600 }}>Name</th>
+                        <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: 'var(--gray)' }}>Class</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map(s => (
+                        <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                          onClick={() => setSelectedStudentsForFee(prev =>
+                            prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                          )}>
+                          <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                            <input type="checkbox" checked={selectedStudentsForFee.includes(s.id)} readOnly />
+                          </td>
+                          <td style={{ padding: '6px 8px' }}>{s.first_name} {s.last_name}</td>
+                          <td style={{ padding: '6px 8px', color: 'var(--gray)', fontSize: '13px' }}>{s.class_name || ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
                 {selectedStudentsForFee.length > 0 && (
                   <div style={{ fontSize: '13px', color: 'var(--gray)', marginTop: '4px' }}>{selectedStudentsForFee.length} student{selectedStudentsForFee.length !== 1 ? 's' : ''} selected</div>

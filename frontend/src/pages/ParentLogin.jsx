@@ -142,9 +142,12 @@ function ParentLogin() {
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', margin: '16px 0', fontSize: '14px', color: '#525252' }}>
+        <div style={{ textAlign: 'center', margin: '16px 0', fontSize: '14px', color: '#525252', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {mode === 'login' ? (
-            <span>First time? <button type="button" onClick={() => { setMode('register'); setError(''); }} style={{ background: 'none', border: 'none', color: '#0a0a0a', fontWeight: 500, cursor: 'pointer', padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}>Set up your account</button></span>
+            <>
+              <span>Forgot your PIN? Contact your school to reset it.</span>
+              <span>First time? <button type="button" onClick={() => { setMode('register'); setError(''); }} style={{ background: 'none', border: 'none', color: '#0a0a0a', fontWeight: 500, cursor: 'pointer', padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}>Set up your account</button></span>
+            </>
           ) : (
             <span>Already have an account? <button type="button" onClick={() => { setMode('login'); setError(''); }} style={{ background: 'none', border: 'none', color: '#0a0a0a', fontWeight: 500, cursor: 'pointer', padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}>Sign in</button></span>
           )}

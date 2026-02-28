@@ -869,15 +869,7 @@ function AdminDashboard() {
         await api.put(`/admin/students/${editingStudent.id}`, newStudent);
         setEditingStudent(null);
       } else {
-        const response = await api.post('/admin/students', newStudent);
-        // Show the generated access code to admin (Plus/Enterprise/Trial only)
-        if (response.data.access_code && hasPlusAccess()) {
-          setAccessCodeModal({
-            studentName: `${newStudent.first_name} ${newStudent.last_name}`,
-            studentId: response.data.student_id,
-            accessCode: response.data.access_code
-          });
-        }
+        await api.post('/admin/students', newStudent);
       }
       setShowStudentForm(false);
       setNewStudent({
@@ -936,13 +928,13 @@ function AdminDashboard() {
     }});
   };
 
-  const handleRegenerateAccessCode = (student) => {
+  const handleResetParentPin = (student) => {
     if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
-    setConfirmModal({ title: 'Regenerate Access Code', message: `Regenerate parent access code for ${student.first_name} ${student.last_name}? The old code will stop working.`, confirmLabel: 'Regenerate', onConfirm: async () => {
+    setConfirmModal({ title: 'Reset Parent PIN', message: `Reset the parent portal PIN for ${student.first_name} ${student.last_name}? The parent will need to use the new PIN to log in.`, confirmLabel: 'Reset PIN', onConfirm: async () => {
       try {
-        const response = await api.post(`/admin/students/${student.id}/regenerate-access-code`);
-        setAccessCodeModal({ studentName: response.data.student_name, studentId: response.data.student_id, accessCode: response.data.access_code });
-      } catch (error) { toast.error('Failed to regenerate access code'); }
+        const response = await api.post(`/admin/students/${student.id}/reset-parent-pin`);
+        setAccessCodeModal({ studentName: response.data.student_name, studentId: response.data.student_id, accessCode: response.data.new_pin, isPin: true, parentPhone: response.data.parent_phone });
+      } catch (error) { toast.error(error.response?.data?.error || 'Failed to reset parent PIN'); }
     }});
   };
 
@@ -3303,7 +3295,7 @@ function AdminDashboard() {
                       render: (row) => (
                         <div className="table-actions">
                           {hasPlusAccess() && (
-                            <button onClick={() => handleRegenerateAccessCode(row)} className="btn btn-sm btn-secondary" title="Regenerate parent access code">
+                            <button onClick={() => handleResetParentPin(row)} className="btn btn-sm btn-secondary" title="Reset parent PIN">
                               🔑
                             </button>
                           )}
@@ -7330,24 +7322,28 @@ function AdminDashboard() {
         </main>
       </div>
 
-      {/* Parent Access Code Modal */}
+      {/* Parent PIN / Access Code Modal */}
       {accessCodeModal && (
         <div className="modal-overlay" onClick={() => setAccessCodeModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">Parent Access Code</h3>
+              <h3 className="modal-title">{accessCodeModal.isPin ? 'New Parent PIN' : 'Parent Access Code'}</h3>
               <button onClick={() => setAccessCodeModal(null)} className="modal-close">×</button>
             </div>
             <div className="modal-body" style={{ textAlign: 'center' }}>
               <p style={{ marginBottom: '12px' }}>
                 <strong>{accessCodeModal.studentName}</strong>
-                <br />
-                <span style={{ color: 'var(--muted)' }}>Student ID: {accessCodeModal.studentId}</span>
+                {accessCodeModal.parentPhone && (
+                  <>
+                    <br />
+                    <span style={{ color: 'var(--muted)' }}>{accessCodeModal.parentPhone}</span>
+                  </>
+                )}
               </p>
               <div style={{
-                background: 'var(--bg)', 
+                background: 'var(--bg)',
                 border: '2px dashed var(--accent)',
-                borderRadius: '8px', 
+                borderRadius: '8px',
                 padding: '16px',
                 margin: '12px 0',
                 fontSize: '28px',
@@ -7358,18 +7354,20 @@ function AdminDashboard() {
                 {accessCodeModal.accessCode}
               </div>
               <p style={{ fontSize: '13px', color: '#0a0a0a', margin: '12px 0' }}>
-                ⚠️ Save this code now — it cannot be retrieved later.
-                <br />Share it with the parent/guardian for portal access.
+                {accessCodeModal.isPin
+                  ? <>Share this PIN with the parent. They can use it to log in to the parent portal and then change it if needed.</>
+                  : <>Save this code now — it cannot be retrieved later.<br />Share it with the parent/guardian for portal access.</>
+                }
               </p>
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(accessCodeModal.accessCode);
-                  toast.success('Access code copied to clipboard');
+                  toast.success(accessCodeModal.isPin ? 'PIN copied to clipboard' : 'Access code copied to clipboard');
                 }}
                 className="btn btn-secondary"
                 style={{ marginRight: '8px' }}
               >
-                📋 Copy Code
+                📋 Copy {accessCodeModal.isPin ? 'PIN' : 'Code'}
               </button>
               <button onClick={() => setAccessCodeModal(null)} className="btn btn-primary">
                 Done

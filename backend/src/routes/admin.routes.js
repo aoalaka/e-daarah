@@ -823,6 +823,27 @@ router.put('/students/bulk-fee', requireActiveSubscription, async (req, res) => 
   }
 });
 
+// Update expected fee for a single student
+router.put('/students/:id/fee', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    const { expected_fee, fee_note } = req.body;
+
+    const [check] = await pool.query('SELECT id FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [id, madrasahId]);
+    if (check.length === 0) return res.status(404).json({ error: 'Student not found' });
+
+    await pool.query(
+      'UPDATE students SET expected_fee = ?, fee_note = ? WHERE id = ? AND madrasah_id = ?',
+      [expected_fee != null ? parseFloat(expected_fee) : null, fee_note || null, id, madrasahId]
+    );
+    res.json({ message: 'Fee updated' });
+  } catch (error) {
+    console.error('Failed to update student fee:', error);
+    res.status(500).json({ error: 'Failed to update fee' });
+  }
+});
+
 // Update student (scoped to madrasah)
 router.put('/students/:id', requireActiveSubscription, async (req, res) => {
   try {

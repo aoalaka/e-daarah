@@ -53,8 +53,9 @@ function AdminDashboard() {
     first_name: '', last_name: '', student_id: '', gender: '', class_id: '',
     student_phone: '', student_phone_country_code: '+64',
     street: '', city: '', state: '', country: '',
-    parent_guardian_name: '', parent_guardian_relationship: '', 
-    parent_guardian_phone: '', parent_guardian_phone_country_code: '+64', notes: ''
+    parent_guardian_name: '', parent_guardian_relationship: '',
+    parent_guardian_phone: '', parent_guardian_phone_country_code: '+64', notes: '',
+    expected_fee: '', fee_note: ''
   });
   const [editingSession, setEditingSession] = useState(null);
   const [editingSemester, setEditingSemester] = useState(null);
@@ -137,20 +138,16 @@ function AdminDashboard() {
   const [promotionSubTab, setPromotionSubTab] = useState('promote');
   const [promotionSaving, setPromotionSaving] = useState(false);
   // Fee tracking state
-  const [feeView, setFeeView] = useState('collect');
-  const [feeTemplates, setFeeTemplates] = useState([]);
-  const [feeAssignments, setFeeAssignments] = useState([]);
   const [feeSummary, setFeeSummary] = useState([]);
   const [feePayments, setFeePayments] = useState([]);
   const [feeLoading, setFeeLoading] = useState(false);
-  const [showFeeTemplateForm, setShowFeeTemplateForm] = useState(false);
-  const [editingFeeTemplate, setEditingFeeTemplate] = useState(null);
-  const [newFeeTemplate, setNewFeeTemplate] = useState({ name: '', frequency: 'semester', items: [{ name: '', amount: '' }] });
-  const [showAssignForm, setShowAssignForm] = useState(false);
-  const [newAssignment, setNewAssignment] = useState({ fee_template_id: '', assign_type: 'class', class_ids: [], student_id: '' });
-  const [showPaymentModal, setShowPaymentModal] = useState(null); // { student_id, student_name, fee_template_id, template_name, total_fee, balance }
-  const [newPayment, setNewPayment] = useState({ amount_paid: '', payment_date: '', payment_method: 'cash', reference_note: '', period_label: '' });
+  const [showPaymentModal, setShowPaymentModal] = useState(null);
+  const [newPayment, setNewPayment] = useState({ amount_paid: '', payment_date: '', payment_method: 'cash', reference_note: '', payment_label: '' });
   const [feeClassFilter, setFeeClassFilter] = useState('');
+  const [showBulkFeeModal, setShowBulkFeeModal] = useState(false);
+  const [bulkFeeAmount, setBulkFeeAmount] = useState('');
+  const [bulkFeeNote, setBulkFeeNote] = useState('');
+  const [selectedStudentsForFee, setSelectedStudentsForFee] = useState([]);
   // Support tickets state
   const [supportTickets, setSupportTickets] = useState([]);
   const [showTicketForm, setShowTicketForm] = useState(false);
@@ -408,20 +405,6 @@ function AdminDashboard() {
   };
 
   // Fee data loading
-  const loadFeeTemplates = async () => {
-    try {
-      const res = await api.get('/admin/fee-templates');
-      setFeeTemplates(res.data || []);
-    } catch (error) { console.error('Failed to load fee templates:', error); }
-  };
-
-  const loadFeeAssignments = async () => {
-    try {
-      const res = await api.get('/admin/fee-assignments');
-      setFeeAssignments(res.data || []);
-    } catch (error) { console.error('Failed to load fee assignments:', error); }
-  };
-
   const loadFeeSummary = async () => {
     try {
       const params = feeClassFilter ? `?class_id=${feeClassFilter}` : '';
@@ -440,75 +423,8 @@ function AdminDashboard() {
 
   const loadFeeData = async () => {
     setFeeLoading(true);
-    await Promise.all([loadFeeTemplates(), loadFeeAssignments(), loadFeeSummary(), loadFeePayments()]);
+    await Promise.all([loadFeeSummary(), loadFeePayments()]);
     setFeeLoading(false);
-  };
-
-  // Fee template CRUD
-  const handleSaveFeeTemplate = async (e) => {
-    e.preventDefault();
-    if (isReadOnly()) return;
-    const validItems = newFeeTemplate.items.filter(i => i.name.trim() && parseFloat(i.amount) > 0);
-    if (validItems.length === 0) { toast.error('Add at least one item with name and amount'); return; }
-    try {
-      if (editingFeeTemplate) {
-        await api.put(`/admin/fee-templates/${editingFeeTemplate.id}`, { ...newFeeTemplate, items: validItems });
-        toast.success('Fee template updated');
-      } else {
-        await api.post('/admin/fee-templates', { ...newFeeTemplate, items: validItems });
-        toast.success('Fee template created');
-      }
-      setShowFeeTemplateForm(false);
-      setEditingFeeTemplate(null);
-      setNewFeeTemplate({ name: '', frequency: 'semester', items: [{ name: '', amount: '' }] });
-      loadFeeTemplates();
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to save fee template');
-    }
-  };
-
-  const handleDeleteFeeTemplate = (id) => {
-    setConfirmModal({ title: 'Delete Fee Template', message: 'Are you sure you want to delete this fee template?', danger: true, confirmLabel: 'Delete', onConfirm: async () => {
-      try { await api.delete(`/admin/fee-templates/${id}`); toast.success('Fee template deleted'); loadFeeTemplates(); }
-      catch (error) { toast.error('Failed to delete fee template'); }
-    }});
-  };
-
-  // Fee assignments
-  const handleCreateAssignment = async (e) => {
-    e.preventDefault();
-    if (isReadOnly()) return;
-    try {
-      if (newAssignment.assign_type === 'class') {
-        if (newAssignment.class_ids.length === 0) { toast.error('Select at least one class'); return; }
-        let succeeded = 0;
-        let failed = 0;
-        for (const classId of newAssignment.class_ids) {
-          try {
-            await api.post('/admin/fee-assignments', { fee_template_id: newAssignment.fee_template_id, class_id: classId });
-            succeeded++;
-          } catch { failed++; }
-        }
-        if (succeeded > 0) toast.success(`Fee assigned to ${succeeded} class${succeeded !== 1 ? 'es' : ''}`);
-        if (failed > 0) toast.error(`${failed} class${failed !== 1 ? 'es' : ''} already assigned or failed`);
-      } else {
-        await api.post('/admin/fee-assignments', { fee_template_id: newAssignment.fee_template_id, student_id: newAssignment.student_id });
-        toast.success('Fee assigned successfully');
-      }
-      setShowAssignForm(false);
-      setNewAssignment({ fee_template_id: '', assign_type: 'class', class_ids: [], student_id: '' });
-      loadFeeAssignments();
-      loadFeeSummary();
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to assign fee');
-    }
-  };
-
-  const handleDeleteAssignment = (id) => {
-    setConfirmModal({ title: 'Remove Assignment', message: 'Remove this fee assignment?', danger: true, confirmLabel: 'Remove', onConfirm: async () => {
-      try { await api.delete(`/admin/fee-assignments/${id}`); toast.success('Assignment removed'); loadFeeAssignments(); loadFeeSummary(); }
-      catch (error) { toast.error('Failed to remove assignment'); }
-    }});
   };
 
   // Fee payments
@@ -518,16 +434,15 @@ function AdminDashboard() {
     try {
       await api.post('/admin/fee-payments', {
         student_id: showPaymentModal.student_id,
-        fee_template_id: showPaymentModal.fee_template_id,
         amount_paid: parseFloat(newPayment.amount_paid),
         payment_date: newPayment.payment_date,
         payment_method: newPayment.payment_method,
         reference_note: newPayment.reference_note,
-        period_label: newPayment.period_label
+        payment_label: newPayment.payment_label
       });
       toast.success('Payment recorded');
       setShowPaymentModal(null);
-      setNewPayment({ amount_paid: '', payment_date: '', payment_method: 'cash', reference_note: '', period_label: '' });
+      setNewPayment({ amount_paid: '', payment_date: '', payment_method: 'cash', reference_note: '', payment_label: '' });
       loadFeeSummary();
       loadFeePayments();
     } catch (error) {
@@ -540,6 +455,29 @@ function AdminDashboard() {
       try { await api.delete(`/admin/fee-payments/${id}`); toast.success('Payment voided'); loadFeeSummary(); loadFeePayments(); }
       catch (error) { toast.error('Failed to void payment'); }
     }});
+  };
+
+  const handleBulkSetFee = async () => {
+    if (isReadOnly()) return;
+    if (selectedStudentsForFee.length === 0) { toast.error('Select at least one student'); return; }
+    if (!bulkFeeAmount || parseFloat(bulkFeeAmount) < 0) { toast.error('Enter a valid amount'); return; }
+    try {
+      await api.put('/admin/students/bulk-fee', {
+        student_ids: selectedStudentsForFee,
+        expected_fee: parseFloat(bulkFeeAmount),
+        fee_note: bulkFeeNote || null
+      });
+      toast.success(`Expected fee set for ${selectedStudentsForFee.length} student(s)`);
+      setShowBulkFeeModal(false);
+      setBulkFeeAmount('');
+      setBulkFeeNote('');
+      setSelectedStudentsForFee([]);
+      const res = await api.get('/admin/students');
+      setStudents(res.data || []);
+      loadFeeSummary();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to set fees');
+    }
   };
 
   const handleCreateSession = async (e) => {
@@ -877,7 +815,8 @@ function AdminDashboard() {
         student_phone: '', student_phone_country_code: '+64',
         street: '', city: '', state: '', country: '',
         parent_guardian_name: '', parent_guardian_relationship: '',
-        parent_guardian_phone: '', parent_guardian_phone_country_code: '+64', notes: ''
+        parent_guardian_phone: '', parent_guardian_phone_country_code: '+64', notes: '',
+        expected_fee: '', fee_note: ''
       });
       loadData();
     } catch (error) {
@@ -905,7 +844,9 @@ function AdminDashboard() {
       parent_guardian_relationship: student.parent_guardian_relationship || '',
       parent_guardian_phone: student.parent_guardian_phone || '',
       parent_guardian_phone_country_code: student.parent_guardian_phone_country_code || '+64',
-      notes: student.notes || ''
+      notes: student.notes || '',
+      expected_fee: student.expected_fee != null ? String(student.expected_fee) : '',
+      fee_note: student.fee_note || ''
     });
     setShowStudentForm(true);
   };
@@ -3185,6 +3126,26 @@ function AdminDashboard() {
                           />
                         </div>
                       </div>
+                      {madrasahProfile?.enable_fee_tracking && (
+                        <div className="form-grid form-grid-2">
+                          <div className="form-group">
+                            <label className="form-label">Expected Fee</label>
+                            <input type="number" className="form-input" step="0.01" min="0"
+                              value={newStudent.expected_fee}
+                              onChange={(e) => setNewStudent({ ...newStudent, expected_fee: e.target.value })}
+                              placeholder="e.g. 500.00"
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Fee Note</label>
+                            <input type="text" className="form-input"
+                              value={newStudent.fee_note}
+                              onChange={(e) => setNewStudent({ ...newStudent, fee_note: e.target.value })}
+                              placeholder="e.g. Scholarship 50%"
+                            />
+                          </div>
+                        </div>
+                      )}
                       <div className="form-group">
                         <label className="form-label">Notes</label>
                         <textarea
@@ -3774,256 +3735,17 @@ function AdminDashboard() {
             <>
               <div className="page-header no-print">
                 <h2 className="page-title">Fees</h2>
-              </div>
-
-              {/* Fee Internal Navigation */}
-              <div className="fee-nav">
-                <button className={`fee-nav-btn ${feeView === 'collect' ? 'active' : ''}`} onClick={() => setFeeView('collect')}>Collect</button>
-                <button className={`fee-nav-btn ${feeView === 'templates' ? 'active' : ''}`} onClick={() => setFeeView('templates')}>Templates</button>
-                <button className={`fee-nav-btn ${feeView === 'assign' ? 'active' : ''}`} onClick={() => setFeeView('assign')}>Assign</button>
+                <button className="btn btn-primary" disabled={isReadOnly()} onClick={() => {
+                  setSelectedStudentsForFee([]);
+                  setBulkFeeAmount('');
+                  setBulkFeeNote('');
+                  setShowBulkFeeModal(true);
+                }}>Set Expected Fee</button>
               </div>
 
               {feeLoading && <div className="loading-state"><div className="loading-spinner" /></div>}
 
-              {/* Templates View */}
-              {!feeLoading && feeView === 'templates' && (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-                    <button onClick={() => {
-                      setEditingFeeTemplate(null);
-                      setNewFeeTemplate({ name: '', frequency: 'semester', items: [{ name: '', amount: '' }] });
-                      setShowFeeTemplateForm(!showFeeTemplateForm);
-                    }} className="btn btn-primary" disabled={isReadOnly()}>
-                      + New Template
-                    </button>
-                  </div>
-
-                  {showFeeTemplateForm && (
-                    <div className="card" style={{ marginBottom: '20px' }}>
-                      <div className="card-header">{editingFeeTemplate ? 'Edit Fee Template' : 'Create Fee Template'}</div>
-                      <div className="card-body">
-                        <form onSubmit={handleSaveFeeTemplate}>
-                          <div className="form-grid form-grid-2">
-                            <div className="form-group">
-                              <label className="form-label">Template Name</label>
-                              <input type="text" className="form-input" placeholder="e.g. Standard Package"
-                                value={newFeeTemplate.name}
-                                onChange={(e) => setNewFeeTemplate({ ...newFeeTemplate, name: e.target.value })}
-                                required />
-                            </div>
-                            <div className="form-group">
-                              <label className="form-label">Frequency</label>
-                              <select className="form-select" value={newFeeTemplate.frequency}
-                                onChange={(e) => setNewFeeTemplate({ ...newFeeTemplate, frequency: e.target.value })}>
-                                <option value="daily">Daily</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                                <option value="semester">Per Semester</option>
-                                <option value="session">Per Session</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div className="fee-items-editor">
-                            <label className="form-label">Fee Items</label>
-                            {newFeeTemplate.items.map((item, idx) => (
-                              <div key={idx} className="fee-item-row">
-                                <input type="text" className="form-input" placeholder="Item name"
-                                  value={item.name}
-                                  onChange={(e) => {
-                                    const items = [...newFeeTemplate.items];
-                                    items[idx] = { ...items[idx], name: e.target.value };
-                                    setNewFeeTemplate({ ...newFeeTemplate, items });
-                                  }} />
-                                <input type="number" className="form-input" placeholder="Amount" step="0.01" min="0"
-                                  value={item.amount}
-                                  onChange={(e) => {
-                                    const items = [...newFeeTemplate.items];
-                                    items[idx] = { ...items[idx], amount: e.target.value };
-                                    setNewFeeTemplate({ ...newFeeTemplate, items });
-                                  }} />
-                                {newFeeTemplate.items.length > 1 && (
-                                  <button type="button" className="btn btn-sm btn-secondary btn-danger" onClick={() => {
-                                    const items = newFeeTemplate.items.filter((_, i) => i !== idx);
-                                    setNewFeeTemplate({ ...newFeeTemplate, items });
-                                  }}>Remove</button>
-                                )}
-                              </div>
-                            ))}
-                            <button type="button" className="btn btn-sm btn-secondary" onClick={() => {
-                              setNewFeeTemplate({ ...newFeeTemplate, items: [...newFeeTemplate.items, { name: '', amount: '' }] });
-                            }}>+ Add Item</button>
-                            <div className="fee-total-row">
-                              Total: {newFeeTemplate.items.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0).toFixed(2)}
-                            </div>
-                          </div>
-
-                          <div className="form-actions">
-                            <button type="button" onClick={() => { setShowFeeTemplateForm(false); setEditingFeeTemplate(null); }} className="btn btn-secondary">Cancel</button>
-                            <button type="submit" className="btn btn-primary">{editingFeeTemplate ? 'Update' : 'Create'}</button>
-                          </div>
-                        </form>
-                      </div>
-                    </div>
-                  )}
-
-                  {feeTemplates.length === 0 ? (
-                    <div className="card">
-                      <div className="empty">
-                        <div className="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-                        <p>No fee templates yet. Create one to start tracking fees.</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="card">
-                      <SortableTable
-                        columns={[
-                          { key: 'name', label: 'Template', sortable: true, sortType: 'string' },
-                          { key: 'frequency', label: 'Frequency', sortable: true, sortType: 'string',
-                            render: (row) => ({ daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', semester: 'Per Semester', session: 'Per Session' }[row.frequency] || row.frequency) },
-                          { key: 'items', label: 'Items', sortable: false,
-                            render: (row) => row.items?.map(i => i.name).join(', ') || '—' },
-                          { key: 'total', label: 'Total', sortable: true, sortType: 'number',
-                            render: (row) => formatCurrency(row.total || 0) },
-                          { key: 'actions', label: '', sortable: false,
-                            render: (row) => (
-                              <div className="table-actions">
-                                <button className="btn btn-sm btn-secondary" disabled={isReadOnly()} onClick={() => {
-                                  setEditingFeeTemplate(row);
-                                  setNewFeeTemplate({ name: row.name, frequency: row.frequency, items: row.items?.length ? row.items.map(i => ({ name: i.name, amount: String(i.amount) })) : [{ name: '', amount: '' }] });
-                                  setShowFeeTemplateForm(true);
-                                }}>Edit</button>
-                                <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleDeleteFeeTemplate(row.id)}>Delete</button>
-                              </div>
-                            )}
-                        ]}
-                        data={feeTemplates}
-                        emptyMessage="No fee templates"
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Assign View */}
-              {!feeLoading && feeView === 'assign' && (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-                    <button onClick={() => setShowAssignForm(!showAssignForm)} className="btn btn-primary" disabled={isReadOnly()}>
-                      + Assign Fee
-                    </button>
-                  </div>
-
-                  {showAssignForm && (
-                    <div className="card" style={{ marginBottom: '20px' }}>
-                      <div className="card-header">Assign Fee Template</div>
-                      <div className="card-body">
-                        <form onSubmit={handleCreateAssignment}>
-                          <div className="form-grid form-grid-3">
-                            <div className="form-group">
-                              <label className="form-label">Fee Template</label>
-                              <select className="form-select" value={newAssignment.fee_template_id}
-                                onChange={(e) => setNewAssignment({ ...newAssignment, fee_template_id: e.target.value })} required>
-                                <option value="">Select template</option>
-                                {feeTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                              </select>
-                            </div>
-                            <div className="form-group">
-                              <label className="form-label">Assign To</label>
-                              <select className="form-select" value={newAssignment.assign_type}
-                                onChange={(e) => setNewAssignment({ ...newAssignment, assign_type: e.target.value, class_ids: [], student_id: '' })}>
-                                <option value="class">Class</option>
-                                <option value="student">Individual Student</option>
-                              </select>
-                            </div>
-                            <div className="form-group">
-                              <label className="form-label">{newAssignment.assign_type === 'class' ? 'Classes' : 'Student'}</label>
-                              {newAssignment.assign_type === 'class' ? (
-                                <div className="fee-class-checkboxes">
-                                  {classes.map(c => (
-                                    <label key={c.id} className="checkbox-label">
-                                      <input type="checkbox"
-                                        checked={newAssignment.class_ids.includes(String(c.id))}
-                                        onChange={(e) => {
-                                          const id = String(c.id);
-                                          setNewAssignment(prev => ({
-                                            ...prev,
-                                            class_ids: e.target.checked
-                                              ? [...prev.class_ids, id]
-                                              : prev.class_ids.filter(x => x !== id)
-                                          }));
-                                        }}
-                                      />
-                                      {c.name}
-                                    </label>
-                                  ))}
-                                </div>
-                              ) : (
-                                <select className="form-select" value={newAssignment.student_id}
-                                  onChange={(e) => setNewAssignment({ ...newAssignment, student_id: e.target.value })} required>
-                                  <option value="">Select student</option>
-                                  {students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}
-                                </select>
-                              )}
-                            </div>
-                          </div>
-                          <div className="form-actions">
-                            <button type="button" onClick={() => setShowAssignForm(false)} className="btn btn-secondary">Cancel</button>
-                            <button type="submit" className="btn btn-primary">Assign</button>
-                          </div>
-                        </form>
-                      </div>
-                    </div>
-                  )}
-
-                  {feeAssignments.length === 0 ? (
-                    <div className="card">
-                      <div className="empty">
-                        <p>No fees assigned yet. Assign a fee template to a class or student.</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="card fee-table-desktop">
-                        <SortableTable
-                          columns={[
-                            { key: 'template_name', label: 'Template', sortable: true, sortType: 'string' },
-                            { key: 'assigned_to', label: 'Assigned To', sortable: true, sortType: 'string',
-                              render: (row) => row.class_name || row.student_name || '—' },
-                            { key: 'type', label: 'Type', sortable: false,
-                              render: (row) => row.class_id ? <span className="badge">Class</span> : <span className="badge badge-info">Student</span> },
-                            { key: 'actions', label: '', sortable: false,
-                              render: (row) => (
-                                <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleDeleteAssignment(row.id)}>Remove</button>
-                              )}
-                          ]}
-                          data={feeAssignments}
-                          emptyMessage="No fee assignments"
-                        />
-                      </div>
-                      <div className="fee-mobile-cards">
-                        {feeAssignments.map(row => (
-                          <div key={row.id} className="admin-mobile-card">
-                            <div className="admin-mobile-card-top">
-                              <div>
-                                <div className="admin-mobile-card-title">{row.template_name}</div>
-                                <div className="admin-mobile-card-sub">{row.class_name || row.student_name || '—'}</div>
-                              </div>
-                              <div className="admin-mobile-card-badge">{row.class_id ? 'Class' : 'Student'}</div>
-                            </div>
-                            <div className="admin-mobile-card-actions">
-                              <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleDeleteAssignment(row.id)}>Remove</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-
-              {/* Collect View */}
-              {!feeLoading && feeView === 'collect' && (
+              {!feeLoading && (
                 <>
                   {/* Class filter */}
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
@@ -4056,7 +3778,7 @@ function AdminDashboard() {
                     <div className="card">
                       <div className="empty">
                         <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-                        <p>No fee data yet. Create fee templates and assign them to classes or students to start tracking.</p>
+                        <p>No fee data yet. Set an expected fee on students (via the student form or the "Set Expected Fee" button above) to start tracking.</p>
                       </div>
                     </div>
                   ) : (
@@ -4066,9 +3788,8 @@ function AdminDashboard() {
                           columns={[
                             { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
                             { key: 'class_name', label: 'Class', sortable: true, sortType: 'string' },
-                            { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
-                            { key: 'total_fee', label: 'Total', sortable: true, sortType: 'number',
-                              render: (row) => formatCurrency(row.total_fee) },
+                            { key: 'total_fee', label: 'Expected', sortable: true, sortType: 'number',
+                              render: (row) => <span title={row.fee_note || ''}>{formatCurrency(row.total_fee)}{row.fee_note ? ' *' : ''}</span> },
                             { key: 'total_paid', label: 'Paid', sortable: true, sortType: 'number',
                               render: (row) => formatCurrency(row.total_paid) },
                             { key: 'balance', label: 'Balance', sortable: true, sortType: 'number',
@@ -4080,14 +3801,14 @@ function AdminDashboard() {
                               render: (row) => (
                                 <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
                                   setShowPaymentModal(row);
-                                  setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', period_label: '' });
+                                  setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '' });
                                 }}>Record Payment</button>
                               )}
                           ]}
                           data={feeSummary}
                           searchable
                           searchPlaceholder="Search students..."
-                          searchKeys={['student_name', 'class_name', 'template_name']}
+                          searchKeys={['student_name', 'class_name']}
                           pagination
                           pageSize={25}
                           emptyMessage="No fee records"
@@ -4099,13 +3820,13 @@ function AdminDashboard() {
                             <div className="admin-mobile-card-top">
                               <div>
                                 <div className="admin-mobile-card-title">{row.student_name}</div>
-                                <div className="admin-mobile-card-sub">{row.class_name} &middot; {row.template_name}</div>
+                                <div className="admin-mobile-card-sub">{row.class_name}{row.fee_note ? ` · ${row.fee_note}` : ''}</div>
                               </div>
                             </div>
                             <FeeProgressBar paid={row.total_paid} total={row.total_fee} />
                             <div className="fee-mobile-card-amounts">
                               <div className="fee-mobile-card-amount">
-                                <span className="fee-mobile-card-amount-label">Total</span>
+                                <span className="fee-mobile-card-amount-label">Expected</span>
                                 <span>{formatCurrency(row.total_fee)}</span>
                               </div>
                               <div className="fee-mobile-card-amount">
@@ -4120,7 +3841,7 @@ function AdminDashboard() {
                             <div className="admin-mobile-card-actions">
                               <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
                                 setShowPaymentModal(row);
-                                setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', period_label: '' });
+                                setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '' });
                               }}>Record Payment</button>
                             </div>
                           </div>
@@ -4138,14 +3859,14 @@ function AdminDashboard() {
                           <SortableTable
                             columns={[
                               { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
-                              { key: 'template_name', label: 'Fee', sortable: true, sortType: 'string' },
                               { key: 'amount_paid', label: 'Amount', sortable: true, sortType: 'number',
                                 render: (row) => formatCurrency(row.amount_paid) },
+                              { key: 'payment_label', label: 'For', sortable: false,
+                                render: (row) => row.payment_label || row.period_label || '—' },
                               { key: 'payment_date', label: 'Date', sortable: true, sortType: 'string',
                                 render: (row) => new Date(row.payment_date).toLocaleDateString() },
                               { key: 'payment_method', label: 'Method', sortable: true, sortType: 'string',
                                 render: (row) => ({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method) },
-                              { key: 'period_label', label: 'Period', sortable: false },
                               { key: 'actions', label: '', sortable: false,
                                 render: (row) => (
                                   <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleVoidPayment(row.id)}>Void</button>
@@ -4165,14 +3886,13 @@ function AdminDashboard() {
                             <div className="admin-mobile-card-top">
                               <div>
                                 <div className="admin-mobile-card-title">{row.student_name}</div>
-                                <div className="admin-mobile-card-sub">{row.template_name} &middot; {({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method)}</div>
+                                <div className="admin-mobile-card-sub">{row.payment_label || row.period_label || ''} &middot; {({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method)}</div>
                               </div>
                               <div style={{ textAlign: 'right' }}>
                                 <div style={{ fontWeight: 600, fontSize: '15px' }}>{formatCurrency(row.amount_paid)}</div>
                                 <div className="admin-mobile-card-sub">{new Date(row.payment_date).toLocaleDateString()}</div>
                               </div>
                             </div>
-                            {row.period_label && <div className="admin-mobile-card-sub" style={{ marginTop: '4px' }}>{row.period_label}</div>}
                             <div className="admin-mobile-card-actions">
                               <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleVoidPayment(row.id)}>Void</button>
                             </div>
@@ -7325,6 +7045,70 @@ function AdminDashboard() {
       </div>
 
       {/* Record Payment Modal */}
+      {/* Bulk Fee Modal */}
+      {showBulkFeeModal && (
+        <div className="modal-overlay" onClick={() => setShowBulkFeeModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Set Expected Fee</h3>
+              <button onClick={() => setShowBulkFeeModal(false)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: '14px', color: 'var(--gray)', marginBottom: '16px' }}>
+                Select students and set their expected fee amount.
+              </p>
+              <div className="form-group">
+                <label className="form-label">Select Students</label>
+                <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 4px', cursor: 'pointer', fontWeight: 600, borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
+                    <input type="checkbox"
+                      checked={students.length > 0 && selectedStudentsForFee.length === students.length}
+                      onChange={(e) => setSelectedStudentsForFee(e.target.checked ? students.map(s => s.id) : [])} />
+                    Select All
+                  </label>
+                  {students.map(s => (
+                    <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px', cursor: 'pointer' }}>
+                      <input type="checkbox"
+                        checked={selectedStudentsForFee.includes(s.id)}
+                        onChange={(e) => setSelectedStudentsForFee(prev =>
+                          e.target.checked ? [...prev, s.id] : prev.filter(id => id !== s.id)
+                        )} />
+                      {s.first_name} {s.last_name}
+                      <span style={{ fontSize: '12px', color: 'var(--gray)', marginLeft: 'auto' }}>{s.class_name || ''}</span>
+                    </label>
+                  ))}
+                </div>
+                {selectedStudentsForFee.length > 0 && (
+                  <div style={{ fontSize: '13px', color: 'var(--gray)', marginTop: '4px' }}>{selectedStudentsForFee.length} student{selectedStudentsForFee.length !== 1 ? 's' : ''} selected</div>
+                )}
+              </div>
+              <div className="form-grid form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Expected Fee</label>
+                  <input type="number" className="form-input" step="0.01" min="0" placeholder="0.00"
+                    value={bulkFeeAmount}
+                    onChange={(e) => setBulkFeeAmount(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Note (optional)</label>
+                  <input type="text" className="form-input" placeholder="e.g. Semester 1 2025"
+                    value={bulkFeeNote}
+                    onChange={(e) => setBulkFeeNote(e.target.value)} />
+                </div>
+              </div>
+              <div className="form-actions">
+                <button type="button" onClick={() => setShowBulkFeeModal(false)} className="btn btn-secondary">Cancel</button>
+                <button type="button" className="btn btn-primary"
+                  disabled={selectedStudentsForFee.length === 0 || !bulkFeeAmount}
+                  onClick={handleBulkSetFee}>
+                  Apply to {selectedStudentsForFee.length} Student{selectedStudentsForFee.length !== 1 ? 's' : ''}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showPaymentModal && (
         <div className="modal-overlay" onClick={() => setShowPaymentModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
@@ -7336,7 +7120,7 @@ function AdminDashboard() {
               <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--lighter)', borderRadius: 'var(--radius)' }}>
                 <strong>{showPaymentModal.student_name}</strong>
                 <div style={{ fontSize: '13px', color: 'var(--gray)', marginTop: '4px' }}>
-                  {showPaymentModal.template_name} — Balance: {formatCurrency(showPaymentModal.balance || 0)}
+                  Balance: {formatCurrency(showPaymentModal.balance || 0)}
                 </div>
               </div>
               <form onSubmit={handleRecordPayment}>
@@ -7366,11 +7150,35 @@ function AdminDashboard() {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Period</label>
-                    <input type="text" className="form-input" placeholder="e.g. Semester 1 2025"
-                      value={newPayment.period_label}
-                      onChange={(e) => setNewPayment({ ...newPayment, period_label: e.target.value })} />
+                    <label className="form-label">Payment For</label>
+                    <select className="form-select" value={newPayment.payment_label}
+                      onChange={(e) => setNewPayment({ ...newPayment, payment_label: e.target.value === '__custom__' ? '' : e.target.value, _customLabel: e.target.value === '__custom__' })}>
+                      <option value="">— Select —</option>
+                      <optgroup label="Monthly">
+                        {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => <option key={m} value={m}>{m}</option>)}
+                      </optgroup>
+                      <optgroup label="Weekly">
+                        {Array.from({length: 52}, (_, i) => <option key={`w${i+1}`} value={`Week ${i+1}`}>Week {i+1}</option>)}
+                      </optgroup>
+                      <optgroup label="Instalment">
+                        {Array.from({length: 12}, (_, i) => <option key={`inst${i+1}`} value={`Instalment ${i+1}`}>Instalment {i+1}</option>)}
+                      </optgroup>
+                      <optgroup label="Other">
+                        <option value="Registration">Registration</option>
+                        <option value="Exam Fee">Exam Fee</option>
+                        <option value="__custom__">Custom...</option>
+                      </optgroup>
+                    </select>
                   </div>
+                  {newPayment._customLabel && (
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <label className="form-label">Custom Label</label>
+                      <input type="text" className="form-input" placeholder="e.g. Semester 1 2025"
+                        value={newPayment.payment_label}
+                        onChange={(e) => setNewPayment({ ...newPayment, payment_label: e.target.value })}
+                        autoFocus />
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">Reference / Note</label>

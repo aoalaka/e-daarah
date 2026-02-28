@@ -624,58 +624,48 @@ function ParentReport() {
                         )}
                       </div>
 
-                      {child.fees.length > 0 ? (
+                      {child.totalOwed > 0 ? (
                         <div className="fee-table">
                           <div className="fee-table-header">
-                            <span>Fee Type</span>
-                            <span>Total</span>
+                            <span>Expected</span>
                             <span>Paid</span>
                             <span>Balance</span>
                             <span>Status</span>
                           </div>
-                          {child.fees.map((fee, idx) => (
-                            <div key={idx} className="fee-table-row">
-                              <span className="fee-name">
-                                {fee.templateName}
-                                <small className="fee-frequency">{fee.frequency}</small>
+                          <div className="fee-table-row">
+                            <span>{formatCurrency(child.totalOwed, feeData.currency)}</span>
+                            <span>{formatCurrency(child.totalPaid, feeData.currency)}</span>
+                            <span className={child.totalBalance > 0 ? 'fee-unpaid' : ''}>{formatCurrency(child.totalBalance, feeData.currency)}</span>
+                            <span>
+                              <span className={`fee-status ${child.status}`}>
+                                {child.status === 'paid' ? 'Paid' : child.status === 'partial' ? 'Partial' : 'Unpaid'}
                               </span>
-                              <span>{formatCurrency(fee.totalFee, feeData.currency)}</span>
-                              <span>{formatCurrency(fee.totalPaid, feeData.currency)}</span>
-                              <span className={fee.balance > 0 ? 'fee-unpaid' : ''}>{formatCurrency(fee.balance, feeData.currency)}</span>
-                              <span>
-                                <span className={`fee-status ${fee.status}`}>
-                                  {fee.status === 'paid' ? 'Paid' : fee.status === 'partial' ? 'Partial' : 'Unpaid'}
-                                </span>
-                              </span>
-                            </div>
-                          ))}
-                          <div className="fee-table-row fee-table-total">
-                            <span><strong>Total</strong></span>
-                            <span><strong>{formatCurrency(child.totalOwed, feeData.currency)}</strong></span>
-                            <span><strong>{formatCurrency(child.totalPaid, feeData.currency)}</strong></span>
-                            <span className={child.totalBalance > 0 ? 'fee-unpaid' : ''}><strong>{formatCurrency(child.totalBalance, feeData.currency)}</strong></span>
-                            <span></span>
+                            </span>
+                          </div>
+                          {/* Progress bar */}
+                          <div style={{ margin: '12px 0', background: '#e5e7eb', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.min(100, child.totalOwed > 0 ? (child.totalPaid / child.totalOwed) * 100 : 0)}%`, height: '100%', background: child.totalPaid >= child.totalOwed ? '#22c55e' : '#3b82f6', transition: 'width 0.3s' }} />
                           </div>
                         </div>
                       ) : (
-                        <div className="fee-empty">No fees assigned</div>
+                        <div className="fee-empty">No expected fee set</div>
                       )}
 
                       {/* Recent Payments */}
-                      {child.recentPayments.length > 0 && (
+                      {child.recentPayments && child.recentPayments.length > 0 && (
                         <div className="fee-payments">
                           <h4>Recent Payments</h4>
                           <div className="fee-table">
                             <div className="fee-table-header fee-payment-header">
                               <span>Date</span>
-                              <span>Fee Type</span>
+                              <span>Label</span>
                               <span>Amount</span>
                               <span>Method</span>
                             </div>
                             {child.recentPayments.map((p, idx) => (
                               <div key={idx} className="fee-table-row fee-payment-row">
                                 <span>{fmtDate(p.date)}</span>
-                                <span>{p.templateName}</span>
+                                <span>{p.payment_label || p.templateName || '—'}</span>
                                 <span>{formatCurrency(p.amount, feeData.currency)}</span>
                                 <span className="fee-method">{p.method}</span>
                               </div>

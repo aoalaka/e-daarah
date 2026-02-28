@@ -619,7 +619,7 @@ async function findChildrenByPhone(madrasahId, phone, phoneCountryCode) {
   const ccDigits = phoneCountryCode ? phoneCountryCode.replace(/\D/g, '') : '';
   // Normalize DB-side phone: strip non-digits, strip country code prefix if present, strip leading zeros
   const [children] = await pool.query(
-    `SELECT s.id, s.first_name, s.last_name, s.student_id, s.class_id, c.name as class_name
+    `SELECT s.id, s.first_name, s.last_name, s.student_id, s.class_id, s.expected_fee, c.name as class_name
      FROM students s LEFT JOIN classes c ON s.class_id = c.id
      WHERE s.madrasah_id = ?
        AND TRIM(LEADING '0' FROM
@@ -1175,7 +1175,7 @@ router.get('/parent/children', authenticateToken, async (req, res) => {
     // Legacy: single studentId in token
     if (req.user.studentId) {
       const [students] = await pool.query(
-        'SELECT s.id, s.first_name, s.last_name, s.student_id, s.class_id, c.name as class_name FROM students s LEFT JOIN classes c ON s.class_id = c.id WHERE s.id = ? AND s.madrasah_id = ? AND s.deleted_at IS NULL',
+        'SELECT s.id, s.first_name, s.last_name, s.student_id, s.class_id, s.expected_fee, c.name as class_name FROM students s LEFT JOIN classes c ON s.class_id = c.id WHERE s.id = ? AND s.madrasah_id = ? AND s.deleted_at IS NULL',
         [req.user.studentId, madrasahId]
       );
       return res.json(students.map(s => ({ id: s.id, firstName: s.first_name, lastName: s.last_name, studentId: s.student_id, classId: s.class_id, className: s.class_name })));
@@ -1209,7 +1209,7 @@ router.get('/parent/fees', authenticateToken, async (req, res) => {
       if (parent.length > 0) children = await findChildrenByPhone(madrasahId, parent[0].phone, parent[0].phone_country_code);
     } else if (req.user.studentId) {
       const [students] = await pool.query(
-        'SELECT s.id, s.first_name, s.last_name, s.student_id, s.class_id, c.name as class_name FROM students s LEFT JOIN classes c ON s.class_id = c.id WHERE s.id = ? AND s.madrasah_id = ? AND s.deleted_at IS NULL',
+        'SELECT s.id, s.first_name, s.last_name, s.student_id, s.class_id, s.expected_fee, c.name as class_name FROM students s LEFT JOIN classes c ON s.class_id = c.id WHERE s.id = ? AND s.madrasah_id = ? AND s.deleted_at IS NULL',
         [req.user.studentId, madrasahId]
       );
       children = students;
@@ -1219,79 +1219,19 @@ router.get('/parent/fees', authenticateToken, async (req, res) => {
       return res.json({ currency: madrasahInfo.currency || 'USD', children: [], grandTotal: 0, grandPaid: 0, grandBalance: 0 });
     }
 
-    // Get active session for period calculations
-    const [activeSessions] = await pool.query(
-      `SELECT sess.id, sess.start_date as session_start, sess.end_date as session_end,
-       sem.id as semester_id, sem.start_date as semester_start, sem.end_date as semester_end
-       FROM sessions sess
-       LEFT JOIN semesters sem ON sem.session_id = sess.id AND sem.is_active = 1 AND sem.deleted_at IS NULL
-       WHERE sess.madrasah_id = ? AND sess.is_active = 1 AND sess.deleted_at IS NULL
-       LIMIT 1`,
-      [madrasahId]
-    );
-    const activeSession = activeSessions[0] || null;
-    const now = new Date();
-
-    let semesterCount = 1;
-    if (activeSession) {
-      const [semCountResult] = await pool.query(
-        'SELECT COUNT(*) as cnt FROM semesters WHERE session_id = ? AND deleted_at IS NULL AND start_date <= ?',
-        [activeSession.id, now.toISOString().split('T')[0]]
-      );
-      semesterCount = Math.max(semCountResult[0].cnt, 1);
-    }
-
-    const computePeriods = (frequency) => {
-      if (!activeSession) return 1;
-      const semStart = activeSession.semester_start ? new Date(activeSession.semester_start) : new Date(activeSession.session_start);
-      const sessStart = new Date(activeSession.session_start);
-      const diffMs = now - semStart;
-      const diffDays = Math.max(Math.floor(diffMs / 86400000), 0);
-      switch (frequency) {
-        case 'session': return 1;
-        case 'semester': return semesterCount;
-        case 'monthly': {
-          const months = (now.getFullYear() - sessStart.getFullYear()) * 12 + (now.getMonth() - sessStart.getMonth());
-          return Math.max(months, 1);
-        }
-        case 'weekly': return Math.max(Math.ceil(diffDays / 7), 1);
-        case 'daily': return Math.max(diffDays, 1);
-        default: return 1;
-      }
-    };
-
-    // Get all active fee assignments for this madrasah
-    const [assignments] = await pool.query(
-      `SELECT fa.id, fa.fee_template_id, fa.class_id, fa.student_id, ft.name as template_name, ft.frequency
-       FROM fee_assignments fa
-       JOIN fee_templates ft ON ft.id = fa.fee_template_id AND ft.deleted_at IS NULL
-       WHERE fa.madrasah_id = ? AND fa.deleted_at IS NULL`,
-      [madrasahId]
-    );
-
-    // Get template item totals
-    const templateIds = [...new Set(assignments.map(a => a.fee_template_id))];
-    let itemsByTemplate = {};
-    if (templateIds.length > 0) {
-      const [items] = await pool.query(
-        'SELECT fee_template_id, SUM(amount) as total FROM fee_template_items WHERE fee_template_id IN (?) AND deleted_at IS NULL GROUP BY fee_template_id',
-        [templateIds]
-      );
-      for (const i of items) itemsByTemplate[i.fee_template_id] = parseFloat(i.total);
-    }
-
-    // Get payments for all children
     const childIds = children.map(c => c.id);
-    let paymentsByStudentTemplate = {};
-    if (childIds.length > 0 && templateIds.length > 0) {
+
+    // Get total payments per child
+    let paymentsByChild = {};
+    if (childIds.length > 0) {
       const [payments] = await pool.query(
-        `SELECT student_id, fee_template_id, SUM(amount_paid) as total_paid
-         FROM fee_payments WHERE madrasah_id = ? AND deleted_at IS NULL AND student_id IN (?) AND fee_template_id IN (?)
-         GROUP BY student_id, fee_template_id`,
-        [madrasahId, childIds, templateIds]
+        `SELECT student_id, SUM(amount_paid) as total_paid
+         FROM fee_payments WHERE madrasah_id = ? AND deleted_at IS NULL AND student_id IN (?)
+         GROUP BY student_id`,
+        [madrasahId, childIds]
       );
       for (const p of payments) {
-        paymentsByStudentTemplate[`${p.student_id}_${p.fee_template_id}`] = parseFloat(p.total_paid);
+        paymentsByChild[p.student_id] = parseFloat(p.total_paid);
       }
     }
 
@@ -1299,9 +1239,8 @@ router.get('/parent/fees', authenticateToken, async (req, res) => {
     let recentPaymentsByChild = {};
     if (childIds.length > 0) {
       const [recentPayments] = await pool.query(
-        `SELECT fp.student_id, fp.amount_paid, fp.payment_date, fp.payment_method, fp.reference_note, ft.name as template_name
+        `SELECT fp.student_id, fp.amount_paid, fp.payment_date, fp.payment_method, fp.reference_note, fp.payment_label
          FROM fee_payments fp
-         JOIN fee_templates ft ON fp.fee_template_id = ft.id
          WHERE fp.madrasah_id = ? AND fp.deleted_at IS NULL AND fp.student_id IN (?)
          ORDER BY fp.payment_date DESC, fp.created_at DESC`,
         [madrasahId, childIds]
@@ -1312,7 +1251,7 @@ router.get('/parent/fees', authenticateToken, async (req, res) => {
           recentPaymentsByChild[p.student_id].push({
             date: p.payment_date,
             amount: parseFloat(p.amount_paid),
-            templateName: p.template_name,
+            label: p.payment_label,
             method: p.payment_method,
             reference: p.reference_note
           });
@@ -1323,31 +1262,9 @@ router.get('/parent/fees', authenticateToken, async (req, res) => {
     // Build per-child fee summary
     let grandTotal = 0, grandPaid = 0;
     const childrenFees = children.map(child => {
-      const studentAssignments = assignments.filter(a =>
-        a.student_id === child.id || a.class_id === child.class_id
-      );
-      const templateMap = {};
-      for (const a of studentAssignments) {
-        if (!templateMap[a.fee_template_id] || a.student_id) {
-          templateMap[a.fee_template_id] = a;
-        }
-      }
-
-      let totalOwed = 0, totalPaid = 0;
-      const fees = [];
-      for (const [templateId, assignment] of Object.entries(templateMap)) {
-        const perPeriod = itemsByTemplate[templateId] || 0;
-        const periods = computePeriods(assignment.frequency);
-        const totalFee = perPeriod * periods;
-        const key = `${child.id}_${templateId}`;
-        const paid = paymentsByStudentTemplate[key] || 0;
-        const balance = totalFee - paid;
-        const status = paid >= totalFee ? 'paid' : paid > 0 ? 'partial' : 'unpaid';
-
-        totalOwed += totalFee;
-        totalPaid += paid;
-        fees.push({ templateName: assignment.template_name, frequency: assignment.frequency, totalFee, totalPaid: paid, balance, status });
-      }
+      // Get expected_fee from the child record (need to query it)
+      const totalOwed = parseFloat(child.expected_fee) || 0;
+      const totalPaid = paymentsByChild[child.id] || 0;
 
       grandTotal += totalOwed;
       grandPaid += totalPaid;
@@ -1357,10 +1274,10 @@ router.get('/parent/fees', authenticateToken, async (req, res) => {
         studentDbId: child.id,
         studentName: `${child.first_name} ${child.last_name}`,
         className: child.class_name || '',
-        fees,
         totalOwed,
         totalPaid,
         totalBalance: totalOwed - totalPaid,
+        status: totalOwed === 0 ? 'none' : totalPaid >= totalOwed ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid',
         recentPayments: recentPaymentsByChild[child.id] || []
       };
     });

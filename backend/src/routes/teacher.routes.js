@@ -1681,44 +1681,6 @@ router.get('/fee-summary', async (req, res) => {
     const [madrasah] = await pool.query('SELECT enable_fee_tracking FROM madrasahs WHERE id = ?', [madrasahId]);
     if (!madrasah[0]?.enable_fee_tracking) return res.json([]);
 
-    // Get active session/semester for period calculations
-    const [activeSessions] = await pool.query(
-      `SELECT sess.id, sess.start_date as session_start,
-       sem.start_date as semester_start
-       FROM sessions sess
-       LEFT JOIN semesters sem ON sem.session_id = sess.id AND sem.is_active = 1 AND sem.deleted_at IS NULL
-       WHERE sess.madrasah_id = ? AND sess.is_active = 1 AND sess.deleted_at IS NULL
-       LIMIT 1`,
-      [madrasahId]
-    );
-    const activeSession = activeSessions[0] || null;
-    const now = new Date();
-    let semesterCount = 1;
-    if (activeSession) {
-      const [sc] = await pool.query(
-        'SELECT COUNT(*) as cnt FROM semesters WHERE session_id = ? AND deleted_at IS NULL AND start_date <= ?',
-        [activeSession.id, now.toISOString().split('T')[0]]
-      );
-      semesterCount = Math.max(sc[0].cnt, 1);
-    }
-    const computePeriods = (frequency) => {
-      if (!activeSession) return 1;
-      const semStart = activeSession.semester_start ? new Date(activeSession.semester_start) : new Date(activeSession.session_start);
-      const sessStart = new Date(activeSession.session_start);
-      const diffDays = Math.max(Math.floor((now - semStart) / 86400000), 0);
-      switch (frequency) {
-        case 'session': return 1;
-        case 'semester': return semesterCount;
-        case 'monthly': {
-          const months = (now.getFullYear() - sessStart.getFullYear()) * 12 + (now.getMonth() - sessStart.getMonth());
-          return Math.max(months, 1);
-        }
-        case 'weekly': return Math.max(Math.ceil(diffDays / 7), 1);
-        case 'daily': return Math.max(diffDays, 1);
-        default: return 1;
-      }
-    };
-
     // Get teacher's assigned classes
     const [teacherClasses] = await pool.query(
       `SELECT ct.class_id FROM class_teachers ct
@@ -1734,78 +1696,33 @@ router.get('/fee-summary', async (req, res) => {
     }
     const filterClassIds = class_id ? [parseInt(class_id)] : allowedClassIds;
 
-    // Get students in these classes
-    const [students] = await pool.query(
-      `SELECT s.id, s.first_name, s.last_name, s.class_id, c.name as class_name
+    // Get students with expected fees in these classes
+    const [rows] = await pool.query(
+      `SELECT s.id as student_id, s.first_name, s.last_name, s.expected_fee,
+       c.name as class_name,
+       COALESCE(SUM(fp.amount_paid), 0) as total_paid
        FROM students s
        JOIN classes c ON c.id = s.class_id
-       WHERE s.madrasah_id = ? AND s.deleted_at IS NULL AND s.class_id IN (?)
+       LEFT JOIN fee_payments fp ON fp.student_id = s.id AND fp.madrasah_id = s.madrasah_id AND fp.deleted_at IS NULL
+       WHERE s.madrasah_id = ? AND s.deleted_at IS NULL AND s.class_id IN (?) AND s.expected_fee IS NOT NULL
+       GROUP BY s.id
        ORDER BY s.last_name, s.first_name`,
       [madrasahId, filterClassIds]
     );
-    if (students.length === 0) return res.json([]);
 
-    // Get assignments
-    const [assignments] = await pool.query(
-      `SELECT fa.fee_template_id, fa.class_id, fa.student_id, ft.name as template_name, ft.frequency
-       FROM fee_assignments fa
-       JOIN fee_templates ft ON ft.id = fa.fee_template_id AND ft.deleted_at IS NULL
-       WHERE fa.madrasah_id = ? AND fa.deleted_at IS NULL`,
-      [madrasahId]
-    );
-
-    const templateIds = [...new Set(assignments.map(a => a.fee_template_id))];
-    let itemsByTemplate = {};
-    if (templateIds.length > 0) {
-      const [items] = await pool.query(
-        'SELECT fee_template_id, SUM(amount) as total FROM fee_template_items WHERE fee_template_id IN (?) AND deleted_at IS NULL GROUP BY fee_template_id',
-        [templateIds]
-      );
-      for (const i of items) itemsByTemplate[i.fee_template_id] = parseFloat(i.total);
-    }
-
-    const studentIds = students.map(s => s.id);
-    let paymentsByStudentTemplate = {};
-    if (templateIds.length > 0) {
-      const [payments] = await pool.query(
-        `SELECT student_id, fee_template_id, SUM(amount_paid) as total_paid
-         FROM fee_payments
-         WHERE madrasah_id = ? AND deleted_at IS NULL AND student_id IN (?) AND fee_template_id IN (?)
-         GROUP BY student_id, fee_template_id`,
-        [madrasahId, studentIds, templateIds]
-      );
-      for (const p of payments) {
-        paymentsByStudentTemplate[`${p.student_id}_${p.fee_template_id}`] = parseFloat(p.total_paid);
-      }
-    }
-
-    const summary = [];
-    for (const student of students) {
-      const studentAssignments = assignments.filter(a =>
-        a.student_id === student.id || a.class_id === student.class_id
-      );
-      const templateMap = {};
-      for (const a of studentAssignments) {
-        if (!templateMap[a.fee_template_id] || a.student_id) templateMap[a.fee_template_id] = a;
-      }
-      for (const [templateId, assignment] of Object.entries(templateMap)) {
-        const perPeriod = itemsByTemplate[templateId] || 0;
-        const periods = computePeriods(assignment.frequency);
-        const totalFee = perPeriod * periods;
-        const totalPaid = paymentsByStudentTemplate[`${student.id}_${templateId}`] || 0;
-        const balance = totalFee - totalPaid;
-        summary.push({
-          student_id: student.id,
-          student_name: `${student.first_name} ${student.last_name}`,
-          class_name: student.class_name,
-          template_name: assignment.template_name,
-          total_fee: totalFee,
-          total_paid: totalPaid,
-          balance,
-          status: totalPaid >= totalFee ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid'
-        });
-      }
-    }
+    const summary = rows.map(row => {
+      const totalFee = parseFloat(row.expected_fee);
+      const totalPaid = parseFloat(row.total_paid);
+      return {
+        student_id: row.student_id,
+        student_name: `${row.first_name} ${row.last_name}`,
+        class_name: row.class_name,
+        total_fee: totalFee,
+        total_paid: totalPaid,
+        balance: totalFee - totalPaid,
+        status: totalPaid >= totalFee ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid'
+      };
+    });
 
     res.json(summary);
   } catch (error) {

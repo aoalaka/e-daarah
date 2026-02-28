@@ -810,9 +810,10 @@ router.put('/students/bulk-fee', requireActiveSubscription, async (req, res) => 
       return res.status(400).json({ error: 'Expected fee must be 0 or greater' });
     }
 
+    const placeholders = student_ids.map(() => '?').join(',');
     await pool.query(
-      `UPDATE students SET expected_fee = ?, fee_note = ? WHERE id IN (?) AND madrasah_id = ? AND deleted_at IS NULL`,
-      [parseFloat(expected_fee), fee_note || null, student_ids, madrasahId]
+      `UPDATE students SET expected_fee = ?, fee_note = ? WHERE id IN (${placeholders}) AND madrasah_id = ? AND deleted_at IS NULL`,
+      [parseFloat(expected_fee), fee_note || null, ...student_ids, madrasahId]
     );
 
     res.json({ message: `Expected fee updated for ${student_ids.length} student(s)` });

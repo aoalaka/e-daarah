@@ -260,11 +260,12 @@ function AdminDashboard() {
   }, [loading]);
 
   const adminTourSteps = [
-    { target: '.sidebar-nav', title: 'Navigation', content: 'Use the sidebar to switch between sections: Overview, Classes, Teachers, Students, Fees, Planner, and more.' },
-    { target: '.insights-summary', title: 'Key Metrics', content: 'See your attendance rates, students needing attention, and performance at a glance.' },
+    { target: '.sidebar-nav', title: 'Navigation', content: 'Use the sidebar to switch between sections.' },
+    { target: '.setup-checklist', title: 'Getting Started', content: 'Follow these steps to set up your school. Each step links to the right page.' },
+    { target: '.insights-summary', title: 'Key Metrics', content: 'See attendance rates, students needing attention, and performance at a glance.' },
     { target: '.alert-panel', title: "Today's Status", content: 'Check if there are pending tasks like unmarked attendance or missing exams.' },
-    { target: '.overview-actions', title: 'Quick Actions', content: 'Jump straight to creating a new session, class, or enrolling a student.' },
-    { target: '[data-tour="planner"]', title: 'Academic Planner', content: 'Set up your academic year: sessions, semesters, holidays, and schedule overrides.' },
+    { target: '.overview-actions', title: 'Quick Actions', content: 'Jump to creating a session, class, or student.' },
+    { target: '[data-tour="planner"]', title: 'Academic Planner', content: 'Set up your academic year: sessions, semesters, and holidays.' },
     { target: '[data-tour="students"]', title: 'Students', content: 'Add students individually or bulk-upload from a spreadsheet.' },
     { target: '.sidebar-footer', title: 'Your Profile', content: 'Access settings, billing, and log out from here.' },
   ];
@@ -1907,39 +1908,78 @@ function AdminDashboard() {
                   </div>
                 </>
               ) : (
-                /* Fallback for new madrasahs with no analytics data */
-                <>
-                  <div className="stats-grid">
-                    <div className="stat-card">
-                      <div className="stat-value">{classes.length}</div>
-                      <div className="stat-label">Classes</div>
-                      <UsageIndicator type="classes" current={classes.length} plan={madrasahProfile?.pricing_plan} />
-                    </div>
-                    <div className="stat-card">
-                      <div className="stat-value">{teachers.length}</div>
-                      <div className="stat-label">Teachers</div>
-                      <UsageIndicator type="teachers" current={teachers.length} plan={madrasahProfile?.pricing_plan} />
-                    </div>
-                    <div className="stat-card">
-                      <div className="stat-value">{students.length}</div>
-                      <div className="stat-label">Students</div>
-                      <UsageIndicator type="students" current={students.length} plan={madrasahProfile?.pricing_plan} />
-                    </div>
-                  </div>
-                  <div className="card" style={{ textAlign: 'center', padding: 'var(--xl)' }}>
-                    <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--sm)' }}>Start by adding classes, teachers, and students to see insights here.</p>
-                    <div className="quick-grid">
-                      <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('classes'); setShowClassForm(true); } }}>
-                        <h4>New Class</h4>
-                        <p>Add a class group</p>
+                /* Setup checklist for new madrasahs */
+                (() => {
+                  const setupSteps = [
+                    { title: 'Create a Session', desc: 'Set up your academic year or term.', done: sessions.length > 0, action: () => { setActiveTab('planner'); setPlannerSubTab('sessions'); } },
+                    { title: 'Create a Class', desc: 'Add at least one class group.', done: classes.length > 0, action: () => { setActiveTab('classes'); setShowClassForm(true); } },
+                    { title: 'Add Students', desc: 'Enroll students individually or bulk upload.', done: students.length > 0, action: () => { setActiveTab('students'); setShowStudentForm(true); } },
+                    ...(madrasahProfile?.enable_fee_tracking ? [{ title: 'Set Expected Fees', desc: 'Set how much each student is expected to pay.', done: students.some(s => s.expected_fee != null), action: () => { setActiveTab('fees'); setTimeout(() => { setSelectedStudentsForFee([]); setBulkFeeAmount(''); setBulkFeeNote(''); setBulkFeeClassFilter(''); setShowBulkFeeModal(true); }, 100); } }] : []),
+                  ];
+                  const doneCount = setupSteps.filter(s => s.done).length;
+                  const allDone = doneCount === setupSteps.length;
+
+                  return (
+                    <>
+                      <div className="stats-grid">
+                        <div className="stat-card">
+                          <div className="stat-value">{classes.length}</div>
+                          <div className="stat-label">Classes</div>
+                          <UsageIndicator type="classes" current={classes.length} plan={madrasahProfile?.pricing_plan} />
+                        </div>
+                        <div className="stat-card">
+                          <div className="stat-value">{teachers.length}</div>
+                          <div className="stat-label">Teachers</div>
+                          <UsageIndicator type="teachers" current={teachers.length} plan={madrasahProfile?.pricing_plan} />
+                        </div>
+                        <div className="stat-card">
+                          <div className="stat-value">{students.length}</div>
+                          <div className="stat-label">Students</div>
+                          <UsageIndicator type="students" current={students.length} plan={madrasahProfile?.pricing_plan} />
+                        </div>
                       </div>
-                      <div className={`quick-card ${isReadOnly() ? 'disabled' : ''}`} onClick={() => { if (!isReadOnly()) { setActiveTab('students'); setShowStudentForm(true); } }}>
-                        <h4>New Student</h4>
-                        <p>Enroll a student</p>
+
+                      <div className="card setup-checklist" style={{ padding: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: '18px' }}>{allDone ? "You're all set!" : 'Get Started'}</h3>
+                            <p style={{ margin: '4px 0 0', fontSize: '14px', color: 'var(--gray)' }}>
+                              {allDone ? 'Analytics will appear here once attendance is recorded.' : `${doneCount} of ${setupSteps.length} steps completed`}
+                            </p>
+                          </div>
+                          {!allDone && (
+                            <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '3px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: 'var(--primary, #404040)', background: `conic-gradient(var(--primary, #404040) ${(doneCount / setupSteps.length) * 360}deg, var(--border) 0deg)`, position: 'relative' }}>
+                              <span style={{ background: '#fff', width: '38px', height: '38px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{doneCount}/{setupSteps.length}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          {setupSteps.map((s, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 12px', borderRadius: '8px', background: s.done ? 'var(--lighter, #f9fafb)' : 'transparent' }}>
+                              {s.done ? (
+                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </div>
+                              ) : (
+                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600, color: 'var(--gray)', flexShrink: 0 }}>{i + 1}</div>
+                              )}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, fontSize: '14px', color: s.done ? 'var(--gray)' : 'inherit', textDecoration: s.done ? 'line-through' : 'none' }}>{s.title}</div>
+                                <div style={{ fontSize: '13px', color: 'var(--gray)', marginTop: '2px' }}>{s.desc}</div>
+                              </div>
+                              {s.done ? (
+                                <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600, flexShrink: 0 }}>Done</span>
+                              ) : (
+                                <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={s.action} style={{ flexShrink: 0 }}>Start</button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </>
+                    </>
+                  );
+                })()
               )}
             </>
           )}

@@ -964,13 +964,13 @@ function SuperAdminDashboard() {
         {/* Coupons Tab */}
         {activeTab === 'coupons' && (
           <section className="table-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+            <div className="section-header-row">
               <div>
                 <h2>Discount Codes</h2>
                 <p className="section-desc">Create and manage promotion codes via Stripe.</p>
               </div>
               <button
-                className="btn btn-primary"
+                className="btn primary"
                 onClick={() => setShowCouponForm(!showCouponForm)}
               >
                 {showCouponForm ? 'Cancel' : '+ Create Code'}
@@ -978,22 +978,21 @@ function SuperAdminDashboard() {
             </div>
 
             {showCouponForm && (
-              <form onSubmit={handleCreateCoupon} className="card" style={{ padding: '20px', marginBottom: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                  <div>
-                    <label className="label">Code</label>
+              <form onSubmit={handleCreateCoupon} className="announcement-form coupon-form">
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 2 }}>
+                    <label>Code</label>
                     <input
-                      className="input"
+                      type="text"
                       value={newCoupon.code}
                       onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
                       placeholder="e.g. SCHOOL50"
                       required
                     />
                   </div>
-                  <div>
-                    <label className="label">Discount Type</label>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Discount Type</label>
                     <select
-                      className="select"
                       value={newCoupon.discount_type}
                       onChange={(e) => setNewCoupon({ ...newCoupon, discount_type: e.target.value })}
                     >
@@ -1001,10 +1000,9 @@ function SuperAdminDashboard() {
                       <option value="amount">Fixed Amount</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="label">{newCoupon.discount_type === 'percent' ? 'Percent Off' : 'Amount Off'}</label>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>{newCoupon.discount_type === 'percent' ? 'Percent Off' : 'Amount Off'}</label>
                     <input
-                      className="input"
                       type="number"
                       min="1"
                       max={newCoupon.discount_type === 'percent' ? 100 : undefined}
@@ -1016,10 +1014,9 @@ function SuperAdminDashboard() {
                     />
                   </div>
                   {newCoupon.discount_type === 'amount' && (
-                    <div>
-                      <label className="label">Currency</label>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Currency</label>
                       <select
-                        className="select"
                         value={newCoupon.currency}
                         onChange={(e) => setNewCoupon({ ...newCoupon, currency: e.target.value })}
                       >
@@ -1029,10 +1026,11 @@ function SuperAdminDashboard() {
                       </select>
                     </div>
                   )}
-                  <div>
-                    <label className="label">Duration</label>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Duration</label>
                     <select
-                      className="select"
                       value={newCoupon.duration}
                       onChange={(e) => setNewCoupon({ ...newCoupon, duration: e.target.value })}
                     >
@@ -1042,10 +1040,9 @@ function SuperAdminDashboard() {
                     </select>
                   </div>
                   {newCoupon.duration === 'repeating' && (
-                    <div>
-                      <label className="label">Duration (months)</label>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Duration (months)</label>
                       <input
-                        className="input"
                         type="number"
                         min="1"
                         max="36"
@@ -1056,10 +1053,9 @@ function SuperAdminDashboard() {
                       />
                     </div>
                   )}
-                  <div>
-                    <label className="label">Applies To</label>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Applies To</label>
                     <select
-                      className="select"
                       value={newCoupon.applies_to_price}
                       onChange={(e) => setNewCoupon({ ...newCoupon, applies_to_price: e.target.value })}
                     >
@@ -1070,10 +1066,11 @@ function SuperAdminDashboard() {
                       <option value="plus_annual">Plus Annual</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="label">Restrict to Madrasah</label>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 2 }}>
+                    <label>Restrict to Madrasah</label>
                     <select
-                      className="select"
                       value={newCoupon.madrasah_id}
                       onChange={(e) => setNewCoupon({ ...newCoupon, madrasah_id: e.target.value })}
                     >
@@ -1083,10 +1080,9 @@ function SuperAdminDashboard() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="label">Max Redemptions</label>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Max Redemptions</label>
                     <input
-                      className="input"
                       type="number"
                       min="1"
                       value={newCoupon.max_redemptions}
@@ -1094,19 +1090,18 @@ function SuperAdminDashboard() {
                       placeholder="Unlimited"
                     />
                   </div>
-                  <div>
-                    <label className="label">Expiry Date</label>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Expiry Date</label>
                     <input
-                      className="input"
                       type="date"
                       value={newCoupon.expires_at}
                       onChange={(e) => setNewCoupon({ ...newCoupon, expires_at: e.target.value })}
                     />
                   </div>
                 </div>
-                <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
-                  <button type="submit" className="btn btn-primary">Create Coupon</button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowCouponForm(false)}>Cancel</button>
+                <div className="form-actions">
+                  <button type="submit" className="btn primary">Create Coupon</button>
+                  <button type="button" className="btn secondary" onClick={() => setShowCouponForm(false)}>Cancel</button>
                 </div>
               </form>
             )}
@@ -1152,7 +1147,7 @@ function SuperAdminDashboard() {
                         </td>
                         <td>
                           <button
-                            className={`btn btn-sm ${c.active ? 'btn-secondary' : 'btn-primary'}`}
+                            className={`btn-small ${c.active ? 'danger' : 'success'}`}
                             onClick={() => handleToggleCoupon(c.id, c.active)}
                           >
                             {c.active ? 'Deactivate' : 'Activate'}

@@ -117,6 +117,7 @@ function AdminDashboard() {
   // Billing state
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [selectedPlan, setSelectedPlan] = useState('plus');
+  const [couponCode, setCouponCode] = useState('');
   const [madrasahProfile, setMadrasahProfile] = useState(null);
   // Mobile card search + pagination state
   const [mobileTeacherSearch, setMobileTeacherSearch] = useState('');
@@ -7148,18 +7149,35 @@ function AdminDashboard() {
                       </div>
                     </div>
 
+                    {/* Discount Code */}
+                    <div style={{ marginTop: '16px' }}>
+                      <label style={{ fontSize: '13px', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Discount Code (optional)</label>
+                      <input
+                        type="text"
+                        className="input"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="Enter code"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
                     {/* Subscribe Button */}
                     <button
                       className="btn primary"
-                      style={{ width: '100%', marginTop: '16px' }}
+                      style={{ width: '100%', marginTop: '12px' }}
                       onClick={async () => {
                         try {
                           const priceKey = `${selectedPlan}_${billingCycle}`;
-                          const response = await api.post('/billing/create-checkout', {
+                          const payload = {
                             priceKey,
                             successUrl: `${window.location.origin}/${madrasahSlug}/admin?billing=success`,
                             cancelUrl: `${window.location.origin}/${madrasahSlug}/admin?billing=canceled`
-                          });
+                          };
+                          if (couponCode.trim()) {
+                            payload.coupon_code = couponCode.trim();
+                          }
+                          const response = await api.post('/billing/create-checkout', payload);
                           window.location.href = response.data.url;
                         } catch (error) {
                           toast.error(error.response?.data?.error || 'Failed to start checkout');

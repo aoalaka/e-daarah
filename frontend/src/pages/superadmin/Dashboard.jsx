@@ -78,6 +78,15 @@ function SuperAdminDashboard() {
   const [templateName, setTemplateName] = useState('');
   const [editingTemplateId, setEditingTemplateId] = useState(null);
   const [showDeleted, setShowDeleted] = useState(false);
+  // Coupon state
+  const [coupons, setCoupons] = useState([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
+  const [showCouponForm, setShowCouponForm] = useState(false);
+  const [newCoupon, setNewCoupon] = useState({
+    code: '', discount_type: 'percent', discount_value: '',
+    currency: 'usd', duration: 'once', duration_in_months: '',
+    applies_to_price: '', madrasah_id: '', max_redemptions: '', expires_at: ''
+  });
 
   const superAdmin = JSON.parse(localStorage.getItem('superAdmin') || '{}');
 
@@ -112,6 +121,10 @@ function SuperAdminDashboard() {
       fetchTickets();
     }
   }, [ticketFilter]);
+
+  useEffect(() => {
+    if (activeTab === 'coupons') fetchCoupons();
+  }, [activeTab]);
 
   const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` }
@@ -200,6 +213,59 @@ function SuperAdminDashboard() {
       setAnnouncements(response.data.announcements || []);
     } catch (error) {
       console.error('Failed to fetch announcements:', error);
+    }
+  };
+
+  const fetchCoupons = async () => {
+    try {
+      setCouponsLoading(true);
+      const response = await api.get('/superadmin/coupons', getAuthHeader());
+      setCoupons(response.data.coupons || []);
+    } catch (error) {
+      console.error('Failed to fetch coupons:', error);
+      toast.error('Failed to fetch coupons');
+    } finally {
+      setCouponsLoading(false);
+    }
+  };
+
+  const handleCreateCoupon = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        code: newCoupon.code,
+        discount_type: newCoupon.discount_type,
+        discount_value: newCoupon.discount_value,
+        duration: newCoupon.duration
+      };
+      if (newCoupon.discount_type === 'amount') payload.currency = newCoupon.currency;
+      if (newCoupon.duration === 'repeating') payload.duration_in_months = newCoupon.duration_in_months;
+      if (newCoupon.applies_to_price) payload.applies_to_price = newCoupon.applies_to_price;
+      if (newCoupon.madrasah_id) payload.madrasah_id = parseInt(newCoupon.madrasah_id);
+      if (newCoupon.max_redemptions) payload.max_redemptions = parseInt(newCoupon.max_redemptions);
+      if (newCoupon.expires_at) payload.expires_at = newCoupon.expires_at;
+
+      await api.post('/superadmin/coupons', payload, getAuthHeader());
+      toast.success('Coupon created');
+      setShowCouponForm(false);
+      setNewCoupon({
+        code: '', discount_type: 'percent', discount_value: '',
+        currency: 'usd', duration: 'once', duration_in_months: '',
+        applies_to_price: '', madrasah_id: '', max_redemptions: '', expires_at: ''
+      });
+      fetchCoupons();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to create coupon');
+    }
+  };
+
+  const handleToggleCoupon = async (promoCodeId, currentActive) => {
+    try {
+      await api.patch(`/superadmin/coupons/${promoCodeId}`, { active: !currentActive }, getAuthHeader());
+      toast.success(currentActive ? 'Coupon deactivated' : 'Coupon activated');
+      fetchCoupons();
+    } catch (error) {
+      toast.error('Failed to update coupon');
     }
   };
 
@@ -552,6 +618,12 @@ function SuperAdminDashboard() {
             Revenue
           </button>
           <button
+            className={`tab ${activeTab === 'coupons' ? 'active' : ''}`}
+            onClick={() => setActiveTab('coupons')}
+          >
+            Coupons
+          </button>
+          <button
             className={`tab ${activeTab === 'churn' ? 'active' : ''}`}
             onClick={() => setActiveTab('churn')}
           >
@@ -886,6 +958,213 @@ function SuperAdminDashboard() {
                 </div>
               </>
             )}
+          </section>
+        )}
+
+        {/* Coupons Tab */}
+        {activeTab === 'coupons' && (
+          <section className="table-section">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+              <div>
+                <h2>Discount Codes</h2>
+                <p className="section-desc">Create and manage promotion codes via Stripe.</p>
+              </div>
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowCouponForm(!showCouponForm)}
+              >
+                {showCouponForm ? 'Cancel' : '+ Create Code'}
+              </button>
+            </div>
+
+            {showCouponForm && (
+              <form onSubmit={handleCreateCoupon} className="card" style={{ padding: '20px', marginBottom: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                  <div>
+                    <label className="label">Code</label>
+                    <input
+                      className="input"
+                      value={newCoupon.code}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
+                      placeholder="e.g. SCHOOL50"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Discount Type</label>
+                    <select
+                      className="select"
+                      value={newCoupon.discount_type}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, discount_type: e.target.value })}
+                    >
+                      <option value="percent">Percentage</option>
+                      <option value="amount">Fixed Amount</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">{newCoupon.discount_type === 'percent' ? 'Percent Off' : 'Amount Off'}</label>
+                    <input
+                      className="input"
+                      type="number"
+                      min="1"
+                      max={newCoupon.discount_type === 'percent' ? 100 : undefined}
+                      step={newCoupon.discount_type === 'amount' ? '0.01' : '1'}
+                      value={newCoupon.discount_value}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, discount_value: e.target.value })}
+                      placeholder={newCoupon.discount_type === 'percent' ? '50' : '10.00'}
+                      required
+                    />
+                  </div>
+                  {newCoupon.discount_type === 'amount' && (
+                    <div>
+                      <label className="label">Currency</label>
+                      <select
+                        className="select"
+                        value={newCoupon.currency}
+                        onChange={(e) => setNewCoupon({ ...newCoupon, currency: e.target.value })}
+                      >
+                        <option value="usd">USD</option>
+                        <option value="gbp">GBP</option>
+                        <option value="eur">EUR</option>
+                      </select>
+                    </div>
+                  )}
+                  <div>
+                    <label className="label">Duration</label>
+                    <select
+                      className="select"
+                      value={newCoupon.duration}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, duration: e.target.value })}
+                    >
+                      <option value="once">Once</option>
+                      <option value="repeating">Repeating</option>
+                      <option value="forever">Forever</option>
+                    </select>
+                  </div>
+                  {newCoupon.duration === 'repeating' && (
+                    <div>
+                      <label className="label">Duration (months)</label>
+                      <input
+                        className="input"
+                        type="number"
+                        min="1"
+                        max="36"
+                        value={newCoupon.duration_in_months}
+                        onChange={(e) => setNewCoupon({ ...newCoupon, duration_in_months: e.target.value })}
+                        placeholder="3"
+                        required
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="label">Applies To</label>
+                    <select
+                      className="select"
+                      value={newCoupon.applies_to_price}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, applies_to_price: e.target.value })}
+                    >
+                      <option value="">All Plans</option>
+                      <option value="standard_monthly">Standard Monthly</option>
+                      <option value="standard_annual">Standard Annual</option>
+                      <option value="plus_monthly">Plus Monthly</option>
+                      <option value="plus_annual">Plus Annual</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Restrict to Madrasah</label>
+                    <select
+                      className="select"
+                      value={newCoupon.madrasah_id}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, madrasah_id: e.target.value })}
+                    >
+                      <option value="">Anyone</option>
+                      {madrasahs.map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Max Redemptions</label>
+                    <input
+                      className="input"
+                      type="number"
+                      min="1"
+                      value={newCoupon.max_redemptions}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, max_redemptions: e.target.value })}
+                      placeholder="Unlimited"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Expiry Date</label>
+                    <input
+                      className="input"
+                      type="date"
+                      value={newCoupon.expires_at}
+                      onChange={(e) => setNewCoupon({ ...newCoupon, expires_at: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
+                  <button type="submit" className="btn btn-primary">Create Coupon</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowCouponForm(false)}>Cancel</button>
+                </div>
+              </form>
+            )}
+
+            {couponsLoading ? (
+              <p>Loading coupons...</p>
+            ) : coupons.length === 0 ? (
+              <p className="empty-state">No discount codes yet. Create one to get started.</p>
+            ) : (
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Discount</th>
+                      <th>Duration</th>
+                      <th>Applies To</th>
+                      <th>Restricted To</th>
+                      <th>Used</th>
+                      <th>Expires</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {coupons.map(c => (
+                      <tr key={c.id}>
+                        <td><strong>{c.code}</strong></td>
+                        <td>{c.discount}</td>
+                        <td>
+                          {c.duration === 'once' ? 'Once' :
+                           c.duration === 'forever' ? 'Forever' :
+                           `${c.durationInMonths} months`}
+                        </td>
+                        <td>{c.appliesToLabel}</td>
+                        <td>{c.madrasahName || 'Anyone'}</td>
+                        <td>{c.timesRedeemed}{c.maxRedemptions ? ` / ${c.maxRedemptions}` : ''}</td>
+                        <td>{c.expiresAt ? new Date(c.expiresAt).toLocaleDateString() : '—'}</td>
+                        <td>
+                          <span className={`status-badge ${c.active ? 'active' : 'inactive'}`}>
+                            {c.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            className={`btn btn-sm ${c.active ? 'btn-secondary' : 'btn-primary'}`}
+                            onClick={() => handleToggleCoupon(c.id, c.active)}
+                          >
+                            {c.active ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
           </section>
         )}
 

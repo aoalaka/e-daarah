@@ -951,7 +951,8 @@
   color: #2e7d32;
 }
 
-.status-badge.danger {
+.status-badge.danger,
+.status-badge.inactive {
   background: #ffebee;
   color: #c62828;
 }

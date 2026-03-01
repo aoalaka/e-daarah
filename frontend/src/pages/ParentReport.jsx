@@ -5,6 +5,7 @@ import api from '../services/api';
 import './ParentReport.css';
 
 function ParentReport() {
+  useEffect(() => { document.title = 'Parent Report — e-Daarah'; }, []);
   const fmtDate = (d) => {
     const date = new Date(d);
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });

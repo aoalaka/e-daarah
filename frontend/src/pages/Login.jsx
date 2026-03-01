@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link, useParams, useLocation } from 'react-router-dom';
 import { authService } from '../services/auth.service';
 import { useMadrasah } from '../contexts/MadrasahContext';
@@ -6,6 +6,7 @@ import { getAccountLockInfo } from '../utils/errorHandler';
 import './Login.css';
 
 function Login() {
+  useEffect(() => { document.title = 'Sign In — e-Daarah'; }, []);
   const { madrasahSlug } = useParams();
   const { madrasah } = useMadrasah();
   const location = useLocation();

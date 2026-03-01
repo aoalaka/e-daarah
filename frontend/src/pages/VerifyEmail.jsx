@@ -5,6 +5,7 @@ import { authService } from '../services/auth.service';
 import './VerifyEmail.css';
 
 function VerifyEmail() {
+  useEffect(() => { document.title = 'Verify Email — e-Daarah'; }, []);
   const [searchParams] = useSearchParams();
   const { madrasahSlug } = useParams();
   const navigate = useNavigate();

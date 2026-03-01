@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../services/api';
 import { useMadrasah } from '../contexts/MadrasahContext';
 import './Login.css';
 
 function ForgotPassword() {
+  useEffect(() => { document.title = 'Forgot Password — e-Daarah'; }, []);
   const { madrasahSlug } = useParams();
   const { madrasah } = useMadrasah();
   const [email, setEmail] = useState('');

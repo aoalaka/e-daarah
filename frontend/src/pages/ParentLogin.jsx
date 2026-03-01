@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
@@ -7,6 +7,7 @@ import { useMadrasah } from '../contexts/MadrasahContext';
 import './Login.css';
 
 function ParentLogin() {
+  useEffect(() => { document.title = 'Parent Login — e-Daarah'; }, []);
   const { madrasahSlug } = useParams();
   const { madrasah } = useMadrasah();
   const [mode, setMode] = useState('login'); // 'login' or 'register'

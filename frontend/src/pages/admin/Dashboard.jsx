@@ -254,6 +254,12 @@ function AdminDashboard() {
     loadData();
   }, []);
 
+  // Update browser tab title based on active tab
+  useEffect(() => {
+    const labels = { overview: 'Overview', classes: 'Classes', teachers: 'Teachers', students: 'Students', fees: 'Fees', planner: 'Planner', reports: 'Reports', help: 'Help', support: 'Support', settings: 'Settings' };
+    document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
+  }, [activeTab]);
+
   // Auto-trigger guided tour for first-time users
   useEffect(() => {
     if (!loading && !localStorage.getItem('tour_admin_done')) {

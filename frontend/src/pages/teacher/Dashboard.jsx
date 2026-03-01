@@ -27,6 +27,13 @@ function TeacherDashboard() {
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Browser tab title
+  useEffect(() => {
+    const labels = { overview: 'Overview', attendance: 'Attendance', exams: 'Exams', reports: 'Reports', quran: "Qur'an Progress", help: 'Help', settings: 'Settings' };
+    document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
+  }, [activeTab]);
+
   const [confirmModal, setConfirmModal] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [semesters, setSemesters] = useState([]);

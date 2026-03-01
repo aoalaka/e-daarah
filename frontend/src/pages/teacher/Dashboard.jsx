@@ -110,6 +110,7 @@ function TeacherDashboard() {
   const [teacherFeeSummary, setTeacherFeeSummary] = useState([]);
   const [teacherFeeClassFilter, setTeacherFeeClassFilter] = useState('');
   const [showTour, setShowTour] = useState(false);
+  const [helpExpanded, setHelpExpanded] = useState(new Set());
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
@@ -122,6 +123,9 @@ function TeacherDashboard() {
     ]},
     { label: 'Reports', items: [
       { id: 'reports', label: 'Exam Reports' },
+    ]},
+    { label: 'Help', items: [
+      { id: 'help', label: 'Help' },
     ]},
   ];
 
@@ -1308,6 +1312,8 @@ function TeacherDashboard() {
         return <svg {...iconProps}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
       case 'reports':
         return <svg {...iconProps}><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>;
+      case 'help':
+        return <svg {...iconProps}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
       default:
         return null;
     }
@@ -1354,19 +1360,6 @@ function TeacherDashboard() {
               ))}
             </div>
           ))}
-          <button
-            className="nav-item desktop-only"
-            onClick={() => setShowTour(true)}
-            title="Tour guide"
-            style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.1)' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-              <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-            <span>Guide</span>
-          </button>
         </nav>
         <div className="sidebar-footer" ref={profileDropdownRef}>
           <div className="sidebar-user" onClick={() => setProfileDropdownOpen(!profileDropdownOpen)} style={{ cursor: 'pointer' }}>
@@ -3621,6 +3614,72 @@ function TeacherDashboard() {
               )}
             </>
           )}
+
+          {/* Help Tab */}
+          {activeTab === 'help' && (() => {
+            const toggleHelp = (key) => setHelpExpanded(prev => {
+              const next = new Set(prev);
+              next.has(key) ? next.delete(key) : next.add(key);
+              return next;
+            });
+            const HelpSection = ({ sectionKey, title, items }) => (
+              <div className="card" style={{ marginBottom: '12px' }}>
+                <button onClick={() => toggleHelp(sectionKey)} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 600, textAlign: 'left' }}>
+                  {title}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: helpExpanded.has(sectionKey) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                {helpExpanded.has(sectionKey) && (
+                  <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {items.map((item, i) => (
+                      <div key={i}>
+                        <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>{item.title}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--gray)', lineHeight: '1.5' }}>{item.content}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+            return (
+              <>
+                <div className="page-header no-print">
+                  <h2 className="page-title">Help</h2>
+                  <button className="btn btn-secondary btn-sm" onClick={() => { localStorage.removeItem('tour_teacher_done'); setShowTour(true); }}>Replay Tour</button>
+                </div>
+
+                <HelpSection sectionKey="getting-started" title="Getting Started" items={[
+                  { title: 'Your dashboard overview', content: 'The Overview tab shows your assigned classes, today\'s schedule, and quick-action buttons to take attendance. It\'s your starting point each day.' },
+                  { title: 'How classes are assigned', content: 'Your admin assigns classes to you. You\'ll see all your assigned classes on the Overview and can mark attendance or record exams for them.' },
+                ]} />
+
+                <HelpSection sectionKey="attendance" title="Attendance" items={[
+                  { title: 'Mark attendance for a class', content: 'Go to Attendance, select your class and the date. You\'ll see a list of students — mark each as Present, Absent, Late, or Excused. Click "Save Attendance" when done.' },
+                  { title: 'Mark dressing, behavior, and punctuality', content: 'After marking presence, you can rate each student\'s dressing, behavior, and punctuality on a scale. These ratings appear in parent and admin reports.' },
+                  { title: 'Edit past attendance', content: 'Select a past date in the Attendance tab to view and edit previously marked records. Changes are saved immediately.' },
+                ]} />
+
+                <HelpSection sectionKey="exams" title="Exams" items={[
+                  { title: 'Record exam scores', content: 'Go to Exam Recording, select a class, subject, and exam type (e.g. Test, Quiz, Final). Enter each student\'s score out of the maximum marks, then save.' },
+                  { title: 'Edit or delete exam records', content: 'In Exam Recording, select the same class/subject/exam to view existing records. You can update scores or delete the entire exam record.' },
+                ]} />
+
+                <HelpSection sectionKey="reports" title="Reports" items={[
+                  { title: 'View exam results', content: 'Go to Exam Reports and select a class. You\'ll see exam results sorted by subject and date, with averages and individual student scores.' },
+                  { title: 'Export exam reports', content: 'Use the export button on the reports page to download results as a file for printing or sharing.' },
+                ]} />
+
+                {madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false && (
+                  <HelpSection sectionKey="quran" title="Qur'an Tracker" items={[
+                    { title: 'Update student progress', content: 'Go to Qur\'an Tracker and select a class. For each student, update their current position (Juz, Surah, Ayah). This helps track memorisation or reading progress over time.' },
+                  ]} />
+                )}
+
+                <HelpSection sectionKey="settings" title="Settings" items={[
+                  { title: 'Update your password', content: 'Click your profile icon at the bottom of the sidebar, then go to Settings. You can change your password from there.' },
+                ]} />
+              </>
+            );
+          })()}
 
           {/* Settings Tab */}
           {activeTab === 'settings' && (

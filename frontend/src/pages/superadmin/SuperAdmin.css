@@ -1691,3 +1691,41 @@
 .show-deleted-toggle input {
   cursor: pointer;
 }
+
+/* Coupon Form */
+.coupon-form .form-group input,
+.coupon-form .form-group select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.coupon-form .form-group input:focus,
+.coupon-form .form-group select:focus {
+  outline: none;
+  border-color: #1a1a1a;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .coupon-form .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+}

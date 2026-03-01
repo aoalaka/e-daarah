@@ -205,11 +205,10 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
       }
     };
 
-    // Apply validated coupon or allow Stripe's native promo code field
+    // Apply validated coupon — don't enable Stripe's native promo field
+    // as it bypasses our server-side price restriction validation
     if (validPromoCodeId) {
       sessionParams.discounts = [{ promotion_code: validPromoCodeId }];
-    } else {
-      sessionParams.allow_promotion_codes = true;
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);

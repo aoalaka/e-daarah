@@ -7151,14 +7151,14 @@ function AdminDashboard() {
 
                     {/* Discount Code */}
                     <div style={{ marginTop: '16px' }}>
-                      <label style={{ fontSize: '13px', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Discount Code (optional)</label>
+                      <label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--muted)', display: 'block', marginBottom: '6px' }}>Discount Code</label>
                       <input
                         type="text"
-                        className="input"
+                        className="form-input"
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                        placeholder="Enter code"
-                        style={{ width: '100%' }}
+                        placeholder="e.g. SCHOOL50"
+                        style={{ width: '100%', letterSpacing: '1px', fontWeight: '500' }}
                       />
                     </div>
 

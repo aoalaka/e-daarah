@@ -965,10 +965,7 @@ function SuperAdminDashboard() {
         {activeTab === 'coupons' && (
           <section className="table-section">
             <div className="section-header-row">
-              <div>
-                <h2>Discount Codes</h2>
-                <p className="section-desc">Create and manage promotion codes via Stripe.</p>
-              </div>
+              <h2>Discount Codes</h2>
               <button
                 className="btn primary"
                 onClick={() => setShowCouponForm(!showCouponForm)}
@@ -976,6 +973,7 @@ function SuperAdminDashboard() {
                 {showCouponForm ? 'Cancel' : '+ Create Code'}
               </button>
             </div>
+            <p className="section-desc">Create and manage promotion codes via Stripe.</p>
 
             {showCouponForm && (
               <form onSubmit={handleCreateCoupon} className="announcement-form coupon-form">
@@ -1234,14 +1232,12 @@ function SuperAdminDashboard() {
         {activeTab === 'announcements' && (
           <section className="table-section">
             <div className="section-header-row">
-              <div>
-                <h2>Platform Announcements</h2>
-                <p className="section-desc">Broadcast messages to madrasah admins. Shown as banners on their dashboards.</p>
-              </div>
+              <h2>Platform Announcements</h2>
               <button className="btn primary" onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}>
                 {showAnnouncementForm ? 'Cancel' : '+ New Announcement'}
               </button>
             </div>
+            <p className="section-desc">Broadcast messages to madrasah admins. Shown as banners on their dashboards.</p>
 
             {showAnnouncementForm && (
               <form onSubmit={handleCreateAnnouncement} className="announcement-form">

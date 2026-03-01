@@ -1306,7 +1306,7 @@ router.get('/coupons', authenticateSuperAdmin, async (req, res) => {
   try {
     const promoCodes = await stripe.promotionCodes.list({
       limit: 100,
-      expand: ['data.coupon']
+      expand: ['data.promotion.coupon']
     });
 
     // Look up madrasah names for customer-restricted codes
@@ -1320,21 +1320,23 @@ router.get('/coupons', authenticateSuperAdmin, async (req, res) => {
         if (rows.length > 0) madrasahName = rows[0].name;
       }
 
-      const appliesToPrice = pc.metadata?.applies_to_price || pc.coupon?.metadata?.applies_to_price || null;
+      // v20+ SDK: coupon is under promotion.coupon; fallback for older format
+      const coupon = pc.promotion?.coupon || pc.coupon || {};
+      const appliesToPrice = pc.metadata?.applies_to_price || coupon.metadata?.applies_to_price || null;
 
       return {
         id: pc.id,
         code: pc.code,
         active: pc.active,
-        couponId: pc.coupon.id,
-        discount: pc.coupon.percent_off
-          ? `${pc.coupon.percent_off}% off`
-          : `$${(pc.coupon.amount_off / 100).toFixed(2)} off`,
-        percentOff: pc.coupon.percent_off,
-        amountOff: pc.coupon.amount_off,
-        currency: pc.coupon.currency,
-        duration: pc.coupon.duration,
-        durationInMonths: pc.coupon.duration_in_months,
+        couponId: coupon.id,
+        discount: coupon.percent_off
+          ? `${coupon.percent_off}% off`
+          : `$${((coupon.amount_off || 0) / 100).toFixed(2)} off`,
+        percentOff: coupon.percent_off,
+        amountOff: coupon.amount_off,
+        currency: coupon.currency,
+        duration: coupon.duration,
+        durationInMonths: coupon.duration_in_months,
         appliesToPrice,
         appliesToLabel: appliesToPrice ? (PRICE_LABEL_MAP[appliesToPrice] || appliesToPrice) : 'All plans',
         madrasahName,
@@ -1420,9 +1422,9 @@ router.post('/coupons', authenticateSuperAdmin, async (req, res) => {
       }
     }
 
-    // Create promotion code
+    // Create promotion code (Stripe SDK v20+: coupon goes under promotion object)
     const promoParams = {
-      coupon: coupon.id,
+      promotion: { type: 'coupon', coupon: coupon.id },
       code: code.toUpperCase(),
       metadata: {}
     };

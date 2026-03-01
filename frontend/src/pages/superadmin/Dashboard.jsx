@@ -1354,11 +1354,9 @@ function SuperAdminDashboard() {
         {activeTab === 'email-broadcast' && (
           <section className="table-section">
             <div className="section-header-row">
-              <div>
-                <h2>Email Broadcast</h2>
-                <p className="section-desc">Send marketing emails to potential clients using the e-Daarah email template.</p>
-              </div>
+              <h2>Email Broadcast</h2>
             </div>
+            <p className="section-desc">Send marketing emails to potential clients using the e-Daarah email template.</p>
 
             {/* Saved Templates */}
             {emailTemplates.length > 0 && (

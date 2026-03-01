@@ -965,12 +965,13 @@
 .section-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 4px;
 }
 
 .section-header-row h2 {
-  margin-bottom: 4px;
+  margin: 0;
 }
 
 .announcement-form {

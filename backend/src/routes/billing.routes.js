@@ -133,7 +133,7 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
         code: coupon_code,
         active: true,
         limit: 1,
-        expand: ['data.coupon']
+        expand: ['data.promotion.coupon']
       });
 
       if (promoCodes.data.length === 0) {
@@ -141,9 +141,10 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
       }
 
       const promoCode = promoCodes.data[0];
+      const couponObj = promoCode.promotion?.coupon || promoCode.coupon || {};
 
       // Check price restriction from metadata
-      const appliesToPrice = promoCode.metadata?.applies_to_price || promoCode.coupon?.metadata?.applies_to_price;
+      const appliesToPrice = promoCode.metadata?.applies_to_price || couponObj.metadata?.applies_to_price;
       if (appliesToPrice && appliesToPrice !== priceKey) {
         const PRICE_LABELS = {
           standard_monthly: 'Standard Monthly',

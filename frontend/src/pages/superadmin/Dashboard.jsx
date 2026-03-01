@@ -47,6 +47,13 @@ const safeParseJSON = (val) => {
 function SuperAdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('madrasahs');
+
+  // Browser tab title
+  useEffect(() => {
+    const labels = { madrasahs: 'Madrasahs', engagement: 'Engagement', revenue: 'Revenue', coupons: 'Coupons', churn: 'Churn Risk', announcements: 'Announcements', 'email-broadcast': 'Email Broadcast', tickets: 'Support Tickets', review: 'Review Queue', security: 'Security' };
+    document.title = `${labels[activeTab] || 'Admin'} — e-Daarah`;
+  }, [activeTab]);
+
   const [stats, setStats] = useState(null);
   const [madrasahs, setMadrasahs] = useState([]);
   const [recentRegistrations, setRecentRegistrations] = useState([]);

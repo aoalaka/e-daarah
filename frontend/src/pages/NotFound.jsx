@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './NotFound.css';
 
 function NotFound() {
+  useEffect(() => { document.title = 'Page Not Found — e-Daarah'; }, []);
   return (
     <div className="not-found-container">
       <div className="not-found-content">

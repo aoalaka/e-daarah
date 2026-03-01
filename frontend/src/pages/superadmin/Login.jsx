@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import './SuperAdmin.css';
@@ -7,6 +7,7 @@ import './SuperAdmin.css';
 const isAdminSubdomain = () => window.location.hostname.startsWith('admin.');
 
 function SuperAdminLogin() {
+  useEffect(() => { document.title = 'Admin Login — e-Daarah'; }, []);
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

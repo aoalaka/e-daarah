@@ -4,6 +4,7 @@ import api from '../services/api';
 import './Login.css';
 
 function ResetPassword() {
+  useEffect(() => { document.title = 'Reset Password — e-Daarah'; }, []);
   const [searchParams] = useSearchParams();
   const { madrasahSlug } = useParams();
   const navigate = useNavigate();

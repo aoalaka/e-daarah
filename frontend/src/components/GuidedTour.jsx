@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import './GuidedTour.css';
 
 function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
@@ -7,10 +7,9 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, placement: 'bottom' });
   const [ready, setReady] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [visibleSteps, setVisibleSteps] = useState([]);
   const tooltipRef = useRef(null);
   const rafRef = useRef(null);
-
-  const step = steps[currentStep];
 
   // Track mobile/desktop
   useEffect(() => {
@@ -19,20 +18,34 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  // Filter steps to only those with visible targets
+  useEffect(() => {
+    if (!isOpen) {
+      setVisibleSteps([]);
+      setCurrentStep(0);
+      setReady(false);
+      return;
+    }
+    // Small delay to let DOM settle
+    const timer = setTimeout(() => {
+      const filtered = steps.filter(s => {
+        const el = document.querySelector(s.target);
+        return el && el.offsetParent !== null && el.getBoundingClientRect().width > 0;
+      });
+      setVisibleSteps(filtered);
+      setCurrentStep(0);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isOpen, steps]);
+
+  const step = visibleSteps[currentStep];
+
   // Desktop: spotlight positioning
   const calculatePosition = useCallback(() => {
     if (!step || isMobile) return;
 
     const el = document.querySelector(step.target);
-    const isVisible = el && el.offsetParent !== null && el.getBoundingClientRect().width > 0;
-    if (!isVisible) {
-      if (currentStep < steps.length - 1) {
-        setCurrentStep(prev => prev + 1);
-      } else {
-        onComplete();
-      }
-      return;
-    }
+    if (!el) return;
 
     el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
@@ -82,19 +95,15 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
         setReady(true);
       }, 50);
     });
-  }, [step, currentStep, steps.length, onComplete, isMobile]);
+  }, [step, isMobile]);
 
   useEffect(() => {
-    if (!isOpen) {
-      setCurrentStep(0);
-      setReady(false);
-      return;
-    }
+    if (!isOpen || visibleSteps.length === 0) return;
     if (!isMobile) {
       setReady(false);
       calculatePosition();
     }
-  }, [isOpen, currentStep, calculatePosition, isMobile]);
+  }, [isOpen, currentStep, calculatePosition, isMobile, visibleSteps]);
 
   useEffect(() => {
     if (!isOpen || isMobile) return;
@@ -123,10 +132,10 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, currentStep]);
+  }, [isOpen, currentStep, visibleSteps.length]);
 
   const handleNext = () => {
-    if (currentStep < steps.length - 1) {
+    if (currentStep < visibleSteps.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
       onComplete();
@@ -139,10 +148,8 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
     }
   };
 
-  // Don't show tour on mobile — UI should be self-explanatory
-  if (!isOpen || !step || isMobile) return null;
+  if (!isOpen || !step || isMobile || visibleSteps.length === 0) return null;
 
-  // Desktop: spotlight tour
   return (
     <div className="guided-tour-overlay">
       {targetRect && (
@@ -166,7 +173,7 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
       >
         <div className="guided-tour-tooltip-header">
           <span className="guided-tour-step-count">
-            {currentStep + 1} of {steps.length}
+            {currentStep + 1} of {visibleSteps.length}
           </span>
           <button className="guided-tour-skip" onClick={onSkip}>
             Skip
@@ -181,7 +188,7 @@ function GuidedTour({ steps, isOpen, onComplete, onSkip }) {
             </button>
           )}
           <button className="guided-tour-btn guided-tour-btn--next" onClick={handleNext}>
-            {currentStep === steps.length - 1 ? 'Done' : 'Next'}
+            {currentStep === visibleSteps.length - 1 ? 'Done' : 'Next'}
           </button>
         </div>
       </div>

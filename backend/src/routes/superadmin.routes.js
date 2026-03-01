@@ -1,9 +1,11 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import Stripe from 'stripe';
 import pool from '../config/database.js';
 
 const router = express.Router();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Middleware to verify super admin token
 const authenticateSuperAdmin = async (req, res, next) => {
@@ -1285,6 +1287,214 @@ router.post('/email-broadcast', authenticateSuperAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error sending broadcast:', error);
     res.status(500).json({ error: error.message || 'Failed to send broadcast' });
+  }
+});
+
+// =====================================================
+// Coupon / Discount Code Management (via Stripe)
+// =====================================================
+
+const PRICE_LABEL_MAP = {
+  standard_monthly: 'Standard Monthly',
+  standard_annual: 'Standard Annual',
+  plus_monthly: 'Plus Monthly',
+  plus_annual: 'Plus Annual'
+};
+
+// GET /superadmin/coupons — List promotion codes
+router.get('/coupons', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const promoCodes = await stripe.promotionCodes.list({
+      limit: 100,
+      expand: ['data.coupon']
+    });
+
+    // Look up madrasah names for customer-restricted codes
+    const enriched = await Promise.all(promoCodes.data.map(async (pc) => {
+      let madrasahName = null;
+      if (pc.customer) {
+        const [rows] = await pool.query(
+          'SELECT name FROM madrasahs WHERE stripe_customer_id = ? LIMIT 1',
+          [pc.customer]
+        );
+        if (rows.length > 0) madrasahName = rows[0].name;
+      }
+
+      const appliesToPrice = pc.metadata?.applies_to_price || pc.coupon?.metadata?.applies_to_price || null;
+
+      return {
+        id: pc.id,
+        code: pc.code,
+        active: pc.active,
+        couponId: pc.coupon.id,
+        discount: pc.coupon.percent_off
+          ? `${pc.coupon.percent_off}% off`
+          : `$${(pc.coupon.amount_off / 100).toFixed(2)} off`,
+        percentOff: pc.coupon.percent_off,
+        amountOff: pc.coupon.amount_off,
+        currency: pc.coupon.currency,
+        duration: pc.coupon.duration,
+        durationInMonths: pc.coupon.duration_in_months,
+        appliesToPrice,
+        appliesToLabel: appliesToPrice ? (PRICE_LABEL_MAP[appliesToPrice] || appliesToPrice) : 'All plans',
+        madrasahName,
+        customerId: pc.customer,
+        madrasahId: pc.metadata?.madrasah_id || null,
+        timesRedeemed: pc.times_redeemed,
+        maxRedemptions: pc.max_redemptions,
+        expiresAt: pc.expires_at ? new Date(pc.expires_at * 1000).toISOString() : null,
+        created: new Date(pc.created * 1000).toISOString()
+      };
+    }));
+
+    res.json({ coupons: enriched });
+  } catch (error) {
+    console.error('List coupons error:', error);
+    res.status(500).json({ error: 'Failed to fetch coupons' });
+  }
+});
+
+// POST /superadmin/coupons — Create coupon + promotion code
+router.post('/coupons', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const {
+      code, discount_type, discount_value, currency,
+      duration, duration_in_months, applies_to_price,
+      madrasah_id, max_redemptions, expires_at
+    } = req.body;
+
+    if (!code || !discount_type || !discount_value) {
+      return res.status(400).json({ error: 'Code, discount type, and value are required' });
+    }
+
+    if (discount_type === 'amount' && !currency) {
+      return res.status(400).json({ error: 'Currency is required for fixed amount discounts' });
+    }
+
+    // Create Stripe coupon
+    const couponParams = {
+      duration: duration || 'once',
+      metadata: {}
+    };
+
+    if (discount_type === 'percent') {
+      couponParams.percent_off = parseFloat(discount_value);
+    } else {
+      couponParams.amount_off = Math.round(parseFloat(discount_value) * 100);
+      couponParams.currency = currency || 'usd';
+    }
+
+    if (duration === 'repeating' && duration_in_months) {
+      couponParams.duration_in_months = parseInt(duration_in_months);
+    }
+
+    if (applies_to_price) {
+      couponParams.metadata.applies_to_price = applies_to_price;
+    }
+
+    const coupon = await stripe.coupons.create(couponParams);
+
+    // If restricted to a madrasah, get or create Stripe customer
+    let customerId = null;
+    if (madrasah_id) {
+      const [rows] = await pool.query(
+        'SELECT id, name, email, stripe_customer_id FROM madrasahs WHERE id = ? AND deleted_at IS NULL',
+        [madrasah_id]
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'Madrasah not found' });
+      }
+
+      customerId = rows[0].stripe_customer_id;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: rows[0].email,
+          name: rows[0].name,
+          metadata: { madrasah_id: madrasah_id.toString() }
+        });
+        customerId = customer.id;
+        await pool.query(
+          'UPDATE madrasahs SET stripe_customer_id = ? WHERE id = ?',
+          [customerId, madrasah_id]
+        );
+      }
+    }
+
+    // Create promotion code
+    const promoParams = {
+      coupon: coupon.id,
+      code: code.toUpperCase(),
+      metadata: {}
+    };
+
+    if (customerId) {
+      promoParams.customer = customerId;
+    }
+    if (max_redemptions) {
+      promoParams.max_redemptions = parseInt(max_redemptions);
+    }
+    if (expires_at) {
+      promoParams.expires_at = Math.floor(new Date(expires_at).getTime() / 1000);
+    }
+    if (applies_to_price) {
+      promoParams.metadata.applies_to_price = applies_to_price;
+    }
+    if (madrasah_id) {
+      promoParams.metadata.madrasah_id = madrasah_id.toString();
+    }
+
+    const promoCode = await stripe.promotionCodes.create(promoParams);
+
+    await logAudit(req, 'CREATE', 'coupon', promoCode.id, {
+      code: code.toUpperCase(),
+      discount_type,
+      discount_value,
+      applies_to_price,
+      madrasah_id
+    });
+
+    res.status(201).json({
+      id: promoCode.id,
+      code: promoCode.code,
+      message: 'Coupon created successfully'
+    });
+  } catch (error) {
+    console.error('Create coupon error:', error);
+    if (error.type === 'StripeInvalidRequestError') {
+      return res.status(400).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Failed to create coupon' });
+  }
+});
+
+// PATCH /superadmin/coupons/:promoCodeId — Toggle active/inactive
+router.patch('/coupons/:promoCodeId', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { active } = req.body;
+    const updated = await stripe.promotionCodes.update(req.params.promoCodeId, {
+      active: !!active
+    });
+
+    await logAudit(req, 'UPDATE', 'coupon', req.params.promoCodeId, { active: !!active });
+
+    res.json({ id: updated.id, active: updated.active });
+  } catch (error) {
+    console.error('Toggle coupon error:', error);
+    res.status(500).json({ error: 'Failed to update coupon' });
+  }
+});
+
+// DELETE /superadmin/coupons/:promoCodeId — Deactivate
+router.delete('/coupons/:promoCodeId', authenticateSuperAdmin, async (req, res) => {
+  try {
+    await stripe.promotionCodes.update(req.params.promoCodeId, { active: false });
+
+    await logAudit(req, 'DEACTIVATE', 'coupon', req.params.promoCodeId);
+
+    res.json({ message: 'Coupon deactivated' });
+  } catch (error) {
+    console.error('Deactivate coupon error:', error);
+    res.status(500).json({ error: 'Failed to deactivate coupon' });
   }
 });
 

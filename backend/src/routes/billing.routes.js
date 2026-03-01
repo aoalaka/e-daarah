@@ -87,7 +87,7 @@ router.get('/status', authenticateToken, requireRole('admin'), async (req, res) 
 router.post('/create-checkout', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { priceKey, successUrl, cancelUrl } = req.body;
+    const { priceKey, successUrl, cancelUrl, coupon_code } = req.body;
 
     // Validate price key
     if (!PRICE_LOOKUP_KEYS[priceKey]) {
@@ -126,6 +126,44 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
       );
     }
 
+    // Validate coupon code if provided
+    let validPromoCodeId = null;
+    if (coupon_code) {
+      const promoCodes = await stripe.promotionCodes.list({
+        code: coupon_code,
+        active: true,
+        limit: 1,
+        expand: ['data.coupon']
+      });
+
+      if (promoCodes.data.length === 0) {
+        return res.status(400).json({ error: 'Invalid discount code' });
+      }
+
+      const promoCode = promoCodes.data[0];
+
+      // Check price restriction from metadata
+      const appliesToPrice = promoCode.metadata?.applies_to_price || promoCode.coupon?.metadata?.applies_to_price;
+      if (appliesToPrice && appliesToPrice !== priceKey) {
+        const PRICE_LABELS = {
+          standard_monthly: 'Standard Monthly',
+          standard_annual: 'Standard Annual',
+          plus_monthly: 'Plus Monthly',
+          plus_annual: 'Plus Annual'
+        };
+        return res.status(400).json({
+          error: `This code is only valid for ${PRICE_LABELS[appliesToPrice] || appliesToPrice}`
+        });
+      }
+
+      // Check customer restriction
+      if (promoCode.customer && promoCode.customer !== customerId) {
+        return res.status(400).json({ error: 'This code is not available for your school' });
+      }
+
+      validPromoCodeId = promoCode.id;
+    }
+
     // Look up the price by lookup key
     const prices = await stripe.prices.list({
       lookup_keys: [priceKey],
@@ -142,8 +180,8 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
     // Determine plan from price key
     const plan = priceKey.startsWith('plus') ? 'plus' : 'standard';
 
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    // Build checkout session params
+    const sessionParams = {
       customer: customerId,
       mode: 'subscription',
       line_items: [
@@ -163,9 +201,17 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
           madrasah_id: madrasahId.toString(),
           plan: plan
         }
-      },
-      allow_promotion_codes: true // Enable coupon codes
-    });
+      }
+    };
+
+    // Apply validated coupon or allow Stripe's native promo code field
+    if (validPromoCodeId) {
+      sessionParams.discounts = [{ promotion_code: validPromoCodeId }];
+    } else {
+      sessionParams.allow_promotion_codes = true;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     res.json({ url: session.url, sessionId: session.id });
   } catch (error) {

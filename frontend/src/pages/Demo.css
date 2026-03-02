@@ -109,7 +109,7 @@
   flex-direction: column;
   gap: 20px;
   padding: 0 20px 40px;
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -322,10 +322,23 @@
 
   .demo-cards {
     flex-direction: row;
+    flex-wrap: wrap;
     padding: 0 32px 48px;
   }
 
   .demo-card {
     flex: 1;
+    min-width: calc(50% - 20px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .demo-cards {
+    flex-wrap: nowrap;
+    max-width: 1200px;
+  }
+
+  .demo-card {
+    min-width: 0;
   }
 }

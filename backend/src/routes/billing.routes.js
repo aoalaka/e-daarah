@@ -21,7 +21,7 @@ const PRICE_LOOKUP_KEYS = {
 // Plan limits for reference (enforced in plan-limits middleware)
 const PLAN_LIMITS = {
   trial: { maxStudents: 500, maxTeachers: 50, maxClasses: Infinity, plan: 'trial' },
-  solo: { maxStudents: 30, maxTeachers: 0, maxClasses: 3, plan: 'solo' },
+  solo: { maxStudents: 50, maxTeachers: 0, maxClasses: 5, plan: 'solo' },
   standard: { maxStudents: 100, maxTeachers: 20, maxClasses: 10, plan: 'standard' },
   plus: { maxStudents: 500, maxTeachers: 50, maxClasses: Infinity, plan: 'plus' },
   enterprise: { maxStudents: Infinity, maxTeachers: Infinity, maxClasses: Infinity, plan: 'enterprise' }

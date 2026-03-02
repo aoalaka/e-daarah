@@ -149,9 +149,9 @@ Both services build remotely on Railway even if CLI is interrupted after upload.
 
 ## Current Production State
 
-- **DB host (public)**: REDACTED_HOST
-- **DB user**: root
-- **DB name**: railway
+- **DB host (public)**: Set via MYSQL_PUBLIC_URL env var
+- **DB user**: Set via env var
+- **DB name**: Set via env var
 - **Frontend**: https://www.e-daarah.com / https://admin.e-daarah.com (superadmin)
 - **Backend**: https://api.e-daarah.com
 

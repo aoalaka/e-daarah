@@ -1,6 +1,10 @@
 import mysql from 'mysql2/promise';
 
-const DB_URL = process.env.MYSQL_PUBLIC_URL || process.env.MYSQL_URL || 'mysql://root:REDACTED_CREDENTIAL@REDACTED_HOST/railway';
+const DB_URL = process.env.MYSQL_PUBLIC_URL || process.env.MYSQL_URL;
+if (!DB_URL) {
+  console.error('Error: Set MYSQL_PUBLIC_URL or MYSQL_URL environment variable');
+  process.exit(1);
+}
 
 async function run() {
   const url = new URL(DB_URL);

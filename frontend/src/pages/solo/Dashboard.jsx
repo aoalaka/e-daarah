@@ -128,11 +128,24 @@ function SoloDashboard() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
+  // ─── Billing ─────────────────────────────────────
+  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [selectedPlan, setSelectedPlan] = useState('solo');
+  const [couponCode, setCouponCode] = useState('');
+
+  // ─── Support Tickets ─────────────────────────────
+  const [supportTickets, setSupportTickets] = useState([]);
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [newTicket, setNewTicket] = useState({ subject: '', message: '', priority: 'normal' });
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [ticketMessages, setTicketMessages] = useState([]);
+  const [ticketReply, setTicketReply] = useState('');
+
   // ─── Browser tab title ───────────────────────────
   useEffect(() => {
     const labels = {
       overview: 'Overview', planner: 'Planner', classes: 'Classes', students: 'Students',
-      attendance: 'Attendance', exams: 'Exams', quran: "Qur'an", fees: 'Fees', settings: 'Settings', help: 'Help'
+      attendance: 'Attendance', exams: 'Exams', quran: "Qur'an", fees: 'Fees', settings: 'Settings', help: 'Help', support: 'Support'
     };
     document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
   }, [activeTab]);
@@ -147,6 +160,13 @@ function SoloDashboard() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // ─── Fetch tickets when Support tab is active ───
+  useEffect(() => {
+    if (activeTab === 'support') {
+      fetchTickets();
+    }
+  }, [activeTab]);
 
   // ─── Initial data load ──────────────────────────
   useEffect(() => {
@@ -699,6 +719,52 @@ function SoloDashboard() {
     }
   };
 
+  // ─── Support ticket handlers ─────────────────────
+  const fetchTickets = async () => {
+    try {
+      const response = await api.get('/admin/tickets');
+      setSupportTickets(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch tickets:', error);
+    }
+  };
+
+  const handleCreateTicket = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/admin/tickets', newTicket);
+      setNewTicket({ subject: '', message: '', priority: 'normal' });
+      setShowTicketForm(false);
+      fetchTickets();
+      toast.success('Ticket submitted successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to create ticket');
+    }
+  };
+
+  const handleViewTicket = async (id) => {
+    try {
+      const response = await api.get(`/admin/tickets/${id}`);
+      setSelectedTicket(response.data.ticket);
+      setTicketMessages(response.data.messages || []);
+      setTicketReply('');
+    } catch (error) {
+      toast.error('Failed to load ticket');
+    }
+  };
+
+  const handleReplyToTicket = async () => {
+    if (!ticketReply.trim()) return;
+    try {
+      await api.post(`/admin/tickets/${selectedTicket.id}/reply`, { message: ticketReply });
+      setTicketReply('');
+      handleViewTicket(selectedTicket.id);
+      fetchTickets();
+    } catch (error) {
+      toast.error('Failed to send reply');
+    }
+  };
+
   // ─── Other helpers ───────────────────────────────
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -719,19 +785,21 @@ function SoloDashboard() {
   const navGroups = [
     { items: [{ id: 'overview', label: 'Overview' }] },
     { label: 'Manage', items: [
-      { id: 'planner', label: 'Planner' },
       { id: 'classes', label: 'Classes' },
       { id: 'students', label: 'Students' },
+      ...(madrasahProfile?.enable_fee_tracking ? [{ id: 'fees', label: 'Fees' }] : []),
     ]},
     { label: 'Teach', items: [
       { id: 'attendance', label: 'Attendance' },
       { id: 'exams', label: 'Exam Recording' },
       ...(madrasahProfile?.enable_quran_tracking ? [{ id: 'quran', label: "Qur'an" }] : []),
-      ...(madrasahProfile?.enable_fee_tracking ? [{ id: 'fees', label: 'Fees' }] : []),
     ]},
-    { label: 'System', items: [
-      { id: 'settings', label: 'Settings' },
+    { label: 'Tools', items: [
+      { id: 'planner', label: 'Planner' },
+    ]},
+    { label: 'Help', items: [
       { id: 'help', label: 'Help' },
+      { id: 'support', label: 'Support' },
     ]},
   ];
 
@@ -762,6 +830,8 @@ function SoloDashboard() {
         return <svg {...iconProps}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
       case 'help':
         return <svg {...iconProps}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+      case 'support':
+        return <svg {...iconProps}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>;
       default:
         return null;
     }
@@ -861,6 +931,10 @@ function SoloDashboard() {
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
                 Settings
+              </button>
+              <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); setTimeout(() => document.getElementById('settings-billing')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                Billing
               </button>
               <div className="profile-dropdown-divider" />
               <button className="profile-dropdown-item logout" onClick={handleLogout}>
@@ -2597,6 +2671,400 @@ function SoloDashboard() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Billing & Subscription */}
+              <div className="card" id="settings-billing" style={{ marginTop: '20px' }}>
+                <h3>Billing & Subscription</h3>
+                <div style={{ display: 'grid', gap: '16px', maxWidth: '500px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--lighter)', borderRadius: '4px' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Current Plan</div>
+                      <div style={{ fontSize: '18px', fontWeight: '600', textTransform: 'capitalize' }}>
+                        {madrasahProfile?.pricing_plan || 'Trial'}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Status</div>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        backgroundColor: '#f5f5f5',
+                        color: madrasahProfile?.subscription_status === 'active' ? '#404040' :
+                          madrasahProfile?.subscription_status === 'trialing' ? '#525252' :
+                          madrasahProfile?.subscription_status === 'past_due' ? '#737373' : '#525252'
+                      }}>
+                        {madrasahProfile?.subscription_status || 'trialing'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Plan Selection */}
+                  <div style={{ marginTop: '16px', padding: '16px', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>Choose a Plan</h4>
+
+                    {/* Billing Cycle Toggle */}
+                    <div style={{ display: 'flex', gap: '0', marginBottom: '16px', background: 'var(--lighter)', borderRadius: '6px', padding: '4px', width: 'fit-content' }}>
+                      <button
+                        type="button"
+                        onClick={() => setBillingCycle('monthly')}
+                        style={{
+                          padding: '8px 16px',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          background: billingCycle === 'monthly' ? 'white' : 'transparent',
+                          color: billingCycle === 'monthly' ? 'var(--text)' : 'var(--muted)',
+                          fontWeight: billingCycle === 'monthly' ? '500' : '400',
+                          boxShadow: billingCycle === 'monthly' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                        }}
+                      >
+                        Monthly
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBillingCycle('annual')}
+                        style={{
+                          padding: '8px 16px',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          background: billingCycle === 'annual' ? 'white' : 'transparent',
+                          color: billingCycle === 'annual' ? 'var(--text)' : 'var(--muted)',
+                          fontWeight: billingCycle === 'annual' ? '500' : '400',
+                          boxShadow: billingCycle === 'annual' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                        }}
+                      >
+                        Annual <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: '500' }}>Save 2 months</span>
+                      </button>
+                    </div>
+
+                    {/* Plan Options */}
+                    <div className="plan-options-grid">
+                      {/* Solo Plan */}
+                      <div
+                        onClick={() => setSelectedPlan('solo')}
+                        style={{
+                          padding: '16px',
+                          border: selectedPlan === 'solo' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          background: selectedPlan === 'solo' ? 'var(--lighter)' : 'white'
+                        }}
+                      >
+                        <div style={{ fontWeight: '600', marginBottom: '4px' }}>Solo</div>
+                        <div style={{ fontSize: '24px', fontWeight: '600' }}>
+                          ${billingCycle === 'monthly' ? '5' : '50'}
+                          <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
+                            /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
+                          50 students, 5 classes
+                        </div>
+                      </div>
+
+                      {/* Standard Plan */}
+                      <div
+                        onClick={() => setSelectedPlan('standard')}
+                        style={{
+                          padding: '16px',
+                          border: selectedPlan === 'standard' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          background: selectedPlan === 'standard' ? 'var(--lighter)' : 'white'
+                        }}
+                      >
+                        <div style={{ fontWeight: '600', marginBottom: '4px' }}>Standard</div>
+                        <div style={{ fontSize: '24px', fontWeight: '600' }}>
+                          ${billingCycle === 'monthly' ? '12' : '120'}
+                          <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
+                            /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
+                          100 students, 20 teachers
+                        </div>
+                      </div>
+
+                      {/* Plus Plan */}
+                      <div
+                        onClick={() => setSelectedPlan('plus')}
+                        style={{
+                          padding: '16px',
+                          border: selectedPlan === 'plus' ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          background: selectedPlan === 'plus' ? 'var(--lighter)' : 'white',
+                          position: 'relative'
+                        }}
+                      >
+                        <span style={{
+                          position: 'absolute',
+                          top: '-10px',
+                          right: '12px',
+                          background: 'var(--accent)',
+                          color: 'white',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                        }}>Popular</span>
+                        <div style={{ fontWeight: '600', marginBottom: '4px' }}>Plus</div>
+                        <div style={{ fontSize: '24px', fontWeight: '600' }}>
+                          ${billingCycle === 'monthly' ? '29' : '290'}
+                          <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
+                            /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
+                          500 students, 50 teachers
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Discount Code */}
+                    <div style={{ marginTop: '16px' }}>
+                      <label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--muted)', display: 'block', marginBottom: '6px' }}>Discount Code</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="e.g. SCHOOL50"
+                        style={{ width: '100%', letterSpacing: '1px', fontWeight: '500' }}
+                      />
+                    </div>
+
+                    {/* Subscribe Button */}
+                    <button
+                      className="btn primary"
+                      style={{ width: '100%', marginTop: '12px' }}
+                      onClick={async () => {
+                        try {
+                          const priceKey = `${selectedPlan}_${billingCycle}`;
+                          const payload = {
+                            priceKey,
+                            successUrl: `${window.location.origin}/${madrasahSlug}/solo?billing=success`,
+                            cancelUrl: `${window.location.origin}/${madrasahSlug}/solo?billing=canceled`
+                          };
+                          if (couponCode.trim()) {
+                            payload.coupon_code = couponCode.trim();
+                          }
+                          const response = await api.post('/billing/create-checkout', payload);
+                          window.location.href = response.data.url;
+                        } catch (error) {
+                          toast.error(error.response?.data?.error || 'Failed to start checkout');
+                        }
+                      }}
+                    >
+                      {madrasahProfile?.subscription_status === 'active' ? 'Change Plan' : 'Subscribe Now'}
+                    </button>
+                  </div>
+
+                  {/* Manage Billing */}
+                  {madrasahProfile?.stripe_customer_id && (
+                    <button
+                      className="btn secondary"
+                      style={{ marginTop: '12px' }}
+                      onClick={async () => {
+                        try {
+                          const response = await api.post('/billing/customer-portal', {
+                            returnUrl: `${window.location.origin}/${madrasahSlug}/solo`
+                          });
+                          window.location.href = response.data.url;
+                        } catch (error) {
+                          toast.error(error.response?.data?.error || 'Failed to open billing portal');
+                        }
+                      }}
+                    >
+                      Manage Billing
+                    </button>
+                  )}
+
+                  <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '12px 0 0 0' }}>
+                    View our <a href="/pricing" target="_blank" style={{ color: 'var(--accent)' }}>pricing page</a> for full feature comparison.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ═══════ SUPPORT TAB ═══════ */}
+          {activeTab === 'support' && (
+            <>
+              <div className="section-header">
+                <h2>Support</h2>
+                <button className="btn btn-primary" onClick={() => setShowTicketForm(!showTicketForm)}>
+                  {showTicketForm ? 'Cancel' : '+ New Ticket'}
+                </button>
+              </div>
+
+              <p className="support-intro">
+                Need help? Submit a support ticket and our team will get back to you.
+              </p>
+
+              {showTicketForm && (
+                <div className="card ticket-form">
+                  <form onSubmit={handleCreateTicket}>
+                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                      <label className="form-label">Subject</label>
+                      <input
+                        className="form-input"
+                        type="text"
+                        value={newTicket.subject}
+                        onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
+                        placeholder="Brief description of your issue"
+                        required
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                      <label className="form-label">Priority</label>
+                      <select
+                        className="form-select"
+                        value={newTicket.priority}
+                        onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value })}
+                      >
+                        <option value="low">Low</option>
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                      <label className="form-label">Message</label>
+                      <textarea
+                        className="form-textarea"
+                        value={newTicket.message}
+                        onChange={(e) => setNewTicket({ ...newTicket, message: e.target.value })}
+                        placeholder="Describe your issue in detail..."
+                        rows={5}
+                        required
+                      />
+                    </div>
+                    <div className="form-actions" style={{ borderTop: 'none', marginTop: 0, paddingTop: 0, justifyContent: 'flex-start' }}>
+                      <button type="submit" className="btn btn-primary">Submit Ticket</button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {selectedTicket ? (
+                <div className="card">
+                  <button className="btn btn-secondary btn-sm" onClick={() => setSelectedTicket(null)} style={{ marginBottom: '16px' }}>
+                    ← Back to tickets
+                  </button>
+                  <div className="ticket-detail-header">
+                    <h3>{selectedTicket.subject}</h3>
+                    <div className="ticket-detail-meta">
+                      <span className={`ticket-status ticket-status-${selectedTicket.status}`}>
+                        {selectedTicket.status.replace('_', ' ')}
+                      </span>
+                      <span>{new Date(selectedTicket.created_at).toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="ticket-messages">
+                    {ticketMessages.map((msg) => (
+                      <div key={msg.id} className={`ticket-message ${msg.sender_type === 'super_admin' ? 'ticket-message-support' : 'ticket-message-user'}`}>
+                        <div className="ticket-message-header">
+                          <strong>{msg.sender_type === 'super_admin' ? 'Support Team' : 'You'}</strong>
+                          <span>{new Date(msg.created_at).toLocaleString()}</span>
+                        </div>
+                        <p className="ticket-message-body">{msg.message}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedTicket.status !== 'closed' && (
+                    <div className="ticket-reply-area">
+                      <textarea
+                        value={ticketReply}
+                        onChange={(e) => setTicketReply(e.target.value)}
+                        placeholder="Type your reply..."
+                        rows={3}
+                      />
+                      <button className="btn btn-primary" onClick={handleReplyToTicket} disabled={!ticketReply.trim()}>
+                        Send Reply
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : supportTickets.length === 0 ? (
+                <div className="card">
+                  <div className="empty">
+                    <p>No support tickets yet.</p>
+                    <p style={{ fontSize: '14px', marginTop: '8px' }}>Click "+ New Ticket" to submit your first support request.</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="card">
+                    <div className="table-wrap support-table-desktop">
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Subject</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Messages</th>
+                            <th>Updated</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {supportTickets.map((t) => (
+                            <tr key={t.id}>
+                              <td><strong>{t.subject}</strong></td>
+                              <td>
+                                <span className={`ticket-status ticket-status-${t.status}`}>
+                                  {t.status.replace('_', ' ')}
+                                </span>
+                              </td>
+                              <td className="ticket-priority">{t.priority}</td>
+                              <td>{t.message_count}</td>
+                              <td style={{ fontSize: '13px', color: '#666' }}>{fmtDate(t.updated_at)}</td>
+                              <td>
+                                <button className="btn-sm btn-edit" onClick={() => handleViewTicket(t.id)}>
+                                  View
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* Mobile cards for tickets */}
+                    <div className="support-mobile-cards">
+                      {supportTickets.map((t) => (
+                        <div key={t.id} className="admin-mobile-card">
+                          <div className="admin-mobile-card-top">
+                            <div>
+                              <div className="admin-mobile-card-title">{t.subject}</div>
+                              <div className="admin-mobile-card-sub">
+                                {t.message_count} message{t.message_count !== 1 ? 's' : ''} · {fmtDate(t.updated_at)}
+                              </div>
+                            </div>
+                            <span className={`ticket-status ticket-status-${t.status}`}>
+                              {t.status.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <div className="admin-mobile-card-actions">
+                            <button className="btn btn-sm btn-secondary" onClick={() => handleViewTicket(t.id)}>View</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
             </>
           )}

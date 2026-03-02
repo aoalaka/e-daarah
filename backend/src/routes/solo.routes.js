@@ -393,9 +393,21 @@ router.delete('/students/:id', requireActiveSubscription, async (req, res) => {
 router.post('/attendance', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { student_id, class_id, semester_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes } = req.body;
+    const { student_id, class_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes } = req.body;
+    let { semester_id } = req.body;
 
-    if (!semester_id) return res.status(400).json({ error: 'semester_id is required' });
+    // If no semester_id provided, find the active semester
+    if (!semester_id) {
+      const [activeSem] = await pool.query(
+        `SELECT s.id FROM semesters s
+         JOIN sessions sess ON s.session_id = sess.id
+         WHERE sess.madrasah_id = ? AND s.is_active = 1 AND s.deleted_at IS NULL AND sess.deleted_at IS NULL
+         LIMIT 1`,
+        [madrasahId]
+      );
+      if (activeSem.length === 0) return res.status(400).json({ error: 'No active semester. Please activate a semester in the Planner.' });
+      semester_id = activeSem[0].id;
+    }
 
     const [students] = await pool.query('SELECT id FROM students WHERE id = ? AND madrasah_id = ?', [student_id, madrasahId]);
     if (students.length === 0) return res.status(403).json({ error: 'Student not found in your madrasah' });

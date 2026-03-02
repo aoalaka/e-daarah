@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import api from '../../services/api';
 import { authService } from '../../services/auth.service';
 import SortableTable from '../../components/SortableTable';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 import EmailVerificationBanner from '../../components/EmailVerificationBanner';
 import DemoBanner from '../../components/DemoBanner';
 import AnnouncementBanner from '../../components/AnnouncementBanner';
@@ -68,6 +70,15 @@ function SoloDashboard() {
   const [editingSession, setEditingSession] = useState(null);
   const [editingSemester, setEditingSemester] = useState(null);
   const [plannerSubTab, setPlannerSubTab] = useState('sessions');
+  const [plannerSelectedSession, setPlannerSelectedSession] = useState(null);
+  const [plannerHolidays, setPlannerHolidays] = useState([]);
+  const [plannerOverrides, setPlannerOverrides] = useState([]);
+  const [showHolidayForm, setShowHolidayForm] = useState(false);
+  const [newHoliday, setNewHoliday] = useState({ title: '', start_date: '', end_date: '', description: '' });
+  const [editingHoliday, setEditingHoliday] = useState(null);
+  const [showOverrideForm, setShowOverrideForm] = useState(false);
+  const [newOverride, setNewOverride] = useState({ title: '', start_date: '', end_date: '', school_days: [] });
+  const [editingOverride, setEditingOverride] = useState(null);
 
   // ─── Classes ─────────────────────────────────────
   const [classes, setClasses] = useState([]);
@@ -143,12 +154,23 @@ function SoloDashboard() {
   // ─── Fees ────────────────────────────────────────
   const [feeSummary, setFeeSummary] = useState([]);
   const [feePayments, setFeePayments] = useState([]);
+  const [feeLoading, setFeeLoading] = useState(false);
   const [showFeePaymentForm, setShowFeePaymentForm] = useState(false);
   const [feePaymentForm, setFeePaymentForm] = useState({
     student_id: '', amount_paid: '', payment_date: getLocalDate(), payment_method: 'cash', reference_note: '', payment_label: ''
   });
   const [feeClassFilter, setFeeClassFilter] = useState('');
-
+  const [showBulkFeeModal, setShowBulkFeeModal] = useState(false);
+  const [selectedStudentsForFee, setSelectedStudentsForFee] = useState([]);
+  const [bulkFeeAmount, setBulkFeeAmount] = useState('');
+  const [bulkFeeNote, setBulkFeeNote] = useState('');
+  const [bulkFeeClassFilter, setBulkFeeClassFilter] = useState('');
+  const [editingFee, setEditingFee] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(null);
+  const [newPayment, setNewPayment] = useState({ amount_paid: '', payment_date: '', payment_method: 'cash', reference_note: '', payment_label: '', _labelCategory: '' });
+  const [mobileStudentSearch, setMobileStudentSearch] = useState('');
+  const [mobileStudentPage, setMobileStudentPage] = useState(1);
+  const mobilePageSize = 10;
   // ─── Settings ────────────────────────────────────
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -284,7 +306,7 @@ function SoloDashboard() {
         api.get('/solo/semesters').catch(() => ({ data: [] })),
         api.get('/solo/classes').catch(() => ({ data: [] })),
         api.get('/solo/students').catch(() => ({ data: [] })),
-        api.get('/solo/profile').catch(() => ({ data: null }))
+        api.get('/solo/profile').catch((err) => { console.error('Profile load error:', err.response?.status, err.response?.data || err.message); return { data: null }; })
       ]);
       setSessions(sessionsRes.data || []);
       setSemesters(semestersRes.data || []);
@@ -455,12 +477,14 @@ function SoloDashboard() {
   };
 
   const fetchFeeSummary = async () => {
+    setFeeLoading(true);
     try {
       let url = '/solo/fee-summary';
       if (feeClassFilter) url += `?class_id=${feeClassFilter}`;
       const res = await api.get(url);
       setFeeSummary(res.data || []);
     } catch (e) { console.error('Failed to fetch fee summary:', e); }
+    finally { setFeeLoading(false); }
   };
 
   const fetchFeePayments = async () => {
@@ -524,6 +548,107 @@ function SoloDashboard() {
       loadData();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to save semester');
+    }
+  };
+
+  const handleDeleteSemester = async (id) => {
+    try {
+      await api.delete(`/solo/semesters/${id}`);
+      toast.success('Semester deleted');
+      loadData();
+    } catch (error) {
+      toast.error('Failed to delete semester');
+    }
+  };
+
+  // ─── Planner Holidays ───────────────────────────
+  const fetchPlannerData = async (sessionId) => {
+    try {
+      const [hRes, oRes] = await Promise.all([
+        api.get(`/solo/sessions/${sessionId}/holidays`).catch(() => ({ data: [] })),
+        api.get(`/solo/sessions/${sessionId}/schedule-overrides`).catch(() => ({ data: [] }))
+      ]);
+      setPlannerHolidays(hRes.data || []);
+      setPlannerOverrides(oRes.data || []);
+    } catch (e) { /* ignore */ }
+  };
+
+  const openPlannerSession = (session) => {
+    setPlannerSubTab('detail');
+    setPlannerSelectedSession(session);
+    fetchPlannerData(session.id);
+  };
+
+  const handleCreateHoliday = async (e) => {
+    e.preventDefault();
+    if (!plannerSelectedSession) return;
+    try {
+      if (editingHoliday) {
+        await api.put(`/solo/holidays/${editingHoliday.id}`, newHoliday);
+        toast.success('Holiday updated');
+      } else {
+        await api.post(`/solo/sessions/${plannerSelectedSession.id}/holidays`, newHoliday);
+        toast.success('Holiday added');
+      }
+      setShowHolidayForm(false);
+      setEditingHoliday(null);
+      setNewHoliday({ title: '', start_date: '', end_date: '', description: '' });
+      fetchPlannerData(plannerSelectedSession.id);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to save holiday');
+    }
+  };
+
+  const handleEditHoliday = (h) => {
+    setEditingHoliday(h);
+    setNewHoliday({ title: h.title, start_date: h.start_date?.slice(0, 10), end_date: h.end_date?.slice(0, 10), description: h.description || '' });
+    setShowHolidayForm(true);
+  };
+
+  const handleDeleteHoliday = async (id) => {
+    try {
+      await api.delete(`/solo/holidays/${id}`);
+      toast.success('Holiday deleted');
+      if (plannerSelectedSession) fetchPlannerData(plannerSelectedSession.id);
+    } catch (error) {
+      toast.error('Failed to delete holiday');
+    }
+  };
+
+  const handleCreateOverride = async (e) => {
+    e.preventDefault();
+    if (!plannerSelectedSession) return;
+    try {
+      if (editingOverride) {
+        await api.put(`/solo/schedule-overrides/${editingOverride.id}`, newOverride);
+        toast.success('Override updated');
+      } else {
+        await api.post(`/solo/sessions/${plannerSelectedSession.id}/schedule-overrides`, newOverride);
+        toast.success('Override added');
+      }
+      setShowOverrideForm(false);
+      setEditingOverride(null);
+      setNewOverride({ title: '', start_date: '', end_date: '', school_days: [] });
+      fetchPlannerData(plannerSelectedSession.id);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to save override');
+    }
+  };
+
+  const handleEditOverride = (o) => {
+    setEditingOverride(o);
+    const days = o.school_days ? (typeof o.school_days === 'string' ? JSON.parse(o.school_days) : o.school_days) : [];
+    setNewOverride({ title: o.title, start_date: o.start_date?.slice(0, 10), end_date: o.end_date?.slice(0, 10), school_days: days });
+    setShowOverrideForm(true);
+  };
+
+  const handleDeleteOverride = async (id) => {
+    try {
+      await api.delete(`/solo/schedule-overrides/${id}`);
+      toast.success('Override deleted');
+      if (plannerSelectedSession) fetchPlannerData(plannerSelectedSession.id);
+    } catch (error) {
+      toast.error('Failed to delete override');
     }
   };
 
@@ -875,6 +1000,28 @@ function SoloDashboard() {
     }
   };
 
+  const handleRecordPaymentModal = async (e) => {
+    e.preventDefault();
+    if (!showPaymentModal) return;
+    try {
+      await api.post('/solo/fee-payments', {
+        student_id: showPaymentModal.student_id,
+        amount_paid: newPayment.amount_paid,
+        payment_date: newPayment.payment_date,
+        payment_method: newPayment.payment_method,
+        reference_note: newPayment.reference_note,
+        payment_label: newPayment.payment_label || newPayment._labelCategory
+      });
+      toast.success('Payment recorded');
+      setShowPaymentModal(null);
+      setNewPayment({ amount_paid: '', payment_date: '', payment_method: 'cash', reference_note: '', payment_label: '', _labelCategory: '' });
+      fetchFeeSummary();
+      fetchFeePayments();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to record payment');
+    }
+  };
+
   const handleDeleteFeePayment = async (id) => {
     try {
       await api.delete(`/solo/fee-payments/${id}`);
@@ -883,6 +1030,60 @@ function SoloDashboard() {
       fetchFeePayments();
     } catch (error) {
       toast.error('Failed to void payment');
+    }
+  };
+
+  const handleBulkSetFee = async (e) => {
+    e.preventDefault();
+    if (selectedStudentsForFee.length === 0) {
+      toast.error('Select at least one student');
+      return;
+    }
+    try {
+      await api.put('/solo/students/bulk-fee', {
+        student_ids: selectedStudentsForFee,
+        expected_fee: parseFloat(bulkFeeAmount),
+        fee_note: bulkFeeNote
+      });
+      toast.success(`Fee set for ${selectedStudentsForFee.length} student(s)`);
+      setShowBulkFeeModal(false);
+      setSelectedStudentsForFee([]);
+      setBulkFeeAmount('');
+      setBulkFeeNote('');
+      setBulkFeeClassFilter('');
+      fetchFeeSummary();
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to set fees');
+    }
+  };
+
+  const handleEditFee = async (e) => {
+    e.preventDefault();
+    if (!editingFee) return;
+    try {
+      await api.put(`/solo/students/${editingFee.student_id}/fee`, {
+        expected_fee: parseFloat(editingFee.expected_fee),
+        fee_note: editingFee.fee_note
+      });
+      toast.success('Fee updated');
+      setEditingFee(null);
+      fetchFeeSummary();
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to update fee');
+    }
+  };
+
+  const handleClearFee = async (row) => {
+    if (!confirm(`Clear expected fee for ${row.student_name}?`)) return;
+    try {
+      await api.delete(`/solo/students/${row.student_id}/fee`);
+      toast.success('Fee cleared');
+      fetchFeeSummary();
+      loadData();
+    } catch (error) {
+      toast.error('Failed to clear fee');
     }
   };
 
@@ -1316,7 +1517,7 @@ function SoloDashboard() {
                   </div>
 
                   <p style={{ color: 'var(--muted)', fontSize: '14px', marginBottom: 'var(--md)' }}>
-                    Create academic sessions, set school days, and manage semesters.
+                    Create academic sessions, set school days, manage semesters, holidays, and temporary schedule changes.
                   </p>
 
                   {showSessionForm && (
@@ -1324,7 +1525,7 @@ function SoloDashboard() {
                       <div className="card-header">{editingSession ? 'Edit Academic Session' : 'Create New Academic Session'}</div>
                       <div className="card-body">
                         <form onSubmit={handleCreateSession}>
-                          <div className="form-grid">
+                          <div className="form-grid form-grid-3">
                             <div className="form-group">
                               <label className="form-label">Session Name</label>
                               <input type="text" className="form-input" value={newSession.name} onChange={(e) => setNewSession({ ...newSession, name: e.target.value })} placeholder="e.g., 2025-2026" required />
@@ -1382,7 +1583,7 @@ function SoloDashboard() {
                         const schoolDays = session.default_school_days ? (typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days) : [];
                         const sessionSemesters = semesters.filter(sem => sem.session_id === session.id);
                         return (
-                          <div key={session.id} className="card" style={{ padding: 'var(--md)', cursor: 'pointer' }} onClick={() => { setPlannerSubTab('detail'); setPlannerSelectedSession(session); }}>
+                          <div key={session.id} className="card" style={{ padding: 'var(--md)', cursor: 'pointer' }} onClick={() => openPlannerSession(session)}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                               <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
@@ -1406,7 +1607,7 @@ function SoloDashboard() {
                               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                 <button onClick={(e) => { e.stopPropagation(); setEditingSession(session); setNewSession({ name: session.name, start_date: session.start_date?.slice(0, 10), end_date: session.end_date?.slice(0, 10), is_active: session.is_active, default_school_days: schoolDays }); setShowSessionForm(true); }} className="btn btn-sm btn-secondary">Edit</button>
                                 <button onClick={(e) => { e.stopPropagation(); setConfirmModal({ message: `Delete session "${session.name}"?`, onConfirm: () => { handleDeleteSession(session.id); setConfirmModal(null); } }); }} className="btn btn-sm btn-danger">Delete</button>
-                                <button onClick={() => { setPlannerSubTab('detail'); setPlannerSelectedSession(session); }} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px', color: '#2563eb', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>View →</button>
+                                <button onClick={() => openPlannerSession(session)} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px', color: '#2563eb', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>View →</button>
                               </div>
                             </div>
                           </div>
@@ -1450,7 +1651,7 @@ function SoloDashboard() {
                     {showSemesterForm && (
                       <div className="card-body" style={{ borderBottom: '1px solid var(--border)' }}>
                         <form onSubmit={handleCreateSemester}>
-                          <div className="form-grid">
+                          <div className="form-grid form-grid-3">
                             <div className="form-group">
                               <label className="form-label">Semester Name</label>
                               <input type="text" className="form-input" value={newSemester.name} onChange={(e) => setNewSemester({ ...newSemester, name: e.target.value })} placeholder="e.g., First Semester" required />
@@ -1506,6 +1707,179 @@ function SoloDashboard() {
                                   </td>
                                 </tr>
                               ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Holidays Section */}
+                  <div className="card" style={{ marginBottom: 'var(--md)' }}>
+                    <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Holidays & Closures</span>
+                      {!showHolidayForm && (
+                        <button onClick={() => {
+                          setEditingHoliday(null);
+                          setNewHoliday({ title: '', start_date: '', end_date: '', description: '' });
+                          setShowHolidayForm(true);
+                        }} className="btn btn-sm btn-primary">+ Add</button>
+                      )}
+                    </div>
+
+                    {showHolidayForm && (
+                      <div className="card-body" style={{ borderBottom: '1px solid var(--border)' }}>
+                        <form onSubmit={handleCreateHoliday}>
+                          <div className="form-grid form-grid-3">
+                            <div className="form-group">
+                              <label className="form-label">Holiday Name</label>
+                              <input type="text" className="form-input" value={newHoliday.title} onChange={(e) => setNewHoliday({ ...newHoliday, title: e.target.value })} placeholder="e.g., Eid al-Fitr, Ramadan Break" required />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Start Date</label>
+                              <input type="date" className="form-input" value={newHoliday.start_date} onChange={(e) => setNewHoliday({ ...newHoliday, start_date: e.target.value })} required />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">End Date</label>
+                              <input type="date" className="form-input" value={newHoliday.end_date} onChange={(e) => setNewHoliday({ ...newHoliday, end_date: e.target.value })} required />
+                            </div>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Description (optional)</label>
+                            <input type="text" className="form-input" value={newHoliday.description} onChange={(e) => setNewHoliday({ ...newHoliday, description: e.target.value })} placeholder="e.g., School closed for 3 days" />
+                          </div>
+                          <div className="form-actions">
+                            <button type="button" onClick={() => { setShowHolidayForm(false); setEditingHoliday(null); }} className="btn btn-secondary">Cancel</button>
+                            <button type="submit" className="btn btn-primary">{editingHoliday ? 'Update' : 'Add Holiday'}</button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+
+                    <div className="card-body" style={{ padding: 0 }}>
+                      {plannerHolidays.length === 0 ? (
+                        <div className="empty" style={{ padding: 'var(--md)' }}><p>No holidays added. Teachers can mark attendance on any school day.</p></div>
+                      ) : (
+                        <div className="table-wrap">
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th>Holiday</th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {plannerHolidays.map(h => (
+                                <tr key={h.id}>
+                                  <td><strong>{h.title}</strong></td>
+                                  <td>{fmtDate(h.start_date)}</td>
+                                  <td>{fmtDate(h.end_date)}</td>
+                                  <td style={{ color: 'var(--muted)', fontSize: '13px' }}>{h.description || '—'}</td>
+                                  <td>
+                                    <button onClick={() => handleEditHoliday(h)} className="btn btn-sm btn-secondary">Edit</button>
+                                    <button onClick={() => handleDeleteHoliday(h.id)} className="btn btn-sm btn-danger" style={{ marginLeft: '4px' }}>Delete</button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Schedule Overrides Section */}
+                  <div className="card">
+                    <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Schedule Overrides</span>
+                      {!showOverrideForm && (
+                        <button onClick={() => {
+                          setEditingOverride(null);
+                          setNewOverride({ title: '', start_date: '', end_date: '', school_days: [] });
+                          setShowOverrideForm(true);
+                        }} className="btn btn-sm btn-primary">+ Add</button>
+                      )}
+                    </div>
+                    <p style={{ padding: '0 var(--md)', fontSize: '12px', color: 'var(--muted)', margin: '8px 0 0' }}>
+                      Temporarily change school days for a period (e.g., shift to Saturday-Sunday during Ramadan)
+                    </p>
+
+                    {showOverrideForm && (
+                      <div className="card-body" style={{ borderBottom: '1px solid var(--border)' }}>
+                        <form onSubmit={handleCreateOverride}>
+                          <div className="form-grid form-grid-3">
+                            <div className="form-group">
+                              <label className="form-label">Override Name</label>
+                              <input type="text" className="form-input" value={newOverride.title} onChange={(e) => setNewOverride({ ...newOverride, title: e.target.value })} placeholder="e.g., Ramadan Schedule" required />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Start Date</label>
+                              <input type="date" className="form-input" value={newOverride.start_date} onChange={(e) => setNewOverride({ ...newOverride, start_date: e.target.value })} required />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">End Date</label>
+                              <input type="date" className="form-input" value={newOverride.end_date} onChange={(e) => setNewOverride({ ...newOverride, end_date: e.target.value })} required />
+                            </div>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Temporary School Days</label>
+                            <div className="days-grid">
+                              {weekDays.map(day => (
+                                <button key={day} type="button"
+                                  className={`day-btn ${newOverride.school_days.includes(day) ? 'selected' : ''}`}
+                                  onClick={() => setNewOverride({ ...newOverride, school_days: newOverride.school_days.includes(day) ? newOverride.school_days.filter(d => d !== day) : [...newOverride.school_days, day] })}
+                                >
+                                  {day.substring(0, 3)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="form-actions">
+                            <button type="button" onClick={() => { setShowOverrideForm(false); setEditingOverride(null); }} className="btn btn-secondary">Cancel</button>
+                            <button type="submit" className="btn btn-primary">{editingOverride ? 'Update' : 'Add Override'}</button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+
+                    <div className="card-body" style={{ padding: 0 }}>
+                      {plannerOverrides.length === 0 ? (
+                        <div className="empty" style={{ padding: 'var(--md)' }}><p>No schedule overrides. The default school days apply throughout the session.</p></div>
+                      ) : (
+                        <div className="table-wrap">
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th>Override</th>
+                                <th>Period</th>
+                                <th>Temporary Days</th>
+                                <th>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {plannerOverrides.map(o => {
+                                const days = o.school_days ? (typeof o.school_days === 'string' ? JSON.parse(o.school_days) : o.school_days) : [];
+                                return (
+                                  <tr key={o.id}>
+                                    <td><strong>{o.title}</strong></td>
+                                    <td style={{ fontSize: '13px' }}>{fmtDate(o.start_date)} – {fmtDate(o.end_date)}</td>
+                                    <td>
+                                      <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                                        {days.map(d => (
+                                          <span key={d} style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '10px', background: 'rgba(37,99,235,0.08)', color: '#2563eb', fontWeight: '500' }}>{d.substring(0, 3)}</span>
+                                        ))}
+                                      </div>
+                                    </td>
+                                    <td>
+                                      <button onClick={() => handleEditOverride(o)} className="btn btn-sm btn-secondary">Edit</button>
+                                      <button onClick={() => handleDeleteOverride(o.id)} className="btn btn-sm btn-danger" style={{ marginLeft: '4px' }}>Delete</button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -1719,54 +2093,103 @@ function SoloDashboard() {
                             <option value="Female">Female</option>
                           </select>
                         </div>
-                        <div className="form-group">
-                          <label className="form-label">Class</label>
+                        <div className="form-group full">
+                          <label className="form-label">Assign to Class</label>
                           <select className="form-select" value={newStudent.class_id} onChange={(e) => setNewStudent({ ...newStudent, class_id: e.target.value })}>
-                            <option value="">No class</option>
+                            <option value="">None (Unassigned)</option>
                             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                           </select>
                         </div>
                       </div>
 
-                      <h4 style={{ margin: 'var(--md) 0 var(--sm)', fontSize: '14px', color: 'var(--muted)' }}>Parent/Guardian</h4>
+                      <h4 style={{ fontSize: '14px', margin: 'var(--lg) 0 var(--md)', color: 'var(--dark)' }}>
+                        Student Contact Information
+                      </h4>
                       <div className="form-grid">
                         <div className="form-group">
-                          <label className="form-label">Name</label>
-                          <input type="text" className="form-input" value={newStudent.parent_guardian_name} onChange={(e) => setNewStudent({ ...newStudent, parent_guardian_name: e.target.value })} />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Relationship</label>
-                          <select className="form-select" value={newStudent.parent_guardian_relationship} onChange={(e) => setNewStudent({ ...newStudent, parent_guardian_relationship: e.target.value })}>
-                            <option value="">Select...</option>
-                            <option value="Father">Father</option>
-                            <option value="Mother">Mother</option>
-                            <option value="Guardian">Guardian</option>
-                            <option value="Other">Other</option>
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Phone</label>
-                          <input type="text" className="form-input" value={newStudent.parent_guardian_phone} onChange={(e) => setNewStudent({ ...newStudent, parent_guardian_phone: e.target.value })} />
+                          <label className="form-label">Student Phone (Optional)</label>
+                          <PhoneInput
+                            country={'nz'}
+                            value={(newStudent.student_phone_country_code || '+64') + (newStudent.student_phone || '')}
+                            onChange={(phone, country) => {
+                              setNewStudent({
+                                ...newStudent,
+                                student_phone: phone.substring(country.dialCode.length),
+                                student_phone_country_code: '+' + country.dialCode
+                              });
+                            }}
+                            containerStyle={{ width: '100%' }}
+                            inputStyle={{ width: '100%', height: '42px' }}
+                          />
                         </div>
                       </div>
-
                       <div className="form-group">
-                        <label className="form-label">Notes</label>
-                        <textarea className="form-input" value={newStudent.notes} onChange={(e) => setNewStudent({ ...newStudent, notes: e.target.value })} rows={2} />
+                        <label className="form-label">Street Address (Optional)</label>
+                        <input type="text" className="form-input" value={newStudent.street} onChange={(e) => setNewStudent({ ...newStudent, street: e.target.value })} placeholder="123 Main Street" />
+                      </div>
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label className="form-label">City (Optional)</label>
+                          <input type="text" className="form-input" value={newStudent.city} onChange={(e) => setNewStudent({ ...newStudent, city: e.target.value })} placeholder="Auckland" />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">State/Region (Optional)</label>
+                          <input type="text" className="form-input" value={newStudent.state} onChange={(e) => setNewStudent({ ...newStudent, state: e.target.value })} placeholder="Auckland Region" />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Country (Optional)</label>
+                        <input type="text" className="form-input" value={newStudent.country} onChange={(e) => setNewStudent({ ...newStudent, country: e.target.value })} placeholder="New Zealand" />
+                      </div>
+
+                      <h4 style={{ fontSize: '14px', margin: 'var(--lg) 0 var(--md)', color: 'var(--dark)' }}>
+                        Parent/Guardian Information
+                      </h4>
+                      <div className="form-grid form-grid-3">
+                        <div className="form-group">
+                          <label className="form-label">Parent/Guardian Name *</label>
+                          <input type="text" className="form-input" value={newStudent.parent_guardian_name} onChange={(e) => setNewStudent({ ...newStudent, parent_guardian_name: e.target.value })} required />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Relationship *</label>
+                          <input type="text" className="form-input" value={newStudent.parent_guardian_relationship} onChange={(e) => setNewStudent({ ...newStudent, parent_guardian_relationship: e.target.value })} placeholder="Mother, Father, Guardian, etc." required />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Phone Number *</label>
+                          <PhoneInput
+                            country={'nz'}
+                            value={(newStudent.parent_guardian_phone_country_code || '+64') + (newStudent.parent_guardian_phone || '')}
+                            onChange={(phone, country) => {
+                              setNewStudent({
+                                ...newStudent,
+                                parent_guardian_phone: phone.substring(country.dialCode.length),
+                                parent_guardian_phone_country_code: '+' + country.dialCode
+                              });
+                            }}
+                            inputProps={{ required: true }}
+                            containerStyle={{ width: '100%' }}
+                            inputStyle={{ width: '100%', height: '42px' }}
+                          />
+                        </div>
                       </div>
 
                       {madrasahProfile?.enable_fee_tracking && (
-                        <div className="form-grid">
+                        <div className="form-grid form-grid-2">
                           <div className="form-group">
                             <label className="form-label">Expected Fee</label>
-                            <input type="number" step="0.01" className="form-input" value={newStudent.expected_fee} onChange={(e) => setNewStudent({ ...newStudent, expected_fee: e.target.value })} />
+                            <input type="number" step="0.01" min="0" className="form-input" value={newStudent.expected_fee} onChange={(e) => setNewStudent({ ...newStudent, expected_fee: e.target.value })} placeholder="e.g. 500.00" />
                           </div>
                           <div className="form-group">
                             <label className="form-label">Fee Note</label>
-                            <input type="text" className="form-input" value={newStudent.fee_note} onChange={(e) => setNewStudent({ ...newStudent, fee_note: e.target.value })} />
+                            <input type="text" className="form-input" value={newStudent.fee_note} onChange={(e) => setNewStudent({ ...newStudent, fee_note: e.target.value })} placeholder="e.g. Scholarship 50%" />
                           </div>
                         </div>
                       )}
+
+                      <div className="form-group">
+                        <label className="form-label">Notes</label>
+                        <textarea className="form-textarea" value={newStudent.notes} onChange={(e) => setNewStudent({ ...newStudent, notes: e.target.value })} rows="3" placeholder="Any additional information..." />
+                      </div>
 
                       <div className="form-actions">
                         <button type="button" onClick={() => { setShowStudentForm(false); setEditingStudent(null); }} className="btn btn-secondary">Cancel</button>
@@ -1787,9 +2210,48 @@ function SoloDashboard() {
                       sortValue: (row) => `${row.first_name} ${row.last_name}` },
                     { key: 'gender', label: 'Gender', sortable: true, sortType: 'string' },
                     { key: 'class_name', label: 'Class', sortable: true, sortType: 'string',
-                      render: (row) => row.class_name || '—' },
-                    { key: 'parent', label: 'Parent/Guardian', sortable: false,
-                      render: (row) => row.parent_guardian_name || '—' },
+                      render: (row) => (
+                        <select
+                          className="inline-class-select"
+                          value={row.class_id || ''}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={async (e) => {
+                            const newClassId = e.target.value || null;
+                            const newClassName = classes.find(c => String(c.id) === String(newClassId))?.name || null;
+                            setStudents(prev => prev.map(s =>
+                              s.id === row.id ? { ...s, class_id: newClassId ? Number(newClassId) : null, class_name: newClassName } : s
+                            ));
+                            try {
+                              await api.patch(`/solo/students/${row.id}/class`, { class_id: newClassId });
+                            } catch (err) {
+                              setStudents(prev => prev.map(s =>
+                                s.id === row.id ? { ...s, class_id: row.class_id, class_name: row.class_name } : s
+                              ));
+                              toast.error('Failed to update class');
+                            }
+                          }}
+                        >
+                          <option value="">Unassigned</option>
+                          {classes.map(cls => (
+                            <option key={cls.id} value={cls.id}>{cls.name}</option>
+                          ))}
+                        </select>
+                      )
+                    },
+                    { key: 'parent_guardian_name', label: 'Parent/Guardian', sortable: true,
+                      render: (row) => row.parent_guardian_name ? (
+                        <span>{row.parent_guardian_name} ({row.parent_guardian_relationship || 'N/A'})</span>
+                      ) : (
+                        <span style={{ color: 'var(--muted)' }}>-</span>
+                      )
+                    },
+                    { key: 'parent_guardian_phone', label: 'Phone', sortable: false,
+                      render: (row) => row.parent_guardian_phone ? (
+                        <span>{row.parent_guardian_phone_country_code || ''}{row.parent_guardian_phone}</span>
+                      ) : (
+                        <span style={{ color: 'var(--muted)' }}>-</span>
+                      )
+                    },
                     { key: 'actions', label: '', sortable: false,
                       render: (row) => (
                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
@@ -1818,7 +2280,7 @@ function SoloDashboard() {
                   ]}
                   data={filteredStudents}
                   searchable
-                  searchPlaceholder="Search students..."
+                  searchPlaceholder="Search by name, student ID, or class..."
                   searchKeys={['first_name', 'last_name', 'student_id', 'class_name', 'parent_guardian_name']}
                   pagination
                   pageSize={25}
@@ -1826,45 +2288,106 @@ function SoloDashboard() {
                 />
               </div>
 
-              {/* Mobile: admin-mobile-cards */}
+              {/* Mobile: cards with search + pagination */}
               <div className="admin-mobile-cards students-mobile-cards">
                 {filteredStudents.length === 0 ? (
-                  <div className="empty"><p>No students found.</p></div>
-                ) : (
-                  filteredStudents.map(s => (
-                    <div key={s.id} className="admin-mobile-card">
-                      <div className="admin-mobile-card-top">
-                        <div>
-                          <div className="admin-mobile-card-title">{s.first_name} {s.last_name}</div>
-                          <div className="admin-mobile-card-sub">{s.gender} · {s.class_name || 'No class'}</div>
+                  <p style={{ textAlign: 'center', color: 'var(--muted)', padding: '24px 0' }}>No students yet. Add your first student to get started.</p>
+                ) : (() => {
+                  const filtered = filteredStudents.filter(s => {
+                    if (!mobileStudentSearch) return true;
+                    const q = mobileStudentSearch.toLowerCase();
+                    return `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) || s.student_id?.toLowerCase().includes(q) || s.class_name?.toLowerCase().includes(q) || s.parent_guardian_name?.toLowerCase().includes(q);
+                  });
+                  const totalPages = Math.ceil(filtered.length / mobilePageSize);
+                  const page = Math.min(mobileStudentPage, totalPages || 1);
+                  const paged = filtered.slice((page - 1) * mobilePageSize, page * mobilePageSize);
+                  return (
+                    <>
+                      <div className="mobile-cards-search">
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Search students..."
+                          value={mobileStudentSearch}
+                          onChange={(e) => { setMobileStudentSearch(e.target.value); setMobileStudentPage(1); }}
+                        />
+                      </div>
+                      {paged.map(s => (
+                        <div key={s.id} className="admin-mobile-card">
+                          <div className="admin-mobile-card-top">
+                            <div style={{ flex: 1 }}>
+                              <div className="admin-mobile-card-title">{s.first_name} {s.last_name}</div>
+                              <div className="admin-mobile-card-sub">
+                                {s.student_id} · {s.gender || '-'} ·{' '}
+                                <select
+                                  className="inline-class-select"
+                                  value={s.class_id || ''}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={async (e) => {
+                                    const newClassId = e.target.value || null;
+                                    const newClassName = classes.find(c => String(c.id) === String(newClassId))?.name || null;
+                                    setStudents(prev => prev.map(st =>
+                                      st.id === s.id ? { ...st, class_id: newClassId ? Number(newClassId) : null, class_name: newClassName } : st
+                                    ));
+                                    try {
+                                      await api.patch(`/solo/students/${s.id}/class`, { class_id: newClassId });
+                                    } catch (err) {
+                                      setStudents(prev => prev.map(st =>
+                                        st.id === s.id ? { ...st, class_id: s.class_id, class_name: s.class_name } : st
+                                      ));
+                                      toast.error('Failed to update class');
+                                    }
+                                  }}
+                                >
+                                  <option value="">Unassigned</option>
+                                  {classes.map(cls => (
+                                    <option key={cls.id} value={cls.id}>{cls.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              {s.parent_guardian_name && (
+                                <div className="admin-mobile-card-sub" style={{ marginTop: '4px' }}>
+                                  {s.parent_guardian_name} ({s.parent_guardian_relationship || 'N/A'})
+                                  {s.parent_guardian_phone && ` · ${s.parent_guardian_phone_country_code || ''}${s.parent_guardian_phone}`}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="admin-mobile-card-actions">
+                            <button onClick={() => {
+                              setEditingStudent(s);
+                              setNewStudent({
+                                first_name: s.first_name, last_name: s.last_name,
+                                student_id: s.student_id, gender: s.gender, class_id: s.class_id || '',
+                                student_phone: s.student_phone || '', student_phone_country_code: s.student_phone_country_code || '+64',
+                                street: s.street || '', city: s.city || '', state: s.state || '', country: s.country || '',
+                                parent_guardian_name: s.parent_guardian_name || '',
+                                parent_guardian_relationship: s.parent_guardian_relationship || '',
+                                parent_guardian_phone: s.parent_guardian_phone || '',
+                                parent_guardian_phone_country_code: s.parent_guardian_phone_country_code || '+64',
+                                notes: s.notes || '',
+                                expected_fee: s.expected_fee || '', fee_note: s.fee_note || ''
+                              });
+                              setShowStudentForm(true);
+                            }} className="btn btn-sm btn-secondary">Edit</button>
+                            <button onClick={() => setConfirmModal({
+                              message: `Delete "${s.first_name} ${s.last_name}"?`,
+                              onConfirm: () => { handleDeleteStudent(s.id); setConfirmModal(null); }
+                            })} className="btn btn-sm btn-danger">Delete</button>
+                          </div>
                         </div>
-                        <div className="admin-mobile-card-badge">{s.student_id}</div>
-                      </div>
-                      <div className="admin-mobile-card-actions">
-                        <button onClick={() => {
-                          setEditingStudent(s);
-                          setNewStudent({
-                            first_name: s.first_name, last_name: s.last_name,
-                            student_id: s.student_id, gender: s.gender, class_id: s.class_id || '',
-                            student_phone: s.student_phone || '', student_phone_country_code: s.student_phone_country_code || '+64',
-                            street: s.street || '', city: s.city || '', state: s.state || '', country: s.country || '',
-                            parent_guardian_name: s.parent_guardian_name || '',
-                            parent_guardian_relationship: s.parent_guardian_relationship || '',
-                            parent_guardian_phone: s.parent_guardian_phone || '',
-                            parent_guardian_phone_country_code: s.parent_guardian_phone_country_code || '+64',
-                            notes: s.notes || '',
-                            expected_fee: s.expected_fee || '', fee_note: s.fee_note || ''
-                          });
-                          setShowStudentForm(true);
-                        }} className="btn btn-sm btn-secondary">Edit</button>
-                        <button onClick={() => setConfirmModal({
-                          message: `Delete "${s.first_name} ${s.last_name}"?`,
-                          onConfirm: () => { handleDeleteStudent(s.id); setConfirmModal(null); }
-                        })} className="btn btn-sm btn-danger">Delete</button>
-                      </div>
-                    </div>
-                  ))
-                )}
+                      ))}
+                      {filtered.length === 0 && <p style={{ textAlign: 'center', color: 'var(--muted)', padding: '16px 0' }}>No matching students</p>}
+                      {totalPages > 1 && (
+                        <div className="mobile-cards-pagination">
+                          <button className="btn btn-sm btn-secondary" disabled={page <= 1} onClick={() => setMobileStudentPage(p => p - 1)}>Previous</button>
+                          <span className="mobile-cards-page-info">{page} of {totalPages}</span>
+                          <button className="btn btn-sm btn-secondary" disabled={page >= totalPages} onClick={() => setMobileStudentPage(p => p + 1)}>Next</button>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </>
           )}
@@ -2756,194 +3279,178 @@ function SoloDashboard() {
           {/* ═══════ FEES TAB ═══════ */}
           {activeTab === 'fees' && (
             <>
-              <div className="page-header">
-                <h2 className="page-title">Fee Tracking</h2>
-                <button onClick={() => setShowFeePaymentForm(!showFeePaymentForm)} className="btn btn-primary">+ Record Payment</button>
+              <div className="page-header no-print">
+                <h2 className="page-title">Fees</h2>
+                <button className="btn btn-primary" onClick={() => {
+                  setSelectedStudentsForFee([]);
+                  setBulkFeeAmount('');
+                  setBulkFeeNote('');
+                  setBulkFeeClassFilter('');
+                  setShowBulkFeeModal(true);
+                }}>Set Expected Fee</button>
               </div>
 
-              {/* Class filter */}
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
-                <select className="form-select" style={{ maxWidth: '220px' }} value={feeClassFilter} onChange={(e) => setFeeClassFilter(e.target.value)}>
-                  <option value="">All Classes</option>
-                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
+              {feeLoading && <div className="loading-state"><div className="loading-spinner" /></div>}
 
-              {showFeePaymentForm && (
-                <div className="card">
-                  <div className="card-header">Record Payment</div>
-                  <div className="card-body">
-                    <form onSubmit={handleRecordFeePayment}>
-                      <div className="form-grid">
-                        <div className="form-group">
-                          <label className="form-label">Student *</label>
-                          <select className="form-select" value={feePaymentForm.student_id} onChange={(e) => setFeePaymentForm({ ...feePaymentForm, student_id: e.target.value })} required>
-                            <option value="">Select student...</option>
-                            {students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Amount *</label>
-                          <input type="number" step="0.01" min="0.01" className="form-input" value={feePaymentForm.amount_paid} onChange={(e) => setFeePaymentForm({ ...feePaymentForm, amount_paid: e.target.value })} required />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Payment Date *</label>
-                          <input type="date" className="form-input" value={feePaymentForm.payment_date} onChange={(e) => setFeePaymentForm({ ...feePaymentForm, payment_date: e.target.value })} required />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Method</label>
-                          <select className="form-select" value={feePaymentForm.payment_method} onChange={(e) => setFeePaymentForm({ ...feePaymentForm, payment_method: e.target.value })}>
-                            <option value="cash">Cash</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                            <option value="online">Online</option>
-                            <option value="other">Other</option>
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Reference/Note</label>
-                          <input type="text" className="form-input" value={feePaymentForm.reference_note} onChange={(e) => setFeePaymentForm({ ...feePaymentForm, reference_note: e.target.value })} />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Label</label>
-                          <input type="text" className="form-input" value={feePaymentForm.payment_label} onChange={(e) => setFeePaymentForm({ ...feePaymentForm, payment_label: e.target.value })} placeholder="e.g., Term 1" />
-                        </div>
-                      </div>
-                      <div className="form-actions">
-                        <button type="button" onClick={() => setShowFeePaymentForm(false)} className="btn btn-secondary">Cancel</button>
-                        <button type="submit" className="btn btn-primary">Record Payment</button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
-
-              {/* Fee Summary Cards */}
-              {feeSummary.length > 0 && (
-                <div className="fee-summary-cards">
-                  <div className="fee-summary-card">
-                    <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + (r.total_fee || 0), 0))}</div>
-                    <div className="fee-summary-label">Total Expected</div>
-                  </div>
-                  <div className="fee-summary-card">
-                    <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + (r.total_paid || 0), 0))}</div>
-                    <div className="fee-summary-label">Collected</div>
-                  </div>
-                  <div className="fee-summary-card">
-                    <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + Math.max(r.balance || 0, 0), 0))}</div>
-                    <div className="fee-summary-label">Outstanding</div>
-                  </div>
-                </div>
-              )}
-
-              {feeSummary.length === 0 ? (
-                <div className="card">
-                  <div className="empty">
-                    <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-                    <p>No fee data yet. Set expected fees on student profiles to start tracking.</p>
-                  </div>
-                </div>
-              ) : (
+              {!feeLoading && (
                 <>
-                  {/* Desktop Table */}
-                  <div className="card fee-table-desktop">
-                    <SortableTable
-                      columns={[
-                        { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
-                        { key: 'class_name', label: 'Class', sortable: true, sortType: 'string', render: (row) => row.class_name || '—' },
-                        { key: 'total_fee', label: 'Expected', sortable: true, sortType: 'number', render: (row) => formatCurrency(row.total_fee) },
-                        { key: 'total_paid', label: 'Paid', sortable: true, sortType: 'number', render: (row) => formatCurrency(row.total_paid) },
-                        { key: 'balance', label: 'Balance', sortable: true, sortType: 'number', render: (row) => formatCurrency(row.balance) },
-                        { key: 'status', label: 'Progress', sortable: true, sortType: 'number',
-                          sortValue: (row) => row.total_fee > 0 ? row.total_paid / row.total_fee : 0,
-                          render: (row) => <FeeProgressBar paid={row.total_paid} total={row.total_fee} /> }
-                      ]}
-                      data={feeSummary}
-                      searchable
-                      searchPlaceholder="Search students..."
-                      searchKeys={['student_name', 'class_name']}
-                      pagination
-                      pageSize={25}
-                      emptyMessage="No fee records"
-                    />
+                  {/* Class filter */}
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    <select className="form-select" style={{ maxWidth: '220px' }} value={feeClassFilter} onChange={(e) => setFeeClassFilter(e.target.value)}>
+                      <option value="">All Classes</option>
+                      {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
                   </div>
 
-                  {/* Mobile Cards */}
-                  <div className="fee-mobile-cards">
-                    {feeSummary.map((row, idx) => (
-                      <div key={idx} className="admin-mobile-card">
-                        <div className="admin-mobile-card-top">
-                          <div>
-                            <div className="admin-mobile-card-title">{row.student_name}</div>
-                            <div className="admin-mobile-card-sub">{row.class_name || '—'}</div>
-                          </div>
-                        </div>
-                        <FeeProgressBar paid={row.total_paid} total={row.total_fee} />
-                        <div className="fee-mobile-card-amounts">
-                          <div className="fee-mobile-card-amount">
-                            <span className="fee-mobile-card-amount-label">Expected</span>
-                            <span>{formatCurrency(row.total_fee)}</span>
-                          </div>
-                          <div className="fee-mobile-card-amount">
-                            <span className="fee-mobile-card-amount-label">Paid</span>
-                            <span>{formatCurrency(row.total_paid)}</span>
-                          </div>
-                          <div className="fee-mobile-card-amount">
-                            <span className="fee-mobile-card-amount-label">Balance</span>
-                            <span style={{ fontWeight: 600 }}>{formatCurrency(row.balance)}</span>
-                          </div>
-                        </div>
+                  {/* Summary cards */}
+                  {feeSummary.length > 0 && (
+                    <div className="fee-summary-cards">
+                      <div className="fee-summary-card">
+                        <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + (r.total_fee || 0), 0))}</div>
+                        <div className="fee-summary-label">Total Expected</div>
                       </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* Recent Payments */}
-              {feePayments.length > 0 && (
-                <>
-                  <div className="card fee-table-desktop" style={{ marginTop: '20px' }}>
-                    <div className="card-header">Recent Payments</div>
-                    <div className="card-body" style={{ padding: 0 }}>
-                      <SortableTable
-                        columns={[
-                          { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
-                          { key: 'amount_paid', label: 'Amount', sortable: true, sortType: 'number', render: (row) => formatCurrency(row.amount_paid) },
-                          { key: 'payment_label', label: 'For', sortable: false, render: (row) => row.payment_label || '—' },
-                          { key: 'payment_date', label: 'Date', sortable: true, sortType: 'string', render: (row) => fmtDate(row.payment_date) },
-                          { key: 'payment_method', label: 'Method', sortable: true, sortType: 'string',
-                            render: (row) => ({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method) },
-                          { key: 'actions', label: '', sortable: false,
-                            render: (row) => (
-                              <button onClick={() => setConfirmModal({ message: 'Void this payment?', onConfirm: () => { handleDeleteFeePayment(row.id); setConfirmModal(null); } })} className="btn btn-sm btn-danger">Void</button>
-                            )}
-                        ]}
-                        data={feePayments.slice(0, 50)}
-                        pagination
-                        pageSize={10}
-                        emptyMessage="No payments recorded"
-                      />
+                      <div className="fee-summary-card">
+                        <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + (r.total_paid || 0), 0))}</div>
+                        <div className="fee-summary-label">Collected</div>
+                      </div>
+                      <div className="fee-summary-card">
+                        <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + Math.max(r.balance || 0, 0), 0))}</div>
+                        <div className="fee-summary-label">Outstanding</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="fee-mobile-cards" style={{ marginTop: '20px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: '#0a0a0a' }}>Recent Payments</div>
-                    {feePayments.slice(0, 50).map(p => (
-                      <div key={p.id} className="admin-mobile-card">
-                        <div className="admin-mobile-card-top">
-                          <div>
-                            <div className="admin-mobile-card-title">{p.student_name}</div>
-                            <div className="admin-mobile-card-sub">{p.payment_label || ''} &middot; {({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[p.payment_method] || p.payment_method)}</div>
+                  )}
+
+                  {feeSummary.length === 0 ? (
+                    <div className="card">
+                      <div className="empty">
+                        <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                        <p>No fee data yet. Set an expected fee on students (via the student form or the "Set Expected Fee" button above) to start tracking.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Desktop Table */}
+                      <div className="card fee-table-desktop">
+                        <SortableTable
+                          columns={[
+                            { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
+                            { key: 'class_name', label: 'Class', sortable: true, sortType: 'string', render: (row) => row.class_name || '—' },
+                            { key: 'total_fee', label: 'Expected', sortable: true, sortType: 'number',
+                              render: (row) => <span title={row.fee_note || ''}>{formatCurrency(row.total_fee)}{row.fee_note ? ' *' : ''}</span> },
+                            { key: 'total_paid', label: 'Paid', sortable: true, sortType: 'number', render: (row) => formatCurrency(row.total_paid) },
+                            { key: 'balance', label: 'Balance', sortable: true, sortType: 'number', render: (row) => formatCurrency(row.balance) },
+                            { key: 'status', label: 'Progress', sortable: true, sortType: 'number',
+                              sortValue: (row) => row.total_fee > 0 ? row.total_paid / row.total_fee : 0,
+                              render: (row) => <FeeProgressBar paid={row.total_paid} total={row.total_fee} /> },
+                            { key: 'actions', label: '', sortable: false,
+                              render: (row) => (
+                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                                  <button className="btn btn-sm btn-primary" onClick={() => {
+                                    setShowPaymentModal(row);
+                                    setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '', _labelCategory: '' });
+                                  }}>Record</button>
+                                  <button className="btn btn-sm btn-secondary" onClick={() => setEditingFee({ student_id: row.student_id, expected_fee: row.total_fee, fee_note: row.fee_note || '', student_name: row.student_name })} title="Edit fee">Edit</button>
+                                  <button className="btn btn-sm btn-secondary btn-danger" onClick={() => handleClearFee(row)} title="Clear fee">×</button>
+                                </div>
+                              )}
+                          ]}
+                          data={feeSummary}
+                          searchable
+                          searchPlaceholder="Search students..."
+                          searchKeys={['student_name', 'class_name']}
+                          pagination
+                          pageSize={25}
+                          emptyMessage="No fee records"
+                        />
+                      </div>
+
+                      {/* Mobile Cards */}
+                      <div className="fee-mobile-cards">
+                        {feeSummary.map((row, idx) => (
+                          <div key={idx} className="admin-mobile-card">
+                            <div className="admin-mobile-card-top">
+                              <div>
+                                <div className="admin-mobile-card-title">{row.student_name}</div>
+                                <div className="admin-mobile-card-sub">{row.class_name || '—'}{row.fee_note ? ` · ${row.fee_note}` : ''}</div>
+                              </div>
+                            </div>
+                            <FeeProgressBar paid={row.total_paid} total={row.total_fee} />
+                            <div className="fee-mobile-card-amounts">
+                              <div className="fee-mobile-card-amount">
+                                <span className="fee-mobile-card-amount-label">Expected</span>
+                                <span>{formatCurrency(row.total_fee)}</span>
+                              </div>
+                              <div className="fee-mobile-card-amount">
+                                <span className="fee-mobile-card-amount-label">Paid</span>
+                                <span>{formatCurrency(row.total_paid)}</span>
+                              </div>
+                              <div className="fee-mobile-card-amount">
+                                <span className="fee-mobile-card-amount-label">Balance</span>
+                                <span style={{ fontWeight: 600 }}>{formatCurrency(row.balance)}</span>
+                              </div>
+                            </div>
+                            <div className="admin-mobile-card-actions">
+                              <button className="btn btn-sm btn-primary" onClick={() => {
+                                setShowPaymentModal(row);
+                                setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '', _labelCategory: '' });
+                              }}>Record Payment</button>
+                              <button className="btn btn-sm btn-secondary" onClick={() => setEditingFee({ student_id: row.student_id, expected_fee: row.total_fee, fee_note: row.fee_note || '', student_name: row.student_name })}>Edit Fee</button>
+                              <button className="btn btn-sm btn-secondary btn-danger" onClick={() => handleClearFee(row)}>Clear</button>
+                            </div>
                           </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontWeight: 600, fontSize: '15px' }}>{formatCurrency(p.amount_paid)}</div>
-                            <div className="admin-mobile-card-sub">{fmtDate(p.payment_date)}</div>
-                          </div>
-                        </div>
-                        <div className="admin-mobile-card-actions">
-                          <button onClick={() => setConfirmModal({ message: 'Void this payment?', onConfirm: () => { handleDeleteFeePayment(p.id); setConfirmModal(null); } })} className="btn btn-sm btn-danger">Void</button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Payment History */}
+                  {feePayments.length > 0 && (
+                    <>
+                      <div className="card fee-table-desktop" style={{ marginTop: '20px' }}>
+                        <div className="card-header">Recent Payments</div>
+                        <div className="card-body" style={{ padding: 0 }}>
+                          <SortableTable
+                            columns={[
+                              { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
+                              { key: 'amount_paid', label: 'Amount', sortable: true, sortType: 'number', render: (row) => formatCurrency(row.amount_paid) },
+                              { key: 'payment_label', label: 'For', sortable: false, render: (row) => row.payment_label || row.period_label || '—' },
+                              { key: 'payment_date', label: 'Date', sortable: true, sortType: 'string', render: (row) => fmtDate(row.payment_date) },
+                              { key: 'payment_method', label: 'Method', sortable: true, sortType: 'string',
+                                render: (row) => ({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method) },
+                              { key: 'actions', label: '', sortable: false,
+                                render: (row) => (
+                                  <button onClick={() => setConfirmModal({ message: 'Void this payment?', onConfirm: () => { handleDeleteFeePayment(row.id); setConfirmModal(null); } })} className="btn btn-sm btn-secondary btn-danger">Void</button>
+                                )}
+                            ]}
+                            data={feePayments.slice(0, 50)}
+                            pagination
+                            pageSize={10}
+                            emptyMessage="No payments recorded"
+                          />
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      <div className="fee-mobile-cards" style={{ marginTop: '20px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: '#0a0a0a' }}>Recent Payments</div>
+                        {feePayments.slice(0, 50).map(p => (
+                          <div key={p.id} className="admin-mobile-card">
+                            <div className="admin-mobile-card-top">
+                              <div>
+                                <div className="admin-mobile-card-title">{p.student_name}</div>
+                                <div className="admin-mobile-card-sub">{p.payment_label || ''} &middot; {({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[p.payment_method] || p.payment_method)}</div>
+                              </div>
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontWeight: 600, fontSize: '15px' }}>{formatCurrency(p.amount_paid)}</div>
+                                <div className="admin-mobile-card-sub">{fmtDate(p.payment_date)}</div>
+                              </div>
+                            </div>
+                            <div className="admin-mobile-card-actions">
+                              <button onClick={() => setConfirmModal({ message: 'Void this payment?', onConfirm: () => { handleDeleteFeePayment(p.id); setConfirmModal(null); } })} className="btn btn-sm btn-secondary btn-danger">Void</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </>
@@ -3757,6 +4264,264 @@ function SoloDashboard() {
 
         </main>
       </div>
+
+      {/* Edit Fee Modal */}
+      {editingFee && (
+        <div className="modal-overlay" onClick={() => setEditingFee(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Edit Expected Fee</h3>
+              <button onClick={() => setEditingFee(null)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--lighter)', borderRadius: 'var(--radius)' }}>
+                <strong>{editingFee.student_name}</strong>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Expected Fee</label>
+                <input type="number" className="form-input" step="0.01" min="0" placeholder="0.00"
+                  value={editingFee.expected_fee}
+                  onChange={(e) => setEditingFee({ ...editingFee, expected_fee: e.target.value })}
+                  autoFocus />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Note (optional)</label>
+                <input type="text" className="form-input" placeholder="e.g. Scholarship 50%"
+                  value={editingFee.fee_note}
+                  onChange={(e) => setEditingFee({ ...editingFee, fee_note: e.target.value })} />
+              </div>
+              <div className="form-actions">
+                <button type="button" onClick={() => setEditingFee(null)} className="btn btn-secondary">Cancel</button>
+                <button type="button" className="btn btn-primary" onClick={handleEditFee}
+                  disabled={!editingFee.expected_fee || parseFloat(editingFee.expected_fee) < 0}>Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Fee Modal */}
+      {showBulkFeeModal && (
+        <div className="modal-overlay" onClick={() => setShowBulkFeeModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Set Expected Fee</h3>
+              <button onClick={() => setShowBulkFeeModal(false)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: '14px', color: 'var(--gray)', marginBottom: '16px' }}>
+                Select students and set their expected fee amount.
+              </p>
+              <div className="form-group">
+                <label className="form-label">Select Students</label>
+                <select className="form-select" style={{ marginBottom: '8px' }} value={bulkFeeClassFilter}
+                  onChange={(e) => setBulkFeeClassFilter(e.target.value)}>
+                  <option value="">All Classes</option>
+                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                {(() => {
+                  const filtered = bulkFeeClassFilter ? students.filter(s => String(s.class_id) === bulkFeeClassFilter) : students;
+                  const filteredIds = filtered.map(s => s.id);
+                  return (
+                    <>
+                      <div style={{ maxHeight: '240px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                          <thead>
+                            <tr style={{ position: 'sticky', top: 0, background: 'var(--lighter, #f9fafb)', borderBottom: '1px solid var(--border)' }}>
+                              <th style={{ width: '36px', padding: '8px', textAlign: 'center' }}>
+                                <input type="checkbox"
+                                  checked={filtered.length > 0 && filtered.every(s => selectedStudentsForFee.includes(s.id))}
+                                  onChange={(e) => setSelectedStudentsForFee(prev =>
+                                    e.target.checked ? [...new Set([...prev, ...filteredIds])] : prev.filter(id => !filteredIds.includes(id))
+                                  )} />
+                              </th>
+                              <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600 }}>Name</th>
+                              {!bulkFeeClassFilter && <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: 'var(--gray)' }}>Class</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filtered.map(s => (
+                              <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                                onClick={() => setSelectedStudentsForFee(prev =>
+                                  prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                )}>
+                                <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                                  <input type="checkbox" checked={selectedStudentsForFee.includes(s.id)} readOnly />
+                                </td>
+                                <td style={{ padding: '6px 8px' }}>{s.first_name} {s.last_name}</td>
+                                {!bulkFeeClassFilter && <td style={{ padding: '6px 8px', color: 'var(--gray)', fontSize: '13px' }}>{s.class_name || ''}</td>}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {selectedStudentsForFee.length > 0 && (
+                        <div style={{ fontSize: '13px', color: 'var(--gray)', marginTop: '4px' }}>{selectedStudentsForFee.length} student{selectedStudentsForFee.length !== 1 ? 's' : ''} selected</div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+              <div className="form-grid form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Expected Fee</label>
+                  <input type="number" className="form-input" step="0.01" min="0" placeholder="0.00"
+                    value={bulkFeeAmount}
+                    onChange={(e) => setBulkFeeAmount(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Note (optional)</label>
+                  <input type="text" className="form-input" placeholder="e.g. Semester 1 2025"
+                    value={bulkFeeNote}
+                    onChange={(e) => setBulkFeeNote(e.target.value)} />
+                </div>
+              </div>
+              <div className="form-actions">
+                <button type="button" onClick={() => setShowBulkFeeModal(false)} className="btn btn-secondary">Cancel</button>
+                <button type="button" className="btn btn-primary"
+                  disabled={selectedStudentsForFee.length === 0 || !bulkFeeAmount}
+                  onClick={handleBulkSetFee}>
+                  Apply to {selectedStudentsForFee.length} Student{selectedStudentsForFee.length !== 1 ? 's' : ''}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Recording Modal */}
+      {showPaymentModal && (
+        <div className="modal-overlay" onClick={() => setShowPaymentModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Record Payment</h3>
+              <button onClick={() => setShowPaymentModal(null)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--lighter)', borderRadius: 'var(--radius)' }}>
+                <strong>{showPaymentModal.student_name}</strong>
+                <div style={{ fontSize: '13px', color: 'var(--gray)', marginTop: '4px' }}>
+                  Balance: {formatCurrency(showPaymentModal.balance || 0)}
+                </div>
+              </div>
+              <form onSubmit={handleRecordPaymentModal}>
+                <div className="form-grid form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Amount</label>
+                    <input type="number" className="form-input" step="0.01" min="0.01" placeholder="0.00"
+                      value={newPayment.amount_paid}
+                      onChange={(e) => setNewPayment({ ...newPayment, amount_paid: e.target.value })}
+                      required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Date</label>
+                    <input type="date" className="form-input"
+                      value={newPayment.payment_date}
+                      onChange={(e) => setNewPayment({ ...newPayment, payment_date: e.target.value })}
+                      required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Method</label>
+                    <select className="form-select" value={newPayment.payment_method}
+                      onChange={(e) => setNewPayment({ ...newPayment, payment_method: e.target.value })}>
+                      <option value="cash">Cash</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="online">Online</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="form-label">Payment For</label>
+                    {/* Category chips */}
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                      {[{ key: 'monthly', label: 'Monthly' }, { key: 'weekly', label: 'Weekly' }, { key: 'instalment', label: 'Instalment' }, { key: 'other', label: 'Other' }].map(cat => (
+                        <button key={cat.key} type="button"
+                          style={{ padding: '6px 14px', borderRadius: '20px', border: '1px solid var(--border)', background: newPayment._labelCategory === cat.key ? 'var(--primary, #404040)' : 'var(--lighter, #f9fafb)', color: newPayment._labelCategory === cat.key ? '#fff' : 'inherit', fontSize: '13px', cursor: 'pointer', minHeight: '36px' }}
+                          onClick={() => setNewPayment({ ...newPayment, _labelCategory: newPayment._labelCategory === cat.key ? '' : cat.key, payment_label: '', _customLabel: false })}>
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Value chips based on category */}
+                    {newPayment._labelCategory === 'monthly' && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => {
+                          const full = ['January','February','March','April','May','June','July','August','September','October','November','December'][i];
+                          return (
+                            <button key={m} type="button"
+                              style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: newPayment.payment_label === full ? 'var(--primary, #404040)' : '#fff', color: newPayment.payment_label === full ? '#fff' : 'inherit', fontSize: '13px', cursor: 'pointer', minHeight: '36px' }}
+                              onClick={() => setNewPayment({ ...newPayment, payment_label: full })}>
+                              {m}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {newPayment._labelCategory === 'weekly' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px' }}>Week</span>
+                        <input type="number" className="form-input" min="1" max="52" placeholder="1-52"
+                          style={{ width: '80px' }}
+                          value={newPayment.payment_label ? newPayment.payment_label.replace('Week ', '') : ''}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value);
+                            setNewPayment({ ...newPayment, payment_label: n && n >= 1 && n <= 52 ? `Week ${n}` : '' });
+                          }} />
+                      </div>
+                    )}
+                    {newPayment._labelCategory === 'instalment' && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {Array.from({length: 12}, (_, i) => i + 1).map(n => (
+                          <button key={n} type="button"
+                            style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: newPayment.payment_label === `Instalment ${n}` ? 'var(--primary, #404040)' : '#fff', color: newPayment.payment_label === `Instalment ${n}` ? '#fff' : 'inherit', fontSize: '13px', cursor: 'pointer', minWidth: '44px', minHeight: '36px', textAlign: 'center' }}
+                            onClick={() => setNewPayment({ ...newPayment, payment_label: `Instalment ${n}` })}>
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {newPayment._labelCategory === 'other' && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {['Registration', 'Exam Fee'].map(label => (
+                          <button key={label} type="button"
+                            style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: newPayment.payment_label === label ? 'var(--primary, #404040)' : '#fff', color: newPayment.payment_label === label ? '#fff' : 'inherit', fontSize: '13px', cursor: 'pointer', minHeight: '36px' }}
+                            onClick={() => setNewPayment({ ...newPayment, payment_label: label, _customLabel: false })}>
+                            {label}
+                          </button>
+                        ))}
+                        <button type="button"
+                          style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: newPayment._customLabel ? 'var(--primary, #404040)' : '#fff', color: newPayment._customLabel ? '#fff' : 'inherit', fontSize: '13px', cursor: 'pointer', minHeight: '36px' }}
+                          onClick={() => setNewPayment({ ...newPayment, _customLabel: true, payment_label: '' })}>
+                          Custom
+                        </button>
+                      </div>
+                    )}
+                    {newPayment._customLabel && (
+                      <input type="text" className="form-input" placeholder="e.g. Semester 1 2025" style={{ marginTop: '8px' }}
+                        value={newPayment.payment_label}
+                        onChange={(e) => setNewPayment({ ...newPayment, payment_label: e.target.value })}
+                        autoFocus />
+                    )}
+                    {newPayment.payment_label && (
+                      <div style={{ fontSize: '13px', color: 'var(--gray)', marginTop: '6px' }}>Selected: <strong>{newPayment.payment_label}</strong></div>
+                    )}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Reference / Note</label>
+                  <input type="text" className="form-input" placeholder="Receipt number, memo, etc."
+                    value={newPayment.reference_note}
+                    onChange={(e) => setNewPayment({ ...newPayment, reference_note: e.target.value })} />
+                </div>
+                <div className="form-actions">
+                  <button type="button" onClick={() => setShowPaymentModal(null)} className="btn btn-secondary">Cancel</button>
+                  <button type="submit" className="btn btn-primary">Record Payment</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirm Modal */}
       {confirmModal && (

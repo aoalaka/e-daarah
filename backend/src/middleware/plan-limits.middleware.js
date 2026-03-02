@@ -3,6 +3,7 @@ import pool from '../config/database.js';
 // Plan limits configuration
 const PLAN_LIMITS = {
   trial: { maxStudents: 500, maxTeachers: 50, maxClasses: Infinity },
+  solo: { maxStudents: 30, maxTeachers: 0, maxClasses: 3 },
   standard: { maxStudents: 100, maxTeachers: 20, maxClasses: 10 },
   plus: { maxStudents: 500, maxTeachers: 50, maxClasses: Infinity },
   enterprise: { maxStudents: Infinity, maxTeachers: Infinity, maxClasses: Infinity }

@@ -1295,6 +1295,8 @@ router.post('/email-broadcast', authenticateSuperAdmin, async (req, res) => {
 // =====================================================
 
 const PRICE_LABEL_MAP = {
+  solo_monthly: 'Solo Monthly',
+  solo_annual: 'Solo Annual',
   standard_monthly: 'Standard Monthly',
   standard_annual: 'Standard Annual',
   plus_monthly: 'Plus Monthly',

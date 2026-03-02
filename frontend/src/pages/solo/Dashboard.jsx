@@ -1417,13 +1417,22 @@ function SoloDashboard() {
                       <div className="summary-value">{overviewData.attendance?.present || 0}/{overviewData.attendance?.total || 0}</div>
                       <div className="summary-status">{overviewData.attendance?.total > 0 ? `${Math.round((overviewData.attendance?.present || 0) / overviewData.attendance.total * 100)}% attendance` : 'No records yet'}</div>
                     </div>
-                    {madrasahProfile?.enable_fee_tracking && (
-                      <div className="summary-card">
-                        <div className="summary-label">Fees Collected</div>
-                        <div className="summary-value">{formatCurrency(overviewData.fees?.total_paid || 0)}</div>
-                        <div className="summary-status">of {formatCurrency(overviewData.fees?.total_expected || 0)} expected</div>
-                      </div>
-                    )}
+                    {madrasahProfile?.enable_fee_tracking && overviewData.fees?.total_expected > 0 && (() => {
+                      const paid = overviewData.fees?.total_paid || 0;
+                      const expected = overviewData.fees?.total_expected || 0;
+                      const pct = expected > 0 ? Math.min(Math.round((paid / expected) * 100), 100) : 0;
+                      const outstanding = Math.max(expected - paid, 0);
+                      return (
+                        <div className="summary-card" onClick={() => handleTabChange('fees')} style={{ cursor: 'pointer' }}>
+                          <div className="summary-label">Fee Collection</div>
+                          <div className="summary-value">{pct}%</div>
+                          <div style={{ margin: '8px 0 4px', height: '6px', background: 'var(--border, #e5e7eb)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: pct >= 100 ? '#16a34a' : pct >= 50 ? '#ca8a04' : '#dc2626', borderRadius: '3px', transition: 'width 0.3s' }} />
+                          </div>
+                          <div className="summary-status">{formatCurrency(paid)} of {formatCurrency(expected)}{outstanding > 0 ? ` · ${formatCurrency(outstanding)} due` : ''}</div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Today's Status */}

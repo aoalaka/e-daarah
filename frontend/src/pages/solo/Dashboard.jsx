@@ -739,10 +739,12 @@ function SoloDashboard() {
           await api.post('/solo/attendance', {
             student_id: student.id,
             class_id: selectedClass.id,
+            semester_id: activeSemester.id,
             date: attendanceDate,
             present: record.present,
             dressing_grade: record.dressing_grade || null,
             behavior_grade: record.behavior_grade || null,
+            punctuality_grade: record.punctuality_grade || null,
             notes: record.notes || null
           });
         }

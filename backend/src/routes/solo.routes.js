@@ -393,7 +393,9 @@ router.delete('/students/:id', requireActiveSubscription, async (req, res) => {
 router.post('/attendance', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { student_id, class_id, date, present, dressing_grade, behavior_grade, notes } = req.body;
+    const { student_id, class_id, semester_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes } = req.body;
+
+    if (!semester_id) return res.status(400).json({ error: 'semester_id is required' });
 
     const [students] = await pool.query('SELECT id FROM students WHERE id = ? AND madrasah_id = ?', [student_id, madrasahId]);
     if (students.length === 0) return res.status(403).json({ error: 'Student not found in your madrasah' });
@@ -402,9 +404,9 @@ router.post('/attendance', requireActiveSubscription, async (req, res) => {
     if (classes.length === 0) return res.status(403).json({ error: 'Class not found in your madrasah' });
 
     const [result] = await pool.query(
-      `INSERT INTO attendance (student_id, class_id, user_id, madrasah_id, date, present, dressing_grade, behavior_grade, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [student_id, class_id, req.user.id, madrasahId, date, present, dressing_grade, behavior_grade, notes]
+      `INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, user_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [madrasahId, student_id, class_id, semester_id, req.user.id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes]
     );
     res.status(201).json({ id: result.insertId, message: 'Attendance recorded' });
   } catch (error) {

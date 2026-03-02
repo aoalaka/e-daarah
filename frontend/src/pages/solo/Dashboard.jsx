@@ -22,6 +22,24 @@ function SoloDashboard() {
     return `${year}-${month}-${day}`;
   };
 
+  const formatCurrency = (amount) => {
+    const sym = madrasahProfile?.currency || '$';
+    return `${sym}${Number(amount || 0).toLocaleString()}`;
+  };
+
+  const FeeProgressBar = ({ paid, total }) => {
+    const pct = total > 0 ? Math.min(Math.round((paid / total) * 100), 100) : 0;
+    const color = pct >= 100 ? '#16a34a' : pct >= 50 ? '#ca8a04' : '#dc2626';
+    return (
+      <div className="fee-progress">
+        <div className="fee-progress-bar">
+          <div className="fee-progress-fill" style={{ width: `${pct}%`, background: color }} />
+        </div>
+        <span className="fee-progress-label" style={{ color }}>{pct}%</span>
+      </div>
+    );
+  };
+
   const navigate = useNavigate();
   const { madrasahSlug } = useParams();
   const user = authService.getCurrentUser();
@@ -140,6 +158,12 @@ function SoloDashboard() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketMessages, setTicketMessages] = useState([]);
   const [ticketReply, setTicketReply] = useState('');
+
+  // ─── Help ────────────────────────────────────────
+  const [helpExpanded, setHelpExpanded] = useState(new Set());
+
+  // ─── Constants ───────────────────────────────────
+  const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   // ─── Browser tab title ───────────────────────────
   useEffect(() => {
@@ -978,47 +1002,112 @@ function SoloDashboard() {
               </div>
 
               {overviewLoading ? (
-                <div className="card"><div className="loading-state">Loading overview...</div></div>
+                <div className="stats-grid">
+                  {[1,2,3,4].map(i => (
+                    <div key={i} className="card" style={{ padding: '20px' }}>
+                      <div className="skeleton" style={{ height: '14px', width: '60%', marginBottom: '12px', borderRadius: '4px', background: 'var(--lighter)' }} />
+                      <div className="skeleton" style={{ height: '28px', width: '40%', borderRadius: '4px', background: 'var(--lighter)' }} />
+                    </div>
+                  ))}
+                </div>
               ) : overviewData ? (
                 <>
                   <div className="insights-summary">
                     <div className="summary-card">
                       <div className="summary-label">Students</div>
                       <div className="summary-value">{overviewData.students}</div>
+                      <div className="summary-status">across {overviewData.classes} class{overviewData.classes !== 1 ? 'es' : ''}</div>
                     </div>
                     <div className="summary-card">
                       <div className="summary-label">Classes</div>
                       <div className="summary-value">{overviewData.classes}</div>
+                      <div className="summary-status">max 5 on Solo</div>
                     </div>
                     <div className="summary-card">
                       <div className="summary-label">Present Today</div>
                       <div className="summary-value">{overviewData.attendance?.present || 0}/{overviewData.attendance?.total || 0}</div>
+                      <div className="summary-status">{overviewData.attendance?.total > 0 ? `${Math.round((overviewData.attendance?.present || 0) / overviewData.attendance.total * 100)}% attendance` : 'No records yet'}</div>
                     </div>
-                    <div className="summary-card">
-                      <div className="summary-label">Fees Collected</div>
-                      <div className="summary-value">{madrasahProfile?.currency || '$'}{Number(overviewData.fees?.total_paid || 0).toLocaleString()}</div>
-                      <div className="summary-meta">of {madrasahProfile?.currency || '$'}{Number(overviewData.fees?.total_expected || 0).toLocaleString()}</div>
-                    </div>
-                  </div>
-
-                  {/* Quick Actions */}
-                  <div className="today-classes-grid" style={{ marginTop: 'var(--lg)' }}>
-                    {classes.map(cls => (
-                      <div key={cls.id} className="today-class-card" onClick={() => { setSelectedClass(cls); handleTabChange('attendance'); }}>
-                        <div className="class-name">{cls.name}</div>
-                        <div className="class-student-count">{cls.student_count || 0} students</div>
-                        <div className="attendance-status not-taken">Take attendance →</div>
-                      </div>
-                    ))}
-                    {classes.length === 0 && (
-                      <div className="card" style={{ gridColumn: '1/-1' }}>
-                        <div className="empty">
-                          <p>No classes yet. Create one to get started.</p>
-                          <button className="empty-action" onClick={() => handleTabChange('classes')}>+ Create Class</button>
-                        </div>
+                    {madrasahProfile?.enable_fee_tracking && (
+                      <div className="summary-card">
+                        <div className="summary-label">Fees Collected</div>
+                        <div className="summary-value">{formatCurrency(overviewData.fees?.total_paid || 0)}</div>
+                        <div className="summary-status">of {formatCurrency(overviewData.fees?.total_expected || 0)} expected</div>
                       </div>
                     )}
                   </div>
+
+                  {/* Today's Status */}
+                  {activeSemester && (
+                    <div className="alert-panel" style={{ marginTop: 'var(--md)' }}>
+                      <div className="alert-panel-title">Today's Status</div>
+                      <div className="alert-panel-content">
+                        {classes.length === 0 ? (
+                          <span style={{ color: 'var(--muted)' }}>Create a class to start tracking attendance.</span>
+                        ) : (
+                          <span>
+                            {overviewData.attendance?.total > 0
+                              ? `Attendance recorded for ${overviewData.attendance.present} of ${overviewData.attendance.total} students.`
+                              : 'Attendance has not been recorded yet today.'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quick Actions */}
+                  <div className="overview-actions" style={{ marginTop: 'var(--lg)' }}>
+                    <div className="overview-action-card" onClick={() => handleTabChange('attendance')}>
+                      <div className="overview-action-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                      </div>
+                      <div className="overview-action-label">Take Attendance</div>
+                    </div>
+                    <div className="overview-action-card" onClick={() => handleTabChange('students')}>
+                      <div className="overview-action-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                      </div>
+                      <div className="overview-action-label">Add Student</div>
+                    </div>
+                    <div className="overview-action-card" onClick={() => handleTabChange('exams')}>
+                      <div className="overview-action-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                      </div>
+                      <div className="overview-action-label">Record Exam</div>
+                    </div>
+                    {madrasahProfile?.enable_fee_tracking && (
+                      <div className="overview-action-card" onClick={() => handleTabChange('fees')}>
+                        <div className="overview-action-icon">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                        </div>
+                        <div className="overview-action-label">Record Payment</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Setup Checklist */}
+                  {(sessions.length === 0 || classes.length === 0 || students.length === 0) && (
+                    <div className="card" style={{ marginTop: 'var(--lg)' }}>
+                      <div className="card-header">Setup Checklist</div>
+                      <div className="card-body" style={{ display: 'grid', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: sessions.length > 0 ? 'var(--accent)' : 'var(--lighter)', color: sessions.length > 0 ? 'white' : 'var(--muted)' }}>{sessions.length > 0 ? '✓' : '1'}</span>
+                          <span style={{ fontSize: '14px', textDecoration: sessions.length > 0 ? 'line-through' : 'none', color: sessions.length > 0 ? 'var(--muted)' : 'var(--text)' }}>Create an academic session</span>
+                          {sessions.length === 0 && <button className="btn btn-sm btn-secondary" onClick={() => handleTabChange('planner')}>Go</button>}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: classes.length > 0 ? 'var(--accent)' : 'var(--lighter)', color: classes.length > 0 ? 'white' : 'var(--muted)' }}>{classes.length > 0 ? '✓' : '2'}</span>
+                          <span style={{ fontSize: '14px', textDecoration: classes.length > 0 ? 'line-through' : 'none', color: classes.length > 0 ? 'var(--muted)' : 'var(--text)' }}>Create your first class</span>
+                          {classes.length === 0 && <button className="btn btn-sm btn-secondary" onClick={() => handleTabChange('classes')}>Go</button>}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: students.length > 0 ? 'var(--accent)' : 'var(--lighter)', color: students.length > 0 ? 'white' : 'var(--muted)' }}>{students.length > 0 ? '✓' : '3'}</span>
+                          <span style={{ fontSize: '14px', textDecoration: students.length > 0 ? 'line-through' : 'none', color: students.length > 0 ? 'var(--muted)' : 'var(--text)' }}>Add your first student</span>
+                          {students.length === 0 && <button className="btn btn-sm btn-secondary" onClick={() => handleTabChange('students')}>Go</button>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="card"><div className="empty"><p>Failed to load overview data.</p></div></div>
@@ -1029,21 +1118,10 @@ function SoloDashboard() {
           {/* ═══════ PLANNER TAB ═══════ */}
           {activeTab === 'planner' && (
             <>
-              <div className="page-header">
-                <h2 className="page-title">Academic Planner</h2>
-              </div>
-
-              <div className="report-tabs">
-                <nav className="report-tabs-nav">
-                  <button className={`report-tab-btn ${plannerSubTab === 'sessions' ? 'active' : ''}`} onClick={() => setPlannerSubTab('sessions')}>Sessions</button>
-                  <button className={`report-tab-btn ${plannerSubTab === 'semesters' ? 'active' : ''}`} onClick={() => setPlannerSubTab('semesters')}>Semesters</button>
-                </nav>
-              </div>
-
-              {/* Sessions Sub-Tab */}
               {plannerSubTab === 'sessions' && (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--md)' }}>
+                  <div className="page-header">
+                    <h2 className="page-title">Academic Planner</h2>
                     <button onClick={() => {
                       setEditingSession(null);
                       setNewSession({ name: '', start_date: '', end_date: '', is_active: false, default_school_days: [] });
@@ -1051,12 +1129,16 @@ function SoloDashboard() {
                     }} className="btn btn-primary">+ New Session</button>
                   </div>
 
+                  <p style={{ color: 'var(--muted)', fontSize: '14px', marginBottom: 'var(--md)' }}>
+                    Create academic sessions, set school days, and manage semesters.
+                  </p>
+
                   {showSessionForm && (
                     <div className="card">
-                      <div className="card-header">{editingSession ? 'Edit Session' : 'Create Session'}</div>
+                      <div className="card-header">{editingSession ? 'Edit Academic Session' : 'Create New Academic Session'}</div>
                       <div className="card-body">
                         <form onSubmit={handleCreateSession}>
-                          <div className="form-grid form-grid-3">
+                          <div className="form-grid">
                             <div className="form-group">
                               <label className="form-label">Session Name</label>
                               <input type="text" className="form-input" value={newSession.name} onChange={(e) => setNewSession({ ...newSession, name: e.target.value })} placeholder="e.g., 2025-2026" required />
@@ -1072,20 +1154,22 @@ function SoloDashboard() {
                           </div>
                           <div className="form-group">
                             <label className="form-label">School Days</label>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(day => (
-                                <button key={day} type="button" onClick={() => setNewSession({
-                                  ...newSession,
-                                  default_school_days: (newSession.default_school_days || []).includes(day)
-                                    ? newSession.default_school_days.filter(d => d !== day)
-                                    : [...(newSession.default_school_days || []), day]
-                                })} style={{
-                                  padding: '6px 14px', borderRadius: '20px',
-                                  border: `2px solid ${(newSession.default_school_days || []).includes(day) ? '#2563eb' : '#d1d5db'}`,
-                                  background: (newSession.default_school_days || []).includes(day) ? '#2563eb' : 'transparent',
-                                  color: (newSession.default_school_days || []).includes(day) ? '#fff' : '#374151',
-                                  cursor: 'pointer', fontSize: '13px', fontWeight: '500'
-                                }}>{day.substring(0, 3)}</button>
+                            <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '8px' }}>Select which days the madrasah operates during this session</p>
+                            <div className="days-grid">
+                              {weekDays.map(day => (
+                                <button
+                                  key={day}
+                                  type="button"
+                                  className={`day-btn ${(newSession.default_school_days || []).includes(day) ? 'selected' : ''}`}
+                                  onClick={() => setNewSession({
+                                    ...newSession,
+                                    default_school_days: (newSession.default_school_days || []).includes(day)
+                                      ? newSession.default_school_days.filter(d => d !== day)
+                                      : [...(newSession.default_school_days || []), day]
+                                  })}
+                                >
+                                  {day.substring(0, 3)}
+                                </button>
                               ))}
                             </div>
                           </div>
@@ -1096,8 +1180,8 @@ function SoloDashboard() {
                             </label>
                           </div>
                           <div className="form-actions">
-                            <button type="button" onClick={() => { setShowSessionForm(false); setEditingSession(null); }} className="btn btn-secondary">Cancel</button>
-                            <button type="submit" className="btn btn-primary">{editingSession ? 'Update' : 'Create'}</button>
+                            <button type="button" onClick={() => { setShowSessionForm(false); setEditingSession(null); setNewSession({ name: '', start_date: '', end_date: '', is_active: false, default_school_days: [] }); }} className="btn btn-secondary">Cancel</button>
+                            <button type="submit" className="btn btn-primary">{editingSession ? 'Update Session' : 'Create Session'}</button>
                           </div>
                         </form>
                       </div>
@@ -1105,72 +1189,82 @@ function SoloDashboard() {
                   )}
 
                   {sessions.length === 0 ? (
-                    <div className="card"><div className="empty"><p>No sessions yet. Create your first academic session.</p><button className="empty-action" onClick={() => setShowSessionForm(true)}>+ Create Session</button></div></div>
+                    <div className="card"><div className="empty"><div className="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p>No sessions yet. Create one to get started.</p><button className="empty-action" onClick={() => setShowSessionForm(true)}>+ Create Session</button></div></div>
                   ) : (
                     <div style={{ display: 'grid', gap: '12px' }}>
-                      {sessions.map(session => (
-                        <div key={session.id} className="card" style={{ padding: 'var(--md)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                            <div>
-                              <h3 style={{ margin: 0, fontSize: '16px' }}>{session.name}</h3>
-                              <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--muted)' }}>
-                                {fmtDate(session.start_date)} — {fmtDate(session.end_date)}
-                                {session.default_school_days && (() => {
-                                  try {
-                                    const days = typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days;
-                                    return days.length > 0 ? ` · ${days.map(d => d.substring(0, 3)).join(', ')}` : '';
-                                  } catch { return ''; }
-                                })()}
-                              </p>
-                            </div>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              {session.is_active && <span className="badge badge-success">Active</span>}
-                              <button onClick={() => {
-                                setEditingSession(session);
-                                setNewSession({
-                                  name: session.name, start_date: session.start_date?.slice(0, 10),
-                                  end_date: session.end_date?.slice(0, 10), is_active: session.is_active,
-                                  default_school_days: (() => { try { return typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : (session.default_school_days || []); } catch { return []; } })()
-                                });
-                                setShowSessionForm(true);
-                              }} className="btn btn-secondary btn-sm">Edit</button>
-                              <button onClick={() => setConfirmModal({
-                                message: `Delete session "${session.name}"?`,
-                                onConfirm: () => { handleDeleteSession(session.id); setConfirmModal(null); }
-                              })} className="btn btn-danger btn-sm">Delete</button>
+                      {sessions.map(session => {
+                        const schoolDays = session.default_school_days ? (typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days) : [];
+                        const sessionSemesters = semesters.filter(sem => sem.session_id === session.id);
+                        return (
+                          <div key={session.id} className="card" style={{ padding: 'var(--md)', cursor: 'pointer' }} onClick={() => { setPlannerSubTab('detail'); setPlannerSelectedSession(session); }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                  <h3 style={{ margin: 0, fontSize: '16px' }}>{session.name}</h3>
+                                  <span className={`badge ${session.is_active ? 'badge-success' : 'badge-muted'}`}>{session.is_active ? 'Active' : 'Inactive'}</span>
+                                </div>
+                                <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
+                                  {fmtDate(session.start_date)} – {fmtDate(session.end_date)}
+                                </div>
+                                {schoolDays.length > 0 && (
+                                  <div style={{ display: 'flex', gap: '4px', marginTop: '8px', flexWrap: 'wrap' }}>
+                                    {schoolDays.map(day => (
+                                      <span key={day} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', background: 'rgba(37,99,235,0.08)', color: '#2563eb', fontWeight: '500' }}>{day.substring(0, 3)}</span>
+                                    ))}
+                                  </div>
+                                )}
+                                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '6px' }}>
+                                  {sessionSemesters.length} semester{sessionSemesters.length !== 1 ? 's' : ''}
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                <button onClick={(e) => { e.stopPropagation(); setEditingSession(session); setNewSession({ name: session.name, start_date: session.start_date?.slice(0, 10), end_date: session.end_date?.slice(0, 10), is_active: session.is_active, default_school_days: schoolDays }); setShowSessionForm(true); }} className="btn btn-sm btn-secondary">Edit</button>
+                                <button onClick={(e) => { e.stopPropagation(); setConfirmModal({ message: `Delete session "${session.name}"?`, onConfirm: () => { handleDeleteSession(session.id); setConfirmModal(null); } }); }} className="btn btn-sm btn-danger">Delete</button>
+                                <button onClick={() => { setPlannerSubTab('detail'); setPlannerSelectedSession(session); }} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px', color: '#2563eb', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>View →</button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>
               )}
 
-              {/* Semesters Sub-Tab */}
-              {plannerSubTab === 'semesters' && (
+              {/* Planner Session Detail View */}
+              {plannerSubTab === 'detail' && plannerSelectedSession && (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--md)' }}>
-                    <button onClick={() => {
-                      setEditingSemester(null);
-                      setNewSemester({ session_id: sessions[0]?.id || '', name: '', start_date: '', end_date: '', is_active: false });
-                      setShowSemesterForm(!showSemesterForm);
-                    }} className="btn btn-primary">+ New Semester</button>
+                  <div className="page-header">
+                    <button onClick={() => { setPlannerSubTab('sessions'); setPlannerSelectedSession(null); }} className="btn btn-secondary" style={{ marginRight: '8px' }}>← Back</button>
+                    <div style={{ flex: 1 }}>
+                      <h2 className="page-title" style={{ margin: 0 }}>{plannerSelectedSession.name}</h2>
+                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--muted)' }}>
+                        {fmtDate(plannerSelectedSession.start_date)} – {fmtDate(plannerSelectedSession.end_date)}
+                        {(() => {
+                          const sd = plannerSelectedSession.default_school_days ? (typeof plannerSelectedSession.default_school_days === 'string' ? JSON.parse(plannerSelectedSession.default_school_days) : plannerSelectedSession.default_school_days) : [];
+                          return sd.length > 0 ? ` · School days: ${sd.map(d => d.substring(0, 3)).join(', ')}` : '';
+                        })()}
+                      </p>
+                    </div>
                   </div>
 
-                  {showSemesterForm && (
-                    <div className="card">
-                      <div className="card-header">{editingSemester ? 'Edit Semester' : 'Create Semester'}</div>
-                      <div className="card-body">
+                  {/* Semesters Section */}
+                  <div className="card" style={{ marginBottom: 'var(--md)' }}>
+                    <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Semesters</span>
+                      {!showSemesterForm && (
+                        <button onClick={() => {
+                          setEditingSemester(null);
+                          setNewSemester({ session_id: plannerSelectedSession.id, name: '', start_date: '', end_date: '', is_active: false });
+                          setShowSemesterForm(true);
+                        }} className="btn btn-sm btn-primary">+ Add</button>
+                      )}
+                    </div>
+
+                    {showSemesterForm && (
+                      <div className="card-body" style={{ borderBottom: '1px solid var(--border)' }}>
                         <form onSubmit={handleCreateSemester}>
-                          <div className="form-grid form-grid-2">
-                            <div className="form-group">
-                              <label className="form-label">Session</label>
-                              <select className="form-input" value={newSemester.session_id} onChange={(e) => setNewSemester({ ...newSemester, session_id: e.target.value })} required>
-                                <option value="">Select session...</option>
-                                {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                              </select>
-                            </div>
+                          <div className="form-grid">
                             <div className="form-group">
                               <label className="form-label">Semester Name</label>
                               <input type="text" className="form-input" value={newSemester.name} onChange={(e) => setNewSemester({ ...newSemester, name: e.target.value })} placeholder="e.g., First Semester" required />
@@ -1196,39 +1290,42 @@ function SoloDashboard() {
                           </div>
                         </form>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {semesters.length === 0 ? (
-                    <div className="card"><div className="empty"><p>No semesters yet. Create a session first, then add semesters.</p></div></div>
-                  ) : (
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                      {semesters.map(sem => (
-                        <div key={sem.id} className="card" style={{ padding: 'var(--md)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                            <div>
-                              <h3 style={{ margin: 0, fontSize: '16px' }}>{sem.name}</h3>
-                              <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--muted)' }}>
-                                {sem.session_name} · {fmtDate(sem.start_date)} — {fmtDate(sem.end_date)}
-                              </p>
-                            </div>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              {sem.is_active && <span className="badge badge-success">Active</span>}
-                              <button onClick={() => {
-                                setEditingSemester(sem);
-                                setNewSemester({
-                                  session_id: sem.session_id, name: sem.name,
-                                  start_date: sem.start_date?.slice(0, 10), end_date: sem.end_date?.slice(0, 10),
-                                  is_active: sem.is_active
-                                });
-                                setShowSemesterForm(true);
-                              }} className="btn btn-secondary btn-sm">Edit</button>
-                            </div>
-                          </div>
+                    <div className="card-body" style={{ padding: 0 }}>
+                      {semesters.filter(sem => sem.session_id === plannerSelectedSession.id).length === 0 ? (
+                        <div className="empty" style={{ padding: 'var(--md)' }}><p>No semesters yet for this session.</p></div>
+                      ) : (
+                        <div className="table-wrap">
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th>Semester</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {semesters.filter(sem => sem.session_id === plannerSelectedSession.id).map(semester => (
+                                <tr key={semester.id}>
+                                  <td><strong>{semester.name}</strong></td>
+                                  <td>{fmtDate(semester.start_date)}</td>
+                                  <td>{fmtDate(semester.end_date)}</td>
+                                  <td><span className={`badge ${semester.is_active ? 'badge-success' : 'badge-muted'}`}>{semester.is_active ? 'Active' : 'Inactive'}</span></td>
+                                  <td>
+                                    <button onClick={() => { setEditingSemester(semester); setNewSemester({ session_id: semester.session_id, name: semester.name, start_date: semester.start_date?.slice(0, 10), end_date: semester.end_date?.slice(0, 10), is_active: semester.is_active }); setShowSemesterForm(true); }} className="btn btn-sm btn-secondary">Edit</button>
+                                    <button onClick={() => setConfirmModal({ message: `Delete semester "${semester.name}"?`, onConfirm: () => { handleDeleteSemester(semester.id); setConfirmModal(null); } })} className="btn btn-sm btn-danger" style={{ marginLeft: '4px' }}>Delete</button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
+                  </div>
                 </>
               )}
             </>
@@ -1248,122 +1345,146 @@ function SoloDashboard() {
 
               {showClassForm && (
                 <div className="card">
-                  <div className="card-header">{editingClass ? 'Edit Class' : 'Create Class'}</div>
+                  <div className="card-header">{editingClass ? 'Edit Class' : 'Create New Class'}</div>
                   <div className="card-body">
                     <form onSubmit={handleCreateClass}>
-                      <div className="form-grid form-grid-2">
+                      <div className="form-grid">
                         <div className="form-group">
                           <label className="form-label">Class Name</label>
-                          <input type="text" className="form-input" value={newClass.name} onChange={(e) => setNewClass({ ...newClass, name: e.target.value })} placeholder="e.g., Beginners" required />
+                          <input type="text" className="form-input" value={newClass.name} onChange={(e) => setNewClass({ ...newClass, name: e.target.value })} placeholder="e.g., Junior Boys, Senior Girls" required />
                         </div>
                         <div className="form-group">
                           <label className="form-label">Grade Level</label>
-                          <input type="text" className="form-input" value={newClass.grade_level} onChange={(e) => setNewClass({ ...newClass, grade_level: e.target.value })} placeholder="e.g., Level 1" />
+                          <input type="text" className="form-input" value={newClass.grade_level} onChange={(e) => setNewClass({ ...newClass, grade_level: e.target.value })} placeholder="e.g., Grade 5-6" />
                         </div>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Description</label>
-                        <input type="text" className="form-input" value={newClass.description} onChange={(e) => setNewClass({ ...newClass, description: e.target.value })} placeholder="Optional description" />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">School Days</label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                          {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(day => (
-                            <button key={day} type="button" onClick={() => setNewClass({
-                              ...newClass,
-                              school_days: (newClass.school_days || []).includes(day)
-                                ? newClass.school_days.filter(d => d !== day)
-                                : [...(newClass.school_days || []), day]
-                            })} style={{
-                              padding: '6px 14px', borderRadius: '20px',
-                              border: `2px solid ${(newClass.school_days || []).includes(day) ? '#2563eb' : '#d1d5db'}`,
-                              background: (newClass.school_days || []).includes(day) ? '#2563eb' : 'transparent',
-                              color: (newClass.school_days || []).includes(day) ? '#fff' : '#374151',
-                              cursor: 'pointer', fontSize: '13px', fontWeight: '500'
-                            }}>{day.substring(0, 3)}</button>
-                          ))}
+                        <div className="form-group full">
+                          <label className="form-label">Description</label>
+                          <input type="text" className="form-input" value={newClass.description} onChange={(e) => setNewClass({ ...newClass, description: e.target.value })} placeholder="Optional description" />
+                        </div>
+                        <div className="form-group full">
+                          <label className="form-label">School Days</label>
+                          <div className="days-grid">
+                            {weekDays.map(day => (
+                              <button
+                                key={day}
+                                type="button"
+                                className={`day-btn ${(newClass.school_days || []).includes(day) ? 'selected' : ''}`}
+                                onClick={() => setNewClass({
+                                  ...newClass,
+                                  school_days: (newClass.school_days || []).includes(day)
+                                    ? newClass.school_days.filter(d => d !== day)
+                                    : [...(newClass.school_days || []), day]
+                                })}
+                              >
+                                {day.substring(0, 3)}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
                       <div className="form-actions">
-                        <button type="button" onClick={() => { setShowClassForm(false); setEditingClass(null); }} className="btn btn-secondary">Cancel</button>
-                        <button type="submit" className="btn btn-primary">{editingClass ? 'Update' : 'Create'}</button>
+                        <button type="button" onClick={() => { setShowClassForm(false); setEditingClass(null); setNewClass({ name: '', grade_level: '', school_days: [], description: '' }); }} className="btn btn-secondary">Cancel</button>
+                        <button type="submit" className="btn btn-primary">{editingClass ? 'Update Class' : 'Create Class'}</button>
                       </div>
                     </form>
                   </div>
                 </div>
               )}
 
-              {classes.length === 0 ? (
-                <div className="card"><div className="empty"><p>No classes yet.</p><button className="empty-action" onClick={() => setShowClassForm(true)}>+ Create Class</button></div></div>
-              ) : (
-                <div className="card">
-                  <div className="table-responsive">
-                    <table className="table">
-                      <thead><tr>
-                        <th>Name</th><th>Grade</th><th>Students</th><th>School Days</th><th>Actions</th>
-                      </tr></thead>
-                      <tbody>
-                        {classes.map(cls => (
+              <div className="card">
+                <div className="table-wrap admin-table-desktop">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Class Name</th>
+                        <th>Grade Level</th>
+                        <th>School Days</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {classes.map(cls => {
+                        let schoolDays = 'Not set';
+                        try {
+                          if (cls.school_days) {
+                            const days = typeof cls.school_days === 'string' ? JSON.parse(cls.school_days) : cls.school_days;
+                            schoolDays = Array.isArray(days) ? days.join(', ') : 'Not set';
+                          }
+                        } catch (e) { /* ignore */ }
+                        return (
                           <tr key={cls.id}>
                             <td><strong>{cls.name}</strong></td>
-                            <td>{cls.grade_level || '—'}</td>
-                            <td>{cls.student_count || 0}</td>
+                            <td>{cls.grade_level || 'N/A'}</td>
+                            <td>{schoolDays}</td>
                             <td>
-                              {(() => {
-                                try {
-                                  const days = typeof cls.school_days === 'string' ? JSON.parse(cls.school_days) : (cls.school_days || []);
-                                  return days.map(d => d.substring(0, 3)).join(', ') || '—';
-                                } catch { return '—'; }
-                              })()}
-                            </td>
-                            <td>
-                              <div style={{ display: 'flex', gap: '6px' }}>
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                 <button onClick={() => {
                                   setEditingClass(cls);
-                                  const schoolDays = (() => { try { return typeof cls.school_days === 'string' ? JSON.parse(cls.school_days) : (cls.school_days || []); } catch { return []; } })();
-                                  setNewClass({ name: cls.name, grade_level: cls.grade_level || '', school_days: schoolDays, description: cls.description || '' });
+                                  const sd = (() => { try { return typeof cls.school_days === 'string' ? JSON.parse(cls.school_days) : (cls.school_days || []); } catch { return []; } })();
+                                  setNewClass({ name: cls.name, grade_level: cls.grade_level || '', school_days: sd, description: cls.description || '' });
                                   setShowClassForm(true);
-                                }} className="btn btn-secondary btn-sm">Edit</button>
+                                }} className="btn btn-sm btn-secondary">Edit</button>
                                 <button onClick={() => setConfirmModal({
                                   message: `Delete class "${cls.name}"?`,
                                   onConfirm: () => { handleDeleteClass(cls.id); setConfirmModal(null); }
-                                })} className="btn btn-danger btn-sm">Delete</button>
+                                })} className="btn btn-sm btn-danger">Delete</button>
                               </div>
                             </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile Cards */}
-                  <div className="mobile-cards">
-                    {classes.map(cls => (
-                      <div key={cls.id} className="student-card">
-                        <div className="student-card-header">
-                          <strong>{cls.name}</strong>
-                          <span className="badge">{cls.student_count || 0} students</span>
+                        );
+                      })}
+                      {classes.length === 0 && (
+                        <tr>
+                          <td colSpan="4">
+                            <div className="empty">
+                              <p>No classes yet. Create one to get started.</p>
+                              <button className="empty-action" onClick={() => setShowClassForm(true)}>+ Create Class</button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Mobile cards for classes */}
+                <div className="admin-mobile-cards">
+                  {classes.map(cls => {
+                    let schoolDays = 'Not set';
+                    try {
+                      if (cls.school_days) {
+                        const days = typeof cls.school_days === 'string' ? JSON.parse(cls.school_days) : cls.school_days;
+                        schoolDays = Array.isArray(days) ? days.map(d => d.substring(0, 3)).join(', ') : 'Not set';
+                      }
+                    } catch (e) { /* ignore */ }
+                    return (
+                      <div key={cls.id} className="admin-mobile-card">
+                        <div className="admin-mobile-card-top">
+                          <div>
+                            <div className="admin-mobile-card-title">{cls.name}</div>
+                            <div className="admin-mobile-card-sub">{cls.grade_level || 'No grade level'}</div>
+                          </div>
+                          <div className="admin-mobile-card-badge">{schoolDays}</div>
                         </div>
-                        <div className="student-card-details">
-                          <span>Grade: {cls.grade_level || '—'}</span>
-                        </div>
-                        <div className="student-card-actions">
+                        <div className="admin-mobile-card-actions">
                           <button onClick={() => {
                             setEditingClass(cls);
-                            const schoolDays = (() => { try { return typeof cls.school_days === 'string' ? JSON.parse(cls.school_days) : (cls.school_days || []); } catch { return []; } })();
-                            setNewClass({ name: cls.name, grade_level: cls.grade_level || '', school_days: schoolDays, description: cls.description || '' });
+                            const sd = (() => { try { return typeof cls.school_days === 'string' ? JSON.parse(cls.school_days) : (cls.school_days || []); } catch { return []; } })();
+                            setNewClass({ name: cls.name, grade_level: cls.grade_level || '', school_days: sd, description: cls.description || '' });
                             setShowClassForm(true);
-                          }} className="btn btn-secondary btn-sm">Edit</button>
+                          }} className="btn btn-sm btn-secondary">Edit</button>
                           <button onClick={() => setConfirmModal({
                             message: `Delete class "${cls.name}"?`,
                             onConfirm: () => { handleDeleteClass(cls.id); setConfirmModal(null); }
-                          })} className="btn btn-danger btn-sm">Delete</button>
+                          })} className="btn btn-sm btn-danger">Delete</button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
+                  {classes.length === 0 && (
+                    <div className="empty"><p>No classes yet. Create one to get started.</p><button className="empty-action" onClick={() => setShowClassForm(true)}>+ Create Class</button></div>
+                  )}
                 </div>
-              )}
+              </div>
             </>
           )}
 
@@ -1388,10 +1509,10 @@ function SoloDashboard() {
 
               {showStudentForm && (
                 <div className="card">
-                  <div className="card-header">{editingStudent ? 'Edit Student' : 'Add Student'}</div>
+                  <div className="card-header">{editingStudent ? 'Edit Student' : 'Create New Student'}</div>
                   <div className="card-body">
                     <form onSubmit={handleCreateStudent}>
-                      <div className="form-grid form-grid-3">
+                      <div className="form-grid">
                         <div className="form-group">
                           <label className="form-label">First Name *</label>
                           <input type="text" className="form-input" value={newStudent.first_name} onChange={(e) => setNewStudent({ ...newStudent, first_name: e.target.value })} required />
@@ -1401,12 +1522,12 @@ function SoloDashboard() {
                           <input type="text" className="form-input" value={newStudent.last_name} onChange={(e) => setNewStudent({ ...newStudent, last_name: e.target.value })} required />
                         </div>
                         <div className="form-group">
-                          <label className="form-label">Student ID *</label>
-                          <input type="text" className="form-input" value={newStudent.student_id} onChange={(e) => setNewStudent({ ...newStudent, student_id: e.target.value })} placeholder="6 digits" required />
+                          <label className="form-label">Student ID (3-10 digits)</label>
+                          <input type="text" className="form-input" value={newStudent.student_id} onChange={(e) => setNewStudent({ ...newStudent, student_id: e.target.value })} pattern="\d{3,10}" maxLength="10" placeholder="001" required disabled={!!editingStudent} />
                         </div>
                         <div className="form-group">
                           <label className="form-label">Gender *</label>
-                          <select className="form-input" value={newStudent.gender} onChange={(e) => setNewStudent({ ...newStudent, gender: e.target.value })} required>
+                          <select className="form-select" value={newStudent.gender} onChange={(e) => setNewStudent({ ...newStudent, gender: e.target.value })} required>
                             <option value="">Select...</option>
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
@@ -1414,7 +1535,7 @@ function SoloDashboard() {
                         </div>
                         <div className="form-group">
                           <label className="form-label">Class</label>
-                          <select className="form-input" value={newStudent.class_id} onChange={(e) => setNewStudent({ ...newStudent, class_id: e.target.value })}>
+                          <select className="form-select" value={newStudent.class_id} onChange={(e) => setNewStudent({ ...newStudent, class_id: e.target.value })}>
                             <option value="">No class</option>
                             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                           </select>
@@ -1422,14 +1543,14 @@ function SoloDashboard() {
                       </div>
 
                       <h4 style={{ margin: 'var(--md) 0 var(--sm)', fontSize: '14px', color: 'var(--muted)' }}>Parent/Guardian</h4>
-                      <div className="form-grid form-grid-3">
+                      <div className="form-grid">
                         <div className="form-group">
                           <label className="form-label">Name</label>
                           <input type="text" className="form-input" value={newStudent.parent_guardian_name} onChange={(e) => setNewStudent({ ...newStudent, parent_guardian_name: e.target.value })} />
                         </div>
                         <div className="form-group">
                           <label className="form-label">Relationship</label>
-                          <select className="form-input" value={newStudent.parent_guardian_relationship} onChange={(e) => setNewStudent({ ...newStudent, parent_guardian_relationship: e.target.value })}>
+                          <select className="form-select" value={newStudent.parent_guardian_relationship} onChange={(e) => setNewStudent({ ...newStudent, parent_guardian_relationship: e.target.value })}>
                             <option value="">Select...</option>
                             <option value="Father">Father</option>
                             <option value="Mother">Mother</option>
@@ -1449,7 +1570,7 @@ function SoloDashboard() {
                       </div>
 
                       {madrasahProfile?.enable_fee_tracking && (
-                        <div className="form-grid form-grid-2">
+                        <div className="form-grid">
                           <div className="form-group">
                             <label className="form-label">Expected Fee</label>
                             <input type="number" step="0.01" className="form-input" value={newStudent.expected_fee} onChange={(e) => setNewStudent({ ...newStudent, expected_fee: e.target.value })} />
@@ -1463,109 +1584,102 @@ function SoloDashboard() {
 
                       <div className="form-actions">
                         <button type="button" onClick={() => { setShowStudentForm(false); setEditingStudent(null); }} className="btn btn-secondary">Cancel</button>
-                        <button type="submit" className="btn btn-primary">{editingStudent ? 'Update' : 'Add Student'}</button>
+                        <button type="submit" className="btn btn-primary">{editingStudent ? 'Update Student' : 'Add Student'}</button>
                       </div>
                     </form>
                   </div>
                 </div>
               )}
 
-              {/* Search & Filter */}
-              <div className="card" style={{ padding: 'var(--sm) var(--md)' }}>
-                <div className="form-grid form-grid-2">
-                  <input type="text" className="form-input" placeholder="Search students..." value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} />
-                  <select className="form-input" value={studentClassFilter} onChange={(e) => setStudentClassFilter(e.target.value)}>
-                    <option value="">All Classes</option>
-                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {filteredStudents.length === 0 ? (
-                <div className="card"><div className="empty"><p>No students found.</p></div></div>
-              ) : (
-                <div className="card">
-                  <div className="table-responsive">
-                    <table className="table">
-                      <thead><tr>
-                        <th>ID</th><th>Name</th><th>Gender</th><th>Class</th><th>Parent/Guardian</th><th>Actions</th>
-                      </tr></thead>
-                      <tbody>
-                        {filteredStudents.map(s => (
-                          <tr key={s.id}>
-                            <td>{s.student_id}</td>
-                            <td><strong>{s.first_name} {s.last_name}</strong></td>
-                            <td>{s.gender}</td>
-                            <td>{s.class_name || '—'}</td>
-                            <td>{s.parent_guardian_name || '—'}</td>
-                            <td>
-                              <div style={{ display: 'flex', gap: '6px' }}>
-                                <button onClick={() => {
-                                  setEditingStudent(s);
-                                  setNewStudent({
-                                    first_name: s.first_name, last_name: s.last_name,
-                                    student_id: s.student_id, gender: s.gender, class_id: s.class_id || '',
-                                    student_phone: s.student_phone || '', student_phone_country_code: s.student_phone_country_code || '+64',
-                                    street: s.street || '', city: s.city || '', state: s.state || '', country: s.country || '',
-                                    parent_guardian_name: s.parent_guardian_name || '',
-                                    parent_guardian_relationship: s.parent_guardian_relationship || '',
-                                    parent_guardian_phone: s.parent_guardian_phone || '',
-                                    parent_guardian_phone_country_code: s.parent_guardian_phone_country_code || '+64',
-                                    notes: s.notes || '',
-                                    expected_fee: s.expected_fee || '', fee_note: s.fee_note || ''
-                                  });
-                                  setShowStudentForm(true);
-                                }} className="btn btn-secondary btn-sm">Edit</button>
-                                <button onClick={() => setConfirmModal({
-                                  message: `Delete student "${s.first_name} ${s.last_name}"?`,
-                                  onConfirm: () => { handleDeleteStudent(s.id); setConfirmModal(null); }
-                                })} className="btn btn-danger btn-sm">Delete</button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile Cards */}
-                  <div className="mobile-cards">
-                    {filteredStudents.map(s => (
-                      <div key={s.id} className="student-card">
-                        <div className="student-card-header">
-                          <strong>{s.first_name} {s.last_name}</strong>
-                          <span className="badge">{s.student_id}</span>
-                        </div>
-                        <div className="student-card-details">
-                          <span>{s.gender} · {s.class_name || 'No class'}</span>
-                        </div>
-                        <div className="student-card-actions">
+              {/* Desktop: SortableTable */}
+              <div className="card admin-table-desktop">
+                <SortableTable
+                  columns={[
+                    { key: 'student_id', label: 'ID', sortable: true, sortType: 'string' },
+                    { key: 'name', label: 'Name', sortable: true, sortType: 'string',
+                      render: (row) => <strong>{row.first_name} {row.last_name}</strong>,
+                      sortValue: (row) => `${row.first_name} ${row.last_name}` },
+                    { key: 'gender', label: 'Gender', sortable: true, sortType: 'string' },
+                    { key: 'class_name', label: 'Class', sortable: true, sortType: 'string',
+                      render: (row) => row.class_name || '—' },
+                    { key: 'parent', label: 'Parent/Guardian', sortable: false,
+                      render: (row) => row.parent_guardian_name || '—' },
+                    { key: 'actions', label: '', sortable: false,
+                      render: (row) => (
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                           <button onClick={() => {
-                            setEditingStudent(s);
+                            setEditingStudent(row);
                             setNewStudent({
-                              first_name: s.first_name, last_name: s.last_name,
-                              student_id: s.student_id, gender: s.gender, class_id: s.class_id || '',
-                              student_phone: s.student_phone || '', student_phone_country_code: s.student_phone_country_code || '+64',
-                              street: s.street || '', city: s.city || '', state: s.state || '', country: s.country || '',
-                              parent_guardian_name: s.parent_guardian_name || '',
-                              parent_guardian_relationship: s.parent_guardian_relationship || '',
-                              parent_guardian_phone: s.parent_guardian_phone || '',
-                              parent_guardian_phone_country_code: s.parent_guardian_phone_country_code || '+64',
-                              notes: s.notes || '',
-                              expected_fee: s.expected_fee || '', fee_note: s.fee_note || ''
+                              first_name: row.first_name, last_name: row.last_name,
+                              student_id: row.student_id, gender: row.gender, class_id: row.class_id || '',
+                              student_phone: row.student_phone || '', student_phone_country_code: row.student_phone_country_code || '+64',
+                              street: row.street || '', city: row.city || '', state: row.state || '', country: row.country || '',
+                              parent_guardian_name: row.parent_guardian_name || '',
+                              parent_guardian_relationship: row.parent_guardian_relationship || '',
+                              parent_guardian_phone: row.parent_guardian_phone || '',
+                              parent_guardian_phone_country_code: row.parent_guardian_phone_country_code || '+64',
+                              notes: row.notes || '',
+                              expected_fee: row.expected_fee || '', fee_note: row.fee_note || ''
                             });
                             setShowStudentForm(true);
-                          }} className="btn btn-secondary btn-sm">Edit</button>
+                          }} className="btn btn-sm btn-secondary">Edit</button>
                           <button onClick={() => setConfirmModal({
-                            message: `Delete "${s.first_name} ${s.last_name}"?`,
-                            onConfirm: () => { handleDeleteStudent(s.id); setConfirmModal(null); }
-                          })} className="btn btn-danger btn-sm">Delete</button>
+                            message: `Delete student "${row.first_name} ${row.last_name}"?`,
+                            onConfirm: () => { handleDeleteStudent(row.id); setConfirmModal(null); }
+                          })} className="btn btn-sm btn-danger">Delete</button>
                         </div>
+                      )}
+                  ]}
+                  data={filteredStudents}
+                  searchable
+                  searchPlaceholder="Search students..."
+                  searchKeys={['first_name', 'last_name', 'student_id', 'class_name', 'parent_guardian_name']}
+                  pagination
+                  pageSize={25}
+                  emptyMessage="No students found. Add your first student to get started."
+                />
+              </div>
+
+              {/* Mobile: admin-mobile-cards */}
+              <div className="admin-mobile-cards students-mobile-cards">
+                {filteredStudents.length === 0 ? (
+                  <div className="empty"><p>No students found.</p></div>
+                ) : (
+                  filteredStudents.map(s => (
+                    <div key={s.id} className="admin-mobile-card">
+                      <div className="admin-mobile-card-top">
+                        <div>
+                          <div className="admin-mobile-card-title">{s.first_name} {s.last_name}</div>
+                          <div className="admin-mobile-card-sub">{s.gender} · {s.class_name || 'No class'}</div>
+                        </div>
+                        <div className="admin-mobile-card-badge">{s.student_id}</div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                      <div className="admin-mobile-card-actions">
+                        <button onClick={() => {
+                          setEditingStudent(s);
+                          setNewStudent({
+                            first_name: s.first_name, last_name: s.last_name,
+                            student_id: s.student_id, gender: s.gender, class_id: s.class_id || '',
+                            student_phone: s.student_phone || '', student_phone_country_code: s.student_phone_country_code || '+64',
+                            street: s.street || '', city: s.city || '', state: s.state || '', country: s.country || '',
+                            parent_guardian_name: s.parent_guardian_name || '',
+                            parent_guardian_relationship: s.parent_guardian_relationship || '',
+                            parent_guardian_phone: s.parent_guardian_phone || '',
+                            parent_guardian_phone_country_code: s.parent_guardian_phone_country_code || '+64',
+                            notes: s.notes || '',
+                            expected_fee: s.expected_fee || '', fee_note: s.fee_note || ''
+                          });
+                          setShowStudentForm(true);
+                        }} className="btn btn-sm btn-secondary">Edit</button>
+                        <button onClick={() => setConfirmModal({
+                          message: `Delete "${s.first_name} ${s.last_name}"?`,
+                          onConfirm: () => { handleDeleteStudent(s.id); setConfirmModal(null); }
+                        })} className="btn btn-sm btn-danger">Delete</button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </>
           )}
 
@@ -2154,14 +2268,12 @@ function SoloDashboard() {
                 <button onClick={() => setShowFeePaymentForm(!showFeePaymentForm)} className="btn btn-primary">+ Record Payment</button>
               </div>
 
-              <div className="card" style={{ padding: 'var(--sm) var(--md)', marginBottom: 'var(--md)' }}>
-                <div className="form-group">
-                  <label className="form-label">Filter by Class</label>
-                  <select className="form-input" value={feeClassFilter} onChange={(e) => setFeeClassFilter(e.target.value)}>
-                    <option value="">All Classes</option>
-                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
+              {/* Class filter */}
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
+                <select className="form-select" style={{ maxWidth: '220px' }} value={feeClassFilter} onChange={(e) => setFeeClassFilter(e.target.value)}>
+                  <option value="">All Classes</option>
+                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
               </div>
 
               {showFeePaymentForm && (
@@ -2169,10 +2281,10 @@ function SoloDashboard() {
                   <div className="card-header">Record Payment</div>
                   <div className="card-body">
                     <form onSubmit={handleRecordFeePayment}>
-                      <div className="form-grid form-grid-3">
+                      <div className="form-grid">
                         <div className="form-group">
                           <label className="form-label">Student *</label>
-                          <select className="form-input" value={feePaymentForm.student_id} onChange={(e) => setFeePaymentForm({ ...feePaymentForm, student_id: e.target.value })} required>
+                          <select className="form-select" value={feePaymentForm.student_id} onChange={(e) => setFeePaymentForm({ ...feePaymentForm, student_id: e.target.value })} required>
                             <option value="">Select student...</option>
                             {students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}
                           </select>
@@ -2187,7 +2299,7 @@ function SoloDashboard() {
                         </div>
                         <div className="form-group">
                           <label className="form-label">Method</label>
-                          <select className="form-input" value={feePaymentForm.payment_method} onChange={(e) => setFeePaymentForm({ ...feePaymentForm, payment_method: e.target.value })}>
+                          <select className="form-select" value={feePaymentForm.payment_method} onChange={(e) => setFeePaymentForm({ ...feePaymentForm, payment_method: e.target.value })}>
                             <option value="cash">Cash</option>
                             <option value="bank_transfer">Bank Transfer</option>
                             <option value="online">Online</option>
@@ -2212,63 +2324,134 @@ function SoloDashboard() {
                 </div>
               )}
 
-              {/* Fee Summary */}
-              <div className="card">
-                <div className="card-header">Fee Summary</div>
-                {feeSummary.length > 0 ? (
-                  <div className="table-responsive">
-                    <table className="table">
-                      <thead><tr><th>Student</th><th>Class</th><th>Expected</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
-                      <tbody>
-                        {feeSummary.map(r => (
-                          <tr key={r.student_id}>
-                            <td>{r.student_name}</td>
-                            <td>{r.class_name || '—'}</td>
-                            <td>{madrasahProfile?.currency || '$'}{r.total_fee?.toLocaleString()}</td>
-                            <td>{madrasahProfile?.currency || '$'}{r.total_paid?.toLocaleString()}</td>
-                            <td style={{ color: r.balance > 0 ? 'var(--danger)' : 'var(--success)' }}>{madrasahProfile?.currency || '$'}{r.balance?.toLocaleString()}</td>
-                            <td>
-                              <span className={`badge ${r.status === 'paid' ? 'badge-success' : r.status === 'partial' ? 'badge-warning' : 'badge-danger'}`}>
-                                {r.status === 'paid' ? 'Paid' : r.status === 'partial' ? 'Partial' : 'Unpaid'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              {/* Fee Summary Cards */}
+              {feeSummary.length > 0 && (
+                <div className="fee-summary-cards">
+                  <div className="fee-summary-card">
+                    <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + (r.total_fee || 0), 0))}</div>
+                    <div className="fee-summary-label">Total Expected</div>
                   </div>
-                ) : (
-                  <div className="empty"><p>No fee data. Set expected fees on student profiles to start tracking.</p></div>
-                )}
-              </div>
+                  <div className="fee-summary-card">
+                    <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + (r.total_paid || 0), 0))}</div>
+                    <div className="fee-summary-label">Collected</div>
+                  </div>
+                  <div className="fee-summary-card">
+                    <div className="fee-summary-value">{formatCurrency(feeSummary.reduce((s, r) => s + Math.max(r.balance || 0, 0), 0))}</div>
+                    <div className="fee-summary-label">Outstanding</div>
+                  </div>
+                </div>
+              )}
+
+              {feeSummary.length === 0 ? (
+                <div className="card">
+                  <div className="empty">
+                    <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                    <p>No fee data yet. Set expected fees on student profiles to start tracking.</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Desktop Table */}
+                  <div className="card fee-table-desktop">
+                    <SortableTable
+                      columns={[
+                        { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
+                        { key: 'class_name', label: 'Class', sortable: true, sortType: 'string', render: (row) => row.class_name || '—' },
+                        { key: 'total_fee', label: 'Expected', sortable: true, sortType: 'number', render: (row) => formatCurrency(row.total_fee) },
+                        { key: 'total_paid', label: 'Paid', sortable: true, sortType: 'number', render: (row) => formatCurrency(row.total_paid) },
+                        { key: 'balance', label: 'Balance', sortable: true, sortType: 'number', render: (row) => formatCurrency(row.balance) },
+                        { key: 'status', label: 'Progress', sortable: true, sortType: 'number',
+                          sortValue: (row) => row.total_fee > 0 ? row.total_paid / row.total_fee : 0,
+                          render: (row) => <FeeProgressBar paid={row.total_paid} total={row.total_fee} /> }
+                      ]}
+                      data={feeSummary}
+                      searchable
+                      searchPlaceholder="Search students..."
+                      searchKeys={['student_name', 'class_name']}
+                      pagination
+                      pageSize={25}
+                      emptyMessage="No fee records"
+                    />
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="fee-mobile-cards">
+                    {feeSummary.map((row, idx) => (
+                      <div key={idx} className="admin-mobile-card">
+                        <div className="admin-mobile-card-top">
+                          <div>
+                            <div className="admin-mobile-card-title">{row.student_name}</div>
+                            <div className="admin-mobile-card-sub">{row.class_name || '—'}</div>
+                          </div>
+                        </div>
+                        <FeeProgressBar paid={row.total_paid} total={row.total_fee} />
+                        <div className="fee-mobile-card-amounts">
+                          <div className="fee-mobile-card-amount">
+                            <span className="fee-mobile-card-amount-label">Expected</span>
+                            <span>{formatCurrency(row.total_fee)}</span>
+                          </div>
+                          <div className="fee-mobile-card-amount">
+                            <span className="fee-mobile-card-amount-label">Paid</span>
+                            <span>{formatCurrency(row.total_paid)}</span>
+                          </div>
+                          <div className="fee-mobile-card-amount">
+                            <span className="fee-mobile-card-amount-label">Balance</span>
+                            <span style={{ fontWeight: 600 }}>{formatCurrency(row.balance)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
               {/* Recent Payments */}
               {feePayments.length > 0 && (
-                <div className="card" style={{ marginTop: 'var(--md)' }}>
-                  <div className="card-header">Recent Payments</div>
-                  <div className="table-responsive">
-                    <table className="table">
-                      <thead><tr><th>Date</th><th>Student</th><th>Amount</th><th>Method</th><th>Note</th><th></th></tr></thead>
-                      <tbody>
-                        {feePayments.slice(0, 50).map(p => (
-                          <tr key={p.id}>
-                            <td>{fmtDate(p.payment_date)}</td>
-                            <td>{p.student_name}</td>
-                            <td>{madrasahProfile?.currency || '$'}{p.amount_paid?.toLocaleString()}</td>
-                            <td style={{ textTransform: 'capitalize' }}>{(p.payment_method || '').replace('_', ' ')}</td>
-                            <td>{p.reference_note || '—'}</td>
-                            <td>
-                              <button onClick={() => setConfirmModal({
-                                message: 'Void this payment?',
-                                onConfirm: () => { handleDeleteFeePayment(p.id); setConfirmModal(null); }
-                              })} className="btn btn-danger btn-sm">Void</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                <>
+                  <div className="card fee-table-desktop" style={{ marginTop: '20px' }}>
+                    <div className="card-header">Recent Payments</div>
+                    <div className="card-body" style={{ padding: 0 }}>
+                      <SortableTable
+                        columns={[
+                          { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
+                          { key: 'amount_paid', label: 'Amount', sortable: true, sortType: 'number', render: (row) => formatCurrency(row.amount_paid) },
+                          { key: 'payment_label', label: 'For', sortable: false, render: (row) => row.payment_label || '—' },
+                          { key: 'payment_date', label: 'Date', sortable: true, sortType: 'string', render: (row) => fmtDate(row.payment_date) },
+                          { key: 'payment_method', label: 'Method', sortable: true, sortType: 'string',
+                            render: (row) => ({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method) },
+                          { key: 'actions', label: '', sortable: false,
+                            render: (row) => (
+                              <button onClick={() => setConfirmModal({ message: 'Void this payment?', onConfirm: () => { handleDeleteFeePayment(row.id); setConfirmModal(null); } })} className="btn btn-sm btn-danger">Void</button>
+                            )}
+                        ]}
+                        data={feePayments.slice(0, 50)}
+                        pagination
+                        pageSize={10}
+                        emptyMessage="No payments recorded"
+                      />
+                    </div>
                   </div>
-                </div>
+                  <div className="fee-mobile-cards" style={{ marginTop: '20px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: '#0a0a0a' }}>Recent Payments</div>
+                    {feePayments.slice(0, 50).map(p => (
+                      <div key={p.id} className="admin-mobile-card">
+                        <div className="admin-mobile-card-top">
+                          <div>
+                            <div className="admin-mobile-card-title">{p.student_name}</div>
+                            <div className="admin-mobile-card-sub">{p.payment_label || ''} &middot; {({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[p.payment_method] || p.payment_method)}</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: 600, fontSize: '15px' }}>{formatCurrency(p.amount_paid)}</div>
+                            <div className="admin-mobile-card-sub">{fmtDate(p.payment_date)}</div>
+                          </div>
+                        </div>
+                        <div className="admin-mobile-card-actions">
+                          <button onClick={() => setConfirmModal({ message: 'Void this payment?', onConfirm: () => { handleDeleteFeePayment(p.id); setConfirmModal(null); } })} className="btn btn-sm btn-danger">Void</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </>
           )}
@@ -2702,9 +2885,9 @@ function SoloDashboard() {
                     </div>
                   </div>
 
-                  {/* Plan Selection */}
+                  {/* Solo Plan Selection */}
                   <div style={{ marginTop: '16px', padding: '16px', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>Choose a Plan</h4>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>Solo Plan</h4>
 
                     {/* Billing Cycle Toggle */}
                     <div style={{ display: 'flex', gap: '0', marginBottom: '16px', background: 'var(--lighter)', borderRadius: '6px', padding: '4px', width: 'fit-content' }}>
@@ -2744,90 +2927,21 @@ function SoloDashboard() {
                       </button>
                     </div>
 
-                    {/* Plan Options */}
-                    <div className="plan-options-grid">
-                      {/* Solo Plan */}
-                      <div
-                        onClick={() => setSelectedPlan('solo')}
-                        style={{
-                          padding: '16px',
-                          border: selectedPlan === 'solo' ? '2px solid var(--accent)' : '1px solid var(--border)',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          background: selectedPlan === 'solo' ? 'var(--lighter)' : 'white'
-                        }}
-                      >
-                        <div style={{ fontWeight: '600', marginBottom: '4px' }}>Solo</div>
-                        <div style={{ fontSize: '24px', fontWeight: '600' }}>
-                          ${billingCycle === 'monthly' ? '5' : '50'}
-                          <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
-                            /{billingCycle === 'monthly' ? 'mo' : 'yr'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
-                          50 students, 5 classes
-                        </div>
+                    {/* Solo pricing display */}
+                    <div style={{
+                      padding: '16px',
+                      border: '2px solid var(--accent)',
+                      borderRadius: '8px',
+                      background: 'var(--lighter)'
+                    }}>
+                      <div style={{ fontSize: '24px', fontWeight: '600' }}>
+                        ${billingCycle === 'monthly' ? '5' : '50'}
+                        <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
+                          /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+                        </span>
                       </div>
-
-                      {/* Standard Plan */}
-                      <div
-                        onClick={() => setSelectedPlan('standard')}
-                        style={{
-                          padding: '16px',
-                          border: selectedPlan === 'standard' ? '2px solid var(--accent)' : '1px solid var(--border)',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          background: selectedPlan === 'standard' ? 'var(--lighter)' : 'white'
-                        }}
-                      >
-                        <div style={{ fontWeight: '600', marginBottom: '4px' }}>Standard</div>
-                        <div style={{ fontSize: '24px', fontWeight: '600' }}>
-                          ${billingCycle === 'monthly' ? '12' : '120'}
-                          <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
-                            /{billingCycle === 'monthly' ? 'mo' : 'yr'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
-                          100 students, 20 teachers
-                        </div>
-                      </div>
-
-                      {/* Plus Plan */}
-                      <div
-                        onClick={() => setSelectedPlan('plus')}
-                        style={{
-                          padding: '16px',
-                          border: selectedPlan === 'plus' ? '2px solid var(--accent)' : '1px solid var(--border)',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          background: selectedPlan === 'plus' ? 'var(--lighter)' : 'white',
-                          position: 'relative'
-                        }}
-                      >
-                        <span style={{
-                          position: 'absolute',
-                          top: '-10px',
-                          right: '12px',
-                          background: 'var(--accent)',
-                          color: 'white',
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          padding: '4px 12px',
-                          borderRadius: '12px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                          boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
-                        }}>Popular</span>
-                        <div style={{ fontWeight: '600', marginBottom: '4px' }}>Plus</div>
-                        <div style={{ fontSize: '24px', fontWeight: '600' }}>
-                          ${billingCycle === 'monthly' ? '29' : '290'}
-                          <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
-                            /{billingCycle === 'monthly' ? 'mo' : 'yr'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
-                          500 students, 50 teachers
-                        </div>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
+                        Up to 50 students · 5 classes · Attendance, exams, fees & more
                       </div>
                     </div>
 
@@ -2846,11 +2960,11 @@ function SoloDashboard() {
 
                     {/* Subscribe Button */}
                     <button
-                      className="btn primary"
+                      className="btn btn-primary"
                       style={{ width: '100%', marginTop: '12px' }}
                       onClick={async () => {
                         try {
-                          const priceKey = `${selectedPlan}_${billingCycle}`;
+                          const priceKey = `solo_${billingCycle}`;
                           const payload = {
                             priceKey,
                             successUrl: `${window.location.origin}/${madrasahSlug}/solo?billing=success`,
@@ -2873,7 +2987,7 @@ function SoloDashboard() {
                   {/* Manage Billing */}
                   {madrasahProfile?.stripe_customer_id && (
                     <button
-                      className="btn secondary"
+                      className="btn btn-secondary"
                       style={{ marginTop: '12px' }}
                       onClick={async () => {
                         try {
@@ -2890,9 +3004,16 @@ function SoloDashboard() {
                     </button>
                   )}
 
-                  <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '12px 0 0 0' }}>
-                    View our <a href="/pricing" target="_blank" style={{ color: 'var(--accent)' }}>pricing page</a> for full feature comparison.
-                  </p>
+                  {/* Upgrade Path */}
+                  <div style={{ padding: '12px 16px', background: 'var(--lighter)', borderRadius: '8px', marginTop: '4px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Need more capacity?</div>
+                    <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '0 0 8px' }}>
+                      Upgrade to Standard (100 students, teachers, reports) or Plus (500 students, advanced features).
+                    </p>
+                    <a href="/pricing" target="_blank" style={{ fontSize: '13px', color: 'var(--accent)', fontWeight: '500', textDecoration: 'none' }}>
+                      View plans & pricing →
+                    </a>
+                  </div>
                 </div>
               </div>
             </>
@@ -3070,43 +3191,76 @@ function SoloDashboard() {
           )}
 
           {/* ═══════ HELP TAB ═══════ */}
-          {activeTab === 'help' && (
-            <>
-              <div className="page-header"><h2 className="page-title">Help</h2></div>
-
-              <div className="card">
-                <div className="card-body">
-                  <h3 style={{ fontSize: '16px', marginBottom: 'var(--md)' }}>Getting Started</h3>
-                  <div style={{ display: 'grid', gap: '12px', fontSize: '14px', lineHeight: '1.6' }}>
-                    <div>
-                      <strong>1. Set up your academic year</strong>
-                      <p style={{ color: 'var(--muted)', margin: '4px 0 0' }}>Go to Planner → Create a Session (e.g., "2025-2026") and set school days. Then add Semesters within that session.</p>
-                    </div>
-                    <div>
-                      <strong>2. Create classes</strong>
-                      <p style={{ color: 'var(--muted)', margin: '4px 0 0' }}>Go to Classes → Create classes for your madrasah (e.g., "Beginners", "Intermediate").</p>
-                    </div>
-                    <div>
-                      <strong>3. Enroll students</strong>
-                      <p style={{ color: 'var(--muted)', margin: '4px 0 0' }}>Go to Students → Add students and assign them to classes.</p>
-                    </div>
-                    <div>
-                      <strong>4. Take attendance</strong>
-                      <p style={{ color: 'var(--muted)', margin: '4px 0 0' }}>Go to Attendance → Select a class, choose the date, mark present/absent, and save.</p>
-                    </div>
-                    <div>
-                      <strong>5. Record exams</strong>
-                      <p style={{ color: 'var(--muted)', margin: '4px 0 0' }}>Go to Exam Recording → Select a class and click "Record Exam" to enter scores for all students.</p>
-                    </div>
-                    <div>
-                      <strong>6. Enable features</strong>
-                      <p style={{ color: 'var(--muted)', margin: '4px 0 0' }}>Go to Settings to enable/disable optional features like Qur'an tracking, fee tracking, and grading options.</p>
-                    </div>
+          {activeTab === 'help' && (() => {
+            const toggleHelp = (key) => setHelpExpanded(prev => {
+              const next = new Set(prev);
+              next.has(key) ? next.delete(key) : next.add(key);
+              return next;
+            });
+            const HelpSection = ({ sectionKey, title, items }) => (
+              <div className="card" style={{ marginBottom: '12px' }}>
+                <button onClick={() => toggleHelp(sectionKey)} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 600, textAlign: 'left' }}>
+                  {title}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: helpExpanded.has(sectionKey) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                {helpExpanded.has(sectionKey) && (
+                  <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {items.map((item, i) => (
+                      <div key={i}>
+                        <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>{item.title}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--gray)', lineHeight: '1.5' }}>{item.content}</div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
-            </>
-          )}
+            );
+            return (
+              <>
+                <div className="page-header">
+                  <h2 className="page-title">Help</h2>
+                </div>
+
+                <HelpSection sectionKey="getting-started" title="Getting Started" items={[
+                  { title: 'Create a session and semester', content: 'Go to Planner and click "New Session" to create an academic year (e.g. 2025/2026). Set your school days, then add semesters within that session. Sessions and semesters organise your attendance and exam records by time period.' },
+                  { title: 'Create classes', content: 'Go to Classes and click "New Class". Give it a name (e.g. "Junior Boys", "Grade 3") and select which days it meets. Classes group your students and are used for attendance, exams, and reports.' },
+                  { title: 'Add students', content: 'Go to Students and click "New Student". Fill in their details and assign them to a class. Each student gets a unique ID for tracking.' },
+                  { title: 'Set expected fees', content: 'When adding or editing a student, set their expected fee amount. Fee progress is tracked automatically in the Fees tab.' },
+                ]} />
+
+                <HelpSection sectionKey="daily-ops" title="Daily Operations" items={[
+                  { title: 'Take attendance', content: 'Go to the Attendance tab, select a class and date, then mark each student as present or absent. You can also grade dressing and behaviour if those features are enabled in Settings. Click "Save All" to record.' },
+                  { title: 'Record exam scores', content: 'Go to Exam Recording, select a class, and click "Record Exam". Choose the exam type and subject, then enter scores for each student. Results are saved and available for review.' },
+                  { title: 'Record a payment', content: 'In the Fees tab, click "Record Payment". Select the student, enter the amount, date, payment method, and an optional label (e.g. "March", "Term 1"). The student\'s balance updates automatically.' },
+                  { title: 'Void a payment', content: 'In the Fees tab under "Recent Payments", click "Void" next to a payment to reverse it. The student\'s balance will be recalculated.' },
+                ]} />
+
+                <HelpSection sectionKey="planner" title="Academic Planner" items={[
+                  { title: 'Sessions and semesters', content: 'Sessions represent academic years. Semesters are periods within a session (e.g. First Term, Second Term). Go to Planner to create, edit, or delete them. Only one session and one semester can be active at a time.' },
+                  { title: 'School days', content: 'When creating a session, select which days of the week your madrasah operates. These determine when attendance is expected.' },
+                ]} />
+
+                <HelpSection sectionKey="students-classes" title="Students & Classes" items={[
+                  { title: 'Edit or delete a student', content: 'Go to Students, find the student in the list, and click Edit or Delete. You can update their class, contact info, and expected fees.' },
+                  { title: 'Manage classes', content: 'Go to Classes to create, edit, or delete classes. Each class has a name, optional description, and school days schedule.' },
+                ]} />
+
+                {madrasahProfile?.enable_fee_tracking && (
+                  <HelpSection sectionKey="fees" title="Fees" items={[
+                    { title: 'Set expected fees', content: 'Set a student\'s expected fee when creating or editing their profile. The Fees tab shows a summary with progress bars for each student.' },
+                    { title: 'Track collection progress', content: 'The Fees tab shows summary cards (Total Expected, Collected, Outstanding) and a progress bar for each student. Filter by class to focus on specific groups.' },
+                    { title: 'Payment methods', content: 'Record payments as Cash, Bank Transfer, Online, or Other. Add labels to categorise payments (e.g. monthly, termly, instalments).' },
+                  ]} />
+                )}
+
+                <HelpSection sectionKey="settings" title="Settings" items={[
+                  { title: 'Update madrasah profile', content: 'Go to Settings to update your madrasah name, contact info, address, and other details.' },
+                  { title: 'Enable or disable features', content: 'In Settings, toggle features like Fee Tracking, Qur\'an Progress, Behaviour Grading, and Dressing Grading on or off based on your needs.' },
+                  { title: 'Change your password', content: 'In Settings, scroll to the Account section to update your password. You\'ll need to enter your current password and the new one (minimum 8 characters with uppercase, lowercase, number, and symbol).' },
+                ]} />
+              </>
+            );
+          })()}
 
         </main>
       </div>

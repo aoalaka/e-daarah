@@ -683,8 +683,8 @@
   }
 
   .pricing-grid {
-    grid-template-columns: repeat(3, 1fr);
-    max-width: 840px;
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 1000px;
     margin-left: auto;
     margin-right: auto;
     margin-bottom: 24px;
@@ -716,6 +716,12 @@
 
   .pricing-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1023px) {
+  .pricing-grid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 

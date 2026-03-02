@@ -826,28 +826,45 @@ function SoloDashboard() {
           ))}
         </nav>
         <div className="sidebar-footer" ref={profileDropdownRef}>
-          <div className="sidebar-user" onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}>
-            <div className="user-avatar">{user?.firstName?.charAt(0) || 'S'}</div>
+          <div className="sidebar-user" onClick={() => setProfileDropdownOpen(!profileDropdownOpen)} style={{ cursor: 'pointer' }}>
+            <div className="user-avatar">
+              {user?.firstName?.charAt(0) || 'S'}
+            </div>
             <div className="user-info">
               <div className="user-name">{user?.firstName} {user?.lastName}</div>
               <div className="user-role">Solo Admin</div>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: profileDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', minWidth: '16px' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, transform: profileDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
               <polyline points="18 15 12 9 6 15"></polyline>
             </svg>
           </div>
           {profileDropdownOpen && (
             <div className="profile-dropdown">
               <div className="profile-dropdown-header">
-                <div className="profile-dropdown-name">{user?.firstName} {user?.lastName}</div>
-                <div className="profile-dropdown-email">{user?.email}</div>
+                <div className="user-avatar" style={{ width: 36, height: 36, minWidth: 36, fontSize: 14 }}>
+                  {user?.firstName?.charAt(0) || 'S'}
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 500, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.firstName} {user?.lastName}</div>
+                  <div style={{ fontSize: 11, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
+                </div>
               </div>
+              <div className="profile-dropdown-divider" />
+              <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); setTimeout(() => document.getElementById('settings-account')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                Account
+              </button>
+              <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); setTimeout(() => document.getElementById('settings-password')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
+                Change Password
+              </button>
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
                 Settings
               </button>
+              <div className="profile-dropdown-divider" />
               <button className="profile-dropdown-item logout" onClick={handleLogout}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                 Log out
               </button>
             </div>
@@ -2185,80 +2202,402 @@ function SoloDashboard() {
           {/* ═══════ SETTINGS TAB ═══════ */}
           {activeTab === 'settings' && (
             <>
-              <div className="page-header"><h2 className="page-title">Settings</h2></div>
-
-              {/* Feature Toggles */}
-              <div className="card">
-                <div className="card-header">Feature Toggles</div>
-                <div className="card-body">
-                  <div style={{ display: 'grid', gap: '12px' }}>
-                    {[
-                      { key: 'enable_dressing_grade', label: 'Dressing Grade', desc: 'Grade student dressing in attendance' },
-                      { key: 'enable_behavior_grade', label: 'Behavior Grade', desc: 'Grade student behavior in attendance' },
-                      { key: 'enable_punctuality_grade', label: 'Punctuality Grade', desc: 'Grade student punctuality in attendance' },
-                      { key: 'enable_quran_tracking', label: "Qur'an Tracking", desc: 'Track student Qur\'an progress' },
-                      { key: 'enable_fee_tracking', label: 'Fee Tracking', desc: 'Track student fees and payments' },
-                    ].map(toggle => (
-                      <label key={toggle.key} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={madrasahProfile?.[toggle.key] || false} onChange={(e) => handleSaveSettings({ [toggle.key]: e.target.checked })} disabled={savingSettings} />
-                        <div>
-                          <div style={{ fontWeight: 500, fontSize: '14px' }}>{toggle.label}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{toggle.desc}</div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Currency */}
-              <div className="card" style={{ marginTop: 'var(--md)' }}>
-                <div className="card-header">Currency</div>
-                <div className="card-body">
-                  <div className="form-group" style={{ maxWidth: '200px' }}>
-                    <select className="form-input" value={madrasahProfile?.currency || 'USD'} onChange={(e) => handleSaveSettings({ currency: e.target.value })}>
-                      {['USD','GBP','EUR','NGN','GHS','KES','ZAR','SAR','AED','MYR','PKR','INR','BDT','IDR','TRY','EGP','NZD','AUD','CAD'].map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                </div>
+              <div className="section-header">
+                <h2>Settings</h2>
               </div>
 
               {/* Change Password */}
-              <div className="card" style={{ marginTop: 'var(--md)' }}>
-                <div className="card-header">Change Password</div>
-                <div className="card-body">
-                  <form onSubmit={handleChangePassword} style={{ maxWidth: '400px' }}>
-                    <div className="form-group">
-                      <label className="form-label">Current Password</label>
-                      <input type="password" className="form-input" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} required />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">New Password</label>
-                      <input type="password" className="form-input" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} required />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Confirm New Password</label>
-                      <input type="password" className="form-input" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} required />
-                    </div>
-                    <button type="submit" className="btn btn-primary" disabled={changingPassword}>
-                      {changingPassword ? 'Changing...' : 'Change Password'}
-                    </button>
-                  </form>
-                </div>
+              <div className="card" id="settings-password">
+                <h3>Change Password</h3>
+                <form onSubmit={handleChangePassword} style={{ maxWidth: '400px' }}>
+                  <div className="form-group">
+                    <label>Current Password</label>
+                    <input
+                      type="password"
+                      value={passwordForm.currentPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>New Password</label>
+                    <input
+                      type="password"
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      required
+                      minLength={8}
+                    />
+                    <small style={{ color: 'var(--muted)', fontSize: '12px' }}>
+                      Min 8 characters, uppercase, lowercase, number, and special character
+                    </small>
+                  </div>
+                  <div className="form-group">
+                    <label>Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn primary" disabled={changingPassword}>
+                    {changingPassword ? 'Changing...' : 'Change Password'}
+                  </button>
+                </form>
               </div>
 
-              {/* Account Info */}
-              <div className="card" style={{ marginTop: 'var(--md)' }}>
-                <div className="card-header">Account Information</div>
-                <div className="card-body">
-                  <div style={{ display: 'grid', gap: '8px', fontSize: '14px' }}>
-                    <div><strong>Name:</strong> {user?.firstName} {user?.lastName}</div>
-                    <div><strong>Email:</strong> {user?.email}</div>
-                    <div><strong>Plan:</strong> Solo</div>
-                    <div><strong>Madrasah:</strong> {madrasahProfile?.name}</div>
+              {/* Attendance Features */}
+              <div className="card" style={{ marginTop: '20px' }}>
+                <h3>Attendance Features</h3>
+                <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
+                  Choose which grading fields appear when recording attendance.
+                </p>
+                <div style={{ display: 'grid', gap: '16px', maxWidth: '400px' }}>
+                  <div className="setting-toggle-row">
+                    <div className="setting-toggle-info">
+                      <span className="setting-toggle-label">Dressing Grade</span>
+                      <p className="setting-toggle-desc">
+                        Grade student dressing (Excellent / Good / Fair / Poor)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false}
+                      className={`setting-switch ${(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) ? 'on' : ''}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        const newValue = !(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false);
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/solo/settings', { enable_dressing_grade: newValue });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(`Dressing grade ${newValue ? 'enabled' : 'disabled'}`);
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                    >
+                      <span className="setting-switch-thumb" />
+                    </button>
+                  </div>
+                  <div className="setting-toggle-row">
+                    <div className="setting-toggle-info">
+                      <span className="setting-toggle-label">Behavior Grade</span>
+                      <p className="setting-toggle-desc">
+                        Grade student behavior (Excellent / Good / Fair / Poor)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false}
+                      className={`setting-switch ${(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) ? 'on' : ''}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        const newValue = !(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false);
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/solo/settings', { enable_behavior_grade: newValue });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(`Behavior grade ${newValue ? 'enabled' : 'disabled'}`);
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                    >
+                      <span className="setting-switch-thumb" />
+                    </button>
+                  </div>
+                  <div className="setting-toggle-row">
+                    <div className="setting-toggle-info">
+                      <span className="setting-toggle-label">Punctuality Grade</span>
+                      <p className="setting-toggle-desc">
+                        Grade student punctuality (Excellent / Good / Fair / Poor)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false}
+                      className={`setting-switch ${(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) ? 'on' : ''}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        const newValue = !(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false);
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/solo/settings', { enable_punctuality_grade: newValue });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(`Punctuality grade ${newValue ? 'enabled' : 'disabled'}`);
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                    >
+                      <span className="setting-switch-thumb" />
+                    </button>
+                  </div>
+                  <div className="setting-toggle-row">
+                    <div className="setting-toggle-info">
+                      <span className="setting-toggle-label">Qur'an Tracking</span>
+                      <p className="setting-toggle-desc">
+                        Enable Qur'an memorization and recitation progress tracking
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false}
+                      className={`setting-switch ${(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false) ? 'on' : ''}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        const newValue = !(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false);
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/solo/settings', { enable_quran_tracking: newValue });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(`Qur'an tracking ${newValue ? 'enabled' : 'disabled'}`);
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                    >
+                      <span className="setting-switch-thumb" />
+                    </button>
+                  </div>
+                  <div className="setting-toggle-row">
+                    <div className="setting-toggle-info">
+                      <span className="setting-toggle-label">Fee Tracking</span>
+                      <p className="setting-toggle-desc">
+                        Track student fee payments and manage collections
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false}
+                      className={`setting-switch ${(madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false) ? 'on' : ''}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        const newValue = !(madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false);
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/solo/settings', { enable_fee_tracking: newValue });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(`Fee tracking ${newValue ? 'enabled' : 'disabled'}`);
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                    >
+                      <span className="setting-switch-thumb" />
+                    </button>
                   </div>
                 </div>
               </div>
+
+              {/* Currency Setting */}
+              <div className="card" style={{ marginTop: '20px' }}>
+                <h3>Currency</h3>
+                <p style={{ fontSize: '13px', color: 'var(--gray)', margin: '0 0 12px' }}>
+                  Set the currency used for fee tracking and financial displays.
+                </p>
+                <select
+                  className="form-select"
+                  style={{ maxWidth: '280px' }}
+                  value={madrasahProfile?.currency || 'USD'}
+                  onChange={async (e) => {
+                    const newCurrency = e.target.value;
+                    try {
+                      const res = await api.put('/solo/settings', { currency: newCurrency });
+                      setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                      toast.success(`Currency set to ${newCurrency}`);
+                    } catch (error) {
+                      toast.error('Failed to update currency');
+                    }
+                  }}
+                >
+                  <optgroup label="Popular">
+                    <option value="USD">USD — US Dollar ($)</option>
+                    <option value="EUR">EUR — Euro (€)</option>
+                    <option value="GBP">GBP — British Pound (£)</option>
+                    <option value="CAD">CAD — Canadian Dollar (CA$)</option>
+                    <option value="AUD">AUD — Australian Dollar (A$)</option>
+                    <option value="NZD">NZD — New Zealand Dollar (NZ$)</option>
+                  </optgroup>
+                  <optgroup label="Africa">
+                    <option value="NGN">NGN — Nigerian Naira (₦)</option>
+                    <option value="ZAR">ZAR — South African Rand (R)</option>
+                    <option value="KES">KES — Kenyan Shilling (KSh)</option>
+                    <option value="GHS">GHS — Ghanaian Cedi (GH₵)</option>
+                    <option value="EGP">EGP — Egyptian Pound (E£)</option>
+                    <option value="TZS">TZS — Tanzanian Shilling (TSh)</option>
+                    <option value="UGX">UGX — Ugandan Shilling (USh)</option>
+                    <option value="ETB">ETB — Ethiopian Birr (Br)</option>
+                    <option value="MAD">MAD — Moroccan Dirham (MAD)</option>
+                    <option value="XOF">XOF — West African CFA Franc (CFA)</option>
+                    <option value="XAF">XAF — Central African CFA Franc (FCFA)</option>
+                  </optgroup>
+                  <optgroup label="Asia">
+                    <option value="MYR">MYR — Malaysian Ringgit (RM)</option>
+                    <option value="IDR">IDR — Indonesian Rupiah (Rp)</option>
+                    <option value="PKR">PKR — Pakistani Rupee (₨)</option>
+                    <option value="INR">INR — Indian Rupee (₹)</option>
+                    <option value="BDT">BDT — Bangladeshi Taka (৳)</option>
+                    <option value="SAR">SAR — Saudi Riyal (﷼)</option>
+                    <option value="AED">AED — UAE Dirham (د.إ)</option>
+                    <option value="QAR">QAR — Qatari Riyal (QR)</option>
+                    <option value="KWD">KWD — Kuwaiti Dinar (KD)</option>
+                    <option value="BHD">BHD — Bahraini Dinar (BD)</option>
+                    <option value="OMR">OMR — Omani Rial (OMR)</option>
+                    <option value="JOD">JOD — Jordanian Dinar (JD)</option>
+                    <option value="TRY">TRY — Turkish Lira (₺)</option>
+                    <option value="PHP">PHP — Philippine Peso (₱)</option>
+                    <option value="SGD">SGD — Singapore Dollar (S$)</option>
+                    <option value="JPY">JPY — Japanese Yen (¥)</option>
+                    <option value="CNY">CNY — Chinese Yuan (¥)</option>
+                    <option value="KRW">KRW — South Korean Won (₩)</option>
+                    <option value="THB">THB — Thai Baht (฿)</option>
+                    <option value="VND">VND — Vietnamese Dong (₫)</option>
+                    <option value="LKR">LKR — Sri Lankan Rupee (Rs)</option>
+                    <option value="MMK">MMK — Myanmar Kyat (K)</option>
+                    <option value="IQD">IQD — Iraqi Dinar (ع.د)</option>
+                    <option value="AFN">AFN — Afghan Afghani (؋)</option>
+                  </optgroup>
+                  <optgroup label="Europe">
+                    <option value="CHF">CHF — Swiss Franc (CHF)</option>
+                    <option value="SEK">SEK — Swedish Krona (kr)</option>
+                    <option value="NOK">NOK — Norwegian Krone (kr)</option>
+                    <option value="DKK">DKK — Danish Krone (kr)</option>
+                    <option value="PLN">PLN — Polish Zloty (zł)</option>
+                    <option value="CZK">CZK — Czech Koruna (Kč)</option>
+                    <option value="HUF">HUF — Hungarian Forint (Ft)</option>
+                    <option value="RON">RON — Romanian Leu (lei)</option>
+                    <option value="BGN">BGN — Bulgarian Lev (лв)</option>
+                    <option value="RUB">RUB — Russian Ruble (₽)</option>
+                    <option value="UAH">UAH — Ukrainian Hryvnia (₴)</option>
+                  </optgroup>
+                  <optgroup label="Americas">
+                    <option value="BRL">BRL — Brazilian Real (R$)</option>
+                    <option value="MXN">MXN — Mexican Peso (MX$)</option>
+                    <option value="ARS">ARS — Argentine Peso (ARS)</option>
+                    <option value="CLP">CLP — Chilean Peso (CLP)</option>
+                    <option value="COP">COP — Colombian Peso (COP)</option>
+                    <option value="PEN">PEN — Peruvian Sol (S/)</option>
+                    <option value="JMD">JMD — Jamaican Dollar (J$)</option>
+                    <option value="TTD">TTD — Trinidad Dollar (TT$)</option>
+                  </optgroup>
+                  <optgroup label="Oceania">
+                    <option value="FJD">FJD — Fijian Dollar (FJ$)</option>
+                    <option value="PGK">PGK — Papua New Guinean Kina (K)</option>
+                    <option value="WST">WST — Samoan Tala (WS$)</option>
+                    <option value="TOP">TOP — Tongan Pa'anga (T$)</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* Account Info */}
+              <div className="card" id="settings-account" style={{ marginTop: '20px' }}>
+                <h3>Account Information</h3>
+                <div style={{ display: 'grid', gap: '12px', maxWidth: '400px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Name</label>
+                    <p style={{ margin: '4px 0 0 0' }}>{user?.firstName} {user?.lastName}</p>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Email</label>
+                    <p style={{ margin: '4px 0 0 0' }}>{user?.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Role</label>
+                    <p style={{ margin: '4px 0 0 0', textTransform: 'capitalize' }}>Solo Admin</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Madrasah Profile */}
+              {madrasahProfile && (
+                <div className="card" style={{ marginTop: '20px' }}>
+                  <h3>Madrasah Profile</h3>
+                  <div className="admin-profile-grid">
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Name</label>
+                      <p style={{ margin: '4px 0 0 0', fontWeight: '500' }}>{madrasahProfile.name}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>URL Slug</label>
+                      <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace' }}>/{madrasahProfile.slug}</p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Plan</label>
+                      <p style={{ margin: '4px 0 0 0', textTransform: 'capitalize' }}>
+                        {madrasahProfile.pricing_plan || 'Solo'}
+                      </p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Phone</label>
+                      <p style={{ margin: '4px 0 0 0' }}>{madrasahProfile.phone || 'Not specified'}</p>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Address</label>
+                      <p style={{ margin: '4px 0 0 0' }}>
+                        {[madrasahProfile.street, madrasahProfile.city, madrasahProfile.region, madrasahProfile.country]
+                          .filter(Boolean).join(', ') || 'Not specified'}
+                      </p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Status</label>
+                      <p style={{ margin: '4px 0 0 0' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          backgroundColor: '#f5f5f5',
+                          color: madrasahProfile.subscription_status === 'active' ? '#404040' : '#737373'
+                        }}>
+                          {madrasahProfile.subscription_status?.replace(/_/g, ' ') || 'Trial'}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Trial Ends</label>
+                      <p style={{ margin: '4px 0 0 0' }}>
+                        {madrasahProfile.trial_ends_at
+                          ? new Date(madrasahProfile.trial_ends_at).toLocaleDateString()
+                          : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Usage Stats */}
+                  <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>Current Usage</h4>
+                    <div style={{ display: 'flex', gap: '24px' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '600' }}>{students.length}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Students</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '600' }}>{classes.length}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Classes</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 

@@ -49,6 +49,7 @@ function SoloDashboard() {
   // ─── Core state ──────────────────────────────────
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
+  const initialLoadDone = useRef(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -58,7 +59,8 @@ function SoloDashboard() {
 
   // ─── Overview ────────────────────────────────────
   const [overviewData, setOverviewData] = useState(null);
-  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [overviewLoading, setOverviewLoading] = useState(true);
+  const overviewLoadedOnce = useRef(false);
 
   // ─── Sessions & Semesters ────────────────────────
   const [sessions, setSessions] = useState([]);
@@ -299,7 +301,7 @@ function SoloDashboard() {
   // ════════════════════════════════════════════════
 
   const loadData = async () => {
-    setLoading(true);
+    if (!initialLoadDone.current) setLoading(true);
     try {
       const [sessionsRes, semestersRes, classesRes, studentsRes, profileRes] = await Promise.all([
         api.get('/solo/sessions').catch(() => ({ data: [] })),
@@ -317,11 +319,12 @@ function SoloDashboard() {
       console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
+      initialLoadDone.current = true;
     }
   };
 
   const fetchOverview = async () => {
-    setOverviewLoading(true);
+    if (!overviewLoadedOnce.current) setOverviewLoading(true);
     try {
       const res = await api.get('/solo/dashboard');
       setOverviewData(res.data);
@@ -329,6 +332,7 @@ function SoloDashboard() {
       console.error('Failed to fetch overview:', error);
     } finally {
       setOverviewLoading(false);
+      overviewLoadedOnce.current = true;
     }
   };
 

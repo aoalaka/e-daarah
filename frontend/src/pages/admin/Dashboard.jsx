@@ -30,6 +30,7 @@ function AdminDashboard() {
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const initialLoadDone = useRef(false);
   const [confirmModal, setConfirmModal] = useState(null);
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [showSemesterForm, setShowSemesterForm] = useState(false);
@@ -78,6 +79,7 @@ function AdminDashboard() {
   const [reportSubTab, setReportSubTab] = useState('attendance');
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const analyticsLoadedOnce = useRef(false);
   const [analyticsFilterClass, setAnalyticsFilterClass] = useState('');
   const [analyticsFilterGender, setAnalyticsFilterGender] = useState('');
   const [expandedMetric, setExpandedMetric] = useState(null); // 'attention' | 'struggling' | null
@@ -378,7 +380,7 @@ function AdminDashboard() {
   }, [activeTab, feeClassFilter]);
 
   const loadData = async () => {
-    setLoading(true);
+    if (!initialLoadDone.current) setLoading(true);
     try {
       const [sessionsRes, semestersRes, classesRes, teachersRes, studentsRes, profileRes] = await Promise.all([
         api.get('/admin/sessions').catch(() => ({ data: [] })),
@@ -413,6 +415,7 @@ function AdminDashboard() {
       console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
+      initialLoadDone.current = true;
     }
   };
 
@@ -1314,7 +1317,7 @@ function AdminDashboard() {
   };
 
   const fetchAnalytics = async () => {
-    setAnalyticsLoading(true);
+    if (!analyticsLoadedOnce.current) setAnalyticsLoading(true);
     setExpandedMetric(null);
     try {
       const params = new URLSearchParams();
@@ -1336,6 +1339,7 @@ function AdminDashboard() {
       }
     } finally {
       setAnalyticsLoading(false);
+      analyticsLoadedOnce.current = true;
     }
   };
 

@@ -178,7 +178,7 @@ function Landing() {
             <div className="price-card">
               <h3>Solo</h3>
               <div className="price"><span className="price-currency">USD</span> $5<span>/mo</span></div>
-              <p>Up to 30 students</p>
+              <p>Up to 50 students</p>
               <button onClick={() => navigate('/register')} className="btn secondary">Start Trial</button>
             </div>
             <div className="price-card">

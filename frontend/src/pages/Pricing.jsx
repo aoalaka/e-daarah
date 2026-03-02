@@ -14,8 +14,8 @@ function Pricing() {
       monthly: 5,
       annual: 50,
       features: [
-        'Up to 30 students',
-        'Up to 3 classes',
+        'Up to 50 students',
+        'Up to 5 classes',
         'Attendance recording',
         'Exam recording',
         "Qur'an progress tracking",

@@ -205,7 +205,7 @@ router.post('/demo-login', async (req, res) => {
     const { slug, role } = req.body;
 
     // Only allow demo slugs
-    const allowedSlugs = ['standard-demo', 'plus-demo', 'enterprise-demo'];
+    const allowedSlugs = ['solo-demo', 'standard-demo', 'plus-demo', 'enterprise-demo'];
     if (!allowedSlugs.includes(slug)) {
       return res.status(400).json({ error: 'Invalid demo madrasah' });
     }

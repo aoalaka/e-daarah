@@ -6,6 +6,17 @@ import './Demo.css';
 
 const DEMO_PLANS = [
   {
+    slug: 'solo-demo',
+    name: 'Solo',
+    school: 'Ustadh Idris Classes',
+    price: '$5/mo',
+    description: 'For individual teachers managing their own classes',
+    stats: { students: 6, teachers: 0, classes: 2 },
+    features: ['Attendance tracking', "Qur'an progress", 'Fee tracking', 'Simple dashboard'],
+    isSolo: true,
+    color: '#5c6bc0'
+  },
+  {
     slug: 'standard-demo',
     name: 'Standard',
     school: 'Al-Noor Weekend School',
@@ -49,7 +60,13 @@ function Demo() {
 
     try {
       const data = await authService.demoLogin(slug, role);
-      const path = role === 'admin' ? `/${slug}/admin` : `/${slug}/teacher`;
+      const madrasah = authService.getMadrasah();
+      let path;
+      if (role === 'admin' && madrasah?.pricingPlan === 'solo') {
+        path = `/${slug}/solo`;
+      } else {
+        path = role === 'admin' ? `/${slug}/admin` : `/${slug}/teacher`;
+      }
       navigate(path);
     } catch (err) {
       setError('Failed to start demo. Please try again.');
@@ -117,20 +134,33 @@ function Demo() {
             </ul>
 
             <div className="demo-actions">
-              <button
-                onClick={() => handleDemoLogin(plan.slug, 'admin')}
-                disabled={loading !== null}
-                className="demo-btn admin"
-              >
-                {loading === `${plan.slug}-admin` ? 'Loading...' : 'Try as Admin'}
-              </button>
-              <button
-                onClick={() => handleDemoLogin(plan.slug, 'teacher')}
-                disabled={loading !== null}
-                className="demo-btn teacher"
-              >
-                {loading === `${plan.slug}-teacher` ? 'Loading...' : 'Try as Teacher'}
-              </button>
+              {plan.isSolo ? (
+                <button
+                  onClick={() => handleDemoLogin(plan.slug, 'admin')}
+                  disabled={loading !== null}
+                  className="demo-btn admin"
+                  style={{ width: '100%' }}
+                >
+                  {loading === `${plan.slug}-admin` ? 'Loading...' : 'Try Solo Dashboard'}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleDemoLogin(plan.slug, 'admin')}
+                    disabled={loading !== null}
+                    className="demo-btn admin"
+                  >
+                    {loading === `${plan.slug}-admin` ? 'Loading...' : 'Try as Admin'}
+                  </button>
+                  <button
+                    onClick={() => handleDemoLogin(plan.slug, 'teacher')}
+                    disabled={loading !== null}
+                    className="demo-btn teacher"
+                  >
+                    {loading === `${plan.slug}-teacher` ? 'Loading...' : 'Try as Teacher'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ))}

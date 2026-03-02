@@ -29,7 +29,12 @@ function Login() {
 
     try {
       await authService.login(madrasahSlug, email, password, role);
-      navigate(role === 'admin' ? `/${madrasahSlug}/admin` : `/${madrasahSlug}/teacher`);
+      const madrasahData = authService.getMadrasah();
+      if (role === 'admin' && madrasahData?.pricingPlan === 'solo') {
+        navigate(`/${madrasahSlug}/solo`);
+      } else {
+        navigate(role === 'admin' ? `/${madrasahSlug}/admin` : `/${madrasahSlug}/teacher`);
+      }
     } catch (err) {
       const lockStatus = getAccountLockInfo(err);
       if (lockStatus.locked) {

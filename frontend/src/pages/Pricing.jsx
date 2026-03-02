@@ -8,6 +8,29 @@ function Pricing() {
   const [billingCycle, setBillingCycle] = useState('monthly');
 
   const plans = {
+    solo: {
+      name: 'Solo',
+      description: 'For individual teachers managing their own classes',
+      monthly: 5,
+      annual: 50,
+      features: [
+        'Up to 30 students',
+        'Up to 3 classes',
+        'Attendance recording',
+        'Exam recording',
+        "Qur'an progress tracking",
+        'Fee tracking',
+        'Simple dashboard',
+        'Email support'
+      ],
+      notIncluded: [
+        'Multiple teachers',
+        'Academic planner',
+        'Reports & rankings',
+        'Parent portal',
+        'CSV/Excel exports'
+      ]
+    },
     standard: {
       name: 'Standard',
       description: 'For small madrasahs and weekend schools',
@@ -79,8 +102,8 @@ function Pricing() {
   return (
     <div className="pricing-page">
       <SEO
-        title="Pricing — School Management Plans from $12/mo"
-        description="Simple, transparent pricing for madrasah and school management. Standard plan from $12/mo, Plus from $29/mo. 14-day free trial, no credit card needed."
+        title="Pricing — School Management Plans from $5/mo"
+        description="Simple, transparent pricing for madrasah and school management. Solo plan from $5/mo, Standard from $12/mo, Plus from $29/mo. 14-day free trial, no credit card needed."
       />
       {/* Header */}
       <header className="pricing-header">
@@ -120,7 +143,43 @@ function Pricing() {
         </div>
 
         {/* Plans Grid */}
-        <div className="plans-grid three-cols">
+        <div className="plans-grid four-cols">
+          {/* Solo Plan */}
+          <div className="plan-card">
+            <div className="plan-header">
+              <h2 className="plan-name">{plans.solo.name}</h2>
+              <p className="plan-description">{plans.solo.description}</p>
+            </div>
+            <div className="plan-price">
+              <span className="currency">$</span>
+              <span className="amount">{getPrice(plans.solo)}</span>
+              <span className="period">{getPriceLabel()} USD</span>
+            </div>
+            {billingCycle === 'annual' && (
+              <p className="savings">Save ${getSavings(plans.solo)}/year</p>
+            )}
+            <button
+              className="plan-btn"
+              onClick={() => navigate('/register')}
+            >
+              Start Free Trial
+            </button>
+            <ul className="plan-features">
+              {plans.solo.features.map((feature, i) => (
+                <li key={i} className="feature included">
+                  <span className="check">✓</span>
+                  {feature}
+                </li>
+              ))}
+              {plans.solo.notIncluded.map((feature, i) => (
+                <li key={i} className="feature not-included">
+                  <span className="x">×</span>
+                  {feature}
+                </li>
+              ))}
+            </ul>
+          </div>
+
           {/* Standard Plan */}
           <div className="plan-card">
             <div className="plan-header">

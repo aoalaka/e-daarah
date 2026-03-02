@@ -31,6 +31,7 @@ import ParentReport from './pages/ParentReport';
 import TeacherRegistration from './pages/TeacherRegistration';
 import AdminDashboard from './pages/admin/Dashboard';
 import TeacherDashboard from './pages/teacher/Dashboard';
+import SoloDashboard from './pages/solo/Dashboard';
 
 // Super Admin pages
 import SuperAdminLogin from './pages/superadmin/Login';
@@ -66,6 +67,15 @@ function MadrasahRoutes() {
           element={
             <PrivateRoute allowedRoles={['teacher']}>
               <TeacherDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="solo/*"
+          element={
+            <PrivateRoute allowedRoles={['admin']}>
+              <SoloDashboard />
             </PrivateRoute>
           }
         />

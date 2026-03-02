@@ -10,6 +10,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Price lookup keys (configured in Stripe dashboard)
 const PRICE_LOOKUP_KEYS = {
+  solo_monthly: 'solo_monthly',
+  solo_annual: 'solo_annual',
   standard_monthly: 'standard_monthly',
   standard_annual: 'standard_annual',
   plus_monthly: 'plus_monthly',
@@ -19,6 +21,7 @@ const PRICE_LOOKUP_KEYS = {
 // Plan limits for reference (enforced in plan-limits middleware)
 const PLAN_LIMITS = {
   trial: { maxStudents: 500, maxTeachers: 50, maxClasses: Infinity, plan: 'trial' },
+  solo: { maxStudents: 30, maxTeachers: 0, maxClasses: 3, plan: 'solo' },
   standard: { maxStudents: 100, maxTeachers: 20, maxClasses: 10, plan: 'standard' },
   plus: { maxStudents: 500, maxTeachers: 50, maxClasses: Infinity, plan: 'plus' },
   enterprise: { maxStudents: Infinity, maxTeachers: Infinity, maxClasses: Infinity, plan: 'enterprise' }
@@ -147,6 +150,8 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
       const appliesToPrice = promoCode.metadata?.applies_to_price || couponObj.metadata?.applies_to_price;
       if (appliesToPrice && appliesToPrice !== priceKey) {
         const PRICE_LABELS = {
+          solo_monthly: 'Solo Monthly',
+          solo_annual: 'Solo Annual',
           standard_monthly: 'Standard Monthly',
           standard_annual: 'Standard Annual',
           plus_monthly: 'Plus Monthly',
@@ -179,7 +184,7 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
     const price = prices.data[0];
 
     // Determine plan from price key
-    const plan = priceKey.startsWith('plus') ? 'plus' : 'standard';
+    const plan = priceKey.startsWith('plus') ? 'plus' : priceKey.startsWith('solo') ? 'solo' : 'standard';
 
     // Build checkout session params
     const sessionParams = {

@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS madrasahs (
     -- Billing / Subscription
     stripe_customer_id VARCHAR(255),
     stripe_subscription_id VARCHAR(255),
-    pricing_plan ENUM('trial', 'standard', 'plus', 'enterprise') DEFAULT 'trial',
+    pricing_plan ENUM('trial', 'solo', 'standard', 'plus', 'enterprise') DEFAULT 'trial',
     subscription_status ENUM('trialing', 'active', 'past_due', 'canceled', 'expired') DEFAULT 'trialing',
     current_period_end TIMESTAMP NULL,
     billing_email VARCHAR(255),

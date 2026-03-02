@@ -217,7 +217,7 @@ router.post('/demo-login', async (req, res) => {
     // Find the demo user
     const [users] = await pool.query(
       `SELECT u.id, u.madrasah_id, u.first_name, u.last_name, u.email, u.role, u.staff_id,
-              m.slug as madrasah_slug, m.name as madrasah_name
+              m.slug as madrasah_slug, m.name as madrasah_name, m.pricing_plan as madrasah_pricing_plan
        FROM users u
        JOIN madrasahs m ON u.madrasah_id = m.id
        WHERE m.slug = ? AND u.role = ? AND u.deleted_at IS NULL AND m.deleted_at IS NULL
@@ -268,7 +268,8 @@ router.post('/demo-login', async (req, res) => {
       madrasah: {
         id: user.madrasah_id,
         slug: user.madrasah_slug,
-        name: user.madrasah_name
+        name: user.madrasah_name,
+        pricingPlan: user.madrasah_pricing_plan || 'trial'
       }
     });
   } catch (error) {
@@ -316,7 +317,7 @@ router.post('/login', async (req, res) => {
 
     // Query users table with role check (include email_verified status, exclude deleted)
     const [users] = await pool.query(
-      'SELECT u.id, u.madrasah_id, u.first_name, u.last_name, u.email, u.password, u.role, u.staff_id, u.email_verified, m.slug as madrasah_slug, m.name as madrasah_name FROM users u JOIN madrasahs m ON u.madrasah_id = m.id WHERE u.email = ? AND u.role = ? AND u.deleted_at IS NULL AND m.deleted_at IS NULL',
+      'SELECT u.id, u.madrasah_id, u.first_name, u.last_name, u.email, u.password, u.role, u.staff_id, u.email_verified, m.slug as madrasah_slug, m.name as madrasah_name, m.pricing_plan as madrasah_pricing_plan FROM users u JOIN madrasahs m ON u.madrasah_id = m.id WHERE u.email = ? AND u.role = ? AND u.deleted_at IS NULL AND m.deleted_at IS NULL',
       [email, role]
     );
 
@@ -397,7 +398,8 @@ router.post('/login', async (req, res) => {
       madrasah: {
         id: user.madrasah_id,
         slug: user.madrasah_slug,
-        name: user.madrasah_name
+        name: user.madrasah_name,
+        pricingPlan: user.madrasah_pricing_plan || 'trial'
       }
     });
   } catch (error) {

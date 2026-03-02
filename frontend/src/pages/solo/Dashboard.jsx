@@ -113,6 +113,14 @@ function SoloDashboard() {
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [showEditExamModal, setShowEditExamModal] = useState(false);
   const [editingExamRecord, setEditingExamRecord] = useState(null);
+  const [examKpis, setExamKpis] = useState(null);
+  const [examStudentSearch, setExamStudentSearch] = useState('');
+  const [currentSubjectPage, setCurrentSubjectPage] = useState(1);
+  const subjectsPerPage = 1;
+  const [deleteExamId, setDeleteExamId] = useState(null);
+  const [deleteExamBatch, setDeleteExamBatch] = useState(null);
+  const [editingExamBatch, setEditingExamBatch] = useState(null);
+  const [showEditExamBatchModal, setShowEditExamBatchModal] = useState(false);
 
   // ─── Qur'an ──────────────────────────────────────
   const [quranSubTab, setQuranSubTab] = useState('record');
@@ -352,17 +360,61 @@ function SoloDashboard() {
   const fetchExamPerformance = async () => {
     if (!selectedClass) return;
     try {
-      let url = `/solo/classes/${selectedClass.id}/exam-performance?`;
-      if (examFilterSemester) url += `semesterId=${examFilterSemester}&`;
-      if (selectedSubject && selectedSubject !== 'all') url += `subject=${selectedSubject}&`;
-      const res = await api.get(url);
-      const data = res.data || [];
-      setExamPerformance(data);
-      const subjects = [...new Set(data.map(r => r.subject))].sort();
+      const params = {};
+      if (examFilterSemester) params.semesterId = examFilterSemester;
+      // Fetch all subjects first for dropdown
+      const allRes = await api.get(`/solo/classes/${selectedClass.id}/exam-performance`, { params });
+      const allData = allRes.data || [];
+      const subjects = [...new Set(allData.map(r => r.subject))].sort();
       setAvailableSubjects(subjects);
+      if (selectedSubject !== 'all') {
+        params.subject = selectedSubject;
+        const res = await api.get(`/solo/classes/${selectedClass.id}/exam-performance`, { params });
+        setExamPerformance(res.data || []);
+        calculateExamKpis(res.data || []);
+      } else {
+        setExamPerformance(allData);
+        calculateExamKpis(allData);
+      }
     } catch (error) {
       console.error('Failed to fetch exam performance:', error);
+      setExamPerformance([]);
+      setExamKpis(null);
+      setAvailableSubjects([]);
     }
+  };
+
+  const calculateExamKpis = (data) => {
+    if (!data || data.length === 0) { setExamKpis(null); return; }
+    const bySubject = {};
+    data.forEach(record => {
+      if (!bySubject[record.subject]) bySubject[record.subject] = [];
+      bySubject[record.subject].push(record);
+    });
+    const subjectKpis = Object.entries(bySubject).map(([subject, allRecords]) => {
+      const batchMap = {};
+      allRecords.forEach(record => {
+        const batchKey = `${record.exam_date}_${record.semester_id}_${record.max_score}`;
+        if (!batchMap[batchKey]) batchMap[batchKey] = { exam_date: record.exam_date, semester_id: record.semester_id, semester_name: record.semester_name, max_score: record.max_score, records: [] };
+        batchMap[batchKey].records.push(record);
+      });
+      const examBatches = Object.values(batchMap);
+      const totalStudents = new Set(allRecords.map(r => r.student_id)).size;
+      const presentStudents = allRecords.filter(r => !r.is_absent);
+      const scores = presentStudents.map(r => (r.score / r.max_score) * 100);
+      const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+      const passCount = scores.filter(s => s >= 50).length;
+      const failCount = scores.filter(s => s < 50).length;
+      const passRate = presentStudents.length > 0 ? (passCount / presentStudents.length) * 100 : 0;
+      const highPerformers = scores.filter(s => s >= 80).length;
+      return { subject, totalStudents, presentCount: presentStudents.length, absentCount: allRecords.length - presentStudents.length, avgScore: scores.length > 0 ? avgScore.toFixed(2) : '0.00', passCount, failCount, passRate: presentStudents.length > 0 ? passRate.toFixed(2) : '0.00', highPerformers, examBatches, records: allRecords };
+    });
+    setExamKpis(subjectKpis);
+  };
+
+  const calculatePercentage = (score, maxScore) => {
+    if (!score || !maxScore || parseFloat(maxScore) === 0) return 0;
+    return ((parseFloat(score) / parseFloat(maxScore)) * 100).toFixed(2);
   };
 
   const fetchQuranPositions = async () => {
@@ -545,6 +597,10 @@ function SoloDashboard() {
   };
 
   // ─── Attendance ──────────────────────────────────
+  const updateAttendanceRecord = (studentId, field, value) => {
+    setAttendanceRecords(prev => ({ ...prev, [studentId]: { ...prev[studentId], [field]: value } }));
+  };
+
   const handleSaveAttendance = async () => {
     if (!selectedClass || !activeSemester) {
       toast.error('Please select a class and ensure there is an active semester');
@@ -575,6 +631,44 @@ function SoloDashboard() {
   };
 
   // ─── Exam Performance ────────────────────────────
+  const openExamModal = () => {
+    if (!selectedClass) { toast.error('Select a class first'); return; }
+    if (sessions.length === 0 || semesters.length === 0) { toast.error('No sessions or semesters available'); return; }
+    const defaultSession = sessions.find(s => s.is_active) || sessions[0];
+    const defaultSemester = activeSemester || semesters[0];
+    const classStudents = students.filter(s => s.class_id === selectedClass.id);
+    setExamForm({
+      session_id: defaultSession.id,
+      semester_id: defaultSemester.id,
+      subject: '', exam_date: getLocalDate(), max_score: 100,
+      students: classStudents.map(s => ({ student_id: s.id, student_name: `${s.first_name} ${s.last_name}`, student_number: s.student_id, score: '', is_absent: false, absence_reason: '', notes: '' }))
+    });
+    setExamStudentSearch('');
+    setShowExamModal(true);
+  };
+
+  const handleEditExam = (record) => {
+    setEditingExamRecord({
+      id: record.id, student_name: `${record.first_name} ${record.last_name}`, student_id: record.student_id,
+      subject: record.subject, exam_date: record.exam_date, max_score: record.max_score, semester_name: record.semester_name,
+      score: record.is_absent ? '' : record.score, is_absent: record.is_absent, absence_reason: record.absence_reason || '', notes: record.notes || ''
+    });
+    setShowEditExamModal(true);
+  };
+
+  const updateStudentExamData = (studentId, field, value) => {
+    setExamForm(prev => ({
+      ...prev,
+      students: prev.students.map(s => {
+        if (s.student_id !== studentId) return s;
+        const updated = { ...s, [field]: value };
+        if (field === 'is_absent' && value) { updated.score = ''; }
+        if (field === 'is_absent' && !value) { updated.absence_reason = ''; }
+        return updated;
+      })
+    }));
+  };
+
   const handleSaveExamPerformance = async (e) => {
     e.preventDefault();
     try {
@@ -618,13 +712,76 @@ function SoloDashboard() {
     try {
       await api.delete(`/solo/exam-performance/${id}`);
       toast.success('Exam record deleted');
+      setDeleteExamId(null);
       fetchExamPerformance();
     } catch (error) {
       toast.error('Failed to delete record');
     }
   };
 
+  const handleEditExamBatch = (subject, batch) => {
+    const dateValue = batch.exam_date ? batch.exam_date.split('T')[0] : '';
+    setEditingExamBatch({
+      subject,
+      exam_date: dateValue,
+      semester_id: batch.semester_id,
+      semester_name: batch.semester_name,
+      max_score: batch.max_score,
+      student_count: batch.records.length,
+      record_ids: batch.records.map(r => r.id)
+    });
+    setShowEditExamBatchModal(true);
+  };
+
+  const handleUpdateExamBatch = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put('/solo/exam-performance/batch', {
+        record_ids: editingExamBatch.record_ids,
+        semester_id: editingExamBatch.semester_id,
+        subject: editingExamBatch.subject,
+        exam_date: editingExamBatch.exam_date,
+        max_score: editingExamBatch.max_score
+      });
+      toast.success('Exam batch updated successfully!');
+      setShowEditExamBatchModal(false);
+      setEditingExamBatch(null);
+      fetchExamPerformance();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to update exam batch');
+    }
+  };
+
+  const handleDeleteExamBatch = async () => {
+    try {
+      await api.delete('/solo/exam-performance/batch', {
+        data: { record_ids: deleteExamBatch.record_ids }
+      });
+      toast.success('Exam batch deleted successfully!');
+      setDeleteExamBatch(null);
+      fetchExamPerformance();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to delete exam batch');
+    }
+  };
+
   // ─── Qur'an ──────────────────────────────────────
+  const handleSelectQuranStudent = (studentId) => {
+    if (!studentId) {
+      setQuranSelectedStudent(null);
+      setQuranStudentPosition(null);
+      setQuranStudentHistory([]);
+      return;
+    }
+    const student = students.find(s => String(s.id) === String(studentId));
+    setQuranSelectedStudent(student);
+    setQuranGrade('Good');
+    setQuranPassed(true);
+    setQuranNotes('');
+    fetchQuranStudentPosition(parseInt(studentId));
+    fetchQuranStudentHistory(parseInt(studentId));
+  };
+
   const handleRecordQuran = async () => {
     if (!quranSelectedStudent || !selectedClass || !activeSemester || !quranSurah) {
       toast.error('Please fill in all required fields');
@@ -673,6 +830,35 @@ function SoloDashboard() {
       toast.error('Failed to delete record');
     }
   };
+
+  // Re-fill Qur'an form when session type changes
+  useEffect(() => {
+    if (quranSelectedStudent && quranStudentPosition) {
+      const pos = quranStudentPosition;
+      if (quranSessionType === 'hifz' && pos.hifz) {
+        setQuranSurah(String(pos.hifz.surah_number));
+        setQuranAyahFrom(pos.hifz.ayah ? String(pos.hifz.ayah + 1) : '1');
+        setQuranAyahTo('');
+      } else if (quranSessionType === 'tilawah' && pos.tilawah) {
+        setQuranSurah(String(pos.tilawah.surah_number));
+        setQuranAyahFrom(pos.tilawah.ayah ? String(pos.tilawah.ayah + 1) : '1');
+        setQuranAyahTo('');
+      } else if (quranSessionType === 'revision' && pos.revision) {
+        setQuranSurah(String(pos.revision.surah_number));
+        setQuranAyahFrom(pos.revision.ayah ? String(pos.revision.ayah + 1) : '1');
+        setQuranAyahTo('');
+      } else {
+        setQuranSurah('');
+        setQuranAyahFrom('');
+        setQuranAyahTo('');
+      }
+    }
+  }, [quranSessionType]);
+
+  // Reset subject filter when class changes
+  useEffect(() => {
+    if (selectedClass) setCurrentSubjectPage(1);
+  }, [selectedClass]);
 
   // ─── Fee Payments ────────────────────────────────
   const handleRecordFeePayment = async (e) => {
@@ -1686,105 +1872,160 @@ function SoloDashboard() {
           {/* ═══════ ATTENDANCE TAB ═══════ */}
           {activeTab === 'attendance' && (
             <>
-              <div className="page-header"><h2 className="page-title">Attendance</h2></div>
+              <div className="page-header">
+                <h2 className="page-title">Attendance</h2>
+              </div>
 
               <div className="report-tabs">
                 <nav className="report-tabs-nav">
-                  <button className={`report-tab-btn ${attendanceSubTab === 'record' ? 'active' : ''}`} onClick={() => setAttendanceSubTab('record')}>Record</button>
-                  <button className={`report-tab-btn ${attendanceSubTab === 'view' ? 'active' : ''}`} onClick={() => setAttendanceSubTab('view')}>History</button>
+                  <button onClick={() => setAttendanceSubTab('record')} className={`report-tab-btn ${attendanceSubTab === 'record' ? 'active' : ''}`}>Record Attendance</button>
+                  <button onClick={() => setAttendanceSubTab('view')} className={`report-tab-btn ${attendanceSubTab === 'view' ? 'active' : ''}`}>View History</button>
                 </nav>
               </div>
 
+              {/* Record Attendance Sub-Tab */}
               {attendanceSubTab === 'record' && (
                 <>
                   <div className="card">
                     <div className="card-body">
-                      <div className="form-grid form-grid-3">
+                      <div className="form-grid">
                         <div className="form-group">
-                          <label className="form-label">Semester</label>
-                          <input type="text" className="form-input" value={activeSemester?.name || 'No active semester'} disabled />
+                          <label className="form-label">Active Semester</label>
+                          <input type="text" value={activeSemester ? `${activeSemester.session_name || ''} - ${activeSemester.name}` : 'No active semester'} readOnly disabled className="form-select" style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }} />
                         </div>
                         <div className="form-group">
-                          <label className="form-label">Class</label>
-                          <select className="form-input" value={selectedClass?.id || ''} onChange={(e) => {
-                            const cls = classes.find(c => c.id === parseInt(e.target.value));
-                            setSelectedClass(cls || null);
-                          }}>
-                            <option value="">Select class...</option>
-                            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          <label className="form-label">Select Class</label>
+                          <select value={selectedClass?.id || ''} onChange={(e) => { const cls = classes.find(c => c.id === parseInt(e.target.value)); setSelectedClass(cls || null); }} className="form-select">
+                            <option value="">-- Select a class --</option>
+                            {classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
                           </select>
                         </div>
                         <div className="form-group">
                           <label className="form-label">Date</label>
-                          <input type="date" className="form-input" value={attendanceDate} onChange={(e) => setAttendanceDate(e.target.value)} />
+                          <input type="date" value={attendanceDate} onChange={(e) => setAttendanceDate(e.target.value)} max={getLocalDate()} className="form-input" />
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {selectedClass && activeSemester && attendanceStudents.length > 0 && (
-                    <div className="card">
-                      <div className="table-responsive">
+                    <div className="card attendance-recording-card">
+                      {/* Desktop Table View */}
+                      <div className="table-wrap">
                         <table className="table">
                           <thead>
                             <tr>
-                              <th>Student</th>
-                              <th>Attendance</th>
-                              {madrasahProfile?.enable_dressing_grade && <th>Dressing</th>}
-                              {madrasahProfile?.enable_behavior_grade && <th>Behavior</th>}
+                              <th>Student ID</th>
+                              <th>Name</th>
+                              <th style={{ minWidth: '140px' }}>Attendance</th>
+                              <th>Absence Reason</th>
+                              {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && <th>Dressing</th>}
+                              {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && <th>Behavior</th>}
+                              {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && <th>Punctuality</th>}
                               <th>Notes</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {attendanceStudents.map(student => {
-                              const record = attendanceRecords[student.id] || { present: true, dressing_grade: '', behavior_grade: '', notes: '' };
-                              return (
-                                <tr key={student.id}>
-                                  <td><strong>{student.first_name} {student.last_name}</strong><br /><small style={{ color: 'var(--muted)' }}>{student.student_id}</small></td>
-                                  <td>
-                                    <div style={{ display: 'flex', gap: '12px' }}>
-                                      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                                        <input type="radio" name={`att-${student.id}`} checked={record.present === true} onChange={() => setAttendanceRecords(prev => ({ ...prev, [student.id]: { ...prev[student.id], present: true } }))} />
-                                        Present
-                                      </label>
-                                      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                                        <input type="radio" name={`att-${student.id}`} checked={record.present === false} onChange={() => setAttendanceRecords(prev => ({ ...prev, [student.id]: { ...prev[student.id], present: false } }))} />
-                                        Absent
-                                      </label>
-                                    </div>
-                                  </td>
-                                  {madrasahProfile?.enable_dressing_grade && (
-                                    <td>
-                                      <select className="form-input" value={record.dressing_grade} onChange={(e) => setAttendanceRecords(prev => ({ ...prev, [student.id]: { ...prev[student.id], dressing_grade: e.target.value } }))}>
-                                        <option value="">—</option>
-                                        <option value="Excellent">Excellent</option>
-                                        <option value="Good">Good</option>
-                                        <option value="Fair">Fair</option>
-                                        <option value="Poor">Poor</option>
-                                      </select>
-                                    </td>
-                                  )}
-                                  {madrasahProfile?.enable_behavior_grade && (
-                                    <td>
-                                      <select className="form-input" value={record.behavior_grade} onChange={(e) => setAttendanceRecords(prev => ({ ...prev, [student.id]: { ...prev[student.id], behavior_grade: e.target.value } }))}>
-                                        <option value="">—</option>
-                                        <option value="Excellent">Excellent</option>
-                                        <option value="Good">Good</option>
-                                        <option value="Fair">Fair</option>
-                                        <option value="Poor">Poor</option>
-                                      </select>
-                                    </td>
-                                  )}
-                                  <td>
-                                    <input type="text" className="form-input" value={record.notes} onChange={(e) => setAttendanceRecords(prev => ({ ...prev, [student.id]: { ...prev[student.id], notes: e.target.value } }))} placeholder="Notes..." style={{ minWidth: '120px' }} />
-                                  </td>
-                                </tr>
-                              );
-                            })}
+                            {attendanceStudents.map(student => (
+                              <tr key={student.id}>
+                                <td><strong>{student.student_id}</strong></td>
+                                <td>{student.first_name} {student.last_name}</td>
+                                <td>
+                                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                                      <input type="radio" name={`attendance-${student.id}`} checked={attendanceRecords[student.id]?.present === true} onChange={() => { updateAttendanceRecord(student.id, 'present', true); updateAttendanceRecord(student.id, 'absence_reason', ''); }} style={{ width: '16px', height: '16px' }} />
+                                      <span>Present</span>
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                                      <input type="radio" name={`attendance-${student.id}`} checked={attendanceRecords[student.id]?.present === false} onChange={() => { updateAttendanceRecord(student.id, 'present', false); updateAttendanceRecord(student.id, 'dressing_grade', ''); updateAttendanceRecord(student.id, 'behavior_grade', ''); updateAttendanceRecord(student.id, 'punctuality_grade', ''); }} style={{ width: '16px', height: '16px' }} />
+                                      <span>Absent</span>
+                                    </label>
+                                  </div>
+                                </td>
+                                <td>
+                                  <select value={attendanceRecords[student.id]?.absence_reason || ''} onChange={(e) => updateAttendanceRecord(student.id, 'absence_reason', e.target.value)} className="form-select" style={{ minWidth: '140px' }} disabled={attendanceRecords[student.id]?.present !== false}>
+                                    <option value="">Select reason...</option>
+                                    <option value="Sick">Sick</option>
+                                    <option value="Parent Request">Parent Request</option>
+                                    <option value="School Not Notified">School Not Notified</option>
+                                    <option value="Other">Other</option>
+                                  </select>
+                                </td>
+                                {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
+                                  <td><select value={attendanceRecords[student.id]?.dressing_grade || ''} onChange={(e) => updateAttendanceRecord(student.id, 'dressing_grade', e.target.value)} className="form-select" style={{ minWidth: '100px' }} disabled={attendanceRecords[student.id]?.present !== true}>
+                                    <option value="">Select...</option><option value="Excellent">Excellent</option><option value="Good">Good</option><option value="Fair">Fair</option><option value="Poor">Poor</option>
+                                  </select></td>
+                                )}
+                                {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && (
+                                  <td><select value={attendanceRecords[student.id]?.behavior_grade || ''} onChange={(e) => updateAttendanceRecord(student.id, 'behavior_grade', e.target.value)} className="form-select" style={{ minWidth: '100px' }} disabled={attendanceRecords[student.id]?.present !== true}>
+                                    <option value="">Select...</option><option value="Excellent">Excellent</option><option value="Good">Good</option><option value="Fair">Fair</option><option value="Poor">Poor</option>
+                                  </select></td>
+                                )}
+                                {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && (
+                                  <td><select value={attendanceRecords[student.id]?.punctuality_grade || ''} onChange={(e) => updateAttendanceRecord(student.id, 'punctuality_grade', e.target.value)} className="form-select" style={{ minWidth: '100px' }} disabled={attendanceRecords[student.id]?.present !== true}>
+                                    <option value="">Select...</option><option value="Excellent">Excellent</option><option value="Good">Good</option><option value="Fair">Fair</option><option value="Poor">Poor</option>
+                                  </select></td>
+                                )}
+                                <td>
+                                  <input type="text" value={attendanceRecords[student.id]?.notes || ''} onChange={(e) => updateAttendanceRecord(student.id, 'notes', e.target.value)} className="form-input" placeholder="Optional notes" style={{ minWidth: '150px' }} />
+                                </td>
+                              </tr>
+                            ))}
                           </tbody>
                         </table>
                       </div>
-                      <div style={{ padding: 'var(--md)', display: 'flex', justifyContent: 'flex-end' }}>
+
+                      {/* Mobile Card View */}
+                      {attendanceStudents.map(student => (
+                        <div key={student.id} className="mobile-student-card">
+                          <div className="student-header">
+                            <div>
+                              <div className="student-name">{student.first_name} {student.last_name}</div>
+                              <div className="student-id">{student.student_id}</div>
+                            </div>
+                          </div>
+                          <div className="form-section">
+                            <div className="form-label">Attendance</div>
+                            <div className="radio-group">
+                              <label className="radio-label">
+                                <input type="radio" name={`attendance-mobile-${student.id}`} checked={attendanceRecords[student.id]?.present === true} onChange={() => { updateAttendanceRecord(student.id, 'present', true); updateAttendanceRecord(student.id, 'absence_reason', ''); }} />
+                                <span>Present</span>
+                              </label>
+                              <label className="radio-label">
+                                <input type="radio" name={`attendance-mobile-${student.id}`} checked={attendanceRecords[student.id]?.present === false} onChange={() => { updateAttendanceRecord(student.id, 'present', false); updateAttendanceRecord(student.id, 'dressing_grade', ''); updateAttendanceRecord(student.id, 'behavior_grade', ''); updateAttendanceRecord(student.id, 'punctuality_grade', ''); }} />
+                                <span>Absent</span>
+                              </label>
+                            </div>
+                          </div>
+                          {attendanceRecords[student.id]?.present === false && (
+                            <div className="form-section">
+                              <label className="form-label">Absence Reason</label>
+                              <select value={attendanceRecords[student.id]?.absence_reason || ''} onChange={(e) => updateAttendanceRecord(student.id, 'absence_reason', e.target.value)}>
+                                <option value="">Select reason...</option><option value="Sick">Sick</option><option value="Parent Request">Parent Request</option><option value="School Not Notified">School Not Notified</option><option value="Other">Other</option>
+                              </select>
+                            </div>
+                          )}
+                          {attendanceRecords[student.id]?.present === true && (
+                            <>
+                              {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
+                                <div className="form-section"><label className="form-label">Dressing</label><select value={attendanceRecords[student.id]?.dressing_grade || ''} onChange={(e) => updateAttendanceRecord(student.id, 'dressing_grade', e.target.value)}><option value="">Select...</option><option value="Excellent">Excellent</option><option value="Good">Good</option><option value="Fair">Fair</option><option value="Poor">Poor</option></select></div>
+                              )}
+                              {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && (
+                                <div className="form-section"><label className="form-label">Behavior</label><select value={attendanceRecords[student.id]?.behavior_grade || ''} onChange={(e) => updateAttendanceRecord(student.id, 'behavior_grade', e.target.value)}><option value="">Select...</option><option value="Excellent">Excellent</option><option value="Good">Good</option><option value="Fair">Fair</option><option value="Poor">Poor</option></select></div>
+                              )}
+                              {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && (
+                                <div className="form-section"><label className="form-label">Punctuality</label><select value={attendanceRecords[student.id]?.punctuality_grade || ''} onChange={(e) => updateAttendanceRecord(student.id, 'punctuality_grade', e.target.value)}><option value="">Select...</option><option value="Excellent">Excellent</option><option value="Good">Good</option><option value="Fair">Fair</option><option value="Poor">Poor</option></select></div>
+                              )}
+                            </>
+                          )}
+                          <div className="form-section">
+                            <label className="form-label">Notes (Optional)</label>
+                            <textarea value={attendanceRecords[student.id]?.notes || ''} onChange={(e) => updateAttendanceRecord(student.id, 'notes', e.target.value)} placeholder="Add any notes..." rows="2" />
+                          </div>
+                        </div>
+                      ))}
+
+                      <div className="form-actions form-actions-sticky">
                         <button onClick={handleSaveAttendance} className="btn btn-primary" disabled={saving}>
                           {saving ? 'Saving...' : 'Save Attendance'}
                         </button>
@@ -1792,56 +2033,58 @@ function SoloDashboard() {
                     </div>
                   )}
 
-                  {selectedClass && activeSemester && attendanceStudents.length === 0 && (
-                    <div className="card"><div className="empty"><p>No students in this class.</p></div></div>
+                  {selectedClass && attendanceStudents.length === 0 && (
+                    <div className="card"><div className="empty"><p>No students enrolled in this class yet.</p></div></div>
                   )}
-
                   {!selectedClass && (
-                    <div className="card"><div className="empty"><p>Select a class to take attendance.</p></div></div>
+                    <div className="card"><div className="empty"><p>Select a class to record attendance.</p></div></div>
                   )}
                 </>
               )}
 
+              {/* View Attendance History Sub-Tab */}
               {attendanceSubTab === 'view' && (
                 <>
                   <div className="card">
                     <div className="card-body">
-                      <div className="form-group">
-                        <label className="form-label">Class</label>
-                        <select className="form-input" value={selectedClass?.id || ''} onChange={(e) => {
-                          const cls = classes.find(c => c.id === parseInt(e.target.value));
-                          setSelectedClass(cls || null);
-                        }}>
-                          <option value="">Select class...</option>
-                          {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label className="form-label">Select Class</label>
+                          <select value={selectedClass?.id || ''} onChange={(e) => { const cls = classes.find(c => c.id === parseInt(e.target.value)); setSelectedClass(cls || null); }} className="form-select">
+                            <option value="">-- Select a class --</option>
+                            {classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+                          </select>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {attendanceHistory.length > 0 ? (
+                  {selectedClass ? (
                     <div className="card">
-                      <div className="table-responsive">
-                        <table className="table">
-                          <thead><tr><th>Date</th><th>Student</th><th>Status</th><th>Dressing</th><th>Behavior</th><th>Notes</th></tr></thead>
-                          <tbody>
-                            {attendanceHistory.slice(0, 100).map((r, i) => (
-                              <tr key={i}>
-                                <td>{fmtDate(r.date)}</td>
-                                <td>{r.first_name} {r.last_name}</td>
-                                <td><span className={`badge ${r.present ? 'badge-success' : 'badge-danger'}`}>{r.present ? 'Present' : 'Absent'}</span></td>
-                                <td>{r.dressing_grade || '—'}</td>
-                                <td>{r.behavior_grade || '—'}</td>
-                                <td>{r.notes || '—'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      <SortableTable
+                        columns={[
+                          { key: 'date', label: 'Date', sortable: true, sortType: 'date', render: (row) => fmtDate(row.date) },
+                          { key: 'student_id', label: 'Student ID', sortable: true },
+                          { key: 'name', label: 'Student Name', sortable: true, render: (row) => `${row.first_name} ${row.last_name}` },
+                          { key: 'present', label: 'Status', sortable: true, sortType: 'boolean', render: (row) => <span className={`badge ${row.present ? 'badge-success' : 'badge-danger'}`}>{row.present ? 'Present' : 'Absent'}</span> },
+                          { key: 'absence_reason', label: 'Absence Reason', sortable: true, render: (row) => row.absence_reason || '-' },
+                          ...((madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) ? [{ key: 'dressing_grade', label: 'Dressing', sortable: true, render: (row) => row.dressing_grade || '-' }] : []),
+                          ...((madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) ? [{ key: 'behavior_grade', label: 'Behavior', sortable: true, render: (row) => row.behavior_grade || '-' }] : []),
+                          ...((madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) ? [{ key: 'punctuality_grade', label: 'Punctuality', sortable: true, render: (row) => row.punctuality_grade || '-' }] : []),
+                          { key: 'notes', label: 'Notes', sortable: false, render: (row) => row.notes || '-' }
+                        ]}
+                        data={attendanceHistory}
+                        searchable={true}
+                        searchPlaceholder="Search by student name or ID..."
+                        searchKeys={['student_id', 'first_name', 'last_name']}
+                        pagination={true}
+                        pageSize={25}
+                        emptyMessage="No attendance records found"
+                      />
                     </div>
-                  ) : selectedClass ? (
-                    <div className="card"><div className="empty"><p>No attendance records found.</p></div></div>
-                  ) : null}
+                  ) : (
+                    <div className="card"><div className="empty"><p>Select a class to view attendance history.</p></div></div>
+                  )}
                 </>
               )}
             </>
@@ -1851,196 +2094,388 @@ function SoloDashboard() {
           {activeTab === 'exams' && (
             <>
               <div className="page-header">
-                <h2 className="page-title">Exam Recording</h2>
-                <button onClick={() => {
-                  if (!selectedClass) { toast.error('Select a class first'); return; }
-                  const classStudents = students.filter(s => s.class_id === selectedClass.id);
-                  const activeSession = sessions.find(s => s.is_active);
-                  setExamForm({
-                    session_id: activeSession?.id || '',
-                    semester_id: activeSemester?.id || '',
-                    subject: '',
-                    exam_date: getLocalDate(),
-                    max_score: 100,
-                    students: classStudents.map(s => ({
-                      student_id: s.id,
-                      student_name: `${s.first_name} ${s.last_name}`,
-                      score: '',
-                      is_absent: false,
-                      absence_reason: '',
-                      notes: ''
-                    }))
-                  });
-                  setShowExamModal(true);
-                }} className="btn btn-primary">+ Record Exam</button>
+                <h2 className="page-title">Exam Performance</h2>
+                {selectedClass && students.filter(s => s.class_id === selectedClass?.id).length > 0 && (
+                  <button onClick={openExamModal} className="btn btn-primary">+ Record Exam</button>
+                )}
               </div>
 
               <div className="card">
                 <div className="card-body">
-                  <div className="form-grid form-grid-3">
+                  <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
                     <div className="form-group">
-                      <label className="form-label">Class</label>
-                      <select className="form-input" value={selectedClass?.id || ''} onChange={(e) => {
-                        const cls = classes.find(c => c.id === parseInt(e.target.value));
-                        setSelectedClass(cls || null);
-                      }}>
-                        <option value="">Select class...</option>
-                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      <label className="form-label">Select Class</label>
+                      <select value={selectedClass?.id || ''} onChange={(e) => { const cls = classes.find(c => c.id === parseInt(e.target.value)); setSelectedClass(cls || null); }} className="form-select">
+                        <option value="">-- Select a class --</option>
+                        {classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
                       </select>
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Session</label>
-                      <select className="form-input" value={examFilterSession} onChange={(e) => { setExamFilterSession(e.target.value); setExamFilterSemester(''); }}>
+                      <label className="form-label">Filter by Session</label>
+                      <select value={examFilterSession} onChange={(e) => setExamFilterSession(e.target.value)} className="form-select" disabled={!selectedClass}>
                         <option value="">All Sessions</option>
-                        {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        {sessions.map(session => <option key={session.id} value={session.id}>{session.name} {session.is_active ? '(Active)' : ''}</option>)}
                       </select>
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Semester</label>
-                      <select className="form-input" value={examFilterSemester} onChange={(e) => setExamFilterSemester(e.target.value)}>
+                      <label className="form-label">Filter by Semester</label>
+                      <select value={examFilterSemester} onChange={(e) => setExamFilterSemester(e.target.value)} className="form-select" disabled={!selectedClass}>
                         <option value="">All Semesters</option>
-                        {examFilteredSemesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        {examFilteredSemesters.map(sem => <option key={sem.id} value={sem.id}>{sem.name} {sem.is_active ? '(Active)' : ''}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Filter by Subject</label>
+                      <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} className="form-select" disabled={!selectedClass}>
+                        <option value="all">All Subjects</option>
+                        {availableSubjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
                       </select>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {selectedClass && examPerformance.length > 0 ? (
-                <div className="card">
-                  <div className="table-responsive">
-                    <table className="table">
-                      <thead><tr><th>Date</th><th>Subject</th><th>Student</th><th>Score</th><th>Actions</th></tr></thead>
-                      <tbody>
-                        {examPerformance.map(r => (
-                          <tr key={r.id}>
-                            <td>{fmtDate(r.exam_date)}</td>
-                            <td>{r.subject}</td>
-                            <td>{r.first_name} {r.last_name}</td>
-                            <td>{r.is_absent ? <span className="badge badge-warning">Absent</span> : `${r.score}/${r.max_score}`}</td>
-                            <td>
-                              <div style={{ display: 'flex', gap: '6px' }}>
-                                <button onClick={() => { setEditingExamRecord(r); setShowEditExamModal(true); }} className="btn btn-secondary btn-sm">Edit</button>
-                                <button onClick={() => setConfirmModal({
-                                  message: 'Delete this exam record?',
-                                  onConfirm: () => { handleDeleteExamRecord(r.id); setConfirmModal(null); }
-                                })} className="btn btn-danger btn-sm">Delete</button>
+              {/* KPIs by Subject */}
+              {selectedClass && examKpis && examKpis.length > 0 && (() => {
+                const totalSubjects = examKpis.length;
+                const totalPages = Math.ceil(totalSubjects / subjectsPerPage);
+                const startIndex = (currentSubjectPage - 1) * subjectsPerPage;
+                const endIndex = startIndex + subjectsPerPage;
+                const currentSubjects = examKpis.slice(startIndex, endIndex);
+
+                return (
+                  <>
+                    {totalPages > 1 && (
+                      <div className="card" style={{ marginBottom: 'var(--md)' }}>
+                        <div className="subject-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ color: 'var(--muted)', fontSize: '14px' }}>Subject {startIndex + 1} of {totalSubjects}</div>
+                          <div className="subject-pagination-btns" style={{ display: 'flex', gap: 'var(--sm)' }}>
+                            <button onClick={() => setCurrentSubjectPage(prev => Math.max(1, prev - 1))} disabled={currentSubjectPage === 1} className="btn-sm" style={{ opacity: currentSubjectPage === 1 ? 0.5 : 1 }}>← Prev</button>
+                            <div style={{ padding: '8px 16px', backgroundColor: 'var(--accent-light)', color: 'var(--accent)', borderRadius: 'var(--radius)', fontWeight: '600', fontSize: '14px' }}>{currentSubjectPage} / {totalPages}</div>
+                            <button onClick={() => setCurrentSubjectPage(prev => Math.min(totalPages, prev + 1))} disabled={currentSubjectPage === totalPages} className="btn-sm" style={{ opacity: currentSubjectPage === totalPages ? 0.5 : 1 }}>Next →</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {currentSubjects.map(kpi => (
+                      <div key={kpi.subject} className="exam-subject-section">
+                        <h3 className="exam-subject-title">{kpi.subject}</h3>
+
+                        <div className="exam-metrics">
+                          <div className="exam-metrics-grid">
+                            <div className="exam-metric"><div className="exam-metric-value primary">{kpi.presentCount}/{kpi.totalStudents}</div><div className="exam-metric-label">Present</div></div>
+                            <div className="exam-metric"><div className={`exam-metric-value ${kpi.avgScore >= 70 ? 'success' : kpi.avgScore >= 50 ? 'warning' : 'error'}`}>{kpi.avgScore}%</div><div className="exam-metric-label">Average</div></div>
+                            <div className="exam-metric"><div className={`exam-metric-value ${kpi.passRate >= 70 ? 'success' : kpi.passRate >= 50 ? 'warning' : 'error'}`}>{kpi.passRate}%</div><div className="exam-metric-label">Pass Rate</div></div>
+                            <div className="exam-metric"><div className="exam-metric-value success">{kpi.passCount}</div><div className="exam-metric-label">Passed</div></div>
+                            <div className="exam-metric"><div className="exam-metric-value error">{kpi.failCount}</div><div className="exam-metric-label">Failed</div></div>
+                            <div className="exam-metric"><div className="exam-metric-value info">{kpi.highPerformers}</div><div className="exam-metric-label">Excellence</div></div>
+                          </div>
+                        </div>
+
+                        {kpi.examBatches && kpi.examBatches.map((batch, batchIndex) => (
+                          <div key={batchIndex} className="card" style={{ marginBottom: 'var(--md)' }}>
+                            <div className="exam-batch-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--md)', padding: 'var(--sm)', backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius)' }}>
+                              <div>
+                                <strong style={{ fontSize: '15px' }}>{fmtDate(batch.exam_date)} - {batch.semester_name} (Max: {batch.max_score})</strong>
+                                <span style={{ marginLeft: 'var(--md)', color: 'var(--muted)', fontSize: '13px' }}>{batch.records.length} student{batch.records.length !== 1 ? 's' : ''}</span>
                               </div>
-                            </td>
-                          </tr>
+                              <div style={{ display: 'flex', gap: 'var(--sm)' }}>
+                                <button onClick={() => handleEditExamBatch(kpi.subject, batch)} className="btn-sm btn-edit" title="Edit this exam batch">Edit Batch</button>
+                                <button onClick={() => setDeleteExamBatch({ subject: kpi.subject, exam_date: batch.exam_date, semester_name: batch.semester_name, student_count: batch.records.length, record_ids: batch.records.map(r => r.id) })} className="btn-sm btn-delete" title="Delete this exam batch">Delete Batch</button>
+                              </div>
+                            </div>
+
+                            <div className="exam-results-desktop">
+                              <SortableTable
+                                columns={[
+                                  { key: 'name', label: 'Student', sortable: true, render: (row) => <strong>{row.first_name} {row.last_name}</strong> },
+                                  { key: 'student_id', label: 'Student ID', sortable: true },
+                                  { key: 'exam_date', label: 'Exam Date', sortable: true, sortType: 'date', render: (row) => fmtDate(row.exam_date) },
+                                  { key: 'semester_name', label: 'Semester', sortable: true, render: (row) => row.semester_name || '-' },
+                                  { key: 'score', label: 'Score', sortable: true, sortType: 'number', render: (row) => row.is_absent ? <span style={{ color: 'var(--gray-500)', fontStyle: 'italic' }}>Absent</span> : <span style={{ fontWeight: '600' }}>{row.score}/{row.max_score}</span> },
+                                  { key: 'percentage', label: 'Percentage', sortable: true, sortType: 'number', render: (row) => {
+                                    const pct = row.is_absent ? null : ((row.score / row.max_score) * 100).toFixed(2);
+                                    return row.is_absent ? <span style={{ color: 'var(--gray)' }}>N/A</span> : <span style={{ fontWeight: '700', fontSize: 'var(--text-lg)', color: pct >= 80 ? 'var(--success)' : pct >= 70 ? '#404040' : pct >= 50 ? 'var(--warning)' : 'var(--error)' }}>{pct}%</span>;
+                                  }},
+                                  { key: 'status', label: 'Status', sortable: true, render: (row) => {
+                                    const pct = row.is_absent ? null : ((row.score / row.max_score) * 100).toFixed(2);
+                                    if (row.is_absent) return <span style={{ padding: '0.25rem 0.75rem', borderRadius: 'var(--radius)', fontSize: 'var(--text-sm)', fontWeight: '600', backgroundColor: '#f5f5f5', color: '#525252' }}>{row.absence_reason}</span>;
+                                    if (pct >= 50) return <span style={{ padding: '0.25rem 0.75rem', borderRadius: 'var(--radius)', fontSize: 'var(--text-sm)', fontWeight: '600', backgroundColor: '#f0fdf4', color: 'var(--success)' }}>✓ Passed</span>;
+                                    return <span style={{ padding: '0.25rem 0.75rem', borderRadius: 'var(--radius)', fontSize: 'var(--text-sm)', fontWeight: '600', backgroundColor: '#fef2f2', color: 'var(--error)' }}>✗ Failed</span>;
+                                  }},
+                                  { key: 'notes', label: 'Notes', sortable: false, render: (row) => row.notes || '-' },
+                                  { key: 'actions', label: 'Actions', sortable: false, render: (row) => (
+                                    <div style={{ display: 'flex', gap: 'var(--sm)' }}>
+                                      <button onClick={() => handleEditExam(row)} className="btn-sm btn-edit" title="Edit">Edit</button>
+                                      <button onClick={() => setDeleteExamId(row.id)} className="btn-sm btn-delete" title="Delete">Delete</button>
+                                    </div>
+                                  )}
+                                ]}
+                                data={batch.records}
+                              />
+                            </div>
+
+                            <div className="exam-results-mobile-cards">
+                              {batch.records.map(row => {
+                                const percentage = row.is_absent ? null : ((row.score / row.max_score) * 100).toFixed(1);
+                                return (
+                                  <div key={row.id} className="admin-mobile-card">
+                                    <div className="admin-mobile-card-top">
+                                      <div>
+                                        <div className="admin-mobile-card-title">{row.first_name} {row.last_name}</div>
+                                        <div className="admin-mobile-card-sub">
+                                          {row.is_absent ? <span style={{ color: 'var(--gray-500)', fontStyle: 'italic' }}>Absent — {row.absence_reason || 'No reason'}</span> : <span>Score: <strong>{row.score}/{row.max_score}</strong> ({percentage}%)</span>}
+                                        </div>
+                                        {row.notes && <div className="admin-mobile-card-sub" style={{ marginTop: '2px' }}>{row.notes}</div>}
+                                      </div>
+                                      {!row.is_absent && (
+                                        <div className="admin-mobile-card-badge" style={{ color: percentage >= 80 ? 'var(--success)' : percentage >= 50 ? 'var(--warning)' : 'var(--error)', fontWeight: '700' }}>{percentage}%</div>
+                                      )}
+                                    </div>
+                                    <div className="admin-mobile-card-actions">
+                                      <button onClick={() => handleEditExam(row)} className="btn btn-sm btn-secondary">Edit</button>
+                                      <button onClick={() => setDeleteExamId(row.id)} className="btn btn-sm btn-secondary btn-danger">Delete</button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : selectedClass ? (
-                <div className="card"><div className="empty"><p>No exam records found.</p></div></div>
-              ) : (
-                <div className="card"><div className="empty"><p>Select a class to view exam records.</p></div></div>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
+
+              {selectedClass && examPerformance.length === 0 && (
+                <div className="card"><div className="empty"><p>No exam records yet for this class.</p></div></div>
+              )}
+
+              {!selectedClass && (
+                <div className="card"><div className="empty"><p>Select a class to view exam performance.</p></div></div>
               )}
 
               {/* Record Exam Modal */}
               {showExamModal && (
                 <div className="modal-overlay" onClick={() => setShowExamModal(false)}>
-                  <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+                  <div className="modal modal-large" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1200px', width: '95%' }}>
                     <div className="modal-header">
-                      <h3>Record Exam Performance</h3>
-                      <button onClick={() => setShowExamModal(false)} className="modal-close">&times;</button>
+                      <h3 className="modal-title">Record Exam Performance - {examForm.subject || 'Subject'}</h3>
+                      <button onClick={() => setShowExamModal(false)} className="modal-close">×</button>
                     </div>
                     <form onSubmit={handleSaveExamPerformance}>
                       <div className="modal-body">
-                        <div className="form-grid form-grid-2">
+                        <div className="form-grid form-grid-2" style={{ marginBottom: 'var(--md)' }}>
                           <div className="form-group">
-                            <label className="form-label">Subject *</label>
-                            <input type="text" className="form-input" value={examForm.subject} onChange={(e) => setExamForm({ ...examForm, subject: e.target.value })} placeholder="e.g., Mathematics" required />
+                            <label className="form-label">Session *</label>
+                            <select className="form-select" value={examForm.session_id} onChange={(e) => setExamForm({ ...examForm, session_id: parseInt(e.target.value), semester_id: '' })} required>
+                              {sessions.map(session => <option key={session.id} value={session.id}>{session.name} {session.is_active ? '✓ (Active)' : ''}</option>)}
+                            </select>
                           </div>
                           <div className="form-group">
-                            <label className="form-label">Exam Date *</label>
-                            <input type="date" className="form-input" value={examForm.exam_date} onChange={(e) => setExamForm({ ...examForm, exam_date: e.target.value })} required />
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label">Max Score *</label>
-                            <input type="number" className="form-input" value={examForm.max_score} onChange={(e) => setExamForm({ ...examForm, max_score: e.target.value })} min="1" step="0.1" required />
+                            <label className="form-label">Semester *</label>
+                            <select className="form-select" value={examForm.semester_id} onChange={(e) => setExamForm({ ...examForm, semester_id: parseInt(e.target.value) })} required>
+                              {semesters.filter(sem => sem.session_id === examForm.session_id).map(sem => <option key={sem.id} value={sem.id}>{sem.name} {sem.is_active ? '✓ (Active)' : ''}</option>)}
+                            </select>
                           </div>
                         </div>
 
-                        <h4 style={{ margin: 'var(--md) 0 var(--sm)', fontSize: '14px' }}>Student Scores</h4>
-                        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                          {examForm.students.map((s, i) => (
-                            <div key={s.student_id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                              <span style={{ flex: 1, fontSize: '14px' }}>{s.student_name}</span>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px' }}>
-                                <input type="checkbox" checked={s.is_absent} onChange={(e) => {
-                                  const updated = [...examForm.students];
-                                  updated[i] = { ...updated[i], is_absent: e.target.checked, score: e.target.checked ? '' : updated[i].score };
-                                  setExamForm({ ...examForm, students: updated });
-                                }} />
-                                Absent
-                              </label>
-                              {s.is_absent ? (
-                                <input type="text" className="form-input" placeholder="Reason" value={s.absence_reason} onChange={(e) => {
-                                  const updated = [...examForm.students];
-                                  updated[i] = { ...updated[i], absence_reason: e.target.value };
-                                  setExamForm({ ...examForm, students: updated });
-                                }} style={{ width: '120px' }} />
-                              ) : (
-                                <input type="number" className="form-input" placeholder="Score" step="0.1" min="0" max={examForm.max_score} value={s.score} onChange={(e) => {
-                                  const updated = [...examForm.students];
-                                  updated[i] = { ...updated[i], score: e.target.value };
-                                  setExamForm({ ...examForm, students: updated });
-                                }} style={{ width: '80px' }} />
-                              )}
+                        <div className="form-grid form-grid-3" style={{ marginBottom: 'var(--md)' }}>
+                          <div className="form-group">
+                            <label className="form-label">Subject *</label>
+                            <input type="text" className="form-input" value={examForm.subject} onChange={(e) => setExamForm({ ...examForm, subject: e.target.value })} placeholder="e.g., Mathematics, Quran" required />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Exam Date *</label>
+                            <input type="date" className="form-input" value={examForm.exam_date} onChange={(e) => setExamForm({ ...examForm, exam_date: e.target.value })} max={getLocalDate()} required />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Total Score (Max) *</label>
+                            <input type="number" className="form-input" value={examForm.max_score} onChange={(e) => { const value = e.target.value; if (value === '' || (parseFloat(value) >= 1 && parseFloat(value) <= 1000)) setExamForm({ ...examForm, max_score: value }); }} onBlur={(e) => { const value = parseFloat(e.target.value); if (isNaN(value) || value < 1) { setExamForm({ ...examForm, max_score: 100 }); toast.warning('Max score set to 100 (minimum is 1)'); } else if (value > 1000) { setExamForm({ ...examForm, max_score: 1000 }); toast.warning('Max score set to 1000 (maximum allowed)'); } }} min="1" max="1000" step="0.1" placeholder="100" required />
+                          </div>
+                        </div>
+
+                        <div style={{ marginBottom: 'var(--md)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sm)' }}>
+                            <h4 style={{ fontSize: 'var(--text-lg)', fontWeight: '600', margin: 0 }}>Student Scores</h4>
+                            <div style={{ position: 'relative' }} className="exam-search-container">
+                              <input type="text" className="form-input" placeholder="Search by name or ID..." value={examStudentSearch} onChange={(e) => setExamStudentSearch(e.target.value)} style={{ paddingLeft: '32px', fontSize: '16px' }} />
+                              <svg style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: '#666' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                              </svg>
                             </div>
-                          ))}
+                          </div>
+                          <div className="exam-modal-table" style={{ overflowX: 'auto', maxHeight: '400px', border: 'var(--border)', borderRadius: 'var(--radius)' }}>
+                            <table className="table exam-scores-table" style={{ minWidth: '100%' }}>
+                              <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--gray-50)', zIndex: 1 }}>
+                                <tr>
+                                  <th style={{ width: '40px' }}>#</th>
+                                  <th style={{ width: '180px' }}>Student Name</th>
+                                  <th style={{ width: '100px' }}>Student ID</th>
+                                  <th style={{ width: '120px' }}>Score</th>
+                                  <th style={{ width: '100px' }}>Percentage</th>
+                                  <th style={{ width: '100px' }}>Absent</th>
+                                  <th style={{ width: '150px' }}>Absence Reason</th>
+                                  <th>Notes</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {examForm.students.filter(student => { if (!examStudentSearch.trim()) return true; const searchLower = examStudentSearch.toLowerCase(); return student.student_name.toLowerCase().includes(searchLower) || student.student_number.toLowerCase().includes(searchLower); }).map((student, index) => (
+                                  <tr key={student.student_id}>
+                                    <td>{index + 1}</td>
+                                    <td><strong>{student.student_name}</strong></td>
+                                    <td>{student.student_number}</td>
+                                    <td>
+                                      <input type="number" className="form-input" value={student.score} onChange={(e) => updateStudentExamData(student.student_id, 'score', e.target.value)} onBlur={(e) => { if (e.target.value !== '' && !student.is_absent) { const score = parseFloat(e.target.value); const maxScore = parseFloat(examForm.max_score); if (isNaN(score) || score < 0) updateStudentExamData(student.student_id, 'score', '0'); else if (score > maxScore) updateStudentExamData(student.student_id, 'score', maxScore.toString()); } }} min="0" max={examForm.max_score} step="0.1" placeholder="0" disabled={student.is_absent} style={{ width: '100%', backgroundColor: student.is_absent ? 'var(--gray-100)' : 'white' }} />
+                                    </td>
+                                    <td>
+                                      <span style={{ fontWeight: '600', color: student.is_absent ? 'var(--gray-500)' : calculatePercentage(student.score, examForm.max_score) >= 70 ? 'var(--success)' : calculatePercentage(student.score, examForm.max_score) >= 50 ? 'var(--warning)' : 'var(--error)' }}>
+                                        {student.is_absent ? 'N/A' : `${calculatePercentage(student.score, examForm.max_score)}%`}
+                                      </span>
+                                    </td>
+                                    <td><input type="checkbox" checked={student.is_absent} onChange={(e) => updateStudentExamData(student.student_id, 'is_absent', e.target.checked)} style={{ width: '20px', height: '20px', cursor: 'pointer' }} /></td>
+                                    <td>
+                                      <select className="form-select" value={student.absence_reason} onChange={(e) => updateStudentExamData(student.student_id, 'absence_reason', e.target.value)} disabled={!student.is_absent} style={{ width: '100%', fontSize: '0.875rem', backgroundColor: !student.is_absent ? 'var(--gray-100)' : 'white' }}>
+                                        <option value="">Select...</option><option value="Sick">Sick</option><option value="Parent Request">Parent Request</option><option value="School Not Notified">School Not Notified</option><option value="Other">Other</option>
+                                      </select>
+                                    </td>
+                                    <td><input type="text" className="form-input" value={student.notes} onChange={(e) => updateStudentExamData(student.student_id, 'notes', e.target.value)} placeholder="Optional notes" style={{ width: '100%', fontSize: '0.875rem' }} /></td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Mobile Card View for Exam Scores */}
+                          <div className="exam-modal-mobile-cards" style={{ display: 'none' }}>
+                            {examForm.students.filter(student => { if (!examStudentSearch.trim()) return true; const searchLower = examStudentSearch.toLowerCase(); return student.student_name.toLowerCase().includes(searchLower) || student.student_number.toLowerCase().includes(searchLower); }).map((student, index) => (
+                              <div key={student.student_id} className="exam-student-card">
+                                <div className="student-header">
+                                  <div><div className="student-name">{index + 1}. {student.student_name}</div><div className="student-id">{student.student_number}</div></div>
+                                  <div className="percentage-badge" style={{ color: student.is_absent ? '#a3a3a3' : calculatePercentage(student.score, examForm.max_score) >= 70 ? '#404040' : calculatePercentage(student.score, examForm.max_score) >= 50 ? '#737373' : '#0a0a0a' }}>
+                                    {student.is_absent ? 'Absent' : `${calculatePercentage(student.score, examForm.max_score)}%`}
+                                  </div>
+                                </div>
+                                {!student.is_absent && (
+                                  <div className="score-row">
+                                    <input type="number" className="score-input" value={student.score} onChange={(e) => updateStudentExamData(student.student_id, 'score', e.target.value)} onBlur={(e) => { if (e.target.value !== '') { const score = parseFloat(e.target.value); const maxScore = parseFloat(examForm.max_score); if (isNaN(score) || score < 0) updateStudentExamData(student.student_id, 'score', '0'); else if (score > maxScore) updateStudentExamData(student.student_id, 'score', maxScore.toString()); } }} min="0" max={examForm.max_score} step="0.1" placeholder={`Score / ${examForm.max_score}`} />
+                                  </div>
+                                )}
+                                <div className="absent-row"><label><input type="checkbox" checked={student.is_absent} onChange={(e) => updateStudentExamData(student.student_id, 'is_absent', e.target.checked)} /><span>Absent</span></label></div>
+                                {student.is_absent && (
+                                  <div className="absence-reason-row">
+                                    <select value={student.absence_reason} onChange={(e) => updateStudentExamData(student.student_id, 'absence_reason', e.target.value)}>
+                                      <option value="">Absence reason...</option><option value="Sick">Sick</option><option value="Parent Request">Parent Request</option><option value="School Not Notified">School Not Notified</option><option value="Other">Other</option>
+                                    </select>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                       <div className="modal-footer">
                         <button type="button" onClick={() => setShowExamModal(false)} className="btn btn-secondary">Cancel</button>
-                        <button type="submit" className="btn btn-primary">Save</button>
+                        <button type="submit" className="btn btn-primary">Save All Exam Records</button>
                       </div>
                     </form>
                   </div>
                 </div>
               )}
 
-              {/* Edit Exam Modal */}
+              {/* Edit Single Exam Modal */}
               {showEditExamModal && editingExamRecord && (
                 <div className="modal-overlay" onClick={() => setShowEditExamModal(false)}>
                   <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
                     <div className="modal-header">
                       <h3>Edit Exam Record</h3>
-                      <button onClick={() => setShowEditExamModal(false)} className="modal-close">&times;</button>
+                      <button onClick={() => setShowEditExamModal(false)} className="modal-close">×</button>
                     </div>
                     <form onSubmit={handleEditExamRecord}>
                       <div className="modal-body">
                         <p style={{ marginBottom: 'var(--md)', color: 'var(--muted)' }}>{editingExamRecord.first_name} {editingExamRecord.last_name} — {editingExamRecord.subject}</p>
                         <div className="form-group">
-                          <label className="form-label checkbox-label">
-                            <input type="checkbox" checked={editingExamRecord.is_absent} onChange={(e) => setEditingExamRecord({ ...editingExamRecord, is_absent: e.target.checked })} />
-                            <span>Absent</span>
-                          </label>
+                          <label className="form-label checkbox-label"><input type="checkbox" checked={editingExamRecord.is_absent} onChange={(e) => setEditingExamRecord({ ...editingExamRecord, is_absent: e.target.checked })} /><span>Absent</span></label>
                         </div>
                         {editingExamRecord.is_absent ? (
-                          <div className="form-group">
-                            <label className="form-label">Absence Reason</label>
-                            <input type="text" className="form-input" value={editingExamRecord.absence_reason || ''} onChange={(e) => setEditingExamRecord({ ...editingExamRecord, absence_reason: e.target.value })} required />
-                          </div>
+                          <div className="form-group"><label className="form-label">Absence Reason</label><input type="text" className="form-input" value={editingExamRecord.absence_reason || ''} onChange={(e) => setEditingExamRecord({ ...editingExamRecord, absence_reason: e.target.value })} required /></div>
                         ) : (
-                          <div className="form-group">
-                            <label className="form-label">Score (max: {editingExamRecord.max_score})</label>
-                            <input type="number" className="form-input" step="0.1" min="0" max={editingExamRecord.max_score} value={editingExamRecord.score || ''} onChange={(e) => setEditingExamRecord({ ...editingExamRecord, score: e.target.value })} required />
-                          </div>
+                          <div className="form-group"><label className="form-label">Score (max: {editingExamRecord.max_score})</label><input type="number" className="form-input" step="0.1" min="0" max={editingExamRecord.max_score} value={editingExamRecord.score || ''} onChange={(e) => setEditingExamRecord({ ...editingExamRecord, score: e.target.value })} required /></div>
                         )}
-                        <div className="form-group">
-                          <label className="form-label">Notes</label>
-                          <input type="text" className="form-input" value={editingExamRecord.notes || ''} onChange={(e) => setEditingExamRecord({ ...editingExamRecord, notes: e.target.value })} />
-                        </div>
+                        <div className="form-group"><label className="form-label">Notes</label><input type="text" className="form-input" value={editingExamRecord.notes || ''} onChange={(e) => setEditingExamRecord({ ...editingExamRecord, notes: e.target.value })} /></div>
                       </div>
                       <div className="modal-footer">
                         <button type="button" onClick={() => setShowEditExamModal(false)} className="btn btn-secondary">Cancel</button>
                         <button type="submit" className="btn btn-primary">Update</button>
                       </div>
                     </form>
+                  </div>
+                </div>
+              )}
+
+              {/* Delete Single Exam Confirmation */}
+              {deleteExamId && (
+                <div className="modal-overlay" onClick={() => setDeleteExamId(null)}>
+                  <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+                    <div className="modal-header"><h3 className="modal-title">Confirm Delete</h3><button onClick={() => setDeleteExamId(null)} className="modal-close">×</button></div>
+                    <div className="modal-body"><p>Are you sure you want to delete this exam record? This action cannot be undone.</p></div>
+                    <div className="modal-footer">
+                      <button onClick={() => setDeleteExamId(null)} className="btn btn-secondary">Cancel</button>
+                      <button onClick={() => handleDeleteExamRecord(deleteExamId)} className="btn btn-danger">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Edit Exam Batch Modal */}
+              {showEditExamBatchModal && editingExamBatch && (
+                <div className="modal-overlay" onClick={() => setShowEditExamBatchModal(false)}>
+                  <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                    <div className="modal-header"><h3 className="modal-title">Edit Exam Batch</h3><button onClick={() => setShowEditExamBatchModal(false)} className="modal-close">×</button></div>
+                    <form onSubmit={handleUpdateExamBatch}>
+                      <div className="modal-body">
+                        <div style={{ padding: 'var(--md)', backgroundColor: '#f5f5f5', borderRadius: 'var(--radius)', marginBottom: 'var(--md)', border: '1px solid #e5e5e5' }}>
+                          <p style={{ margin: 0, fontSize: '14px', color: '#525252' }}><strong>⚠️ Batch Edit:</strong> This will update {editingExamBatch.student_count} student record{editingExamBatch.student_count !== 1 ? 's' : ''}.</p>
+                        </div>
+                        <div className="form-grid" style={{ gridTemplateColumns: '1fr', gap: 'var(--md)' }}>
+                          <div className="form-group"><label className="form-label">Subject *</label><input type="text" className="form-input" value={editingExamBatch.subject} onChange={(e) => setEditingExamBatch({ ...editingExamBatch, subject: e.target.value })} required /></div>
+                          <div className="form-group"><label className="form-label">Semester *</label><select className="form-select" value={editingExamBatch.semester_id} onChange={(e) => setEditingExamBatch({ ...editingExamBatch, semester_id: parseInt(e.target.value) })} required>{semesters.map(sem => <option key={sem.id} value={sem.id}>{sem.name} {sem.is_active ? '✓ (Active)' : ''}</option>)}</select></div>
+                          <div className="form-group"><label className="form-label">Exam Date *</label><input type="date" className="form-input" value={editingExamBatch.exam_date} onChange={(e) => setEditingExamBatch({ ...editingExamBatch, exam_date: e.target.value })} max={getLocalDate()} required /></div>
+                          <div className="form-group"><label className="form-label">Max Score *</label><input type="number" className="form-input" value={editingExamBatch.max_score} onChange={(e) => { const v = e.target.value; if (v === '' || (parseFloat(v) >= 1 && parseFloat(v) <= 1000)) setEditingExamBatch({ ...editingExamBatch, max_score: v }); }} min="1" max="1000" step="0.1" required /></div>
+                        </div>
+                      </div>
+                      <div className="modal-footer">
+                        <button type="button" onClick={() => setShowEditExamBatchModal(false)} className="btn btn-secondary">Cancel</button>
+                        <button type="submit" className="btn btn-primary">Update Batch</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* Delete Exam Batch Confirmation */}
+              {deleteExamBatch && (
+                <div className="modal-overlay" onClick={() => setDeleteExamBatch(null)}>
+                  <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                    <div className="modal-header"><h3 className="modal-title">Confirm Batch Delete</h3><button onClick={() => setDeleteExamBatch(null)} className="modal-close">×</button></div>
+                    <div className="modal-body">
+                      <div style={{ padding: 'var(--md)', backgroundColor: '#f8d7da', borderRadius: 'var(--radius)', marginBottom: 'var(--md)', border: '1px solid #dc3545' }}>
+                        <p style={{ margin: 0, fontSize: '14px', color: '#721c24' }}><strong>⚠️ Warning:</strong> This will permanently delete all exam records for:</p>
+                      </div>
+                      <div style={{ padding: 'var(--md)', backgroundColor: 'var(--gray-50)', borderRadius: 'var(--radius)' }}>
+                        <p style={{ margin: '0 0 8px 0' }}><strong>Subject:</strong> {deleteExamBatch.subject}</p>
+                        <p style={{ margin: '0 0 8px 0' }}><strong>Date:</strong> {fmtDate(deleteExamBatch.exam_date)}</p>
+                        <p style={{ margin: '0 0 8px 0' }}><strong>Semester:</strong> {deleteExamBatch.semester_name}</p>
+                        <p style={{ margin: 0 }}><strong>Students:</strong> {deleteExamBatch.student_count} record{deleteExamBatch.student_count !== 1 ? 's' : ''}</p>
+                      </div>
+                      <p style={{ marginTop: 'var(--md)', color: 'var(--error)' }}>This action cannot be undone.</p>
+                    </div>
+                    <div className="modal-footer">
+                      <button onClick={() => setDeleteExamBatch(null)} className="btn btn-secondary">Cancel</button>
+                      <button onClick={handleDeleteExamBatch} className="btn btn-danger">Delete All {deleteExamBatch.student_count} Records</button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -2052,210 +2487,268 @@ function SoloDashboard() {
             <>
               <div className="page-header"><h2 className="page-title">Qur'an Progress</h2></div>
 
-              <div className="report-tabs">
-                <nav className="report-tabs-nav">
-                  <button className={`report-tab-btn ${quranSubTab === 'record' ? 'active' : ''}`} onClick={() => setQuranSubTab('record')}>Record</button>
-                  <button className={`report-tab-btn ${quranSubTab === 'positions' ? 'active' : ''}`} onClick={() => setQuranSubTab('positions')}>Positions</button>
-                  <button className={`report-tab-btn ${quranSubTab === 'history' ? 'active' : ''}`} onClick={() => setQuranSubTab('history')}>History</button>
-                </nav>
-              </div>
-
+              {/* Class Selector */}
               <div className="card" style={{ marginBottom: 'var(--md)' }}>
                 <div className="card-body">
                   <div className="form-group">
-                    <label className="form-label">Class</label>
-                    <select className="form-input" value={selectedClass?.id || ''} onChange={(e) => {
+                    <label className="form-label">Select Class</label>
+                    <select className="form-select" value={selectedClass?.id || ''} onChange={(e) => {
                       const cls = classes.find(c => c.id === parseInt(e.target.value));
                       setSelectedClass(cls || null);
                       setQuranSelectedStudent(null);
                     }}>
-                      <option value="">Select class...</option>
+                      <option value="">-- Select a class --</option>
                       {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
                 </div>
               </div>
 
-              {/* Record Sub-Tab */}
-              {quranSubTab === 'record' && selectedClass && (
+              {!selectedClass ? (
+                <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                  <p className="empty">Select a class to record Qur'an progress</p>
+                </div>
+              ) : (
                 <>
-                  <div className="card">
-                    <div className="card-body">
-                      <div className="form-grid form-grid-2">
-                        <div className="form-group">
-                          <label className="form-label">Student</label>
-                          <select className="form-input" value={quranSelectedStudent?.id || ''} onChange={(e) => {
-                            const stu = students.find(s => s.id === parseInt(e.target.value));
-                            setQuranSelectedStudent(stu || null);
-                          }}>
-                            <option value="">Select student...</option>
-                            {students.filter(s => s.class_id === selectedClass.id).map(s => (
-                              <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Date</label>
-                          <input type="date" className="form-input" value={quranDate} onChange={(e) => setQuranDate(e.target.value)} />
-                        </div>
-                      </div>
-
-                      {quranSelectedStudent && quranStudentPosition && !quranStudentPosition.isNew && (
-                        <div style={{ padding: 'var(--sm)', background: 'var(--bg-muted)', borderRadius: '8px', marginBottom: 'var(--md)', fontSize: '13px' }}>
-                          <strong>Current Position:</strong>
-                          {quranStudentPosition.hifz && <span> Hifz: {quranStudentPosition.hifz.surah_name} ({quranStudentPosition.hifz.ayah})</span>}
-                          {quranStudentPosition.tilawah && <span> · Tilawah: {quranStudentPosition.tilawah.surah_name} ({quranStudentPosition.tilawah.ayah})</span>}
-                          {quranStudentPosition.revision && <span> · Revision: {quranStudentPosition.revision.surah_name} ({quranStudentPosition.revision.ayah})</span>}
-                        </div>
-                      )}
-
-                      {quranSelectedStudent && (
-                        <>
-                          <div className="form-grid form-grid-3">
-                            <div className="form-group">
-                              <label className="form-label">Session Type</label>
-                              <select className="form-input" value={quranSessionType} onChange={(e) => setQuranSessionType(e.target.value)}>
-                                <option value="tilawah">Tilawah</option>
-                                <option value="hifz">Hifz</option>
-                                <option value="revision">Revision</option>
-                              </select>
-                            </div>
-                            <div className="form-group">
-                              <label className="form-label">Surah</label>
-                              <select className="form-input" value={quranSurah} onChange={(e) => setQuranSurah(e.target.value)}>
-                                <option value="">Select surah...</option>
-                                {surahs.map(s => <option key={s.n} value={s.n}>{s.n}. {s.name} (Juz {s.juz})</option>)}
-                              </select>
-                            </div>
-                            <div className="form-group">
-                              <label className="form-label">Grade</label>
-                              <select className="form-input" value={quranGrade} onChange={(e) => setQuranGrade(e.target.value)}>
-                                <option value="Excellent">Excellent</option>
-                                <option value="Good">Good</option>
-                                <option value="Fair">Fair</option>
-                                <option value="Poor">Poor</option>
-                              </select>
-                            </div>
-                          </div>
-                          <div className="form-grid form-grid-3">
-                            <div className="form-group">
-                              <label className="form-label">Ayah From</label>
-                              <input type="number" className="form-input" min="1" value={quranAyahFrom} onChange={(e) => setQuranAyahFrom(e.target.value)} />
-                            </div>
-                            <div className="form-group">
-                              <label className="form-label">Ayah To</label>
-                              <input type="number" className="form-input" min="1" value={quranAyahTo} onChange={(e) => setQuranAyahTo(e.target.value)} />
-                            </div>
-                            <div className="form-group">
-                              <label className="form-label">Result</label>
-                              <select className="form-input" value={quranPassed ? 'passed' : 'repeat'} onChange={(e) => setQuranPassed(e.target.value === 'passed')}>
-                                <option value="passed">Passed</option>
-                                <option value="repeat">Repeat</option>
-                              </select>
-                            </div>
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label">Notes</label>
-                            <input type="text" className="form-input" value={quranNotes} onChange={(e) => setQuranNotes(e.target.value)} placeholder="Optional notes..." />
-                          </div>
-                          <div className="form-actions">
-                            <button onClick={handleRecordQuran} className="btn btn-primary" disabled={quranSaving}>
-                              {quranSaving ? 'Saving...' : 'Record Progress'}
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                  {/* Sub-tabs */}
+                  <div className="report-tabs" style={{ marginBottom: 'var(--md)' }}>
+                    <nav className="report-tabs-nav">
+                      <button className={`report-tab-btn ${quranSubTab === 'record' ? 'active' : ''}`} onClick={() => setQuranSubTab('record')}>Record Session</button>
+                      <button className={`report-tab-btn ${quranSubTab === 'positions' ? 'active' : ''}`} onClick={() => { setQuranSubTab('positions'); fetchQuranPositions(); }}>Class Overview</button>
+                      <button className={`report-tab-btn ${quranSubTab === 'history' ? 'active' : ''}`} onClick={() => { setQuranSubTab('history'); fetchQuranRecords(); }}>History</button>
+                    </nav>
                   </div>
 
-                  {/* Recent History for selected student */}
-                  {quranSelectedStudent && quranStudentHistory.length > 0 && (
-                    <div className="card" style={{ marginTop: 'var(--md)' }}>
-                      <div className="card-header">Recent History — {quranSelectedStudent.first_name} {quranSelectedStudent.last_name}</div>
-                      <div className="table-responsive">
-                        <table className="table">
-                          <thead><tr><th>Date</th><th>Type</th><th>Surah</th><th>Ayahs</th><th>Grade</th><th>Result</th></tr></thead>
-                          <tbody>
-                            {quranStudentHistory.map(r => (
-                              <tr key={r.id}>
-                                <td>{fmtDate(r.date)}</td>
-                                <td style={{ textTransform: 'capitalize' }}>{r.type}</td>
-                                <td>{r.surah_name}</td>
-                                <td>{r.ayah_from}–{r.ayah_to}</td>
-                                <td>{r.grade}</td>
-                                <td><span className={`badge ${r.passed ? 'badge-success' : 'badge-warning'}`}>{r.passed ? 'Passed' : 'Repeat'}</span></td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                  {/* Record Session Sub-tab */}
+                  {quranSubTab === 'record' && (
+                    <div style={{ display: 'grid', gap: 'var(--md)' }}>
+                      {/* Session type pills */}
+                      <div className="qp-type-pills">
+                        {[
+                          { value: 'tilawah', label: 'Tilawah', sub: 'Recitation' },
+                          { value: 'hifz', label: 'Hifdh', sub: 'Memorization' },
+                          { value: 'revision', label: 'Muraja\'ah', sub: 'Revision' }
+                        ].map(opt => (
+                          <button key={opt.value} type="button" className={`qp-type-pill${quranSessionType === opt.value ? ' active' : ''}`} onClick={() => setQuranSessionType(opt.value)}>
+                            {opt.label}<span className="qp-type-sub">{opt.sub}</span>
+                          </button>
+                        ))}
                       </div>
+
+                      {/* Unified session card */}
+                      <div className="card">
+                        <div className="qp-section-label">
+                          Recording: {quranSessionType === 'tilawah' ? 'Tilawah (Recitation)' : quranSessionType === 'hifz' ? 'Hifdh (Memorization)' : 'Muraja\'ah (Revision)'}
+                        </div>
+                        <div className="form-grid form-grid-2">
+                          <div className="form-group">
+                            <label className="form-label">Student</label>
+                            <select className="form-select" value={quranSelectedStudent?.id || ''} onChange={e => handleSelectQuranStudent(e.target.value)}>
+                              <option value="">Select student…</option>
+                              {students.filter(s => s.class_id === selectedClass.id).map(s => (
+                                <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Date</label>
+                            <input type="date" className="form-input" value={quranDate} max={getLocalDate()} onChange={e => setQuranDate(e.target.value)} />
+                          </div>
+                        </div>
+
+                        {/* Position banner + form (shown when student selected) */}
+                        {quranSelectedStudent && quranStudentPosition && (
+                          <>
+                            {(() => {
+                              const pos = quranSessionType === 'hifz' ? quranStudentPosition.hifz
+                                : quranSessionType === 'tilawah' ? quranStudentPosition.tilawah
+                                : quranStudentPosition.revision;
+                              return pos ? (
+                                <div className="qp-position-banner">
+                                  <div>
+                                    <strong>{pos.surah_number}. {pos.surah_name}</strong>
+                                    {pos.ayah && <span className="qp-pos-detail"> — up to Ayah {pos.ayah}</span>}
+                                  </div>
+                                  <div className="qp-pos-juz">Juz {pos.juz}</div>
+                                </div>
+                              ) : (
+                                <div className="qp-position-banner qp-new-student">
+                                  Not started yet — this will be {quranSelectedStudent.first_name}'s first {quranSessionType === 'tilawah' ? 'tilawah' : quranSessionType === 'hifz' ? 'hifdh' : 'revision'} session.
+                                </div>
+                              );
+                            })()}
+
+                            <div className="form-grid form-grid-3">
+                              <div className="form-group">
+                                <label className="form-label">Surah</label>
+                                <select className="form-select" value={quranSurah} onChange={e => { setQuranSurah(e.target.value); setQuranAyahFrom(''); setQuranAyahTo(''); }}>
+                                  <option value="">Select Surah</option>
+                                  {surahs.map(s => <option key={s.n} value={s.n}>{s.n}. {s.name} (Juz {s.juz})</option>)}
+                                </select>
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label">Ayah From *</label>
+                                <input type="number" className="form-input" min="1" max={quranSurah ? surahs.find(s => s.n === parseInt(quranSurah))?.ayahs : undefined} placeholder="e.g. 1" value={quranAyahFrom} onChange={e => setQuranAyahFrom(e.target.value)} />
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label">Ayah To *</label>
+                                <input type="number" className="form-input" min="1" max={quranSurah ? surahs.find(s => s.n === parseInt(quranSurah))?.ayahs : undefined} placeholder={quranSurah ? `max ${surahs.find(s => s.n === parseInt(quranSurah))?.ayahs || ''}` : 'e.g. 10'} value={quranAyahTo} onChange={e => setQuranAyahTo(e.target.value)} />
+                              </div>
+                            </div>
+
+                            <div className="form-grid form-grid-3" style={{ marginTop: '12px' }}>
+                              <div className="form-group">
+                                <label className="form-label">Grade</label>
+                                <select className="form-select" value={quranGrade} onChange={e => setQuranGrade(e.target.value)}>
+                                  <option value="Excellent">Excellent</option>
+                                  <option value="Good">Good</option>
+                                  <option value="Fair">Fair</option>
+                                  <option value="Needs Improvement">Needs Improvement</option>
+                                </select>
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label">Outcome</label>
+                                <div className="qp-outcome-toggle">
+                                  <button type="button" className={`qp-outcome-btn pass${quranPassed ? ' active' : ''}`} onClick={() => setQuranPassed(true)}>Pass</button>
+                                  <button type="button" className={`qp-outcome-btn repeat${!quranPassed ? ' active' : ''}`} onClick={() => setQuranPassed(false)}>Repeat</button>
+                                </div>
+                              </div>
+                              <div className="form-group">
+                                <label className="form-label">Notes</label>
+                                <input type="text" className="form-input" placeholder="Optional notes…" value={quranNotes} onChange={e => setQuranNotes(e.target.value)} />
+                              </div>
+                            </div>
+
+                            <div className={`qp-info-banner ${quranPassed ? 'pass' : 'fail'}`}>
+                              {quranPassed
+                                ? (quranSessionType === 'revision'
+                                    ? 'Student passed — revision recorded.'
+                                    : 'Student passed — their position will advance to the new ayah.')
+                                : 'Student did not pass — they need to repeat this assignment next time. Position stays the same.'
+                              }
+                            </div>
+
+                            <div className="form-actions" style={{ marginTop: 'var(--md)' }}>
+                              <button className="btn btn-primary" onClick={handleRecordQuran} disabled={quranSaving}>
+                                {quranSaving ? 'Saving…' : quranPassed ? 'Save & Advance' : 'Save as Repeat'}
+                              </button>
+                            </div>
+                          </>
+                        )}
+
+                        {/* Empty state — no student selected */}
+                        {!quranSelectedStudent && (
+                          <div style={{ textAlign: 'center', padding: 'var(--lg) 0' }}>
+                            <div className="empty-icon">
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                              </svg>
+                            </div>
+                            <p className="empty">Select a student to begin recording</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Student's recent history — filtered to selected type */}
+                      {quranSelectedStudent && quranStudentPosition && quranStudentHistory.filter(r => r.type === quranSessionType).length > 0 && (
+                        <div className="card">
+                          <h3>Recent {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifdh' : 'Revision'} Sessions</h3>
+                          <div className="table-wrap">
+                            <table className="table">
+                              <thead>
+                                <tr><th>Date</th><th>Surah</th><th>Ayahs</th><th>Grade</th><th>Result</th></tr>
+                              </thead>
+                              <tbody>
+                                {quranStudentHistory.filter(r => r.type === quranSessionType).map(r => (
+                                  <tr key={r.id}>
+                                    <td>{fmtDate(r.date)}</td>
+                                    <td>{r.surah_number}. {r.surah_name}</td>
+                                    <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : r.ayah_from ? `From ${r.ayah_from}` : '—'}</td>
+                                    <td>
+                                      <span className={`badge ${r.grade === 'Excellent' ? 'badge-success' : r.grade === 'Good' ? 'badge-info' : r.grade === 'Fair' ? 'badge-warning' : 'badge-danger'}`}>
+                                        {r.grade}
+                                      </span>
+                                    </td>
+                                    <td><span className={`qp-result ${r.passed ? 'pass' : 'fail'}`}>{r.passed ? 'Passed' : 'Repeat'}</span></td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Class Overview Sub-tab */}
+                  {quranSubTab === 'positions' && (
+                    <div className="card">
+                      <h3>Class Overview — Current Positions</h3>
+                      {quranPositions.length === 0 ? (
+                        <p className="empty">No students found in this class.</p>
+                      ) : (
+                        <div className="table-wrap">
+                          <table className="table">
+                            <thead>
+                              <tr><th>Student</th><th>Hifdh Position</th><th>Tilawah Position</th><th>Revision Position</th><th>Last Updated</th></tr>
+                            </thead>
+                            <tbody>
+                              {quranPositions.map(s => (
+                                <tr key={s.id}>
+                                  <td><strong>{s.first_name} {s.last_name}</strong></td>
+                                  <td>{s.current_surah_name ? <span>{s.current_surah_number}. {s.current_surah_name}{s.current_ayah ? ` (Ayah ${s.current_ayah})` : ''}</span> : <span className="text-muted">Not started</span>}</td>
+                                  <td>{s.tilawah_surah_name ? <span>{s.tilawah_surah_number}. {s.tilawah_surah_name}{s.tilawah_ayah ? ` (Ayah ${s.tilawah_ayah})` : ''}</span> : <span className="text-muted">Not started</span>}</td>
+                                  <td>{s.revision_surah_name ? <span>{s.revision_surah_number}. {s.revision_surah_name}{s.revision_ayah ? ` (Ayah ${s.revision_ayah})` : ''}</span> : <span className="text-muted">Not started</span>}</td>
+                                  <td>{s.last_updated ? fmtDate(s.last_updated) : '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* History Sub-tab */}
+                  {quranSubTab === 'history' && (
+                    <div className="card">
+                      <h3>Progress History</h3>
+                      {quranRecords.length === 0 ? (
+                        <p className="empty">No records found for this semester.</p>
+                      ) : (
+                        <div className="table-wrap">
+                          <table className="table">
+                            <thead>
+                              <tr><th>Date</th><th>Student</th><th>Type</th><th>Surah</th><th>Ayahs</th><th>Grade</th><th>Result</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                              {quranRecords.map(r => (
+                                <tr key={r.id}>
+                                  <td>{fmtDate(r.date)}</td>
+                                  <td>{r.first_name} {r.last_name}</td>
+                                  <td>
+                                    <span className={`badge ${r.type === 'hifz' ? 'badge-success' : r.type === 'revision' ? 'badge-info' : 'badge-muted'}`}>
+                                      {r.type === 'hifz' ? 'Hifdh' : r.type === 'revision' ? 'Revision' : 'Tilawah'}
+                                    </span>
+                                  </td>
+                                  <td>{r.surah_number}. {r.surah_name}</td>
+                                  <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : r.ayah_from ? `From ${r.ayah_from}` : '—'}</td>
+                                  <td>
+                                    <span className={`badge ${r.grade === 'Excellent' ? 'badge-success' : r.grade === 'Good' ? 'badge-info' : r.grade === 'Fair' ? 'badge-warning' : 'badge-danger'}`}>
+                                      {r.grade}
+                                    </span>
+                                  </td>
+                                  <td><span className={`qp-result ${r.passed ? 'pass' : 'fail'}`}>{r.passed ? 'Pass' : 'Repeat'}</span></td>
+                                  <td><button className="btn btn-sm btn-danger" onClick={() => handleDeleteQuranRecord(r.id)}>✕</button></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
-              )}
-
-              {/* Positions Sub-Tab */}
-              {quranSubTab === 'positions' && selectedClass && (
-                <div className="card">
-                  {quranPositions.length > 0 ? (
-                    <div className="table-responsive">
-                      <table className="table">
-                        <thead><tr><th>Student</th><th>Hifz</th><th>Tilawah</th><th>Revision</th><th>Updated</th></tr></thead>
-                        <tbody>
-                          {quranPositions.map(s => (
-                            <tr key={s.id}>
-                              <td><strong>{s.first_name} {s.last_name}</strong></td>
-                              <td>{s.current_surah_name ? `${s.current_surah_name} (${s.current_ayah})` : '—'}</td>
-                              <td>{s.tilawah_surah_name ? `${s.tilawah_surah_name} (${s.tilawah_ayah})` : '—'}</td>
-                              <td>{s.revision_surah_name ? `${s.revision_surah_name} (${s.revision_ayah})` : '—'}</td>
-                              <td>{s.last_updated ? fmtDate(s.last_updated) : '—'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="empty"><p>No Qur'an positions recorded yet.</p></div>
-                  )}
-                </div>
-              )}
-
-              {/* History Sub-Tab */}
-              {quranSubTab === 'history' && selectedClass && (
-                <div className="card">
-                  {quranRecords.length > 0 ? (
-                    <div className="table-responsive">
-                      <table className="table">
-                        <thead><tr><th>Date</th><th>Student</th><th>Type</th><th>Surah</th><th>Ayahs</th><th>Grade</th><th>Result</th><th></th></tr></thead>
-                        <tbody>
-                          {quranRecords.map(r => (
-                            <tr key={r.id}>
-                              <td>{fmtDate(r.date)}</td>
-                              <td>{r.first_name} {r.last_name}</td>
-                              <td style={{ textTransform: 'capitalize' }}>{r.type}</td>
-                              <td>{r.surah_name}</td>
-                              <td>{r.ayah_from}–{r.ayah_to}</td>
-                              <td>{r.grade}</td>
-                              <td><span className={`badge ${r.passed ? 'badge-success' : 'badge-warning'}`}>{r.passed ? 'Passed' : 'Repeat'}</span></td>
-                              <td>
-                                <button onClick={() => setConfirmModal({
-                                  message: 'Delete this Qur\'an record?',
-                                  onConfirm: () => { handleDeleteQuranRecord(r.id); setConfirmModal(null); }
-                                })} className="btn btn-danger btn-sm">Delete</button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="empty"><p>No progress records found.</p></div>
-                  )}
-                </div>
-              )}
-
-              {!selectedClass && (
-                <div className="card"><div className="empty"><p>Select a class to manage Qur'an progress.</p></div></div>
               )}
             </>
           )}

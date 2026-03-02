@@ -997,12 +997,12 @@ function SoloDashboard() {
     { label: 'Manage', items: [
       { id: 'classes', label: 'Classes' },
       { id: 'students', label: 'Students' },
-      ...(madrasahProfile?.enable_fee_tracking ? [{ id: 'fees', label: 'Fees' }] : []),
+      ...(madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false ? [{ id: 'fees', label: 'Fees' }] : []),
     ]},
     { label: 'Teach', items: [
       { id: 'attendance', label: 'Attendance' },
       { id: 'exams', label: 'Exam Recording' },
-      ...(madrasahProfile?.enable_quran_tracking ? [{ id: 'quran', label: "Qur'an" }] : []),
+      ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? [{ id: 'quran', label: "Qur'an Tracker" }] : []),
     ]},
     { label: 'Tools', items: [
       { id: 'planner', label: 'Planner' },

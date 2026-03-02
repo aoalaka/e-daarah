@@ -176,6 +176,12 @@ function Landing() {
           <p className="section-desc">14-day free trial. No credit card required. All prices in USD.</p>
           <div className="pricing-grid">
             <div className="price-card">
+              <h3>Solo</h3>
+              <div className="price"><span className="price-currency">USD</span> $5<span>/mo</span></div>
+              <p>Up to 30 students</p>
+              <button onClick={() => navigate('/register')} className="btn secondary">Start Trial</button>
+            </div>
+            <div className="price-card">
               <h3>Standard</h3>
               <div className="price"><span className="price-currency">USD</span> $12<span>/mo</span></div>
               <p>Up to 100 students</p>

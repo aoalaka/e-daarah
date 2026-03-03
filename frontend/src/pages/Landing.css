@@ -727,38 +727,30 @@
 
 .who-grid {
   display: grid;
-  gap: 16px;
+  gap: 1px;
+  background: var(--light);
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 .who-card {
-  text-align: center;
-  padding: 32px 24px;
-  border: 1px solid var(--light);
-  border-radius: var(--radius);
+  text-align: left;
+  padding: 24px;
   background: #fff;
-  transition: border-color var(--transition-normal);
-}
-
-.who-card:hover {
-  border-color: var(--dark);
-}
-
-.who-icon {
-  font-size: 28px;
-  display: block;
-  margin-bottom: 14px;
 }
 
 .who-card h3 {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   margin-bottom: 6px;
+  color: var(--dark);
 }
 
 .who-card p {
   font-size: 14px;
   color: var(--gray);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* ── Before / After ── */
@@ -775,35 +767,18 @@
 
 .ba-col {
   padding: 28px 24px;
+  border: 1px solid var(--light);
   border-radius: var(--radius);
+  background: #fff;
 }
 
 .ba-col h3 {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 2px solid;
-}
-
-.ba-before {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-}
-
-.ba-before h3 {
-  color: #dc2626;
-  border-color: #fca5a5;
-}
-
-.ba-after {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-}
-
-.ba-after h3 {
-  color: #16a34a;
-  border-color: #86efac;
+  border-bottom: 1px solid var(--light);
+  color: var(--dark);
 }
 
 .ba-col ul {
@@ -812,33 +787,35 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .ba-col li {
   font-size: 14px;
-  line-height: 1.5;
-  color: var(--dark);
-  padding-left: 24px;
+  line-height: 1.55;
+  color: var(--gray);
+  padding-left: 20px;
   position: relative;
 }
 
 .ba-before li::before {
-  content: '✗';
+  content: '–';
   position: absolute;
   left: 0;
-  color: #dc2626;
-  font-weight: 700;
-  font-size: 13px;
+  color: var(--gray);
+  font-weight: 400;
 }
 
 .ba-after li::before {
-  content: '✓';
+  content: '–';
   position: absolute;
   left: 0;
-  color: #16a34a;
-  font-weight: 700;
-  font-size: 13px;
+  color: var(--dark);
+  font-weight: 400;
+}
+
+.ba-after li {
+  color: var(--dark);
 }
 
 /* ── FAQ ── */

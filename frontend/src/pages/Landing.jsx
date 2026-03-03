@@ -199,22 +199,18 @@ function Landing() {
           <h2 className="section-heading">Built for madrasahs. Works for any school.</h2>
           <div className="who-grid">
             <div className="who-card">
-              <span className="who-icon">🕌</span>
               <h3>Weekend Madrasahs</h3>
               <p>Saturday / Sunday classes where tracking attendance on paper is easy to forget and hard to keep consistent.</p>
             </div>
             <div className="who-card">
-              <span className="who-icon">📖</span>
               <h3>Full-time Islamic Schools</h3>
               <p>Larger institutions with multiple teachers, classes, and the need for proper admin and parent communication.</p>
             </div>
             <div className="who-card">
-              <span className="who-icon">🎓</span>
               <h3>After-school Programs</h3>
               <p>Evening or after-school Qur'an classes, hifz circles, or Islamic studies — any recurring program with students to track.</p>
             </div>
             <div className="who-card">
-              <span className="who-icon">🏫</span>
               <h3>Any School</h3>
               <p>Not a madrasah? No problem. Attendance, fees, exams, and parent access work for any small to mid-size school.</p>
             </div>

@@ -262,6 +262,21 @@ function AdminDashboard() {
     document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
   }, [activeTab]);
 
+  // Keyboard shortcut: "/" to focus search
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        e.preventDefault();
+        const input = document.querySelector('.table-search-input') || document.querySelector('.mobile-cards-search input');
+        input?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Auto-trigger guided tour for first-time users
   useEffect(() => {
     if (!loading && !localStorage.getItem('tour_admin_done')) {
@@ -1617,8 +1632,18 @@ function AdminDashboard() {
         )}
 
         {/* Main Content */}
-        <main className="main">
-          {/* Overview Tab */}
+        <main className="main tab-content" key={activeTab}>
+          {loading && activeTab !== 'overview' && activeTab !== 'help' && activeTab !== 'settings' ? (
+            <div className="stats-grid">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="stat-card">
+                  <div className="skeleton skeleton-text" style={{ width: '60%', height: '20px', marginBottom: '8px' }} />
+                  <div className="skeleton skeleton-text short" style={{ height: '14px' }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+          <>
           {activeTab === 'overview' && (
             <>
               {/* Greeting + Context */}
@@ -7225,6 +7250,8 @@ function AdminDashboard() {
                 </div>
               </div>
             </>
+          )}
+          </>
           )}
         </main>
       </div>

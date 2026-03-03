@@ -206,6 +206,21 @@ function SoloDashboard() {
     document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
   }, [activeTab]);
 
+  // ─── Keyboard shortcut: "/" to focus search ─────
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        e.preventDefault();
+        const input = document.querySelector('.table-search-input') || document.querySelector('.mobile-cards-search input');
+        input?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // ─── Close profile dropdown on outside click ────
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -736,7 +751,7 @@ function SoloDashboard() {
       return;
     }
     setSaving(true);
-    try {
+    const savePromise = (async () => {
       for (const student of attendanceStudents) {
         const record = attendanceRecords[student.id];
         if (record) {
@@ -753,12 +768,13 @@ function SoloDashboard() {
           });
         }
       }
-      toast.success('Attendance saved');
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to save attendance');
-    } finally {
-      setSaving(false);
-    }
+    })();
+    toast.promise(savePromise, {
+      loading: 'Saving attendance...',
+      success: 'Attendance saved',
+      error: 'Failed to save attendance'
+    });
+    try { await savePromise; } catch {} finally { setSaving(false); }
   };
 
   // ─── Exam Performance ────────────────────────────
@@ -1382,7 +1398,7 @@ function SoloDashboard() {
         <AnnouncementBanner />
 
         {/* Main Content */}
-        <main className="main">
+        <main className="main tab-content" key={activeTab}>
 
           {/* ═══════ OVERVIEW TAB ═══════ */}
           {activeTab === 'overview' && (

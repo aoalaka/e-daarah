@@ -9,6 +9,7 @@ function Landing() {
   const [openFaq, setOpenFaq] = useState(null);
   const revealRefs = useRef([]);
   const [scrolled, setScrolled] = useState(false);
+  const [heroAnimKey, setHeroAnimKey] = useState(0);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -31,6 +32,14 @@ function Landing() {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Hero animation loop — replay every 8 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroAnimKey(k => k + 1);
+    }, 8000);
+    return () => clearInterval(interval);
   }, []);
 
   const addRevealRef = (el) => {
@@ -114,7 +123,7 @@ function Landing() {
           </div>
 
           {/* Animated attendance card */}
-          <div className="hero-visual">
+          <div className="hero-visual animating" key={heroAnimKey}>
             <div className="attendance-card">
               <div className="ac-header">
                 <span className="ac-dot"></span>

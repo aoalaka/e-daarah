@@ -34,6 +34,21 @@ function TeacherDashboard() {
     document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
   }, [activeTab]);
 
+  // Keyboard shortcut: "/" to focus search
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        e.preventDefault();
+        const input = document.querySelector('.table-search-input') || document.querySelector('.mobile-cards-search input');
+        input?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const [confirmModal, setConfirmModal] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [semesters, setSemesters] = useState([]);
@@ -946,27 +961,28 @@ function TeacherDashboard() {
     }
 
     setSaving(true);
+    const records = students.map(student => ({
+      student_id: student.id,
+      present: attendanceRecords[student.id]?.present ?? false,
+      absence_reason: attendanceRecords[student.id]?.absence_reason || null,
+      dressing_grade: attendanceRecords[student.id]?.dressing_grade || '',
+      behavior_grade: attendanceRecords[student.id]?.behavior_grade || '',
+      punctuality_grade: attendanceRecords[student.id]?.punctuality_grade || '',
+      notes: attendanceRecords[student.id]?.notes || ''
+    }));
+    const savePromise = api.post(`/teacher/classes/${selectedClass.id}/attendance/bulk`, {
+      semester_id: selectedSemester.id,
+      date: attendanceDate,
+      records,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
+    toast.promise(savePromise, {
+      loading: 'Saving attendance...',
+      success: 'Attendance saved successfully!',
+      error: 'Failed to save attendance'
+    });
     try {
-      const records = students.map(student => ({
-        student_id: student.id,
-        present: attendanceRecords[student.id]?.present ?? false,
-        absence_reason: attendanceRecords[student.id]?.absence_reason || null,
-        dressing_grade: attendanceRecords[student.id]?.dressing_grade || '',
-        behavior_grade: attendanceRecords[student.id]?.behavior_grade || '',
-        punctuality_grade: attendanceRecords[student.id]?.punctuality_grade || '',
-        notes: attendanceRecords[student.id]?.notes || ''
-      }));
-
-      console.log('Saving attendance:', { semester_id: selectedSemester.id, date: attendanceDate, records });
-
-      await api.post(`/teacher/classes/${selectedClass.id}/attendance/bulk`, {
-        semester_id: selectedSemester.id,
-        date: attendanceDate,
-        records,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-      });
-
-      toast.success('Attendance saved successfully!');
+      await savePromise;
       
       // Move to next day and clear attendance records
       const nextDay = new Date(attendanceDate);
@@ -976,7 +992,6 @@ function TeacherDashboard() {
       setAttendanceRecords({}); // Clear records for blank form
     } catch (error) {
       console.error('Failed to save attendance:', error);
-      toast.error(error.response?.data?.error || 'Failed to save attendance');
     } finally {
       setSaving(false);
     }
@@ -1458,7 +1473,7 @@ function TeacherDashboard() {
         )}
 
         {/* Main Content */}
-        <main className="main">
+        <main className="main tab-content" key={activeTab}>
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <>
@@ -1473,11 +1488,13 @@ function TeacherDashboard() {
               </div>
 
               {overviewLoading ? (
-                <div className="card">
-                  <div className="loading-state">
-                    <div className="loading-spinner"></div>
-                    <p>Loading overview...</p>
-                  </div>
+                <div className="stats-grid">
+                  {[1,2,3,4].map(i => (
+                    <div key={i} className="stat-card">
+                      <div className="skeleton skeleton-text" style={{ width: '50%', height: '28px', marginBottom: '8px' }} />
+                      <div className="skeleton skeleton-text short" style={{ height: '12px' }} />
+                    </div>
+                  ))}
                 </div>
               ) : overviewData ? (
                 <>

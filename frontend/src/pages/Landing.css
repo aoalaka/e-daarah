@@ -281,6 +281,7 @@
 
 .nav-link:hover {
   color: var(--black);
+  text-decoration: none;
 }
 
 .nav-link.primary {
@@ -462,18 +463,21 @@
   padding: 12px 20px;
   border-bottom: 1px solid var(--lighter, #f5f5f5);
   opacity: 0;
-  animation: fadeInRow 0.4s ease-out forwards;
 }
 
 .ac-row:last-child {
   border-bottom: none;
 }
 
-.ac-row.row-1 { animation-delay: 0.6s; }
-.ac-row.row-2 { animation-delay: 0.9s; }
-.ac-row.row-3 { animation-delay: 1.2s; }
-.ac-row.row-4 { animation-delay: 1.5s; }
-.ac-row.row-5 { animation-delay: 1.8s; }
+.hero-visual.animating .ac-row {
+  animation: fadeInRow 0.4s ease-out forwards;
+}
+
+.hero-visual.animating .ac-row.row-1 { animation-delay: 0.6s; }
+.hero-visual.animating .ac-row.row-2 { animation-delay: 0.9s; }
+.hero-visual.animating .ac-row.row-3 { animation-delay: 1.2s; }
+.hero-visual.animating .ac-row.row-4 { animation-delay: 1.5s; }
+.hero-visual.animating .ac-row.row-5 { animation-delay: 1.8s; }
 
 @keyframes fadeInRow {
   from { opacity: 0; transform: translateX(-8px); }
@@ -496,6 +500,9 @@
   font-size: 14px;
   font-weight: 700;
   opacity: 0;
+}
+
+.hero-visual.animating .ac-check {
   animation: popIn 0.3s ease-out forwards;
 }
 
@@ -524,6 +531,9 @@
   padding: 16px 20px;
   border-top: 1px solid var(--light);
   opacity: 0;
+}
+
+.hero-visual.animating .ac-footer {
   animation: fadeInUp 0.4s ease-out 2.3s forwards;
 }
 
@@ -556,6 +566,9 @@
   width: 0%;
   background: #22c55e;
   border-radius: 3px;
+}
+
+.hero-visual.animating .ac-bar-fill {
   animation: fillBar 0.8s ease-out 2.5s forwards;
 }
 
@@ -582,12 +595,18 @@
 .fee-badge {
   top: -12px;
   right: -24px;
+}
+
+.hero-visual.animating .fee-badge {
   animation: floatIn 0.5s ease-out 2.8s forwards;
 }
 
 .parent-badge {
   bottom: 24px;
   left: -32px;
+}
+
+.hero-visual.animating .parent-badge {
   animation: floatIn 0.5s ease-out 3.2s forwards;
 }
 

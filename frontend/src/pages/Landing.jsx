@@ -8,6 +8,7 @@ function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
   const revealRefs = useRef([]);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -23,6 +24,13 @@ function Landing() {
     );
     revealRefs.current.forEach((el) => el && observer.observe(el));
     return () => observer.disconnect();
+  }, []);
+
+  // Header scroll effect
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const addRevealRef = (el) => {
@@ -53,7 +61,7 @@ function Landing() {
       />
 
       {/* Header */}
-      <header className="landing-header">
+      <header className={`landing-header ${scrolled ? 'header-scrolled' : ''}`}>
         <Link to="/" className="logo">
           <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="logo-img" />
           <span className="logo-text">e-Daarah</span>
@@ -350,7 +358,9 @@ function Landing() {
                   <span>{item.q}</span>
                   <span className="faq-toggle">{openFaq === i ? '−' : '+'}</span>
                 </button>
-                {openFaq === i && <p className="faq-answer">{item.a}</p>}
+                <div className="faq-answer-wrap">
+                  <p className="faq-answer">{item.a}</p>
+                </div>
               </div>
             ))}
           </div>

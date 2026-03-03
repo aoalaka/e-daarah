@@ -722,6 +722,8 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .form-group.full {
@@ -748,6 +750,9 @@
   color: var(--text-primary);
   background: #ffffff;
   transition: border-color var(--transition-normal);
+  box-sizing: border-box;
+  max-width: 100%;
+  width: 100%;
 }
 
 .form-group input:focus,

@@ -266,7 +266,7 @@
 }
 
 .hero {
-  padding: 64px 20px 80px;
+  padding: 48px 20px 72px;
   background:
     radial-gradient(circle, var(--light) 1px, transparent 1px);
   background-size: 24px 24px;
@@ -285,9 +285,9 @@
 }
 
 .hero-title {
-  font-size: 40px;
+  font-size: 44px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.08;
   letter-spacing: -1.5px;
   margin-bottom: 20px;
   animation: fadeInUp 0.5s ease-out both;
@@ -1140,11 +1140,11 @@
   }
 
   .hero {
-    padding: 80px 40px 96px;
+    padding: 64px 40px 80px;
   }
 
   .hero-title {
-    font-size: 52px;
+    font-size: 56px;
   }
 
   .hero-actions {
@@ -1260,7 +1260,8 @@
     align-items: center;
     text-align: left;
     width: 100%;
-    padding: 40px 0;
+    padding: 0;
+    margin-top: -24px;
   }
 
   .hero-content {
@@ -1268,12 +1269,12 @@
   }
 
   .hero-title {
-    font-size: 56px;
+    font-size: 60px;
   }
 
   .hero-subtitle {
     margin: 0 0 32px;
-    font-size: 17px;
+    font-size: 18px;
   }
 
   .hero-actions {
@@ -1304,7 +1305,7 @@
   }
 
   .hero-title {
-    font-size: 64px;
+    font-size: 72px;
   }
 }
 
@@ -1342,7 +1343,7 @@
   }
 
   .hero {
-    padding: 48px 16px 64px;
+    padding: 36px 16px 56px;
   }
 
   .hero-content {
@@ -1350,7 +1351,7 @@
   }
 
   .hero-title {
-    font-size: 36px;
+    font-size: 38px;
     letter-spacing: -1px;
   }
 

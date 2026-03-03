@@ -1788,6 +1788,15 @@ function TeacherDashboard() {
 
                   {selectedClass && selectedSemester && students.length > 0 && (
                     <div className="card attendance-recording-card">
+                      {/* Hint: grading fields available */}
+                      {(madrasahProfile?.enable_dressing_grade === 0 || madrasahProfile?.enable_dressing_grade === false) &&
+                       (madrasahProfile?.enable_behavior_grade === 0 || madrasahProfile?.enable_behavior_grade === false) &&
+                       (madrasahProfile?.enable_punctuality_grade === 0 || madrasahProfile?.enable_punctuality_grade === false) && (
+                        <div style={{ padding: '10px 16px', background: '#f0f9ff', borderBottom: '1px solid #bae6fd', fontSize: '13px', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>💡</span>
+                          <span>You can also grade dressing, behavior, and punctuality during attendance. Ask your admin to enable these in Settings.</span>
+                        </div>
+                      )}
                       {/* Desktop Table View */}
                       <div className="table-wrap">
                         <table className="table">

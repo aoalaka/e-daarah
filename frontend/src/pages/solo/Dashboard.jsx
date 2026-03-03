@@ -1345,7 +1345,7 @@ function SoloDashboard() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
                 Change Password
               </button>
-              <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); }}>
+              <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); setTimeout(() => document.getElementById('settings-attendance-features')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
                 Settings
               </button>
@@ -2448,6 +2448,15 @@ function SoloDashboard() {
 
                   {selectedClass && activeSemester && attendanceStudents.length > 0 && (
                     <div className="card attendance-recording-card">
+                      {/* Hint: grading fields available */}
+                      {(madrasahProfile?.enable_dressing_grade === 0 || madrasahProfile?.enable_dressing_grade === false) &&
+                       (madrasahProfile?.enable_behavior_grade === 0 || madrasahProfile?.enable_behavior_grade === false) &&
+                       (madrasahProfile?.enable_punctuality_grade === 0 || madrasahProfile?.enable_punctuality_grade === false) && (
+                        <div style={{ padding: '10px 16px', background: '#f0f9ff', borderBottom: '1px solid #bae6fd', fontSize: '13px', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>💡</span>
+                          <span>You can also grade dressing, behavior, and punctuality during attendance. <button onClick={() => { handleTabChange('settings'); setTimeout(() => document.getElementById('settings-attendance-features')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} style={{ background: 'none', border: 'none', color: '#0369a1', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: '13px', textDecoration: 'underline' }}>Enable in Settings</button></span>
+                        </div>
+                      )}
                       {/* Desktop Table View */}
                       <div className="table-wrap">
                         <table className="table">
@@ -3520,7 +3529,7 @@ function SoloDashboard() {
               </div>
 
               {/* Attendance Features */}
-              <div className="card" style={{ marginTop: '20px' }}>
+              <div className="card" id="settings-attendance-features" style={{ marginTop: '20px' }}>
                 <h3>Attendance Features</h3>
                 <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
                   Choose which grading fields appear when recording attendance.

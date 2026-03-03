@@ -1314,10 +1314,16 @@ router.get('/coupons', authenticateSuperAdmin, async (req, res) => {
     // Look up madrasah names for customer-restricted codes
     // Filter out promo codes whose coupon has been deleted
     const enriched = (await Promise.all(promoCodes.data.map(async (pc) => {
-      const coupon = pc.promotion?.coupon || pc.coupon || {};
+      const rawCoupon = pc.promotion?.coupon || pc.coupon;
 
-      // Skip promo codes with deleted or missing coupons
-      if (!coupon.id || coupon.deleted) return null;
+      // Skip if coupon is missing, is just a string ID (not expanded = deleted),
+      // has deleted flag, or has no duration (always present on valid coupons)
+      if (!rawCoupon) return null;
+      if (typeof rawCoupon === 'string') return null;
+      if (rawCoupon.deleted) return null;
+      if (!rawCoupon.duration) return null;
+
+      const coupon = rawCoupon;
 
       let madrasahName = null;
       if (pc.customer) {

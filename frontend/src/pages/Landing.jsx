@@ -29,12 +29,9 @@ function Landing() {
       <section className="hero">
         <div className="hero-inner">
           <div className="hero-content">
-            <p className="hero-arabic">نظام إدارة المدارس الدينية</p>
-            <h1 className="hero-title">Stop Losing Track<br />of Your Students</h1>
+            <h1 className="hero-title">Attendance<br />for madrasahs.</h1>
             <p className="hero-subtitle">
-              Paper registers get lost. Parents owe fees but there's no clear record
-              to show them. And everyone keeps asking "was my child there today?" —
-              e-Daarah replaces all of that with one simple system.
+              Track who showed up, who owes fees, and keep parents informed — without paper registers.
             </p>
             <div className="hero-actions">
               <button onClick={() => navigate('/register')} className="btn primary">
@@ -46,11 +43,65 @@ function Landing() {
             </div>
             <p className="hero-signin">Already have an account? <Link to="/signin">Sign in</Link></p>
           </div>
-          <div className="hero-preview">
-            <picture>
-              <source media="(max-width: 480px)" srcSet="/mobile-attendance-taking-preview.jpeg" />
-              <img src="/dashboard-preview.png" alt="e-Daarah admin dashboard" className="hero-preview-img" />
-            </picture>
+
+          {/* Animated attendance card */}
+          <div className="hero-visual">
+            <div className="attendance-card">
+              <div className="ac-header">
+                <span className="ac-dot"></span>
+                <span className="ac-title">Today's Attendance</span>
+                <span className="ac-date">Monday, 3 Feb</span>
+              </div>
+              <div className="ac-rows">
+                <div className="ac-row row-1">
+                  <span className="ac-name">Ahmad Hassan</span>
+                  <span className="ac-check present">✓</span>
+                </div>
+                <div className="ac-row row-2">
+                  <span className="ac-name">Fatima Omar</span>
+                  <span className="ac-check present">✓</span>
+                </div>
+                <div className="ac-row row-3">
+                  <span className="ac-name">Yusuf Ibrahim</span>
+                  <span className="ac-check present">✓</span>
+                </div>
+                <div className="ac-row row-4">
+                  <span className="ac-name">Aisha Mohammed</span>
+                  <span className="ac-check absent">✗</span>
+                </div>
+                <div className="ac-row row-5">
+                  <span className="ac-name">Ibrahim Suleiman</span>
+                  <span className="ac-check present">✓</span>
+                </div>
+              </div>
+              <div className="ac-footer">
+                <div className="ac-stat">
+                  <span className="ac-stat-label">Present</span>
+                  <span className="ac-stat-value">4 / 5</span>
+                </div>
+                <div className="ac-bar">
+                  <div className="ac-bar-fill"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Floating fee badge */}
+            <div className="hero-badge fee-badge">
+              <span className="badge-icon">$</span>
+              <div className="badge-text">
+                <span className="badge-label">Fees Collected</span>
+                <span className="badge-value">78%</span>
+              </div>
+            </div>
+
+            {/* Floating parent badge */}
+            <div className="hero-badge parent-badge">
+              <span className="badge-icon">👤</span>
+              <div className="badge-text">
+                <span className="badge-label">Parent Notified</span>
+                <span className="badge-value">Just now</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

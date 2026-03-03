@@ -104,7 +104,7 @@ function Landing() {
             </p>
             <div className="hero-actions">
               <button onClick={() => navigate('/register')} className="btn primary">
-                Start Free Trial
+                Get Started
               </button>
               <button onClick={() => navigate('/demo')} className="btn secondary">
                 View Demo

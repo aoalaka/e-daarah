@@ -1475,6 +1475,22 @@ router.post('/coupons', authenticateSuperAdmin, async (req, res) => {
 router.patch('/coupons/:promoCodeId', authenticateSuperAdmin, async (req, res) => {
   try {
     const { active } = req.body;
+
+    // If reactivating, check if the promo code or its coupon has expired
+    if (active) {
+      const promoCode = await stripe.promotionCodes.retrieve(req.params.promoCodeId);
+      const now = Math.floor(Date.now() / 1000);
+
+      if (promoCode.expires_at && promoCode.expires_at < now) {
+        return res.status(400).json({ error: 'This coupon has expired and cannot be reactivated. Create a new one instead.' });
+      }
+
+      // Check if the underlying coupon has a redeem_by date that has passed
+      if (promoCode.coupon?.redeem_by && promoCode.coupon.redeem_by < now) {
+        return res.status(400).json({ error: 'The underlying coupon has expired. Create a new coupon and promotion code.' });
+      }
+    }
+
     const updated = await stripe.promotionCodes.update(req.params.promoCodeId, {
       active: !!active
     });
@@ -1484,7 +1500,10 @@ router.patch('/coupons/:promoCodeId', authenticateSuperAdmin, async (req, res) =
     res.json({ id: updated.id, active: updated.active });
   } catch (error) {
     console.error('Toggle coupon error:', error);
-    res.status(500).json({ error: 'Failed to update coupon' });
+    const msg = error.type === 'StripeInvalidRequestError'
+      ? error.message
+      : 'Failed to update coupon';
+    res.status(error.statusCode || 500).json({ error: msg });
   }
 });
 

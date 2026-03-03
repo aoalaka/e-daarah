@@ -268,11 +268,11 @@ function SuperAdminDashboard() {
 
   const handleToggleCoupon = async (promoCodeId, currentActive) => {
     try {
-      await api.patch(`/superadmin/coupons/${promoCodeId}`, { active: !currentActive }, getAuthHeader());
+      const res = await api.patch(`/superadmin/coupons/${promoCodeId}`, { active: !currentActive }, getAuthHeader());
       toast.success(currentActive ? 'Coupon deactivated' : 'Coupon activated');
       fetchCoupons();
     } catch (error) {
-      toast.error('Failed to update coupon');
+      toast.error(error.response?.data?.error || 'Failed to update coupon');
     }
   };
 

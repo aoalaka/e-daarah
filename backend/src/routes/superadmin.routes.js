@@ -1472,32 +1472,64 @@ router.post('/coupons', authenticateSuperAdmin, async (req, res) => {
 });
 
 // PATCH /superadmin/coupons/:promoCodeId — Toggle active/inactive
+// Stripe limitation: once a promotion code is deactivated, it cannot be reactivated.
+// Workaround: create a new promotion code from the same coupon with the same code.
 router.patch('/coupons/:promoCodeId', authenticateSuperAdmin, async (req, res) => {
   try {
     const { active } = req.body;
 
-    // If reactivating, check if the promo code or its coupon has expired
-    if (active) {
-      const promoCode = await stripe.promotionCodes.retrieve(req.params.promoCodeId);
-      const now = Math.floor(Date.now() / 1000);
-
-      if (promoCode.expires_at && promoCode.expires_at < now) {
-        return res.status(400).json({ error: 'This coupon has expired and cannot be reactivated. Create a new one instead.' });
-      }
-
-      // Check if the underlying coupon has a redeem_by date that has passed
-      if (promoCode.coupon?.redeem_by && promoCode.coupon.redeem_by < now) {
-        return res.status(400).json({ error: 'The underlying coupon has expired. Create a new coupon and promotion code.' });
-      }
+    if (!active) {
+      // Deactivating — straightforward
+      const updated = await stripe.promotionCodes.update(req.params.promoCodeId, { active: false });
+      await logAudit(req, 'DEACTIVATE', 'coupon', req.params.promoCodeId, { active: false });
+      return res.json({ id: updated.id, active: updated.active });
     }
 
-    const updated = await stripe.promotionCodes.update(req.params.promoCodeId, {
-      active: !!active
-    });
+    // Reactivating — try direct update first
+    try {
+      const updated = await stripe.promotionCodes.update(req.params.promoCodeId, { active: true });
+      await logAudit(req, 'ACTIVATE', 'coupon', req.params.promoCodeId, { active: true });
+      return res.json({ id: updated.id, active: updated.active });
+    } catch (stripeErr) {
+      // Stripe doesn't allow reactivation — create a new promo code from the same coupon
+      if (stripeErr.type !== 'StripeInvalidRequestError') throw stripeErr;
 
-    await logAudit(req, 'UPDATE', 'coupon', req.params.promoCodeId, { active: !!active });
+      const oldPromo = await stripe.promotionCodes.retrieve(req.params.promoCodeId);
+      const couponId = oldPromo.coupon?.id || oldPromo.promotion?.coupon?.id;
 
-    res.json({ id: updated.id, active: updated.active });
+      if (!couponId) {
+        return res.status(400).json({ error: 'Cannot determine coupon for this promotion code.' });
+      }
+
+      // Check if coupon itself has expired
+      const coupon = await stripe.coupons.retrieve(couponId);
+      const now = Math.floor(Date.now() / 1000);
+      if (coupon.redeem_by && coupon.redeem_by < now) {
+        return res.status(400).json({ error: 'The underlying coupon has expired. Create a new coupon instead.' });
+      }
+
+      // Build new promo code with same settings
+      const promoParams = {
+        promotion: { type: 'coupon', coupon: couponId },
+        code: oldPromo.code,
+        metadata: oldPromo.metadata || {}
+      };
+
+      if (oldPromo.customer) promoParams.customer = oldPromo.customer;
+      if (oldPromo.max_redemptions) promoParams.max_redemptions = oldPromo.max_redemptions;
+      if (oldPromo.expires_at && oldPromo.expires_at > now) {
+        promoParams.expires_at = oldPromo.expires_at;
+      }
+
+      const newPromo = await stripe.promotionCodes.create(promoParams);
+
+      await logAudit(req, 'REACTIVATE', 'coupon', newPromo.id, {
+        old_promo_id: req.params.promoCodeId,
+        code: newPromo.code
+      });
+
+      return res.json({ id: newPromo.id, active: newPromo.active, recreated: true });
+    }
   } catch (error) {
     console.error('Toggle coupon error:', error);
     const msg = error.type === 'StripeInvalidRequestError'

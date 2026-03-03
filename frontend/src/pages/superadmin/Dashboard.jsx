@@ -266,6 +266,17 @@ function SuperAdminDashboard() {
     }
   };
 
+  const handleDeleteCoupon = async (promoCodeId, couponId, code) => {
+    if (!window.confirm(`Delete coupon "${code}"? This will permanently remove it from Stripe.`)) return;
+    try {
+      await api.delete(`/superadmin/coupons/${promoCodeId}?couponId=${couponId}`, getAuthHeader());
+      toast.success('Coupon deleted');
+      fetchCoupons();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to delete coupon');
+    }
+  };
+
   const handleToggleCoupon = async (promoCodeId, currentActive, couponId) => {
     try {
       const res = await api.patch(`/superadmin/coupons/${promoCodeId}`, { active: !currentActive, couponId }, getAuthHeader());
@@ -1150,12 +1161,19 @@ function SuperAdminDashboard() {
                             {c.active ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td>
+                        <td style={{ display: 'flex', gap: '6px' }}>
                           <button
                             className={`btn-small ${c.active ? 'danger' : 'success'}`}
                             onClick={() => handleToggleCoupon(c.id, c.active, c.couponId)}
                           >
                             {c.active ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button
+                            className="btn-small danger"
+                            onClick={() => handleDeleteCoupon(c.id, c.couponId, c.code)}
+                            title="Delete coupon permanently"
+                          >
+                            Delete
                           </button>
                         </td>
                       </tr>

@@ -1545,17 +1545,38 @@ router.patch('/coupons/:promoCodeId', authenticateSuperAdmin, async (req, res) =
   }
 });
 
-// DELETE /superadmin/coupons/:promoCodeId — Deactivate
+// DELETE /superadmin/coupons/:promoCodeId — Delete coupon
+// Deactivates the promo code and deletes the underlying Stripe coupon
 router.delete('/coupons/:promoCodeId', authenticateSuperAdmin, async (req, res) => {
   try {
-    await stripe.promotionCodes.update(req.params.promoCodeId, { active: false });
+    const { couponId } = req.query;
 
-    await logAudit(req, 'DEACTIVATE', 'coupon', req.params.promoCodeId);
+    // Always deactivate the promo code first
+    try {
+      await stripe.promotionCodes.update(req.params.promoCodeId, { active: false });
+    } catch (e) {
+      // Ignore if already inactive
+    }
 
-    res.json({ message: 'Coupon deactivated' });
+    // Delete the underlying coupon if provided (this makes all promo codes using it invalid)
+    if (couponId) {
+      try {
+        await stripe.coupons.del(couponId);
+      } catch (e) {
+        if (e.type === 'StripeInvalidRequestError' && e.message.includes('No such coupon')) {
+          // Already deleted, that's fine
+        } else {
+          console.error('Failed to delete coupon:', e.message);
+        }
+      }
+    }
+
+    await logAudit(req, 'DELETE', 'coupon', req.params.promoCodeId, { couponId });
+
+    res.json({ message: 'Coupon deleted successfully' });
   } catch (error) {
-    console.error('Deactivate coupon error:', error);
-    res.status(500).json({ error: 'Failed to deactivate coupon' });
+    console.error('Delete coupon error:', error);
+    res.status(500).json({ error: 'Failed to delete coupon' });
   }
 });
 

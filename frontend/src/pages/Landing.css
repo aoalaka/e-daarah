@@ -1,3 +1,98 @@
+/* ── Scroll Reveal ── */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Hamburger Menu ── */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 200;
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--black);
+  border-radius: 1px;
+  transition: all 0.25s ease;
+}
+
+.hamburger-btn.open span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger-btn.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-btn.open span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+
+.mobile-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 150;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.mobile-menu {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 260px;
+  height: 100%;
+  background: #fff;
+  padding: 80px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: slideIn 0.25s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.mobile-menu-link {
+  display: block;
+  padding: 14px 16px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--black);
+  text-decoration: none;
+  border-radius: var(--radius);
+  transition: background var(--transition-normal);
+}
+
+.mobile-menu-link:hover {
+  background: var(--bg);
+}
+
 /* Landing Page */
 
 .landing {
@@ -172,8 +267,11 @@
 
 .hero {
   padding: 64px 20px 80px;
-  background: #fff;
+  background:
+    radial-gradient(circle, var(--light) 1px, transparent 1px);
+  background-size: 24px 24px;
   overflow: hidden;
+  position: relative;
 }
 
 .hero-inner {
@@ -621,6 +719,191 @@
   color: var(--dark);
 }
 
+/* ── Who It's For ── */
+.who-for {
+  padding: 80px 20px;
+  background: #fff;
+}
+
+.who-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.who-card {
+  text-align: center;
+  padding: 32px 24px;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  background: #fff;
+  transition: border-color var(--transition-normal);
+}
+
+.who-card:hover {
+  border-color: var(--dark);
+}
+
+.who-icon {
+  font-size: 28px;
+  display: block;
+  margin-bottom: 14px;
+}
+
+.who-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.who-card p {
+  font-size: 14px;
+  color: var(--gray);
+  line-height: 1.5;
+}
+
+/* ── Before / After ── */
+.before-after {
+  padding: 80px 20px;
+  background: #fff;
+  border-top: 1px solid var(--light);
+}
+
+.ba-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.ba-col {
+  padding: 28px 24px;
+  border-radius: var(--radius);
+}
+
+.ba-col h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid;
+}
+
+.ba-before {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.ba-before h3 {
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.ba-after {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.ba-after h3 {
+  color: #16a34a;
+  border-color: #86efac;
+}
+
+.ba-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ba-col li {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--dark);
+  padding-left: 24px;
+  position: relative;
+}
+
+.ba-before li::before {
+  content: '✗';
+  position: absolute;
+  left: 0;
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.ba-after li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #16a34a;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ── FAQ ── */
+.faq {
+  padding: 80px 20px;
+  background: var(--bg);
+}
+
+.faq-list {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.faq-item {
+  background: #fff;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color var(--transition-normal);
+}
+
+.faq-item.open {
+  border-color: var(--dark);
+}
+
+.faq-question {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--black);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  gap: 16px;
+}
+
+.faq-question:hover {
+  color: var(--dark);
+}
+
+.faq-toggle {
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--muted);
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
+.faq-answer {
+  padding: 0 20px 16px;
+  font-size: 14px;
+  color: var(--gray);
+  line-height: 1.6;
+  animation: fadeInUp 0.2s ease-out;
+}
+
 /* ── Pricing ── */
 .pricing {
   padding: 80px 20px;
@@ -881,12 +1164,32 @@
     grid-template-columns: repeat(3, 1fr);
   }
 
+  .who-for {
+    padding: 96px 40px;
+  }
+
+  .who-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .features {
     padding: 96px 40px;
   }
 
   .feature-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  .before-after {
+    padding: 96px 40px;
+  }
+
+  .ba-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .faq {
+    padding: 96px 40px;
   }
 
   .social-proof {
@@ -982,6 +1285,10 @@
     margin: 0 auto;
   }
 
+  .who-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
   .section-heading {
     font-size: 36px;
   }
@@ -1002,6 +1309,16 @@
 }
 
 /* ── Mobile ── */
+@media (max-width: 640px) {
+  .desktop-nav {
+    display: none;
+  }
+
+  .hamburger-btn {
+    display: flex;
+  }
+}
+
 @media (max-width: 480px) {
   .landing-header {
     padding: 10px 12px;
@@ -1074,7 +1391,10 @@
   }
 
   .how-it-works,
+  .who-for,
   .features,
+  .before-after,
+  .faq,
   .pricing,
   .cta {
     padding: 56px 16px;
@@ -1103,5 +1423,10 @@
 
   .price-card .price {
     font-size: 28px;
+  }
+
+  .faq-question {
+    font-size: 14px;
+    padding: 14px 16px;
   }
 }

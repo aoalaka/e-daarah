@@ -1,9 +1,49 @@
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import SEO from '../components/SEO';
 import './Landing.css';
 
 function Landing() {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
+  const revealRefs = useRef([]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('revealed');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    revealRefs.current.forEach((el) => el && observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  const addRevealRef = (el) => {
+    if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el);
+  };
+
+  // Close menu on route change
+  useEffect(() => {
+    if (menuOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
+
+  const faqItems = [
+    { q: 'Do I need any technical skills?', a: 'No. If you can use WhatsApp, you can use e-Daarah. Setup takes about 10 minutes — add your classes, add students, and you\'re ready to take attendance.' },
+    { q: 'Can parents see their child\'s records?', a: 'Yes. Parents get their own login and can check attendance, conduct grades, exam results, and fee balance anytime — no need to call or message the teacher.' },
+    { q: 'What happens after the 14-day trial?', a: 'You choose a plan that fits your madrasah. If you decide not to continue, your data stays safe for 30 days in case you change your mind. No credit card is needed to start.' },
+    { q: 'Is my data secure?', a: 'Yes. All data is encrypted, stored on secure servers, and each madrasah\'s data is completely isolated. Only your team can access your records.' },
+    { q: 'Can I use this for a non-Islamic school?', a: 'Absolutely. While e-Daarah is designed with madrasahs in mind, any school — Islamic or otherwise — can use it for attendance, fees, exams, and parent communication.' },
+    { q: 'How many teachers can use it?', a: 'The Solo plan is for one person managing everything. Standard, Plus, and Enterprise plans support multiple admin and teacher logins with role-based access.' },
+  ];
 
   return (
     <div className="landing">
@@ -18,12 +58,33 @@ function Landing() {
           <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="logo-img" />
           <span className="logo-text">e-Daarah</span>
         </Link>
-        <nav className="header-nav">
+        <nav className="header-nav desktop-nav">
           <Link to="/pricing" className="nav-link">Pricing</Link>
           <Link to="/demo" className="nav-link">Demo</Link>
           <Link to="/register" className="nav-link primary">Get Started</Link>
         </nav>
+        <button
+          className={`hamburger-btn ${menuOpen ? 'open' : ''}`}
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
       </header>
+
+      {/* Mobile menu overlay */}
+      {menuOpen && (
+        <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}>
+          <nav className="mobile-menu" onClick={(e) => e.stopPropagation()}>
+            <Link to="/pricing" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>Pricing</Link>
+            <Link to="/demo" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>Demo</Link>
+            <Link to="/register" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>Get Started</Link>
+            <Link to="/signin" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>Sign In</Link>
+          </nav>
+        </div>
+      )}
 
       {/* Hero */}
       <section className="hero">
@@ -107,7 +168,7 @@ function Landing() {
       </section>
 
       {/* How It Works */}
-      <section className="how-it-works">
+      <section className="how-it-works scroll-reveal" ref={addRevealRef}>
         <div className="section-inner">
           <p className="section-label">How It Works</p>
           <h2 className="section-heading">Taking attendance shouldn't be hard</h2>
@@ -131,8 +192,38 @@ function Landing() {
         </div>
       </section>
 
+      {/* Who It's For */}
+      <section className="who-for scroll-reveal" ref={addRevealRef}>
+        <div className="section-inner">
+          <p className="section-label">Who It's For</p>
+          <h2 className="section-heading">Built for madrasahs. Works for any school.</h2>
+          <div className="who-grid">
+            <div className="who-card">
+              <span className="who-icon">🕌</span>
+              <h3>Weekend Madrasahs</h3>
+              <p>Saturday / Sunday classes where tracking attendance on paper is easy to forget and hard to keep consistent.</p>
+            </div>
+            <div className="who-card">
+              <span className="who-icon">📖</span>
+              <h3>Full-time Islamic Schools</h3>
+              <p>Larger institutions with multiple teachers, classes, and the need for proper admin and parent communication.</p>
+            </div>
+            <div className="who-card">
+              <span className="who-icon">🎓</span>
+              <h3>After-school Programs</h3>
+              <p>Evening or after-school Qur'an classes, hifz circles, or Islamic studies — any recurring program with students to track.</p>
+            </div>
+            <div className="who-card">
+              <span className="who-icon">🏫</span>
+              <h3>Any School</h3>
+              <p>Not a madrasah? No problem. Attendance, fees, exams, and parent access work for any small to mid-size school.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
-      <section className="features">
+      <section className="features scroll-reveal" ref={addRevealRef}>
         <div className="section-inner">
           <p className="section-label">More than just attendance</p>
           <h2 className="section-heading">Once attendance is sorted, everything else gets easier</h2>
@@ -173,6 +264,38 @@ function Landing() {
             <div className="feature-card">
               <h3>Reports &amp; Exports</h3>
               <p>Download attendance records, student reports, and exam results as CSV or PDF. Ready for your committee meetings.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Before / After */}
+      <section className="before-after scroll-reveal" ref={addRevealRef}>
+        <div className="section-inner">
+          <p className="section-label">The Difference</p>
+          <h2 className="section-heading">What changes when you switch</h2>
+          <div className="ba-grid">
+            <div className="ba-col ba-before">
+              <h3>Without e-Daarah</h3>
+              <ul>
+                <li>Paper register gets lost or forgotten</li>
+                <li>No idea who's been missing for weeks</li>
+                <li>Parents keep asking "was my child there?"</li>
+                <li>Fee records in a notebook — or someone's head</li>
+                <li>End-of-term reports take a whole weekend</li>
+                <li>No exam history or progress tracking</li>
+              </ul>
+            </div>
+            <div className="ba-col ba-after">
+              <h3>With e-Daarah</h3>
+              <ul>
+                <li>Attendance saved in the cloud, always accessible</li>
+                <li>Spot low-attendance students at a glance</li>
+                <li>Parents log in and see everything themselves</li>
+                <li>Clear fee records both you and parents can see</li>
+                <li>Reports generated in seconds, not days</li>
+                <li>Full exam history per student, per semester</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -219,8 +342,27 @@ function Landing() {
       </section>
       */}
 
+      {/* FAQ */}
+      <section className="faq scroll-reveal" ref={addRevealRef}>
+        <div className="section-inner">
+          <p className="section-label">FAQ</p>
+          <h2 className="section-heading">Common questions</h2>
+          <div className="faq-list">
+            {faqItems.map((item, i) => (
+              <div key={i} className={`faq-item ${openFaq === i ? 'open' : ''}`}>
+                <button className="faq-question" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                  <span>{item.q}</span>
+                  <span className="faq-toggle">{openFaq === i ? '−' : '+'}</span>
+                </button>
+                {openFaq === i && <p className="faq-answer">{item.a}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
-      <section id="pricing" className="pricing">
+      <section id="pricing" className="pricing scroll-reveal" ref={addRevealRef}>
         <div className="section-inner">
           <p className="section-label">Pricing</p>
           <h2 className="section-heading">Simple, transparent pricing</h2>

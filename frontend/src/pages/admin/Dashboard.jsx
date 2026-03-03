@@ -2969,10 +2969,10 @@ function AdminDashboard() {
                     <div className="upload-info">
                       <p style={{ margin: 0, fontSize: 13, color: '#666' }}>
                         <strong>Required:</strong> first_name, last_name, gender ·
-                        <strong> Optional:</strong> student_id, email, phone, parent details, notes
+                        <strong> Optional:</strong> class, student_id, email, phone, parent details, notes
                       </p>
                       <p style={{ margin: '4px 0 0', fontSize: 12, color: '#999' }}>
-                        Gender must be Male or Female. If student_id is provided it will be used as-is, otherwise auto-generated.
+                        Gender must be Male or Female. Class must match an existing class name exactly. If student_id is provided it will be used as-is, otherwise auto-generated. The dropdown below is a fallback for rows without a class column value.
                       </p>
                     </div>
 

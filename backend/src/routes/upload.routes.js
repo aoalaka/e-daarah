@@ -129,6 +129,13 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
       }
     }
 
+    // Pre-load all classes for this madrasah (for CSV class name lookup)
+    const [allClasses] = await pool.query(
+      'SELECT id, name FROM classes WHERE madrasah_id = ? AND deleted_at IS NULL',
+      [madrasahId]
+    );
+    const classNameMap = new Map(allClasses.map(c => [c.name.toLowerCase().trim(), c.id]));
+
     let students = [];
 
     // Parse file based on type
@@ -213,6 +220,23 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
         const parentPhone = student.parent_guardian_phone?.trim() || null;
         const notes = student.notes?.trim() || null;
 
+        // Resolve class: CSV "class" column > form dropdown class_id
+        let resolvedClassId = class_id || null;
+        const csvClassName = student.class?.trim();
+        if (csvClassName) {
+          const matchedId = classNameMap.get(csvClassName.toLowerCase());
+          if (matchedId) {
+            resolvedClassId = matchedId;
+          } else {
+            // Class name doesn't match any existing class — warn but don't fail
+            results.failed.push({
+              name: `${student.first_name} ${student.last_name}`,
+              error: `Class "${csvClassName}" not found. Student added without class assignment.`
+            });
+            resolvedClassId = null;
+          }
+        }
+
         // Check if a soft-deleted student with same student_id exists
         const [softDeleted] = await pool.query(
           'SELECT id FROM students WHERE madrasah_id = ? AND student_id = ? AND deleted_at IS NOT NULL',
@@ -225,7 +249,7 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
             `UPDATE students SET first_name = ?, last_name = ?, gender = ?, email = ?, phone = ?, class_id = ?,
              parent_guardian_name = ?, parent_guardian_relationship = ?, parent_guardian_phone = ?, notes = ?,
              deleted_at = NULL WHERE id = ?`,
-            [firstName, lastName, gender, email, phone, class_id || null,
+            [firstName, lastName, gender, email, phone, resolvedClassId,
              parentName, parentRelationship, parentPhone, notes, softDeleted[0].id]
           );
         } else {
@@ -234,7 +258,7 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
               madrasah_id, first_name, last_name, student_id, gender, email, phone, class_id,
               parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [madrasahId, firstName, lastName, studentId, gender, email, phone, class_id || null,
+            [madrasahId, firstName, lastName, studentId, gender, email, phone, resolvedClassId,
              parentName, parentRelationship, parentPhone, notes]
           );
         }
@@ -267,9 +291,10 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
 
 // Download CSV template
 router.get('/students/template', (req, res) => {
-  const template = `first_name,last_name,gender,student_id,email,phone,parent_guardian_name,parent_guardian_relationship,parent_guardian_phone,notes
-John,Doe,Male,,john.doe@example.com,1234567890,Jane Doe,Mother,0987654321,Good student
-Mary,Smith,Female,STU-042,mary.smith@example.com,2345678901,Bob Smith,Father,8765432109,Needs extra support`;
+  const template = `first_name,last_name,gender,class,student_id,email,phone,parent_guardian_name,parent_guardian_relationship,parent_guardian_phone,notes
+John,Doe,Male,Beginners,,john.doe@example.com,1234567890,Jane Doe,Mother,0987654321,Good student
+Mary,Smith,Female,Advanced,STU-042,mary.smith@example.com,2345678901,Bob Smith,Father,8765432109,Needs extra support
+Ahmad,Ali,Male,,,,,,,,`;
 
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename=student_upload_template.csv');

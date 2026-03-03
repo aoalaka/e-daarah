@@ -13,6 +13,15 @@ const getPoolConfig = () => {
   // Public URLs use external networking (incurs egress fees)
   const dbUrl = process.env.MYSQL_PRIVATE_URL || process.env.MYSQL_URL || process.env.DATABASE_URL || process.env.MYSQL_PUBLIC_URL;
 
+  // Debug: log which variable is being used and masked URL
+  const dbSource = process.env.MYSQL_PRIVATE_URL ? 'MYSQL_PRIVATE_URL' : process.env.MYSQL_URL ? 'MYSQL_URL' : process.env.DATABASE_URL ? 'DATABASE_URL' : process.env.MYSQL_PUBLIC_URL ? 'MYSQL_PUBLIC_URL' : 'none';
+  if (dbUrl) {
+    const masked = dbUrl.replace(/:([^@]+)@/, ':****@');
+    console.log(`[DB] Using ${dbSource}: ${masked}`);
+  } else {
+    console.log('[DB] No URL found, using individual env vars');
+  }
+
   if (dbUrl) {
     // Railway provides a MySQL URL like: mysql://user:pass@host:port/database
     const url = new URL(dbUrl);

@@ -266,9 +266,9 @@ function SuperAdminDashboard() {
     }
   };
 
-  const handleToggleCoupon = async (promoCodeId, currentActive) => {
+  const handleToggleCoupon = async (promoCodeId, currentActive, couponId) => {
     try {
-      const res = await api.patch(`/superadmin/coupons/${promoCodeId}`, { active: !currentActive }, getAuthHeader());
+      const res = await api.patch(`/superadmin/coupons/${promoCodeId}`, { active: !currentActive, couponId }, getAuthHeader());
       toast.success(currentActive ? 'Coupon deactivated' : 'Coupon activated');
       fetchCoupons();
     } catch (error) {
@@ -1153,7 +1153,7 @@ function SuperAdminDashboard() {
                         <td>
                           <button
                             className={`btn-small ${c.active ? 'danger' : 'success'}`}
-                            onClick={() => handleToggleCoupon(c.id, c.active)}
+                            onClick={() => handleToggleCoupon(c.id, c.active, c.couponId)}
                           >
                             {c.active ? 'Deactivate' : 'Activate'}
                           </button>

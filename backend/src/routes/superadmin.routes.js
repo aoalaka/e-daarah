@@ -1476,7 +1476,7 @@ router.post('/coupons', authenticateSuperAdmin, async (req, res) => {
 // Workaround: create a new promotion code from the same coupon with the same code.
 router.patch('/coupons/:promoCodeId', authenticateSuperAdmin, async (req, res) => {
   try {
-    const { active } = req.body;
+    const { active, couponId: clientCouponId } = req.body;
 
     if (!active) {
       // Deactivating — straightforward
@@ -1494,21 +1494,16 @@ router.patch('/coupons/:promoCodeId', authenticateSuperAdmin, async (req, res) =
       // Stripe doesn't allow reactivation — create a new promo code from the same coupon
       if (stripeErr.type !== 'StripeInvalidRequestError') throw stripeErr;
 
-      const oldPromo = await stripe.promotionCodes.retrieve(req.params.promoCodeId, {
-        expand: ['coupon']
-      });
-      // Stripe SDK versions return coupon differently: as object, string ID, or nested under promotion
-      const couponId = typeof oldPromo.coupon === 'string' ? oldPromo.coupon
-        : oldPromo.coupon?.id
+      const oldPromo = await stripe.promotionCodes.retrieve(req.params.promoCodeId);
+
+      // Use couponId from client (already resolved in list endpoint) or try to extract from retrieve response
+      const couponId = clientCouponId
+        || (typeof oldPromo.coupon === 'string' ? oldPromo.coupon : oldPromo.coupon?.id)
         || (typeof oldPromo.promotion?.coupon === 'string' ? oldPromo.promotion.coupon : oldPromo.promotion?.coupon?.id)
         || oldPromo.promotion?.id;
 
       if (!couponId) {
-        console.error('Cannot determine coupon. Promo structure:', JSON.stringify({
-          coupon: oldPromo.coupon,
-          promotion: oldPromo.promotion,
-          keys: Object.keys(oldPromo)
-        }));
+        console.error('Cannot determine coupon. Promo keys:', Object.keys(oldPromo), 'coupon:', oldPromo.coupon, 'promotion:', oldPromo.promotion);
         return res.status(400).json({ error: 'Cannot determine coupon for this promotion code.' });
       }
 

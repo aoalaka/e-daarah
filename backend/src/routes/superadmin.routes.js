@@ -1312,7 +1312,13 @@ router.get('/coupons', authenticateSuperAdmin, async (req, res) => {
     });
 
     // Look up madrasah names for customer-restricted codes
-    const enriched = await Promise.all(promoCodes.data.map(async (pc) => {
+    // Filter out promo codes whose coupon has been deleted
+    const enriched = (await Promise.all(promoCodes.data.map(async (pc) => {
+      const coupon = pc.promotion?.coupon || pc.coupon || {};
+
+      // Skip promo codes with deleted or missing coupons
+      if (!coupon.id || coupon.deleted) return null;
+
       let madrasahName = null;
       if (pc.customer) {
         const [rows] = await pool.query(
@@ -1322,8 +1328,6 @@ router.get('/coupons', authenticateSuperAdmin, async (req, res) => {
         if (rows.length > 0) madrasahName = rows[0].name;
       }
 
-      // v20+ SDK: coupon is under promotion.coupon; fallback for older format
-      const coupon = pc.promotion?.coupon || pc.coupon || {};
       const appliesToPrice = pc.metadata?.applies_to_price || coupon.metadata?.applies_to_price || null;
 
       return {
@@ -1349,7 +1353,7 @@ router.get('/coupons', authenticateSuperAdmin, async (req, res) => {
         expiresAt: pc.expires_at ? new Date(pc.expires_at * 1000).toISOString() : null,
         created: new Date(pc.created * 1000).toISOString()
       };
-    }));
+    }))).filter(Boolean);
 
     res.json({ coupons: enriched });
   } catch (error) {

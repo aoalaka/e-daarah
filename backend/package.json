@@ -32,6 +32,7 @@
     "mysql2": "^3.6.5",
     "resend": "^6.9.1",
     "stripe": "^20.3.0",
+    "twilio": "^5.12.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -322,12 +322,38 @@ router.post('/webhook', async (req, res) => {
 
 async function handleCheckoutComplete(session) {
   const madrasahId = session.metadata?.madrasah_id;
-  const plan = session.metadata?.plan || 'standard';
 
   if (!madrasahId) {
     console.error('No madrasah_id in checkout session metadata');
     return;
   }
+
+  // Handle SMS credit purchase (one-time payment)
+  if (session.metadata?.type === 'sms_credit_purchase') {
+    const credits = parseInt(session.metadata.credits);
+    const packId = session.metadata.pack_id;
+
+    // Upsert credit balance
+    await pool.query(
+      `INSERT INTO sms_credits (madrasah_id, balance, total_purchased)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE balance = balance + ?, total_purchased = total_purchased + ?`,
+      [madrasahId, credits, credits, credits, credits]
+    );
+
+    // Update purchase record
+    await pool.query(
+      `UPDATE sms_credit_purchases SET status = 'completed', stripe_payment_intent_id = ?
+       WHERE stripe_checkout_session_id = ? AND madrasah_id = ?`,
+      [session.payment_intent, session.id, madrasahId]
+    );
+
+    console.log(`SMS credits purchased: ${credits} for madrasah ${madrasahId} (pack: ${packId})`);
+    return;
+  }
+
+  // Handle subscription checkout
+  const plan = session.metadata?.plan || 'standard';
 
   // Get subscription details
   const subscription = await stripe.subscriptions.retrieve(session.subscription);

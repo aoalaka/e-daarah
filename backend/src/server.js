@@ -15,6 +15,7 @@ import uploadRoutes from './routes/upload.routes.js';
 import superadminRoutes from './routes/superadmin.routes.js';
 import billingRoutes from './routes/billing.routes.js';
 import soloRoutes from './routes/solo.routes.js';
+import smsRoutes from './routes/sms.routes.js';
 import { activityLogger } from './middleware/activityLog.middleware.js';
 import { startScheduler } from './services/scheduler.service.js';
 
@@ -144,6 +145,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/superadmin', superadminRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/solo', activityLogger, soloRoutes);
+app.use('/api/sms', activityLogger, smsRoutes);
 
 // Health check (both paths for flexibility) - doesn't require DB
 app.get('/health', (req, res) => {

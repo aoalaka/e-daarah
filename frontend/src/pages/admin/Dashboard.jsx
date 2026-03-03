@@ -173,6 +173,22 @@ function AdminDashboard() {
   const [newOverride, setNewOverride] = useState({ title: '', start_date: '', end_date: '', school_days: [] });
   const [ticketReply, setTicketReply] = useState('');
   const [showTour, setShowTour] = useState(false);
+  // SMS state
+  const [smsStatus, setSmsStatus] = useState({ balance: 0, totalPurchased: 0, totalUsed: 0, sentThisMonth: 0, twilioConfigured: false, packs: [] });
+  const [smsLoading, setSmsLoading] = useState(false);
+  const [smsSubTab, setSmsSubTab] = useState('overview'); // overview, send, reminders, history
+  const [smsHistory, setSmsHistory] = useState([]);
+  const [smsHistoryTotal, setSmsHistoryTotal] = useState(0);
+  const [smsHistoryPage, setSmsHistoryPage] = useState(1);
+  const [smsPurchases, setSmsPurchases] = useState([]);
+  const [smsReminderStudents, setSmsReminderStudents] = useState([]);
+  const [smsReminderClass, setSmsReminderClass] = useState('');
+  const [smsReminderMsg, setSmsReminderMsg] = useState('Dear Parent/Guardian, this is a reminder that the fee for {student_name} has an outstanding balance. Please make the payment at your earliest convenience. Thank you.');
+  const [smsSelectedStudents, setSmsSelectedStudents] = useState([]);
+  const [smsSending, setSmsSending] = useState(false);
+  const [smsCustomPhone, setSmsCustomPhone] = useState('');
+  const [smsCustomMsg, setSmsCustomMsg] = useState('');
+  const [smsHistoryFilter, setSmsHistoryFilter] = useState('');
   const user = authService.getCurrentUser();
   const navigate = useNavigate();
   const { madrasahSlug } = useParams();
@@ -245,6 +261,7 @@ function AdminDashboard() {
     { label: 'Tools', items: [
       { id: 'planner', label: 'Planner' },
       ...(hasPlusAccess() ? [{ id: 'reports', label: 'Reports' }] : []),
+      { id: 'sms', label: 'SMS' },
     ]},
     { label: 'Help', items: [
       { id: 'help', label: 'Help' },
@@ -254,11 +271,25 @@ function AdminDashboard() {
 
   useEffect(() => {
     loadData();
+    // Handle ?tab=sms&purchase=success from Stripe redirect
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    const purchase = params.get('purchase');
+    if (tab === 'sms') {
+      setActiveTab('sms');
+      if (purchase === 'success') {
+        toast.success('SMS credits purchased successfully!');
+      } else if (purchase === 'cancelled') {
+        toast.info('SMS credit purchase was cancelled.');
+      }
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   // Update browser tab title based on active tab
   useEffect(() => {
-    const labels = { overview: 'Overview', classes: 'Classes', teachers: 'Teachers', students: 'Students', fees: 'Fees', planner: 'Planner', reports: 'Reports', help: 'Help', support: 'Support', settings: 'Settings' };
+    const labels = { overview: 'Overview', classes: 'Classes', teachers: 'Teachers', students: 'Students', fees: 'Fees', planner: 'Planner', reports: 'Reports', sms: 'SMS', help: 'Help', support: 'Support', settings: 'Settings' };
     document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
   }, [activeTab]);
 
@@ -394,6 +425,19 @@ function AdminDashboard() {
     if (activeTab === 'fees') loadFeeData();
   }, [activeTab, feeClassFilter]);
 
+  // SMS data loading
+  useEffect(() => {
+    if (activeTab === 'sms') loadSmsData();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'sms' && smsSubTab === 'history') loadSmsHistory();
+  }, [activeTab, smsSubTab, smsHistoryPage, smsHistoryFilter]);
+
+  useEffect(() => {
+    if (activeTab === 'sms' && smsSubTab === 'reminders') loadFeeReminderPreview();
+  }, [activeTab, smsSubTab, smsReminderClass]);
+
   const loadData = async () => {
     if (!initialLoadDone.current) setLoading(true);
     try {
@@ -455,6 +499,102 @@ function AdminDashboard() {
     setFeeLoading(true);
     await Promise.all([loadFeeSummary(), loadFeePayments()]);
     setFeeLoading(false);
+  };
+
+  // SMS functions
+  const loadSmsData = async () => {
+    setSmsLoading(true);
+    try {
+      const [statusRes, purchasesRes] = await Promise.all([
+        api.get('/sms/status'),
+        api.get('/sms/purchases')
+      ]);
+      setSmsStatus(statusRes.data);
+      setSmsPurchases(purchasesRes.data.purchases || []);
+    } catch (error) {
+      console.error('Failed to load SMS data:', error);
+    }
+    setSmsLoading(false);
+  };
+
+  const loadSmsHistory = async () => {
+    try {
+      const params = new URLSearchParams({ page: smsHistoryPage, limit: 25 });
+      if (smsHistoryFilter) params.append('type', smsHistoryFilter);
+      const res = await api.get(`/sms/history?${params}`);
+      setSmsHistory(res.data.messages || []);
+      setSmsHistoryTotal(res.data.total || 0);
+    } catch (error) {
+      console.error('Failed to load SMS history:', error);
+    }
+  };
+
+  const loadFeeReminderPreview = async () => {
+    try {
+      const params = smsReminderClass ? `?classId=${smsReminderClass}` : '';
+      const res = await api.get(`/sms/fee-reminder-preview${params}`);
+      setSmsReminderStudents(res.data.students || []);
+      setSmsSelectedStudents(res.data.students?.map(s => s.id) || []);
+    } catch (error) {
+      console.error('Failed to load fee reminder preview:', error);
+    }
+  };
+
+  const handleBuySmsCredits = async (packId) => {
+    try {
+      const res = await api.post('/sms/purchase', { packId });
+      if (res.data.checkoutUrl) {
+        window.location.href = res.data.checkoutUrl;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to start checkout');
+    }
+  };
+
+  const handleSendFeeReminders = async () => {
+    if (smsSelectedStudents.length === 0) {
+      toast.error('Select at least one student');
+      return;
+    }
+    if (!smsReminderMsg.trim()) {
+      toast.error('Enter a message');
+      return;
+    }
+    setSmsSending(true);
+    try {
+      const res = await api.post('/sms/send-bulk', {
+        studentIds: smsSelectedStudents,
+        message: smsReminderMsg,
+        messageType: 'fee_reminder'
+      });
+      const r = res.data;
+      toast.success(`Sent: ${r.sent}, Failed: ${r.failed}, Skipped (no phone): ${r.skipped}`);
+      loadSmsData();
+      if (r.errors?.length) {
+        r.errors.forEach(e => toast.error(`${e.student}: ${e.error}`));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to send reminders');
+    }
+    setSmsSending(false);
+  };
+
+  const handleSendCustomSms = async () => {
+    if (!smsCustomPhone || !smsCustomMsg.trim()) {
+      toast.error('Phone and message are required');
+      return;
+    }
+    setSmsSending(true);
+    try {
+      await api.post('/sms/send', { phone: smsCustomPhone, message: smsCustomMsg, messageType: 'custom' });
+      toast.success('SMS sent successfully');
+      setSmsCustomPhone('');
+      setSmsCustomMsg('');
+      loadSmsData();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to send SMS');
+    }
+    setSmsSending(false);
   };
 
   // Fee payments
@@ -1484,6 +1624,8 @@ function AdminDashboard() {
         return <svg {...iconProps}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
       case 'support':
         return <svg {...iconProps}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>;
+      case 'sms':
+        return <svg {...iconProps}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>;
       default:
         return null;
     }
@@ -6595,6 +6737,404 @@ function AdminDashboard() {
                       ))}
                     </div>
                   </div>
+                </>
+              )}
+            </>
+          )}
+
+          {/* SMS Tab */}
+          {activeTab === 'sms' && (
+            <>
+              <div className="section-header">
+                <h2>SMS</h2>
+              </div>
+
+              {smsLoading && <div className="loading-state"><div className="loading-spinner" /></div>}
+
+              {!smsLoading && (
+                <>
+                  {/* Credit Balance Card */}
+                  <div className="sms-balance-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Credits Available</div>
+                      <div style={{ fontSize: '2rem', fontWeight: '700', color: smsStatus.balance > 0 ? '#16a34a' : '#dc2626' }}>{smsStatus.balance}</div>
+                    </div>
+                    <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Sent This Month</div>
+                      <div style={{ fontSize: '2rem', fontWeight: '700', color: '#0f172a' }}>{smsStatus.sentThisMonth}</div>
+                    </div>
+                    <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Total Purchased</div>
+                      <div style={{ fontSize: '2rem', fontWeight: '700', color: '#0f172a' }}>{smsStatus.totalPurchased}</div>
+                    </div>
+                    <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Total Used</div>
+                      <div style={{ fontSize: '2rem', fontWeight: '700', color: '#0f172a' }}>{smsStatus.totalUsed}</div>
+                    </div>
+                  </div>
+
+                  {/* Sub-tabs */}
+                  <div className="report-sub-tabs" style={{ marginBottom: '1.5rem' }}>
+                    {[
+                      { id: 'overview', label: 'Buy Credits' },
+                      { id: 'reminders', label: 'Fee Reminders' },
+                      { id: 'send', label: 'Custom Message' },
+                      { id: 'history', label: 'History' }
+                    ].map(t => (
+                      <button key={t.id} className={`report-sub-tab ${smsSubTab === t.id ? 'active' : ''}`}
+                        onClick={() => setSmsSubTab(t.id)}>
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Buy Credits Sub-tab */}
+                  {smsSubTab === 'overview' && (
+                    <>
+                      <div className="card" style={{ padding: '1.5rem' }}>
+                        <h3 style={{ marginBottom: '0.25rem' }}>Purchase SMS Credits</h3>
+                        <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.25rem' }}>Each credit sends one SMS message. Credits never expire.</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                          {(smsStatus.packs?.length ? smsStatus.packs : [
+                            { id: 'sms_50', credits: 50, price_cents: 500, label: '50 SMS', description: '$5.00' },
+                            { id: 'sms_200', credits: 200, price_cents: 1500, label: '200 SMS', description: '$15.00' },
+                            { id: 'sms_500', credits: 500, price_cents: 3000, label: '500 SMS', description: '$30.00' },
+                            { id: 'sms_1000', credits: 1000, price_cents: 5000, label: '1000 SMS', description: '$50.00' },
+                          ]).map(pack => (
+                            <div key={pack.id} style={{
+                              border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '1.5rem',
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
+                              transition: 'border-color 0.2s, box-shadow 0.2s',
+                              cursor: 'pointer'
+                            }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = '#0f172a'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.boxShadow = 'none'; }}
+                              onClick={() => handleBuySmsCredits(pack.id)}
+                            >
+                              <div style={{ fontSize: '1.75rem', fontWeight: '700' }}>{pack.credits}</div>
+                              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>SMS credits</div>
+                              <div style={{ fontSize: '1.25rem', fontWeight: '600' }}>${(pack.price_cents / 100).toFixed(2)}</div>
+                              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>${(pack.price_cents / 100 / pack.credits).toFixed(3)}/SMS</div>
+                              <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.25rem' }}>
+                                Buy Now
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Purchase History */}
+                      {smsPurchases.length > 0 && (
+                        <div className="card" style={{ marginTop: '1.5rem', padding: '1.5rem' }}>
+                          <h3 style={{ marginBottom: '1rem' }}>Purchase History</h3>
+                          <div className="table-responsive">
+                            <table className="data-table">
+                              <thead>
+                                <tr>
+                                  <th>Date</th>
+                                  <th>Credits</th>
+                                  <th>Amount</th>
+                                  <th>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {smsPurchases.map(p => (
+                                  <tr key={p.id}>
+                                    <td>{fmtDate(p.created_at)}</td>
+                                    <td>{p.credits}</td>
+                                    <td>${(p.amount_cents / 100).toFixed(2)}</td>
+                                    <td>
+                                      <span className={`status-badge ${p.status === 'completed' ? 'status-active' : 'status-pending'}`}>
+                                        {p.status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Fee Reminders Sub-tab */}
+                  {smsSubTab === 'reminders' && (
+                    <>
+                      <div className="card" style={{ padding: '1.5rem' }}>
+                        <h3 style={{ marginBottom: '0.25rem' }}>Send Fee Reminders</h3>
+                        <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
+                          Send SMS reminders to parents/guardians of students with outstanding fees.
+                        </p>
+
+                        {/* Class Filter */}
+                        <div style={{ marginBottom: '1rem' }}>
+                          <label className="form-label">Filter by Class</label>
+                          <select className="form-select" style={{ maxWidth: '260px' }} value={smsReminderClass}
+                            onChange={(e) => setSmsReminderClass(e.target.value)}>
+                            <option value="">All Classes</option>
+                            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+
+                        {/* Message Template */}
+                        <div style={{ marginBottom: '1rem' }}>
+                          <label className="form-label">Message Template</label>
+                          <textarea className="form-input" rows={4} value={smsReminderMsg}
+                            onChange={(e) => setSmsReminderMsg(e.target.value)}
+                            maxLength={1600} />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                              Variables: {'{student_name}'}, {'{first_name}'}, {'{last_name}'}, {'{expected_fee}'}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: smsReminderMsg.length > 1400 ? '#dc2626' : '#94a3b8' }}>
+                              {smsReminderMsg.length}/1600
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Student List */}
+                        {smsReminderStudents.length === 0 ? (
+                          <div className="empty-state">
+                            <p>No students with outstanding balances and phone numbers found.</p>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                              <label className="form-label" style={{ margin: 0 }}>
+                                Recipients ({smsSelectedStudents.length} of {smsReminderStudents.length} selected)
+                              </label>
+                              <button className="btn btn-sm btn-secondary"
+                                onClick={() => setSmsSelectedStudents(
+                                  smsSelectedStudents.length === smsReminderStudents.length ? [] : smsReminderStudents.map(s => s.id)
+                                )}>
+                                {smsSelectedStudents.length === smsReminderStudents.length ? 'Deselect All' : 'Select All'}
+                              </button>
+                            </div>
+
+                            <div className="table-responsive" style={{ maxHeight: '400px', overflow: 'auto', marginBottom: '1rem' }}>
+                              <table className="data-table">
+                                <thead>
+                                  <tr>
+                                    <th style={{ width: '40px' }}>
+                                      <input type="checkbox"
+                                        checked={smsSelectedStudents.length === smsReminderStudents.length}
+                                        onChange={() => setSmsSelectedStudents(
+                                          smsSelectedStudents.length === smsReminderStudents.length ? [] : smsReminderStudents.map(s => s.id)
+                                        )} />
+                                    </th>
+                                    <th>Student</th>
+                                    <th>Class</th>
+                                    <th>Phone</th>
+                                    <th>Balance</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {smsReminderStudents.map(s => (
+                                    <tr key={s.id}>
+                                      <td>
+                                        <input type="checkbox"
+                                          checked={smsSelectedStudents.includes(s.id)}
+                                          onChange={() => setSmsSelectedStudents(prev =>
+                                            prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                          )} />
+                                      </td>
+                                      <td>{s.first_name} {s.last_name}</td>
+                                      <td>{s.class_name || '—'}</td>
+                                      <td>{s.parent_guardian_phone}</td>
+                                      <td style={{ color: '#dc2626', fontWeight: '600' }}>{formatCurrency(s.balance)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* Mobile cards */}
+                            <div className="support-mobile-cards" style={{ marginBottom: '1rem' }}>
+                              {smsReminderStudents.map(s => (
+                                <div key={s.id} className="admin-mobile-card" style={{ cursor: 'pointer' }}
+                                  onClick={() => setSmsSelectedStudents(prev =>
+                                    prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                  )}>
+                                  <div className="admin-mobile-card-top">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                      <input type="checkbox" checked={smsSelectedStudents.includes(s.id)} readOnly />
+                                      <div>
+                                        <div className="admin-mobile-card-title">{s.first_name} {s.last_name}</div>
+                                        <div className="admin-mobile-card-sub">{s.class_name || 'No class'} · {s.parent_guardian_phone}</div>
+                                      </div>
+                                    </div>
+                                    <span style={{ color: '#dc2626', fontWeight: '600', fontSize: '0.875rem' }}>{formatCurrency(s.balance)}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              <button className="btn btn-primary" onClick={handleSendFeeReminders}
+                                disabled={smsSending || smsSelectedStudents.length === 0 || smsStatus.balance < smsSelectedStudents.length}>
+                                {smsSending ? 'Sending...' : `Send to ${smsSelectedStudents.length} recipient${smsSelectedStudents.length !== 1 ? 's' : ''}`}
+                              </button>
+                              {smsStatus.balance < smsSelectedStudents.length && (
+                                <span style={{ color: '#dc2626', fontSize: '0.875rem' }}>
+                                  Need {smsSelectedStudents.length} credits, have {smsStatus.balance}.{' '}
+                                  <button className="btn-link" style={{ fontSize: '0.875rem' }} onClick={() => setSmsSubTab('overview')}>Buy more</button>
+                                </span>
+                              )}
+                              {smsStatus.balance >= smsSelectedStudents.length && smsSelectedStudents.length > 0 && (
+                                <span style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                                  Will use {smsSelectedStudents.length} credit{smsSelectedStudents.length !== 1 ? 's' : ''} ({smsStatus.balance - smsSelectedStudents.length} remaining)
+                                </span>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Custom Message Sub-tab */}
+                  {smsSubTab === 'send' && (
+                    <div className="card" style={{ padding: '1.5rem' }}>
+                      <h3 style={{ marginBottom: '0.25rem' }}>Send Custom Message</h3>
+                      <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
+                        Send an SMS to any phone number. Costs 1 credit per message.
+                      </p>
+
+                      <div style={{ maxWidth: '480px' }}>
+                        <div style={{ marginBottom: '1rem' }}>
+                          <label className="form-label">Phone Number</label>
+                          <input type="tel" className="form-input" placeholder="+1234567890"
+                            value={smsCustomPhone} onChange={(e) => setSmsCustomPhone(e.target.value)} />
+                          <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem', display: 'block' }}>
+                            Include country code (e.g. +1 for US, +44 for UK)
+                          </span>
+                        </div>
+
+                        <div style={{ marginBottom: '1rem' }}>
+                          <label className="form-label">Message</label>
+                          <textarea className="form-input" rows={4} value={smsCustomMsg}
+                            onChange={(e) => setSmsCustomMsg(e.target.value)}
+                            maxLength={1600} placeholder="Type your message..." />
+                          <div style={{ textAlign: 'right', marginTop: '0.25rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: smsCustomMsg.length > 1400 ? '#dc2626' : '#94a3b8' }}>
+                              {smsCustomMsg.length}/1600
+                            </span>
+                          </div>
+                        </div>
+
+                        <button className="btn btn-primary" onClick={handleSendCustomSms}
+                          disabled={smsSending || !smsCustomPhone || !smsCustomMsg.trim() || smsStatus.balance < 1}>
+                          {smsSending ? 'Sending...' : 'Send SMS (1 credit)'}
+                        </button>
+
+                        {smsStatus.balance < 1 && (
+                          <p style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                            No credits remaining. <button className="btn-link" style={{ fontSize: '0.875rem' }} onClick={() => setSmsSubTab('overview')}>Buy credits</button>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* History Sub-tab */}
+                  {smsSubTab === 'history' && (
+                    <div className="card" style={{ padding: '1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <h3 style={{ margin: 0 }}>Message History</h3>
+                        <select className="form-select" style={{ maxWidth: '180px' }} value={smsHistoryFilter}
+                          onChange={(e) => { setSmsHistoryFilter(e.target.value); setSmsHistoryPage(1); }}>
+                          <option value="">All Types</option>
+                          <option value="fee_reminder">Fee Reminders</option>
+                          <option value="custom">Custom</option>
+                          <option value="announcement">Announcements</option>
+                        </select>
+                      </div>
+
+                      {smsHistory.length === 0 ? (
+                        <div className="empty-state">
+                          <p>No messages sent yet.</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="table-responsive">
+                            <table className="data-table">
+                              <thead>
+                                <tr>
+                                  <th>Date</th>
+                                  <th>Recipient</th>
+                                  <th>Phone</th>
+                                  <th>Type</th>
+                                  <th>Status</th>
+                                  <th>Message</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {smsHistory.map(m => (
+                                  <tr key={m.id}>
+                                    <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(m.created_at)}</td>
+                                    <td>{m.first_name ? `${m.first_name} ${m.last_name}` : '—'}</td>
+                                    <td>{m.to_phone}</td>
+                                    <td>
+                                      <span className={`status-badge ${m.message_type === 'fee_reminder' ? 'status-pending' : 'status-active'}`}>
+                                        {m.message_type.replace('_', ' ')}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <span className={`status-badge ${m.status === 'sent' || m.status === 'delivered' ? 'status-active' : m.status === 'failed' ? 'status-inactive' : 'status-pending'}`}>
+                                        {m.status}
+                                      </span>
+                                    </td>
+                                    <td style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                      title={m.message_body}>
+                                      {m.message_body}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Mobile cards */}
+                          <div className="support-mobile-cards">
+                            {smsHistory.map(m => (
+                              <div key={m.id} className="admin-mobile-card">
+                                <div className="admin-mobile-card-top">
+                                  <div>
+                                    <div className="admin-mobile-card-title">
+                                      {m.first_name ? `${m.first_name} ${m.last_name}` : m.to_phone}
+                                    </div>
+                                    <div className="admin-mobile-card-sub">
+                                      {fmtDate(m.created_at)} · {m.message_type.replace('_', ' ')}
+                                    </div>
+                                  </div>
+                                  <span className={`status-badge ${m.status === 'sent' || m.status === 'delivered' ? 'status-active' : m.status === 'failed' ? 'status-inactive' : 'status-pending'}`}>
+                                    {m.status}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem', lineHeight: '1.4' }}>
+                                  {m.message_body?.length > 120 ? m.message_body.slice(0, 120) + '...' : m.message_body}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Pagination */}
+                          {smsHistoryTotal > 25 && (
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+                              <button className="btn btn-sm btn-secondary" disabled={smsHistoryPage <= 1}
+                                onClick={() => setSmsHistoryPage(p => p - 1)}>Previous</button>
+                              <span style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem', color: '#64748b' }}>
+                                Page {smsHistoryPage} of {Math.ceil(smsHistoryTotal / 25)}
+                              </span>
+                              <button className="btn btn-sm btn-secondary" disabled={smsHistoryPage >= Math.ceil(smsHistoryTotal / 25)}
+                                onClick={() => setSmsHistoryPage(p => p + 1)}>Next</button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </>

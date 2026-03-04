@@ -11,7 +11,7 @@ const DEMO_PLANS = [
     school: 'Ustadh Idris Classes',
     price: '$5/mo',
     description: 'For individual teachers managing their own classes',
-    stats: { students: 6, teachers: 0, classes: 2 },
+    stats: { students: 6, teachers: 1, classes: 2 },
     features: ['Attendance tracking', "Qur'an progress", 'Fee tracking', 'Simple dashboard'],
     isSolo: true,
     color: '#5c6bc0'

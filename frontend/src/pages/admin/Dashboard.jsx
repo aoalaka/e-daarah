@@ -6757,77 +6757,77 @@ function AdminDashboard() {
           {/* SMS Tab */}
           {activeTab === 'sms' && (
             <>
-              <div className="section-header">
-                <h2>SMS</h2>
+              <div className="page-header">
+                <h2 className="page-title">SMS</h2>
               </div>
 
               {smsLoading && <div className="loading-state"><div className="loading-spinner" /></div>}
 
               {!smsLoading && (
                 <>
-                  {/* Credit Balance Card */}
-                  <div className="sms-balance-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Credits Available</div>
-                      <div style={{ fontSize: '2rem', fontWeight: '700', color: smsStatus.balance > 0 ? '#16a34a' : '#dc2626' }}>{smsStatus.balance}</div>
+                  {/* Credit Balance KPIs */}
+                  <div className="kpi-grid">
+                    <div className="kpi-card blue">
+                      <div className="kpi-label">Credits Available</div>
+                      <div className="kpi-value" style={{ color: smsStatus.balance > 0 ? 'var(--black)' : '#dc2626' }}>{smsStatus.balance}</div>
                     </div>
-                    <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Sent This Month</div>
-                      <div style={{ fontSize: '2rem', fontWeight: '700', color: '#0f172a' }}>{smsStatus.sentThisMonth}</div>
+                    <div className="kpi-card">
+                      <div className="kpi-label">Sent This Month</div>
+                      <div className="kpi-value">{smsStatus.sentThisMonth}</div>
                     </div>
-                    <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Total Purchased</div>
-                      <div style={{ fontSize: '2rem', fontWeight: '700', color: '#0f172a' }}>{smsStatus.totalPurchased}</div>
+                    <div className="kpi-card">
+                      <div className="kpi-label">Total Purchased</div>
+                      <div className="kpi-value">{smsStatus.totalPurchased}</div>
                     </div>
-                    <div className="card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Total Used</div>
-                      <div style={{ fontSize: '2rem', fontWeight: '700', color: '#0f172a' }}>{smsStatus.totalUsed}</div>
+                    <div className="kpi-card">
+                      <div className="kpi-label">Total Used</div>
+                      <div className="kpi-value">{smsStatus.totalUsed}</div>
                     </div>
                   </div>
 
                   {/* Sub-tabs */}
-                  <div className="report-sub-tabs" style={{ marginBottom: '1.5rem' }}>
-                    {[
-                      { id: 'overview', label: 'Buy Credits' },
-                      { id: 'reminders', label: 'Fee Reminders' },
-                      { id: 'send', label: 'Custom Message' },
-                      { id: 'history', label: 'History' }
-                    ].map(t => (
-                      <button key={t.id} className={`report-sub-tab ${smsSubTab === t.id ? 'active' : ''}`}
-                        onClick={() => setSmsSubTab(t.id)}>
-                        {t.label}
-                      </button>
-                    ))}
+                  <div className="report-tabs no-print">
+                    <nav className="report-tabs-nav">
+                      {[
+                        { id: 'overview', label: 'Buy Credits' },
+                        { id: 'reminders', label: 'Fee Reminders' },
+                        { id: 'send', label: 'Custom Message' },
+                        { id: 'history', label: 'History' }
+                      ].map(t => (
+                        <button key={t.id} className={`report-tab-btn ${smsSubTab === t.id ? 'active' : ''}`}
+                          onClick={() => setSmsSubTab(t.id)}>
+                          {t.label}
+                        </button>
+                      ))}
+                    </nav>
                   </div>
 
                   {/* Buy Credits Sub-tab */}
                   {smsSubTab === 'overview' && (
                     <>
-                      <div className="card" style={{ padding: '1.5rem' }}>
+                      <div className="card">
                         <h3 style={{ marginBottom: '0.25rem' }}>Purchase SMS Credits</h3>
-                        <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.25rem' }}>Each credit sends one SMS message. Credits never expire.</p>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                        <p className="page-description" style={{ marginBottom: '1rem' }}>Each credit sends one SMS message. Credits never expire.</p>
+                        <div className="kpi-grid">
                           {(smsStatus.packs?.length ? smsStatus.packs : [
                             { id: 'sms_50', credits: 50, price_cents: 300, label: '50 SMS', description: '$3.00' },
                             { id: 'sms_200', credits: 200, price_cents: 1000, label: '200 SMS', description: '$10.00' },
                             { id: 'sms_500', credits: 500, price_cents: 2000, label: '500 SMS', description: '$20.00' },
                             { id: 'sms_1000', credits: 1000, price_cents: 3500, label: '1000 SMS', description: '$35.00' },
                           ]).map(pack => (
-                            <div key={pack.id} style={{
-                              border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '1.5rem',
-                              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem',
-                              transition: 'border-color 0.2s, box-shadow 0.2s',
-                              cursor: 'pointer'
+                            <div key={pack.id} className="kpi-card" style={{
+                              cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                              transition: 'border-color 0.2s, box-shadow 0.2s'
                             }}
-                              onMouseEnter={e => { e.currentTarget.style.borderColor = '#0f172a'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'; }}
-                              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.boxShadow = 'none'; }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--black)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--light)'; e.currentTarget.style.boxShadow = 'none'; }}
                               onClick={() => handleBuySmsCredits(pack.id)}
                             >
-                              <div style={{ fontSize: '1.75rem', fontWeight: '700' }}>{pack.credits}</div>
-                              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>SMS credits</div>
-                              <div style={{ fontSize: '1.25rem', fontWeight: '600' }}>${(pack.price_cents / 100).toFixed(2)}</div>
-                              <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>${(pack.price_cents / 100 / pack.credits).toFixed(3)}/SMS</div>
-                              <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.25rem' }}>
+                              <div className="kpi-value">{pack.credits}</div>
+                              <div className="kpi-label" style={{ marginBottom: 0 }}>SMS credits</div>
+                              <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--black)' }}>${(pack.price_cents / 100).toFixed(2)}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--muted)' }}>${(pack.price_cents / 100 / pack.credits).toFixed(3)}/SMS</div>
+                              <button className="btn btn-primary" style={{ width: '100%', marginTop: '4px' }}>
                                 Buy Now
                               </button>
                             </div>
@@ -6835,9 +6835,9 @@ function AdminDashboard() {
                         </div>
                       </div>
 
-                      {/* Purchase History */}
-                      {smsPurchases.length > 0 && (
-                        <div className="card" style={{ marginTop: '1.5rem', padding: '1.5rem' }}>
+                      {/* Purchase History — only show completed purchases */}
+                      {smsPurchases.filter(p => p.status === 'completed').length > 0 && (
+                        <div className="card">
                           <h3 style={{ marginBottom: '1rem' }}>Purchase History</h3>
                           <div className="table-responsive">
                             <table className="data-table">
@@ -6850,14 +6850,14 @@ function AdminDashboard() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {smsPurchases.map(p => (
+                                {smsPurchases.filter(p => p.status === 'completed').map(p => (
                                   <tr key={p.id}>
                                     <td>{fmtDate(p.created_at)}</td>
                                     <td>{p.credits}</td>
                                     <td>${(p.amount_cents / 100).toFixed(2)}</td>
                                     <td>
-                                      <span className={`status-badge ${p.status === 'completed' ? 'status-active' : 'status-pending'}`}>
-                                        {p.status}
+                                      <span className="status-badge status-active">
+                                        Completed
                                       </span>
                                     </td>
                                   </tr>
@@ -6873,25 +6873,25 @@ function AdminDashboard() {
                   {/* Fee Reminders Sub-tab */}
                   {smsSubTab === 'reminders' && (
                     <>
-                      <div className="card" style={{ padding: '1.5rem' }}>
+                      <div className="card">
                         <h3 style={{ marginBottom: '0.25rem' }}>Send Fee Reminders</h3>
-                        <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
+                        <p className="page-description" style={{ marginBottom: '1rem' }}>
                           Send SMS reminders to parents/guardians or directly to students with outstanding fees.
                         </p>
 
                         {/* Send To + Class Filter */}
-                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                          <div>
+                        <div className="form-grid">
+                          <div className="form-group">
                             <label className="form-label">Send To</label>
-                            <select className="form-select" style={{ maxWidth: '220px' }} value={smsReminderSendTo}
+                            <select className="form-select" value={smsReminderSendTo}
                               onChange={(e) => setSmsReminderSendTo(e.target.value)}>
                               <option value="parent">Parent / Guardian</option>
                               <option value="student">Student (direct)</option>
                             </select>
                           </div>
-                          <div>
+                          <div className="form-group">
                             <label className="form-label">Filter by Class</label>
-                            <select className="form-select" style={{ maxWidth: '260px' }} value={smsReminderClass}
+                            <select className="form-select" value={smsReminderClass}
                               onChange={(e) => setSmsReminderClass(e.target.value)}>
                               <option value="">All Classes</option>
                               {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -6900,9 +6900,9 @@ function AdminDashboard() {
                         </div>
 
                         {/* Message Template */}
-                        <div style={{ marginBottom: '1rem' }}>
+                        <div className="form-group">
                           <label className="form-label">Message Template</label>
-                          <textarea className="form-input" rows={4} value={smsReminderMsg}
+                          <textarea className="form-textarea" rows={4} value={smsReminderMsg}
                             onChange={(e) => setSmsReminderMsg(e.target.value)}
                             maxLength={1600} />
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
@@ -7017,41 +7017,43 @@ function AdminDashboard() {
 
                   {/* Custom Message Sub-tab */}
                   {smsSubTab === 'send' && (
-                    <div className="card" style={{ padding: '1.5rem' }}>
+                    <div className="card">
                       <h3 style={{ marginBottom: '0.25rem' }}>Send Custom Message</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
+                      <p className="page-description" style={{ marginBottom: '1rem' }}>
                         Send an SMS to any phone number. Costs 1 credit per message.
                       </p>
 
                       <div style={{ maxWidth: '480px' }}>
-                        <div style={{ marginBottom: '1rem' }}>
+                        <div className="form-group">
                           <label className="form-label">Phone Number</label>
                           <input type="tel" className="form-input" placeholder="+1234567890"
                             value={smsCustomPhone} onChange={(e) => setSmsCustomPhone(e.target.value)} />
-                          <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem', display: 'block' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>
                             Include country code (e.g. +1 for US, +44 for UK)
                           </span>
                         </div>
 
-                        <div style={{ marginBottom: '1rem' }}>
+                        <div className="form-group">
                           <label className="form-label">Message</label>
-                          <textarea className="form-input" rows={4} value={smsCustomMsg}
+                          <textarea className="form-textarea" rows={4} value={smsCustomMsg}
                             onChange={(e) => setSmsCustomMsg(e.target.value)}
                             maxLength={1600} placeholder="Type your message..." />
-                          <div style={{ textAlign: 'right', marginTop: '0.25rem' }}>
-                            <span style={{ fontSize: '0.75rem', color: smsCustomMsg.length > 1400 ? '#dc2626' : '#94a3b8' }}>
+                          <div style={{ textAlign: 'right', marginTop: '4px' }}>
+                            <span style={{ fontSize: '0.75rem', color: smsCustomMsg.length > 1400 ? '#dc2626' : 'var(--muted)' }}>
                               {smsCustomMsg.length}/1600
                             </span>
                           </div>
                         </div>
 
-                        <button className="btn btn-primary" onClick={handleSendCustomSms}
-                          disabled={smsSending || !smsCustomPhone || !smsCustomMsg.trim() || smsStatus.balance < 1}>
-                          {smsSending ? 'Sending...' : 'Send SMS (1 credit)'}
-                        </button>
+                        <div className="form-actions">
+                          <button className="btn btn-primary" onClick={handleSendCustomSms}
+                            disabled={smsSending || !smsCustomPhone || !smsCustomMsg.trim() || smsStatus.balance < 1}>
+                            {smsSending ? 'Sending...' : 'Send SMS (1 credit)'}
+                          </button>
+                        </div>
 
                         {smsStatus.balance < 1 && (
-                          <p style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                          <p style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.75rem' }}>
                             No credits remaining. <button className="btn-link" style={{ fontSize: '0.875rem' }} onClick={() => setSmsSubTab('overview')}>Buy credits</button>
                           </p>
                         )}
@@ -7061,8 +7063,8 @@ function AdminDashboard() {
 
                   {/* History Sub-tab */}
                   {smsSubTab === 'history' && (
-                    <div className="card" style={{ padding: '1.5rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div className="card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                         <h3 style={{ margin: 0 }}>Message History</h3>
                         <select className="form-select" style={{ maxWidth: '180px' }} value={smsHistoryFilter}
                           onChange={(e) => { setSmsHistoryFilter(e.target.value); setSmsHistoryPage(1); }}>

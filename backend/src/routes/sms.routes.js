@@ -197,7 +197,7 @@ router.post('/send', async (req, res) => {
 
     // Log the message
     await pool.query(
-      `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, twilio_sid, credits_used, sent_by)
+      `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, provider_message_id, credits_used, sent_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [madrasahId, studentId || null, formattedPhone, finalMessage, messageType, smsResult.status, smsResult.sid, creditsNeeded, req.user.id]
     );
@@ -293,7 +293,7 @@ router.post('/send-bulk', async (req, res) => {
         const smsResult = await sendSMS(formattedPhone, personalizedMsg);
 
         await pool.query(
-          `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, twilio_sid, credits_used, sent_by)
+          `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, provider_message_id, credits_used, sent_by)
            VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
           [madrasahId, student.id, formattedPhone, personalizedMsg, messageType, smsResult.status, smsResult.sid, req.user.id]
         );
@@ -381,7 +381,7 @@ router.get('/purchases', async (req, res) => {
     const madrasahId = req.madrasahId;
 
     const [purchases] = await pool.query(
-      `SELECT * FROM sms_credit_purchases WHERE madrasah_id = ? ORDER BY created_at DESC LIMIT 50`,
+      `SELECT * FROM sms_credit_purchases WHERE madrasah_id = ? AND status != 'pending' ORDER BY created_at DESC LIMIT 50`,
       [madrasahId]
     );
 

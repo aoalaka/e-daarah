@@ -309,6 +309,42 @@ function Pricing() {
           </p>
         </div> */}
 
+        {/* SMS Add-on */}
+        <section className="sms-addon">
+          <h2>SMS Add-on</h2>
+          <p className="sms-addon-subtitle">
+            Send fee reminders and announcements directly to parents' phones. Available on all plans. Buy credits as you need them — no subscription required.
+          </p>
+          <div className="sms-packs-grid">
+            <div className="sms-pack">
+              <span className="sms-pack-credits">50</span>
+              <span className="sms-pack-label">messages</span>
+              <span className="sms-pack-price">$3</span>
+              <span className="sms-pack-unit">$0.06 / SMS</span>
+            </div>
+            <div className="sms-pack">
+              <span className="sms-pack-credits">200</span>
+              <span className="sms-pack-label">messages</span>
+              <span className="sms-pack-price">$10</span>
+              <span className="sms-pack-unit">$0.05 / SMS</span>
+            </div>
+            <div className="sms-pack popular">
+              <span className="sms-pack-badge">Best Value</span>
+              <span className="sms-pack-credits">500</span>
+              <span className="sms-pack-label">messages</span>
+              <span className="sms-pack-price">$20</span>
+              <span className="sms-pack-unit">$0.04 / SMS</span>
+            </div>
+            <div className="sms-pack">
+              <span className="sms-pack-credits">1,000</span>
+              <span className="sms-pack-label">messages</span>
+              <span className="sms-pack-price">$35</span>
+              <span className="sms-pack-unit">$0.035 / SMS</span>
+            </div>
+          </div>
+          <p className="sms-addon-note">Credits never expire. Prices in USD. Available after sign-up from your dashboard.</p>
+        </section>
+
         {/* FAQ Section */}
         <section className="pricing-faq">
           <h2>Frequently Asked Questions</h2>
@@ -331,6 +367,11 @@ function Pricing() {
           <div className="faq-item">
             <h3>Can I get a discount for multiple madrasahs?</h3>
             <p>Contact us for custom pricing if you manage multiple institutions.</p>
+          </div>
+
+          <div className="faq-item">
+            <h3>How does the SMS add-on work?</h3>
+            <p>Buy a credit pack from your dashboard. Each SMS sent to a parent uses one credit. Credits never expire, and you can top up anytime. SMS is available on all plans.</p>
           </div>
         </section>
       </main>

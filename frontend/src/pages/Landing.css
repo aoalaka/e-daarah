@@ -51,6 +51,7 @@
 .scroll-reveal.revealed .feature-card:nth-child(7) { transition-delay: 0.42s; }
 .scroll-reveal.revealed .feature-card:nth-child(8) { transition-delay: 0.49s; }
 .scroll-reveal.revealed .feature-card:nth-child(9) { transition-delay: 0.56s; }
+.scroll-reveal.revealed .feature-card:nth-child(10) { transition-delay: 0.63s; }
 
 /* Stagger delays — before/after columns */
 .scroll-reveal.revealed .ba-col:nth-child(1) { transition-delay: 0s; }
@@ -1067,6 +1068,35 @@
   min-height: 44px;
   font-size: 14px;
   padding: 12px 20px;
+}
+
+.sms-addon-note {
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 14px 20px;
+  background: #fff;
+  border: 1px dashed var(--dark);
+  border-radius: var(--radius);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.sms-addon-note p {
+  font-size: 14px;
+  color: var(--dark);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.sms-addon-note a {
+  color: var(--black);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.sms-addon-note a:hover {
+  text-decoration: underline;
 }
 
 .pricing-more {

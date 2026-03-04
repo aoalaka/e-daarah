@@ -351,6 +351,124 @@
   flex-shrink: 0;
 }
 
+/* SMS Add-on */
+.sms-addon {
+  margin-top: 3rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--light);
+}
+
+.sms-addon h2 {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 0.5rem;
+}
+
+.sms-addon-subtitle {
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--gray);
+  max-width: 540px;
+  margin: 0 auto 1.5rem;
+  line-height: 1.5;
+}
+
+.sms-packs-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.sms-pack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 16px 20px;
+  background: var(--white);
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  position: relative;
+  transition: border-color 0.2s;
+}
+
+.sms-pack:hover {
+  border-color: var(--dark);
+}
+
+.sms-pack.popular {
+  border-color: var(--black);
+}
+
+.sms-pack-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--black);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sms-pack-credits {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--black);
+  line-height: 1;
+}
+
+.sms-pack-label {
+  font-size: 0.75rem;
+  color: var(--gray);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sms-pack-price {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 2px;
+}
+
+.sms-pack-unit {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.sms-addon-note {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 1rem;
+}
+
+@media (max-width: 480px) {
+  .sms-packs-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .sms-addon h2 {
+    font-size: 1.25rem;
+  }
+
+  .sms-pack {
+    padding: 20px 12px 16px;
+  }
+}
+
 /* Regional Discount */
 .regional-discount {
   margin: 2rem auto;

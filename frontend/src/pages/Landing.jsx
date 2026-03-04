@@ -278,6 +278,10 @@ function Landing() {
               <h3>Reports &amp; Exports</h3>
               <p>Download attendance records, student reports, and exam results as CSV or PDF. Ready for your committee meetings.</p>
             </div>
+            <div className="feature-card">
+              <h3>SMS Notifications</h3>
+              <p>Send fee reminders and announcements directly to parents' phones. Buy credit packs as you need them — no monthly commitment.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -407,6 +411,9 @@ function Landing() {
               <p>Unlimited students</p>
               <a href="mailto:support@e-daarah.com?subject=Enterprise%20Plan%20Inquiry" className="btn secondary">Contact Us</a>
             </div>
+          </div>
+          <div className="sms-addon-note">
+            <p><strong>SMS Add-on</strong> — Send fee reminders and announcements to parents via SMS. Credit packs from $3 for 50 messages. <Link to="/pricing">See details →</Link></p>
           </div>
           <p className="pricing-more"><Link to="/pricing">Compare all plans →</Link></p>
         </div>

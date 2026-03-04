@@ -611,6 +611,15 @@
   animation: floatIn 0.5s ease-out 3.2s forwards;
 }
 
+.quran-badge {
+  bottom: -16px;
+  right: -16px;
+}
+
+.hero-visual.animating .quran-badge {
+  animation: floatIn 0.5s ease-out 3.6s forwards;
+}
+
 @keyframes floatIn {
   from { opacity: 0; transform: translateY(12px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -636,6 +645,11 @@
 .parent-badge .badge-icon {
   background: #f3e8ff;
   color: #7c3aed;
+}
+
+.quran-badge .badge-icon {
+  background: #dcfce7;
+  color: #16a34a;
 }
 
 .badge-text {
@@ -1492,6 +1506,11 @@
   .parent-badge {
     left: -8px;
     bottom: 16px;
+  }
+
+  .quran-badge {
+    right: -8px;
+    bottom: -8px;
   }
 
   .badge-icon {

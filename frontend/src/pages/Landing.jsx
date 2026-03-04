@@ -109,7 +109,7 @@ function Landing() {
           <div className="hero-content">
             <h1 className="hero-title">Attendance<br />for madrasahs.</h1>
             <p className="hero-subtitle">
-              Track who showed up, who owes fees, and keep parents informed — without paper registers.
+              Attendance, fees, Qur'an progress, and more — without paper registers.
             </p>
             <div className="hero-actions">
               <button onClick={() => navigate('/register')} className="btn primary">
@@ -178,6 +178,15 @@ function Landing() {
               <div className="badge-text">
                 <span className="badge-label">Parent Notified</span>
                 <span className="badge-value">Just now</span>
+              </div>
+            </div>
+
+            {/* Floating Qur'an badge */}
+            <div className="hero-badge quran-badge">
+              <span className="badge-icon">📖</span>
+              <div className="badge-text">
+                <span className="badge-label">Qur'an Progress</span>
+                <span className="badge-value">Surah Al-Mulk</span>
               </div>
             </div>
           </div>

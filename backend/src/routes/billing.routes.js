@@ -209,10 +209,10 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
     const plan = basePriceKey.startsWith('plus') ? 'plus' : basePriceKey.startsWith('solo') ? 'solo' : 'standard';
 
     // Build checkout session params
-    // Use BECS Direct Debit for NZD, card-only for USD
+    // Use NZ BECS Direct Debit for NZD, card-only for USD
     const sessionParams = {
       customer: customerId,
-      ...(isNZD ? { payment_method_types: ['card', 'au_becs_debit'] } : {}),
+      ...(isNZD ? { payment_method_types: ['card', 'nz_bank_account'] } : {}),
       mode: 'subscription',
       line_items: [
         {

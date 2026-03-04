@@ -84,6 +84,7 @@ router.post('/purchase', async (req, res) => {
     // Create one-time checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
+      payment_method_types: ['card', 'au_becs_debit'],
       mode: 'payment',
       line_items: [{
         price_data: {

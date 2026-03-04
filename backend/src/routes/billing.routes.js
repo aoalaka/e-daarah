@@ -186,10 +186,11 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
     // Determine plan from price key
     const plan = priceKey.startsWith('plus') ? 'plus' : priceKey.startsWith('solo') ? 'solo' : 'standard';
 
-    // Build checkout session params — no payment_method_types so Stripe
-    // auto-shows methods enabled in Dashboard (card, BECS, SEPA, etc.)
+    // Build checkout session params
+    // Explicitly list payment methods so BECS Direct Debit shows for NZ/AU customers
     const sessionParams = {
       customer: customerId,
+      payment_method_types: ['card', 'au_becs_debit'],
       mode: 'subscription',
       line_items: [
         {

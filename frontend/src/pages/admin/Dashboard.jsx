@@ -183,6 +183,7 @@ function AdminDashboard() {
   const [smsPurchases, setSmsPurchases] = useState([]);
   const [smsReminderStudents, setSmsReminderStudents] = useState([]);
   const [smsReminderClass, setSmsReminderClass] = useState('');
+  const [smsReminderSendTo, setSmsReminderSendTo] = useState('parent'); // parent or student
   const [smsReminderMsg, setSmsReminderMsg] = useState('Dear Parent/Guardian, this is a reminder that the fee for {student_name} has an outstanding balance. Please make the payment at your earliest convenience. Thank you.');
   const [smsSelectedStudents, setSmsSelectedStudents] = useState([]);
   const [smsSending, setSmsSending] = useState(false);
@@ -436,7 +437,7 @@ function AdminDashboard() {
 
   useEffect(() => {
     if (activeTab === 'sms' && smsSubTab === 'reminders') loadFeeReminderPreview();
-  }, [activeTab, smsSubTab, smsReminderClass]);
+  }, [activeTab, smsSubTab, smsReminderClass, smsReminderSendTo]);
 
   const loadData = async () => {
     if (!initialLoadDone.current) setLoading(true);
@@ -531,8 +532,10 @@ function AdminDashboard() {
 
   const loadFeeReminderPreview = async () => {
     try {
-      const params = smsReminderClass ? `?classId=${smsReminderClass}` : '';
-      const res = await api.get(`/sms/fee-reminder-preview${params}`);
+      const qp = new URLSearchParams();
+      if (smsReminderClass) qp.set('classId', smsReminderClass);
+      qp.set('sendTo', smsReminderSendTo);
+      const res = await api.get(`/sms/fee-reminder-preview?${qp}`);
       setSmsReminderStudents(res.data.students || []);
       setSmsSelectedStudents(res.data.students?.map(s => s.id) || []);
     } catch (error) {
@@ -565,7 +568,8 @@ function AdminDashboard() {
       const res = await api.post('/sms/send-bulk', {
         studentIds: smsSelectedStudents,
         message: smsReminderMsg,
-        messageType: 'fee_reminder'
+        messageType: 'fee_reminder',
+        sendTo: smsReminderSendTo
       });
       const r = res.data;
       toast.success(`Sent: ${r.sent}, Failed: ${r.failed}, Skipped (no phone): ${r.skipped}`);
@@ -6798,8 +6802,8 @@ function AdminDashboard() {
                           {(smsStatus.packs?.length ? smsStatus.packs : [
                             { id: 'sms_50', credits: 50, price_cents: 500, label: '50 SMS', description: '$5.00' },
                             { id: 'sms_200', credits: 200, price_cents: 1500, label: '200 SMS', description: '$15.00' },
-                            { id: 'sms_500', credits: 500, price_cents: 3000, label: '500 SMS', description: '$30.00' },
-                            { id: 'sms_1000', credits: 1000, price_cents: 5000, label: '1000 SMS', description: '$50.00' },
+                            { id: 'sms_500', credits: 500, price_cents: 3500, label: '500 SMS', description: '$35.00' },
+                            { id: 'sms_1000', credits: 1000, price_cents: 6000, label: '1000 SMS', description: '$60.00' },
                           ]).map(pack => (
                             <div key={pack.id} style={{
                               border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '1.5rem',
@@ -6864,17 +6868,27 @@ function AdminDashboard() {
                       <div className="card" style={{ padding: '1.5rem' }}>
                         <h3 style={{ marginBottom: '0.25rem' }}>Send Fee Reminders</h3>
                         <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
-                          Send SMS reminders to parents/guardians of students with outstanding fees.
+                          Send SMS reminders to parents/guardians or directly to students with outstanding fees.
                         </p>
 
-                        {/* Class Filter */}
-                        <div style={{ marginBottom: '1rem' }}>
-                          <label className="form-label">Filter by Class</label>
-                          <select className="form-select" style={{ maxWidth: '260px' }} value={smsReminderClass}
-                            onChange={(e) => setSmsReminderClass(e.target.value)}>
-                            <option value="">All Classes</option>
-                            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </select>
+                        {/* Send To + Class Filter */}
+                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                          <div>
+                            <label className="form-label">Send To</label>
+                            <select className="form-select" style={{ maxWidth: '220px' }} value={smsReminderSendTo}
+                              onChange={(e) => setSmsReminderSendTo(e.target.value)}>
+                              <option value="parent">Parent / Guardian</option>
+                              <option value="student">Student (direct)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="form-label">Filter by Class</label>
+                            <select className="form-select" style={{ maxWidth: '260px' }} value={smsReminderClass}
+                              onChange={(e) => setSmsReminderClass(e.target.value)}>
+                              <option value="">All Classes</option>
+                              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                          </div>
                         </div>
 
                         {/* Message Template */}
@@ -6925,7 +6939,7 @@ function AdminDashboard() {
                                     </th>
                                     <th>Student</th>
                                     <th>Class</th>
-                                    <th>Phone</th>
+                                    <th>{smsReminderSendTo === 'student' ? 'Student Phone' : 'Parent Phone'}</th>
                                     <th>Balance</th>
                                   </tr>
                                 </thead>
@@ -6941,7 +6955,7 @@ function AdminDashboard() {
                                       </td>
                                       <td>{s.first_name} {s.last_name}</td>
                                       <td>{s.class_name || '—'}</td>
-                                      <td>{s.parent_guardian_phone}</td>
+                                      <td>{smsReminderSendTo === 'student' ? s.student_phone : s.parent_guardian_phone}</td>
                                       <td style={{ color: '#dc2626', fontWeight: '600' }}>{formatCurrency(s.balance)}</td>
                                     </tr>
                                   ))}
@@ -6961,7 +6975,7 @@ function AdminDashboard() {
                                       <input type="checkbox" checked={smsSelectedStudents.includes(s.id)} readOnly />
                                       <div>
                                         <div className="admin-mobile-card-title">{s.first_name} {s.last_name}</div>
-                                        <div className="admin-mobile-card-sub">{s.class_name || 'No class'} · {s.parent_guardian_phone}</div>
+                                        <div className="admin-mobile-card-sub">{s.class_name || 'No class'} · {smsReminderSendTo === 'student' ? s.student_phone : s.parent_guardian_phone}</div>
                                       </div>
                                     </div>
                                     <span style={{ color: '#dc2626', fontWeight: '600', fontSize: '0.875rem' }}>{formatCurrency(s.balance)}</span>

@@ -15,8 +15,8 @@ router.use(authenticateToken, requireRole('admin'), requireActiveSubscription);
 const SMS_PACKS = [
   { id: 'sms_50', credits: 50, price_cents: 500, label: '50 SMS', description: '$5.00' },
   { id: 'sms_200', credits: 200, price_cents: 1500, label: '200 SMS', description: '$15.00' },
-  { id: 'sms_500', credits: 500, price_cents: 3000, label: '500 SMS', description: '$30.00' },
-  { id: 'sms_1000', credits: 1000, price_cents: 5000, label: '1000 SMS', description: '$50.00' },
+  { id: 'sms_500', credits: 500, price_cents: 3500, label: '500 SMS', description: '$35.00' },
+  { id: 'sms_1000', credits: 1000, price_cents: 6000, label: '1000 SMS', description: '$60.00' },
 ];
 
 // ─── GET /sms/status — Credit balance + config ──────────────────
@@ -208,7 +208,7 @@ router.post('/send', async (req, res) => {
 // ─── POST /sms/send-bulk — Send fee reminders to multiple students ─
 router.post('/send-bulk', async (req, res) => {
   try {
-    const { studentIds, message, messageType = 'fee_reminder' } = req.body;
+    const { studentIds, message, messageType = 'fee_reminder', sendTo = 'parent' } = req.body;
     const madrasahId = req.madrasahId;
 
     if (!studentIds?.length || !message) {
@@ -222,18 +222,21 @@ router.post('/send-bulk', async (req, res) => {
     // Get students with phone numbers
     const [students] = await pool.query(
       `SELECT id, first_name, last_name, parent_guardian_phone, parent_guardian_phone_country_code,
-              expected_fee
+              student_phone, student_phone_country_code, expected_fee
        FROM students
        WHERE id IN (?) AND madrasah_id = ? AND deleted_at IS NULL`,
       [studentIds, madrasahId]
     );
 
-    // Filter to students with phone numbers
-    const sendable = students.filter(s => s.parent_guardian_phone);
-    const noPhone = students.filter(s => !s.parent_guardian_phone);
+    // Filter to students with phone numbers based on sendTo target
+    const getPhone = (s) => sendTo === 'student' ? s.student_phone : s.parent_guardian_phone;
+    const getCountryCode = (s) => sendTo === 'student' ? (s.student_phone_country_code || '') : (s.parent_guardian_phone_country_code || '');
+    const sendable = students.filter(s => getPhone(s));
+    const noPhone = students.filter(s => !getPhone(s));
+    const targetLabel = sendTo === 'student' ? 'student' : 'parent';
 
     if (sendable.length === 0) {
-      return res.status(400).json({ error: 'None of the selected students have a parent phone number' });
+      return res.status(400).json({ error: `None of the selected students have a ${targetLabel} phone number` });
     }
 
     // Check credits
@@ -257,8 +260,8 @@ router.post('/send-bulk', async (req, res) => {
 
     for (const student of sendable) {
       const formattedPhone = formatPhoneNumber(
-        student.parent_guardian_phone,
-        student.parent_guardian_phone_country_code || ''
+        getPhone(student),
+        getCountryCode(student)
       );
 
       // Personalize message with student name
@@ -375,9 +378,11 @@ router.get('/purchases', async (req, res) => {
 router.get('/fee-reminder-preview', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { classId } = req.query;
+    const { classId, sendTo = 'parent' } = req.query;
 
-    let where = 's.madrasah_id = ? AND s.deleted_at IS NULL AND s.expected_fee > 0 AND s.parent_guardian_phone IS NOT NULL';
+    // Build phone filter based on target
+    const phoneCol = sendTo === 'student' ? 's.student_phone' : 's.parent_guardian_phone';
+    let where = `s.madrasah_id = ? AND s.deleted_at IS NULL AND s.expected_fee > 0 AND ${phoneCol} IS NOT NULL`;
     const params = [madrasahId];
 
     if (classId) {
@@ -387,7 +392,7 @@ router.get('/fee-reminder-preview', async (req, res) => {
 
     const [students] = await pool.query(
       `SELECT s.id, s.first_name, s.last_name, s.student_id, s.parent_guardian_phone,
-              s.parent_guardian_name, s.expected_fee, s.class_id, c.name as class_name,
+              s.parent_guardian_name, s.student_phone, s.expected_fee, s.class_id, c.name as class_name,
               COALESCE((SELECT SUM(fp.amount_paid) FROM fee_payments fp WHERE fp.student_id = s.id AND fp.deleted_at IS NULL), 0) as total_paid
        FROM students s
        LEFT JOIN classes c ON s.class_id = c.id

@@ -7699,7 +7699,7 @@ function AdminDashboard() {
                       >
                         <div style={{ fontWeight: '600', marginBottom: '4px' }}>Standard</div>
                         <div style={{ fontSize: '24px', fontWeight: '600' }}>
-                          ${billingCycle === 'monthly' ? '12' : '120'}
+                          {(madrasahProfile?.currency || 'USD') === 'NZD' ? 'NZ' : ''}${billingCycle === 'monthly' ? ((madrasahProfile?.currency || 'USD') === 'NZD' ? '21' : '12') : ((madrasahProfile?.currency || 'USD') === 'NZD' ? '209' : '120')}
                           <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
                             /{billingCycle === 'monthly' ? 'mo' : 'yr'}
                           </span>
@@ -7737,7 +7737,7 @@ function AdminDashboard() {
                         }}>Popular</span>
                         <div style={{ fontWeight: '600', marginBottom: '4px' }}>Plus</div>
                         <div style={{ fontSize: '24px', fontWeight: '600' }}>
-                          ${billingCycle === 'monthly' ? '29' : '290'}
+                          {(madrasahProfile?.currency || 'USD') === 'NZD' ? 'NZ' : ''}${billingCycle === 'monthly' ? ((madrasahProfile?.currency || 'USD') === 'NZD' ? '49' : '29') : ((madrasahProfile?.currency || 'USD') === 'NZD' ? '499' : '290')}
                           <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
                             /{billingCycle === 'monthly' ? 'mo' : 'yr'}
                           </span>

@@ -15,7 +15,14 @@ const PRICE_LOOKUP_KEYS = {
   standard_monthly: 'standard_monthly',
   standard_annual: 'standard_annual',
   plus_monthly: 'plus_monthly',
-  plus_annual: 'plus_annual'
+  plus_annual: 'plus_annual',
+  // NZD variants
+  solo_monthly_nzd: 'solo_monthly_nzd',
+  solo_annual_nzd: 'solo_annual_nzd',
+  standard_monthly_nzd: 'standard_monthly_nzd',
+  standard_annual_nzd: 'standard_annual_nzd',
+  plus_monthly_nzd: 'plus_monthly_nzd',
+  plus_annual_nzd: 'plus_annual_nzd'
 };
 
 // Plan limits for reference (enforced in plan-limits middleware)
@@ -99,7 +106,7 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
 
     // Get madrasah details
     const [madrasahs] = await pool.query(
-      'SELECT id, name, email, stripe_customer_id FROM madrasahs WHERE id = ? AND deleted_at IS NULL',
+      'SELECT id, name, email, stripe_customer_id, currency FROM madrasahs WHERE id = ? AND deleted_at IS NULL',
       [madrasahId]
     );
 
@@ -108,6 +115,14 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
     }
 
     const madrasah = madrasahs[0];
+    const isNZD = (madrasah.currency || 'USD').toUpperCase() === 'NZD';
+
+    // If madrasah currency is NZD, use NZD price variant
+    const effectivePriceKey = isNZD && !priceKey.endsWith('_nzd') ? `${priceKey}_nzd` : priceKey;
+
+    if (!PRICE_LOOKUP_KEYS[effectivePriceKey]) {
+      return res.status(400).json({ error: 'Invalid price key for your currency' });
+    }
 
     // Get or create Stripe customer
     let customerId = madrasah.stripe_customer_id;
@@ -148,14 +163,20 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
 
       // Check price restriction from metadata
       const appliesToPrice = promoCode.metadata?.applies_to_price || couponObj.metadata?.applies_to_price;
-      if (appliesToPrice && appliesToPrice !== priceKey) {
+      if (appliesToPrice && appliesToPrice !== priceKey && appliesToPrice !== effectivePriceKey) {
         const PRICE_LABELS = {
           solo_monthly: 'Solo Monthly',
           solo_annual: 'Solo Annual',
           standard_monthly: 'Standard Monthly',
           standard_annual: 'Standard Annual',
           plus_monthly: 'Plus Monthly',
-          plus_annual: 'Plus Annual'
+          plus_annual: 'Plus Annual',
+          solo_monthly_nzd: 'Solo Monthly (NZD)',
+          solo_annual_nzd: 'Solo Annual (NZD)',
+          standard_monthly_nzd: 'Standard Monthly (NZD)',
+          standard_annual_nzd: 'Standard Annual (NZD)',
+          plus_monthly_nzd: 'Plus Monthly (NZD)',
+          plus_annual_nzd: 'Plus Annual (NZD)'
         };
         return res.status(400).json({
           error: `This code is only valid for ${PRICE_LABELS[appliesToPrice] || appliesToPrice}`
@@ -172,7 +193,7 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
 
     // Look up the price by lookup key
     const prices = await stripe.prices.list({
-      lookup_keys: [priceKey],
+      lookup_keys: [effectivePriceKey],
       active: true,
       limit: 1
     });
@@ -183,13 +204,15 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
 
     const price = prices.data[0];
 
-    // Determine plan from price key
-    const plan = priceKey.startsWith('plus') ? 'plus' : priceKey.startsWith('solo') ? 'solo' : 'standard';
+    // Determine plan from price key (strip _nzd suffix)
+    const basePriceKey = priceKey.replace(/_nzd$/, '');
+    const plan = basePriceKey.startsWith('plus') ? 'plus' : basePriceKey.startsWith('solo') ? 'solo' : 'standard';
 
     // Build checkout session params
-    // To add BECS/SEPA: activate in Stripe Dashboard (live mode) then add to payment_method_types
+    // Use BECS Direct Debit for NZD, card-only for USD
     const sessionParams = {
       customer: customerId,
+      ...(isNZD ? { payment_method_types: ['card', 'au_becs_debit'] } : {}),
       mode: 'subscription',
       line_items: [
         {

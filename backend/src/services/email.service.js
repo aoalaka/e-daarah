@@ -527,3 +527,46 @@ export const sendBroadcastEmail = async (email, subject, message, fromOverride) 
  * Get Resend client for advanced operations (broadcasts, segments, contacts)
  */
 export const getResendClient = () => resend;
+
+/**
+ * Send SMS failure alert to platform admin
+ */
+export const sendSmsFailureAlert = async (madrasahName, failedCount, totalAttempted, errors) => {
+  if (!isEmailEnabled()) {
+    console.log(`[Email] SMS failure alert: ${failedCount}/${totalAttempted} failed for ${madrasahName}`);
+    return { success: true };
+  }
+
+  const adminEmail = process.env.ADMIN_ALERT_EMAIL || 'support@e-daarah.com';
+  const errorList = errors.slice(0, 10).map(e => `<li>${e.student || 'Unknown'}: ${e.error}</li>`).join('');
+
+  const content = `
+    <td style="padding: 32px 32px 24px;">
+      <h2 style="margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #dc2626;">SMS Delivery Failures</h2>
+      <p style="margin: 0 0 16px; font-size: 14px; color: #333;">
+        <strong>${failedCount}</strong> out of <strong>${totalAttempted}</strong> SMS messages failed to send for <strong>${madrasahName}</strong>.
+      </p>
+      <p style="margin: 0 0 8px; font-size: 14px; color: #333; font-weight: 600;">Error Details:</p>
+      <ul style="margin: 0 0 16px; padding-left: 20px; font-size: 13px; color: #555;">
+        ${errorList}
+        ${errors.length > 10 ? `<li>... and ${errors.length - 10} more</li>` : ''}
+      </ul>
+      <p style="margin: 0; font-size: 13px; color: #888;">
+        This could indicate an AWS SNS issue, sandbox limitation, or invalid phone numbers. Check your AWS console and account billing.
+      </p>
+    </td>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: adminEmail,
+      subject: `[Alert] ${failedCount} SMS failures — ${madrasahName}`,
+      html: emailWrapper(content, `${failedCount} SMS messages failed for ${madrasahName}`),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('[Email] Failed to send SMS failure alert:', error);
+    return { success: false, error: error.message };
+  }
+};

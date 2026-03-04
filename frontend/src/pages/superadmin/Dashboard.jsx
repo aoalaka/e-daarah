@@ -88,6 +88,11 @@ function SuperAdminDashboard() {
   // Coupon state
   const [coupons, setCoupons] = useState([]);
   const [couponsLoading, setCouponsLoading] = useState(false);
+  // SMS Credits state
+  const [smsCredits, setSmsCredits] = useState([]);
+  const [showGrantForm, setShowGrantForm] = useState(false);
+  const [grantForm, setGrantForm] = useState({ madrasah_id: '', credits: '', note: '' });
+  const [grantLoading, setGrantLoading] = useState(false);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [newCoupon, setNewCoupon] = useState({
     code: '', discount_type: 'percent', discount_value: '',
@@ -122,6 +127,12 @@ function SuperAdminDashboard() {
       fetchSecurityEvents();
     }
   }, [activeTab, securityPage]);
+
+  useEffect(() => {
+    if (activeTab === 'revenue') {
+      fetchSmsCredits();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (activeTab === 'tickets') {
@@ -534,6 +545,37 @@ function SuperAdminDashboard() {
     }
   };
 
+  const fetchSmsCredits = async () => {
+    try {
+      const response = await api.get('/superadmin/sms-credits', getAuthHeader());
+      setSmsCredits(response.data.madrasahs || []);
+    } catch (error) {
+      console.error('Failed to fetch SMS credits:', error);
+    }
+  };
+
+  const handleGrantCredits = async (e) => {
+    e.preventDefault();
+    if (!grantForm.madrasah_id || !grantForm.credits) return;
+    setGrantLoading(true);
+    try {
+      const res = await api.post('/superadmin/sms-credits/grant', {
+        madrasah_id: parseInt(grantForm.madrasah_id),
+        credits: parseInt(grantForm.credits),
+        note: grantForm.note
+      }, getAuthHeader());
+      alert(`Granted ${res.data.creditsGranted} credits to ${res.data.madrasah}. New balance: ${res.data.newBalance}`);
+      setGrantForm({ madrasah_id: '', credits: '', note: '' });
+      setShowGrantForm(false);
+      fetchSmsCredits();
+      fetchRevenue();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to grant credits');
+    } finally {
+      setGrantLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('superAdminToken');
     localStorage.removeItem('superAdmin');
@@ -612,6 +654,12 @@ function SuperAdminDashboard() {
               <div className="stat-value">{stats.recentRegistrations}</div>
               <div className="stat-label">New (7 days)</div>
             </div>
+            {stats.smsRevenue > 0 && (
+              <div className="stat-card" onClick={() => setActiveTab('revenue')} style={{ cursor: 'pointer' }}>
+                <div className="stat-value">${stats.smsRevenue}</div>
+                <div className="stat-label">SMS Revenue</div>
+              </div>
+            )}
           </section>
         )}
 
@@ -974,6 +1022,155 @@ function SuperAdminDashboard() {
                     })}
                   </div>
                 </div>
+
+                {/* SMS Revenue */}
+                {revenue.sms && (revenue.sms.totalRevenue > 0 || revenue.sms.totalMessages > 0) && (
+                  <div className="sms-revenue-section">
+                    <h3>SMS Credits Revenue</h3>
+                    <div className="revenue-cards">
+                      <div className="revenue-card primary">
+                        <div className="revenue-value">${revenue.sms.totalRevenue}</div>
+                        <div className="revenue-label">Total SMS Revenue</div>
+                      </div>
+                      <div className="revenue-card">
+                        <div className="revenue-value">${revenue.sms.thisMonthRevenue}</div>
+                        <div className="revenue-label">This Month</div>
+                      </div>
+                      <div className="revenue-card">
+                        <div className="revenue-value">{revenue.sms.totalCreditsSold?.toLocaleString()}</div>
+                        <div className="revenue-label">Credits Sold</div>
+                      </div>
+                      <div className="revenue-card">
+                        <div className="revenue-value">{revenue.sms.totalPurchases}</div>
+                        <div className="revenue-label">Purchases</div>
+                      </div>
+                      <div className="revenue-card">
+                        <div className="revenue-value">{revenue.sms.successfulMessages?.toLocaleString()}</div>
+                        <div className="revenue-label">Messages Sent</div>
+                      </div>
+                      {revenue.sms.failedMessages > 0 && (
+                        <div className="revenue-card danger">
+                          <div className="revenue-value">{revenue.sms.failedMessages}</div>
+                          <div className="revenue-label">Failed</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Top SMS Buyers */}
+                    {revenue.sms.topBuyers?.length > 0 && (
+                      <div style={{ marginTop: '20px' }}>
+                        <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 600, color: '#333' }}>Top SMS Buyers</h4>
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>Madrasah</th>
+                              <th>Credits Bought</th>
+                              <th>Spent</th>
+                              <th>Purchases</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {revenue.sms.topBuyers.map((b, i) => (
+                              <tr key={i}>
+                                <td>{b.name}</td>
+                                <td>{b.credits?.toLocaleString()}</td>
+                                <td>${b.spent}</td>
+                                <td>{b.purchases}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Grant Credits (for direct debit / charity accounts) */}
+                    <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#333' }}>Manual Credit Grant</h4>
+                        <button className="btn-small primary" onClick={() => setShowGrantForm(!showGrantForm)}>
+                          {showGrantForm ? 'Cancel' : '+ Grant Credits'}
+                        </button>
+                      </div>
+                      <p style={{ fontSize: '13px', color: '#666', margin: '0 0 12px' }}>
+                        For madrasahs paying via direct debit or bank transfer — add credits after confirming payment.
+                      </p>
+
+                      {showGrantForm && (
+                        <form onSubmit={handleGrantCredits} style={{ background: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>Madrasah</label>
+                              <select
+                                value={grantForm.madrasah_id}
+                                onChange={(e) => setGrantForm({ ...grantForm, madrasah_id: e.target.value })}
+                                required
+                                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px' }}
+                              >
+                                <option value="">Select madrasah…</option>
+                                {madrasahs.map(m => (
+                                  <option key={m.id} value={m.id}>{m.name} ({m.slug})</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>Credits</label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={grantForm.credits}
+                                onChange={(e) => setGrantForm({ ...grantForm, credits: e.target.value })}
+                                placeholder="e.g. 200"
+                                required
+                                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px' }}
+                              />
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: '12px' }}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>Note (optional)</label>
+                            <input
+                              type="text"
+                              value={grantForm.note}
+                              onChange={(e) => setGrantForm({ ...grantForm, note: e.target.value })}
+                              placeholder="e.g. Direct debit payment received 04/03/2026"
+                              style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px' }}
+                            />
+                          </div>
+                          <button type="submit" className="btn primary" disabled={grantLoading}>
+                            {grantLoading ? 'Granting…' : 'Grant Credits'}
+                          </button>
+                        </form>
+                      )}
+
+                      {/* All madrasah SMS balances */}
+                      {smsCredits.length > 0 && (
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>Madrasah</th>
+                              <th>Balance</th>
+                              <th>Purchased</th>
+                              <th>Used</th>
+                              <th>Sent</th>
+                              <th>Failed</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {smsCredits.map(m => (
+                              <tr key={m.id}>
+                                <td>{m.name} <span style={{ fontSize: '11px', color: '#888' }}>({m.slug})</span></td>
+                                <td style={{ fontWeight: 600 }}>{m.balance}</td>
+                                <td>{m.total_purchased}</td>
+                                <td>{m.total_used}</td>
+                                <td>{m.messages_sent}</td>
+                                <td style={{ color: m.messages_failed > 0 ? '#dc2626' : 'inherit' }}>{m.messages_failed}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </section>

@@ -157,6 +157,16 @@ router.get('/dashboard', authenticateSuperAdmin, async (req, res) => {
         AND m.deleted_at IS NULL
     `);
 
+    // SMS revenue (total completed SMS credit purchases)
+    const [[smsStats]] = await pool.query(`
+      SELECT
+        COALESCE(SUM(amount_cents), 0) as totalSmsRevenueCents,
+        COALESCE(SUM(credits), 0) as totalSmsCreditsSold,
+        COALESCE(SUM(CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01') THEN amount_cents ELSE 0 END), 0) as smsRevenueThisMonthCents
+      FROM sms_credit_purchases
+      WHERE status = 'completed'
+    `);
+
     await logAudit(req, 'VIEW', 'dashboard', null);
 
     res.json({
@@ -167,7 +177,10 @@ router.get('/dashboard', authenticateSuperAdmin, async (req, res) => {
       recentRegistrations,
       planStats,
       mrr,
-      activeThisWeek
+      activeThisWeek,
+      smsRevenue: Math.round(smsStats.totalSmsRevenueCents / 100),
+      smsRevenueThisMonth: Math.round(smsStats.smsRevenueThisMonthCents / 100),
+      totalSmsCreditsSold: smsStats.totalSmsCreditsSold
     });
   } catch (error) {
     console.error('Dashboard error:', error);
@@ -780,6 +793,42 @@ router.get('/revenue', authenticateSuperAdmin, async (req, res) => {
         AND created_at < DATE_SUB(NOW(), INTERVAL 14 DAY)
     `);
 
+    // SMS credit revenue
+    const [[smsRevenue]] = await pool.query(`
+      SELECT
+        COALESCE(SUM(amount_cents), 0) as totalRevenueCents,
+        COALESCE(SUM(credits), 0) as totalCreditsSold,
+        COUNT(*) as totalPurchases,
+        COALESCE(SUM(CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01') THEN amount_cents ELSE 0 END), 0) as thisMonthCents,
+        COALESCE(SUM(CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01') THEN credits ELSE 0 END), 0) as thisMonthCredits
+      FROM sms_credit_purchases
+      WHERE status = 'completed'
+    `);
+
+    // SMS messages sent (total and this month)
+    const [[smsUsage]] = await pool.query(`
+      SELECT
+        COUNT(*) as totalMessages,
+        SUM(CASE WHEN status IN ('sent', 'delivered') THEN 1 ELSE 0 END) as successfulMessages,
+        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failedMessages,
+        SUM(CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01') THEN 1 ELSE 0 END) as thisMonthMessages
+      FROM sms_messages
+    `);
+
+    // Top SMS buyers
+    const [topSmsBuyers] = await pool.query(`
+      SELECT m.name as madrasah_name, m.slug,
+        SUM(p.credits) as total_credits,
+        SUM(p.amount_cents) as total_spent_cents,
+        COUNT(p.id) as purchase_count
+      FROM sms_credit_purchases p
+      JOIN madrasahs m ON p.madrasah_id = m.id
+      WHERE p.status = 'completed'
+      GROUP BY p.madrasah_id
+      ORDER BY total_spent_cents DESC
+      LIMIT 10
+    `);
+
     res.json({
       mrr: mrr.mrr,
       payingCustomers: mrr.payingCustomers,
@@ -790,7 +839,25 @@ router.get('/revenue', authenticateSuperAdmin, async (req, res) => {
       growthTrend,
       conversionRate: conversion.total > 0
         ? Math.round((conversion.converted / conversion.total) * 100)
-        : 0
+        : 0,
+      sms: {
+        totalRevenue: Math.round(smsRevenue.totalRevenueCents / 100),
+        thisMonthRevenue: Math.round(smsRevenue.thisMonthCents / 100),
+        totalCreditsSold: smsRevenue.totalCreditsSold,
+        thisMonthCredits: smsRevenue.thisMonthCredits,
+        totalPurchases: smsRevenue.totalPurchases,
+        totalMessages: smsUsage.totalMessages || 0,
+        successfulMessages: smsUsage.successfulMessages || 0,
+        failedMessages: smsUsage.failedMessages || 0,
+        thisMonthMessages: smsUsage.thisMonthMessages || 0,
+        topBuyers: topSmsBuyers.map(b => ({
+          name: b.madrasah_name,
+          slug: b.slug,
+          credits: b.total_credits,
+          spent: Math.round(b.total_spent_cents / 100),
+          purchases: b.purchase_count
+        }))
+      }
     });
   } catch (error) {
     console.error('Revenue metrics error:', error);
@@ -1587,6 +1654,87 @@ router.delete('/coupons/:promoCodeId', authenticateSuperAdmin, async (req, res) 
   } catch (error) {
     console.error('Delete coupon error:', error);
     res.status(500).json({ error: 'Failed to delete coupon' });
+  }
+});
+
+// ─── POST /superadmin/sms-credits/grant — Manually grant SMS credits to a madrasah ─
+router.post('/sms-credits/grant', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { madrasah_id, credits, note } = req.body;
+
+    if (!madrasah_id || !credits || credits < 1) {
+      return res.status(400).json({ error: 'madrasah_id and credits (> 0) are required' });
+    }
+
+    // Verify madrasah exists
+    const [[madrasah]] = await pool.query(
+      'SELECT id, name FROM madrasahs WHERE id = ? AND deleted_at IS NULL',
+      [madrasah_id]
+    );
+    if (!madrasah) {
+      return res.status(404).json({ error: 'Madrasah not found' });
+    }
+
+    // Upsert sms_credits
+    await pool.query(
+      `INSERT INTO sms_credits (madrasah_id, balance, total_purchased)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE balance = balance + ?, total_purchased = total_purchased + ?`,
+      [madrasah_id, credits, credits, credits, credits]
+    );
+
+    // Record as a purchase with $0 (manual grant)
+    await pool.query(
+      `INSERT INTO sms_credit_purchases (madrasah_id, credits, amount_cents, stripe_checkout_session_id, status)
+       VALUES (?, ?, 0, ?, 'completed')`,
+      [madrasah_id, credits, `manual_grant_${Date.now()}`]
+    );
+
+    // Get updated balance
+    const [[updated]] = await pool.query(
+      'SELECT balance FROM sms_credits WHERE madrasah_id = ?',
+      [madrasah_id]
+    );
+
+    await logAudit(req, 'GRANT', 'sms_credits', madrasah_id, {
+      credits,
+      note: note || 'Manual grant (direct debit)',
+      madrasah_name: madrasah.name
+    });
+
+    res.json({
+      success: true,
+      madrasah: madrasah.name,
+      creditsGranted: credits,
+      newBalance: updated.balance
+    });
+  } catch (error) {
+    console.error('Grant SMS credits error:', error);
+    res.status(500).json({ error: 'Failed to grant SMS credits' });
+  }
+});
+
+// ─── GET /superadmin/sms-credits — List all madrasahs' SMS credit balances ─
+router.get('/sms-credits', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT m.id, m.name, m.slug, m.pricing_plan,
+             COALESCE(sc.balance, 0) as balance,
+             COALESCE(sc.total_purchased, 0) as total_purchased,
+             COALESCE(sc.total_used, 0) as total_used,
+             (SELECT COUNT(*) FROM sms_messages sm WHERE sm.madrasah_id = m.id AND sm.status IN ('sent','delivered')) as messages_sent,
+             (SELECT COUNT(*) FROM sms_messages sm WHERE sm.madrasah_id = m.id AND sm.status = 'failed') as messages_failed
+      FROM madrasahs m
+      LEFT JOIN sms_credits sc ON sc.madrasah_id = m.id
+      WHERE m.deleted_at IS NULL
+        AND (sc.id IS NOT NULL OR EXISTS (SELECT 1 FROM sms_messages sm WHERE sm.madrasah_id = m.id))
+      ORDER BY COALESCE(sc.total_purchased, 0) DESC
+    `);
+
+    res.json({ madrasahs: rows });
+  } catch (error) {
+    console.error('List SMS credits error:', error);
+    res.status(500).json({ error: 'Failed to list SMS credits' });
   }
 });
 

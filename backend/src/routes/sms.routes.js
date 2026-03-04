@@ -4,6 +4,7 @@ import pool from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
 import { requireActiveSubscription } from '../middleware/plan-limits.middleware.js';
 import { sendSMS, formatPhoneNumber, calculateCredits, isSmsConfigured } from '../services/sms.service.js';
+import { sendSmsFailureAlert } from '../services/email.service.js';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -83,7 +84,6 @@ router.post('/purchase', async (req, res) => {
     // Create one-time checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      payment_method_types: ['card'],
       mode: 'payment',
       line_items: [{
         price_data: {
@@ -186,6 +186,12 @@ router.post('/send', async (req, res) => {
          VALUES (?, ?, ?, ?, ?, 'failed', ?, 0, ?)`,
         [madrasahId, studentId || null, formattedPhone, finalMessage, messageType, smsError.message, req.user.id]
       );
+
+      // Alert platform admin
+      sendSmsFailureAlert(madrasahName || 'Unknown', 1, 1, [
+        { student: studentId ? `Student #${studentId}` : phone, error: smsError.message }
+      ]).catch(err => console.error('Failed to send SMS failure alert email:', err));
+
       return res.status(500).json({ error: `SMS failed: ${smsError.message}` });
     }
 
@@ -316,6 +322,12 @@ router.post('/send-bulk', async (req, res) => {
         `UPDATE sms_credits SET balance = balance - ?, total_used = total_used + ? WHERE madrasah_id = ?`,
         [results.sent, results.sent, madrasahId]
       );
+    }
+
+    // Alert platform admin if there were failures
+    if (results.failed > 0) {
+      sendSmsFailureAlert(madrasahName || 'Unknown', results.failed, sendable.length, results.errors)
+        .catch(err => console.error('Failed to send SMS failure alert email:', err));
     }
 
     res.json({

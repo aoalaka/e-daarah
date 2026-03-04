@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import pool from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
 import { requireActiveSubscription } from '../middleware/plan-limits.middleware.js';
-import { sendSMS, formatPhoneNumber, calculateCredits, isTwilioConfigured } from '../services/sms.service.js';
+import { sendSMS, formatPhoneNumber, calculateCredits, isSmsConfigured } from '../services/sms.service.js';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -13,10 +13,10 @@ router.use(authenticateToken, requireRole('admin'), requireActiveSubscription);
 
 // SMS Credit Packs
 const SMS_PACKS = [
-  { id: 'sms_50', credits: 50, price_cents: 500, label: '50 SMS', description: '$5.00' },
-  { id: 'sms_200', credits: 200, price_cents: 1500, label: '200 SMS', description: '$15.00' },
-  { id: 'sms_500', credits: 500, price_cents: 3500, label: '500 SMS', description: '$35.00' },
-  { id: 'sms_1000', credits: 1000, price_cents: 6000, label: '1000 SMS', description: '$60.00' },
+  { id: 'sms_50', credits: 50, price_cents: 300, label: '50 SMS', description: '$3.00' },
+  { id: 'sms_200', credits: 200, price_cents: 1000, label: '200 SMS', description: '$10.00' },
+  { id: 'sms_500', credits: 500, price_cents: 2000, label: '500 SMS', description: '$20.00' },
+  { id: 'sms_1000', credits: 1000, price_cents: 3500, label: '1000 SMS', description: '$35.00' },
 ];
 
 // ─── GET /sms/status — Credit balance + config ──────────────────
@@ -39,7 +39,7 @@ router.get('/status', async (req, res) => {
       totalPurchased: credits[0]?.total_purchased || 0,
       totalUsed: credits[0]?.total_used || 0,
       sentThisMonth: recentMessages[0].sent_this_month,
-      twilioConfigured: isTwilioConfigured(),
+      smsConfigured: isSmsConfigured(),
       packs: SMS_PACKS
     });
   } catch (error) {
@@ -165,10 +165,10 @@ router.post('/send', async (req, res) => {
 
     const formattedPhone = formatPhoneNumber(phone, countryCode);
 
-    // Send via Twilio
-    let twilioResult;
+    // Send via AWS SNS
+    let smsResult;
     try {
-      twilioResult = await sendSMS(formattedPhone, message);
+      smsResult = await sendSMS(formattedPhone, message);
     } catch (smsError) {
       // Log the failed message
       await pool.query(
@@ -189,13 +189,13 @@ router.post('/send', async (req, res) => {
     await pool.query(
       `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, twilio_sid, credits_used, sent_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [madrasahId, studentId || null, formattedPhone, message, messageType, twilioResult.status, twilioResult.sid, creditsNeeded, req.user.id]
+      [madrasahId, studentId || null, formattedPhone, message, messageType, smsResult.status, smsResult.sid, creditsNeeded, req.user.id]
     );
 
     res.json({
       success: true,
-      sid: twilioResult.sid,
-      status: twilioResult.status,
+      sid: smsResult.sid,
+      status: smsResult.status,
       creditsUsed: creditsNeeded,
       balanceRemaining: currentBalance - creditsNeeded
     });
@@ -272,12 +272,12 @@ router.post('/send-bulk', async (req, res) => {
         .replace(/\{expected_fee\}/gi, student.expected_fee ? `$${Number(student.expected_fee).toFixed(2)}` : 'N/A');
 
       try {
-        const twilioResult = await sendSMS(formattedPhone, personalizedMsg);
+        const smsResult = await sendSMS(formattedPhone, personalizedMsg);
 
         await pool.query(
           `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, twilio_sid, credits_used, sent_by)
            VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
-          [madrasahId, student.id, formattedPhone, personalizedMsg, messageType, twilioResult.status, twilioResult.sid, req.user.id]
+          [madrasahId, student.id, formattedPhone, personalizedMsg, messageType, smsResult.status, smsResult.sid, req.user.id]
         );
 
         results.sent++;

@@ -6800,10 +6800,10 @@ function AdminDashboard() {
                         <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.25rem' }}>Each credit sends one SMS message. Credits never expire.</p>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                           {(smsStatus.packs?.length ? smsStatus.packs : [
-                            { id: 'sms_50', credits: 50, price_cents: 500, label: '50 SMS', description: '$5.00' },
-                            { id: 'sms_200', credits: 200, price_cents: 1500, label: '200 SMS', description: '$15.00' },
-                            { id: 'sms_500', credits: 500, price_cents: 3500, label: '500 SMS', description: '$35.00' },
-                            { id: 'sms_1000', credits: 1000, price_cents: 6000, label: '1000 SMS', description: '$60.00' },
+                            { id: 'sms_50', credits: 50, price_cents: 300, label: '50 SMS', description: '$3.00' },
+                            { id: 'sms_200', credits: 200, price_cents: 1000, label: '200 SMS', description: '$10.00' },
+                            { id: 'sms_500', credits: 500, price_cents: 2000, label: '500 SMS', description: '$20.00' },
+                            { id: 'sms_1000', credits: 1000, price_cents: 3500, label: '1000 SMS', description: '$35.00' },
                           ]).map(pack => (
                             <div key={pack.id} style={{
                               border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '1.5rem',

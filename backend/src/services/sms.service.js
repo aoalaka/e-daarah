@@ -1,44 +1,51 @@
-import twilio from 'twilio';
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+const region = process.env.AWS_REGION || 'us-east-1';
+const senderId = process.env.SMS_SENDER_ID || 'e-Daarah';
 
 let client = null;
 
 const getClient = () => {
-  if (!client && accountSid && authToken) {
-    client = twilio(accountSid, authToken);
+  if (!client) {
+    // AWS SDK v3 auto-reads AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION from env
+    client = new SNSClient({ region });
   }
   return client;
 };
 
 /**
- * Send an SMS message via Twilio
+ * Send an SMS message via AWS SNS
  * @param {string} to - Phone number in E.164 format (e.g., +64211234567)
- * @param {string} body - Message text (max 1600 chars, each 160-char segment = 1 credit)
+ * @param {string} body - Message text
  * @returns {Promise<{sid: string, status: string}>}
  */
 export const sendSMS = async (to, body) => {
-  const twilioClient = getClient();
+  const sns = getClient();
 
-  if (!twilioClient) {
-    throw new Error('Twilio is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER.');
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+    throw new Error('AWS SMS is not configured. Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION.');
   }
 
-  if (!fromNumber) {
-    throw new Error('TWILIO_PHONE_NUMBER is not configured.');
-  }
-
-  const message = await twilioClient.messages.create({
-    body,
-    from: fromNumber,
-    to: formatPhoneNumber(to)
+  const command = new PublishCommand({
+    PhoneNumber: formatPhoneNumber(to),
+    Message: body,
+    MessageAttributes: {
+      'AWS.SNS.SMS.SenderID': {
+        DataType: 'String',
+        StringValue: senderId
+      },
+      'AWS.SNS.SMS.SMSType': {
+        DataType: 'String',
+        StringValue: 'Transactional'
+      }
+    }
   });
 
+  const result = await sns.send(command);
+
   return {
-    sid: message.sid,
-    status: message.status
+    sid: result.MessageId || '',
+    status: result.$metadata?.httpStatusCode === 200 ? 'sent' : 'queued'
   };
 };
 
@@ -72,7 +79,6 @@ export const formatPhoneNumber = (phone, countryCode = '') => {
 
 /**
  * Calculate credits needed for a message
- * Each SMS segment is 160 chars (GSM) or 70 chars (Unicode)
  * We charge 1 credit per message regardless of segments
  */
 export const calculateCredits = (messageBody) => {
@@ -80,10 +86,10 @@ export const calculateCredits = (messageBody) => {
 };
 
 /**
- * Check if Twilio is configured
+ * Check if AWS SNS is configured
  */
-export const isTwilioConfigured = () => {
-  return !!(accountSid && authToken && fromNumber);
+export const isSmsConfigured = () => {
+  return !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
 };
 
-export default { sendSMS, formatPhoneNumber, calculateCredits, isTwilioConfigured };
+export default { sendSMS, formatPhoneNumber, calculateCredits, isSmsConfigured };

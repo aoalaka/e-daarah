@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import './TrialBanner.css';
 
-function TrialBanner({ trialEndsAt, subscriptionStatus, pricingPlan }) {
+function TrialBanner({ trialEndsAt, subscriptionStatus, pricingPlan, onSubscribe }) {
   const [dismissed, setDismissed] = useState(false);
-  const navigate = useNavigate();
 
   // Don't show if dismissed or if user has an active subscription
   if (dismissed) return null;
@@ -33,7 +31,7 @@ function TrialBanner({ trialEndsAt, subscriptionStatus, pricingPlan }) {
         </div>
         <button
           className="trial-banner-btn"
-          onClick={() => navigate(`/${window.location.pathname.split('/')[1]}/admin/settings`)}
+          onClick={onSubscribe}
         >
           Subscribe Now
         </button>
@@ -74,14 +72,7 @@ function TrialBanner({ trialEndsAt, subscriptionStatus, pricingPlan }) {
       <div className="trial-banner-actions">
         <button
           className="trial-banner-btn"
-          onClick={() => {
-            // Navigate to settings tab (billing section)
-            const currentPath = window.location.pathname;
-            const slug = currentPath.split('/')[1];
-            navigate(`/${slug}/admin`);
-            // Trigger settings tab - this will be handled by parent
-            window.dispatchEvent(new CustomEvent('openSettingsTab'));
-          }}
+          onClick={onSubscribe}
         >
           Subscribe
         </button>

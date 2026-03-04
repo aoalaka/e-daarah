@@ -184,7 +184,7 @@ function AdminDashboard() {
   const [smsReminderStudents, setSmsReminderStudents] = useState([]);
   const [smsReminderClass, setSmsReminderClass] = useState('');
   const [smsReminderSendTo, setSmsReminderSendTo] = useState('parent'); // parent or student
-  const [smsReminderMsg, setSmsReminderMsg] = useState('Dear Parent/Guardian, this is a reminder that the fee for {student_name} has an outstanding balance. Please make the payment at your earliest convenience. Thank you.');
+  const [smsReminderMsg, setSmsReminderMsg] = useState('[{madrasah_name}] Dear Parent/Guardian, this is a reminder that the fee for {student_name} has an outstanding balance. Please make the payment at your earliest convenience. Thank you.');
   const [smsSelectedStudents, setSmsSelectedStudents] = useState([]);
   const [smsSending, setSmsSending] = useState(false);
   const [smsCustomPhone, setSmsCustomPhone] = useState('');
@@ -1761,6 +1761,10 @@ function AdminDashboard() {
           trialEndsAt={madrasahProfile?.trial_ends_at}
           subscriptionStatus={madrasahProfile?.subscription_status}
           pricingPlan={madrasahProfile?.pricing_plan}
+          onSubscribe={() => {
+            handleTabChange('settings');
+            setTimeout(() => document.getElementById('settings-billing')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+          }}
         />
 
         {/* Platform Announcements */}
@@ -1773,7 +1777,11 @@ function AdminDashboard() {
             borderBottom: '1px solid #e5e5e5', textAlign: 'center', fontWeight: 500, fontSize: '14px'
           }}>
             ⚠️ Your {madrasahProfile?.subscription_status === 'trialing' ? 'trial has expired' : 'subscription is inactive'}. 
-            Your account is in read-only mode. Please subscribe or renew to make changes.
+            Your account is in read-only mode.{' '}
+            <button style={{ background: 'none', border: 'none', color: '#0f172a', textDecoration: 'underline', fontWeight: 600, cursor: 'pointer', fontSize: '14px', padding: 0 }}
+              onClick={() => { handleTabChange('settings'); setTimeout(() => document.getElementById('settings-billing')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); }}>
+              Subscribe now
+            </button> to make changes.
           </div>
         )}
 
@@ -6899,7 +6907,7 @@ function AdminDashboard() {
                             maxLength={1600} />
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
                             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                              Variables: {'{student_name}'}, {'{first_name}'}, {'{last_name}'}, {'{expected_fee}'}
+                              Variables: {'{madrasah_name}'}, {'{student_name}'}, {'{first_name}'}, {'{last_name}'}, {'{expected_fee}'}
                             </span>
                             <span style={{ fontSize: '0.75rem', color: smsReminderMsg.length > 1400 ? '#dc2626' : '#94a3b8' }}>
                               {smsReminderMsg.length}/1600

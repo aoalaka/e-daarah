@@ -134,6 +134,16 @@ router.post('/send', async (req, res) => {
       return res.status(400).json({ error: 'Message is too long (max 1600 characters)' });
     }
 
+    // Get madrasah name for message personalization
+    const [madrasahRows] = await pool.query(
+      'SELECT name FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+    const madrasahName = madrasahRows[0]?.name || '';
+
+    // Replace {madrasah_name} in message
+    const finalMessage = message.replace(/\{madrasah_name\}/gi, madrasahName);
+
     // Check credit balance
     const [credits] = await pool.query(
       'SELECT balance FROM sms_credits WHERE madrasah_id = ?',
@@ -168,13 +178,13 @@ router.post('/send', async (req, res) => {
     // Send via AWS SNS
     let smsResult;
     try {
-      smsResult = await sendSMS(formattedPhone, message);
+      smsResult = await sendSMS(formattedPhone, finalMessage);
     } catch (smsError) {
       // Log the failed message
       await pool.query(
         `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, error_message, credits_used, sent_by)
          VALUES (?, ?, ?, ?, ?, 'failed', ?, 0, ?)`,
-        [madrasahId, studentId || null, formattedPhone, message, messageType, smsError.message, req.user.id]
+        [madrasahId, studentId || null, formattedPhone, finalMessage, messageType, smsError.message, req.user.id]
       );
       return res.status(500).json({ error: `SMS failed: ${smsError.message}` });
     }
@@ -189,7 +199,7 @@ router.post('/send', async (req, res) => {
     await pool.query(
       `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, twilio_sid, credits_used, sent_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [madrasahId, studentId || null, formattedPhone, message, messageType, smsResult.status, smsResult.sid, creditsNeeded, req.user.id]
+      [madrasahId, studentId || null, formattedPhone, finalMessage, messageType, smsResult.status, smsResult.sid, creditsNeeded, req.user.id]
     );
 
     res.json({
@@ -218,6 +228,13 @@ router.post('/send-bulk', async (req, res) => {
     if (message.length > 1600) {
       return res.status(400).json({ error: 'Message is too long (max 1600 characters)' });
     }
+
+    // Get madrasah name for message personalization
+    const [madrasahRows] = await pool.query(
+      'SELECT name FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+    const madrasahName = madrasahRows[0]?.name || '';
 
     // Get students with phone numbers
     const [students] = await pool.query(
@@ -264,12 +281,13 @@ router.post('/send-bulk', async (req, res) => {
         getCountryCode(student)
       );
 
-      // Personalize message with student name
+      // Personalize message with student name and madrasah name
       const personalizedMsg = message
         .replace(/\{student_name\}/gi, `${student.first_name} ${student.last_name}`)
         .replace(/\{first_name\}/gi, student.first_name)
         .replace(/\{last_name\}/gi, student.last_name)
-        .replace(/\{expected_fee\}/gi, student.expected_fee ? `$${Number(student.expected_fee).toFixed(2)}` : 'N/A');
+        .replace(/\{expected_fee\}/gi, student.expected_fee ? `$${Number(student.expected_fee).toFixed(2)}` : 'N/A')
+        .replace(/\{madrasah_name\}/gi, madrasahName);
 
       try {
         const smsResult = await sendSMS(formattedPhone, personalizedMsg);

@@ -552,7 +552,7 @@ export const sendSmsFailureAlert = async (madrasahName, failedCount, totalAttemp
         ${errors.length > 10 ? `<li>... and ${errors.length - 10} more</li>` : ''}
       </ul>
       <p style="margin: 0; font-size: 13px; color: #888;">
-        This could indicate an AWS SNS issue, sandbox limitation, or invalid phone numbers. Check your AWS console and account billing.
+        This could indicate a Twilio issue, account limitation, or invalid phone numbers. Check your Twilio console and account billing.
       </p>
     </td>
   `;

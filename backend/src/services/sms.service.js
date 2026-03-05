@@ -1,51 +1,35 @@
-import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
-
-const region = process.env.AWS_REGION || 'us-east-1';
-const senderId = process.env.SMS_SENDER_ID || 'e-Daarah';
+import twilio from 'twilio';
 
 let client = null;
 
 const getClient = () => {
   if (!client) {
-    // AWS SDK v3 auto-reads AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION from env
-    client = new SNSClient({ region });
+    client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
   }
   return client;
 };
 
 /**
- * Send an SMS message via AWS SNS
+ * Send an SMS message via Twilio
  * @param {string} to - Phone number in E.164 format (e.g., +64211234567)
  * @param {string} body - Message text
  * @returns {Promise<{sid: string, status: string}>}
  */
 export const sendSMS = async (to, body) => {
-  const sns = getClient();
-
-  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-    throw new Error('AWS SMS is not configured. Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION.');
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+    throw new Error('Twilio is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER.');
   }
 
-  const command = new PublishCommand({
-    PhoneNumber: formatPhoneNumber(to),
-    Message: body,
-    MessageAttributes: {
-      'AWS.SNS.SMS.SenderID': {
-        DataType: 'String',
-        StringValue: senderId
-      },
-      'AWS.SNS.SMS.SMSType': {
-        DataType: 'String',
-        StringValue: 'Transactional'
-      }
-    }
+  const twilioClient = getClient();
+  const message = await twilioClient.messages.create({
+    to: formatPhoneNumber(to),
+    from: process.env.TWILIO_PHONE_NUMBER,
+    body
   });
 
-  const result = await sns.send(command);
-
   return {
-    sid: result.MessageId || '',
-    status: result.$metadata?.httpStatusCode === 200 ? 'sent' : 'queued'
+    sid: message.sid,
+    status: message.status
   };
 };
 
@@ -86,10 +70,10 @@ export const calculateCredits = (messageBody) => {
 };
 
 /**
- * Check if AWS SNS is configured
+ * Check if Twilio is configured
  */
 export const isSmsConfigured = () => {
-  return !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
+  return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
 };
 
 export default { sendSMS, formatPhoneNumber, calculateCredits, isSmsConfigured };

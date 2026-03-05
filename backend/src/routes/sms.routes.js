@@ -175,7 +175,7 @@ router.post('/send', async (req, res) => {
 
     const formattedPhone = formatPhoneNumber(phone, countryCode);
 
-    // Send via AWS SNS
+    // Send via Twilio
     let smsResult;
     try {
       smsResult = await sendSMS(formattedPhone, finalMessage);

@@ -21,6 +21,7 @@ function Pricing() {
         "Qur'an progress tracking",
         'Fee tracking',
         'Simple dashboard',
+        '100 free SMS credits',
         'Email support'
       ],
       notIncluded: [
@@ -47,6 +48,7 @@ function Pricing() {
         'Fee tracking & payment recording',
         'Student promotion tool',
         'Quick Insights report',
+        '100 free SMS credits',
         'Email support (48hr)'
       ],
       notIncluded: [
@@ -76,6 +78,7 @@ function Pricing() {
         'PDF report cards',
         'Bulk student upload',
         'Email notifications',
+        '100 free SMS credits',
         'Priority support (24hr)'
       ],
       notIncluded: []

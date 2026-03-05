@@ -1102,7 +1102,6 @@ function SuperAdminDashboard() {
                       </div>
                     )}
 
-                    </div>
                   </div>
                 )}
 

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import pool from '../config/database.js';
+import { sendSMS, isSmsConfigured } from '../services/sms.service.js';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -1735,6 +1736,27 @@ router.get('/sms-credits', authenticateSuperAdmin, async (req, res) => {
   } catch (error) {
     console.error('List SMS credits error:', error);
     res.status(500).json({ error: 'Failed to list SMS credits' });
+  }
+});
+
+// ─── POST /superadmin/sms-test — Send a test SMS to verify Twilio setup ─
+router.post('/sms-test', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { phone, message } = req.body;
+
+    if (!phone || !message) {
+      return res.status(400).json({ error: 'Phone number and message are required' });
+    }
+
+    if (!isSmsConfigured()) {
+      return res.status(400).json({ error: 'SMS is not configured. Check TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER.' });
+    }
+
+    const result = await sendSMS(phone, message);
+    res.json({ success: true, sid: result.sid, status: result.status });
+  } catch (error) {
+    console.error('Test SMS error:', error);
+    res.status(500).json({ error: error.message || 'Failed to send test SMS' });
   }
 });
 

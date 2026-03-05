@@ -93,6 +93,10 @@ function SuperAdminDashboard() {
   const [showGrantForm, setShowGrantForm] = useState(false);
   const [grantForm, setGrantForm] = useState({ madrasah_id: '', credits: '', note: '' });
   const [grantLoading, setGrantLoading] = useState(false);
+  // Test SMS state
+  const [testSmsForm, setTestSmsForm] = useState({ phone: '', message: 'Test SMS from e-Daarah' });
+  const [testSmsLoading, setTestSmsLoading] = useState(false);
+  const [testSmsResult, setTestSmsResult] = useState(null);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [newCoupon, setNewCoupon] = useState({
     code: '', discount_type: 'percent', discount_value: '',
@@ -573,6 +577,21 @@ function SuperAdminDashboard() {
       alert(error.response?.data?.error || 'Failed to grant credits');
     } finally {
       setGrantLoading(false);
+    }
+  };
+
+  const handleTestSms = async (e) => {
+    e.preventDefault();
+    if (!testSmsForm.phone || !testSmsForm.message) return;
+    setTestSmsLoading(true);
+    setTestSmsResult(null);
+    try {
+      const res = await api.post('/superadmin/sms-test', testSmsForm, getAuthHeader());
+      setTestSmsResult({ success: true, sid: res.data.sid, status: res.data.status });
+    } catch (error) {
+      setTestSmsResult({ success: false, error: error.response?.data?.error || 'Failed to send' });
+    } finally {
+      setTestSmsLoading(false);
     }
   };
 
@@ -1142,6 +1161,50 @@ function SuperAdminDashboard() {
                       )}
 
                       {/* All madrasah SMS balances */}
+                      
+                      {/* Test SMS */}
+                      <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                        <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 600 }}>Test SMS Delivery</h4>
+                        <form onSubmit={handleTestSms} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                          <div style={{ flex: '0 0 180px' }}>
+                            <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '4px' }}>Phone (E.164)</label>
+                            <input
+                              type="tel"
+                              value={testSmsForm.phone}
+                              onChange={(e) => setTestSmsForm({ ...testSmsForm, phone: e.target.value })}
+                              placeholder="+64211234567"
+                              required
+                              style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }}
+                            />
+                          </div>
+                          <div style={{ flex: 1, minWidth: '200px' }}>
+                            <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '4px' }}>Message</label>
+                            <input
+                              type="text"
+                              value={testSmsForm.message}
+                              onChange={(e) => setTestSmsForm({ ...testSmsForm, message: e.target.value })}
+                              required
+                              style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }}
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={testSmsLoading}
+                            className="btn primary"
+                            style={{ padding: '8px 16px', fontSize: '13px', whiteSpace: 'nowrap' }}
+                          >
+                            {testSmsLoading ? 'Sending…' : 'Send Test'}
+                          </button>
+                        </form>
+                        {testSmsResult && (
+                          <p style={{ margin: '8px 0 0', fontSize: '13px', color: testSmsResult.success ? '#16a34a' : '#dc2626' }}>
+                            {testSmsResult.success
+                              ? `Sent! SID: ${testSmsResult.sid} (${testSmsResult.status})`
+                              : `Failed: ${testSmsResult.error}`}
+                          </p>
+                        )}
+                      </div>
+
                       {smsCredits.length > 0 && (
                         <table className="data-table">
                           <thead>

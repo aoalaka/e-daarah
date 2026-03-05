@@ -1697,6 +1697,18 @@ router.post('/sms-credits/grant', authenticateSuperAdmin, async (req, res) => {
       [madrasah_id]
     );
 
+    // Create a targeted announcement so the madrasah sees it in their dashboard
+    await pool.query(
+      `INSERT INTO announcements (title, message, type, target_madrasah_id, expires_at, created_by)
+       VALUES (?, ?, 'success', ?, DATE_ADD(NOW(), INTERVAL 30 DAY), ?)`,
+      [
+        `${credits} SMS Credits Added`,
+        note ? `You've received ${credits} SMS credits. Note: ${note}` : `You've received ${credits} SMS credits. Go to the SMS tab to start sending messages.`,
+        madrasah_id,
+        req.user?.id || null
+      ]
+    );
+
     await logAudit(req, 'GRANT', 'sms_credits', madrasah_id, {
       credits,
       note: note || 'Manual grant (direct debit)',

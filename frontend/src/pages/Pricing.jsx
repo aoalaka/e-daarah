@@ -313,7 +313,7 @@ function Pricing() {
         <section className="sms-addon">
           <h2>SMS Add-on</h2>
           <p className="sms-addon-subtitle">
-            Send fee reminders and announcements directly to parents' phones. Available on all plans. Buy credits as you need them — no subscription required.
+            Send fee reminders and announcements directly to parents' phones. Every subscription includes <strong>100 free SMS credits</strong> to get you started. Need more? Buy credits as you need them — no subscription required.
           </p>
           <div className="sms-packs-grid">
             <div className="sms-pack">
@@ -342,7 +342,7 @@ function Pricing() {
               <span className="sms-pack-unit">$0.035 / SMS</span>
             </div>
           </div>
-          <p className="sms-addon-note">Credits never expire. Prices in USD. Available after sign-up from your dashboard.</p>
+          <p className="sms-addon-note">Every plan includes 100 free SMS credits. Additional credits never expire. Prices in USD.</p>
         </section>
 
         {/* FAQ Section */}
@@ -371,7 +371,7 @@ function Pricing() {
 
           <div className="faq-item">
             <h3>How does the SMS add-on work?</h3>
-            <p>Buy a credit pack from your dashboard. Each SMS sent to a parent uses one credit. Credits never expire, and you can top up anytime. SMS is available on all plans.</p>
+            <p>Every subscription starts with 100 free SMS credits. Each SMS sent to a parent uses one credit. Credits never expire. Need more? Buy a credit pack from your dashboard — no extra subscription required.</p>
           </div>
         </section>
       </main>

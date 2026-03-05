@@ -3361,9 +3361,10 @@ router.get('/announcements', async (req, res) => {
         AND ad.id IS NULL
         AND (a.expires_at IS NULL OR a.expires_at > NOW())
         AND (a.target_plans IS NULL OR JSON_CONTAINS(a.target_plans, ?))
+        AND (a.target_madrasah_id IS NULL OR a.target_madrasah_id = ?)
       ORDER BY a.created_at DESC
       LIMIT 5
-    `, [madrasahId, JSON.stringify(madrasah?.pricing_plan || 'trial')]);
+    `, [madrasahId, JSON.stringify(madrasah?.pricing_plan || 'trial'), madrasahId]);
 
     res.json(announcements);
   } catch (error) {

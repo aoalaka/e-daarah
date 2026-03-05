@@ -1102,8 +1102,12 @@ function SuperAdminDashboard() {
                       </div>
                     )}
 
-                    {/* Grant Credits (for direct debit / charity accounts) */}
-                    <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '20px' }}>
+                    </div>
+                  </div>
+                )}
+
+                {/* SMS Credit Management — always visible */}
+                <div style={{ marginTop: '24px', borderTop: '1px solid #e5e7eb', paddingTop: '20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                         <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#333' }}>Manual Credit Grant</h4>
                         <button className="btn-small primary" onClick={() => setShowGrantForm(!showGrantForm)}>
@@ -1111,7 +1115,7 @@ function SuperAdminDashboard() {
                         </button>
                       </div>
                       <p style={{ fontSize: '13px', color: '#666', margin: '0 0 12px' }}>
-                        For madrasahs paying via direct debit or bank transfer — add credits after confirming payment.
+                        Award SMS credits to any madrasah. They'll be notified on their dashboard.
                       </p>
 
                       {showGrantForm && (
@@ -1150,7 +1154,7 @@ function SuperAdminDashboard() {
                               type="text"
                               value={grantForm.note}
                               onChange={(e) => setGrantForm({ ...grantForm, note: e.target.value })}
-                              placeholder="e.g. Direct debit payment received 04/03/2026"
+                              placeholder="e.g. Welcome bonus, direct debit confirmed, etc."
                               style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px' }}
                             />
                           </div>
@@ -1187,9 +1191,7 @@ function SuperAdminDashboard() {
                           </tbody>
                         </table>
                       )}
-                    </div>
-                  </div>
-                )}
+                </div>
 
                 {/* Test SMS — always visible */}
                 <div style={{ marginTop: '24px', padding: '16px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>

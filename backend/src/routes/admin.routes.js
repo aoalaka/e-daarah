@@ -748,7 +748,7 @@ router.get('/students', async (req, res) => {
 router.post('/students', requireActiveSubscription, enforceStudentLimit, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { first_name, last_name, student_id, gender, email, class_id, date_of_birth,
+    const { first_name, last_name, student_id, gender, email, class_id, date_of_birth, enrollment_date,
             student_phone, student_phone_country_code, street, city, state, country,
             parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes,
             expected_fee, fee_note } = req.body;
@@ -776,12 +776,12 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
 
     const [result] = await pool.query(
       `INSERT INTO students (madrasah_id, first_name, last_name, student_id, gender, email, class_id,
-       student_phone, student_phone_country_code, street, city, state, country, date_of_birth,
+       student_phone, student_phone_country_code, street, city, state, country, date_of_birth, enrollment_date,
        parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes,
        expected_fee, fee_note)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [madrasahId, first_name, last_name, student_id, gender, email, class_id || null,
-       student_phone, student_phone_country_code, street, city, state, country, date_of_birth,
+       student_phone, student_phone_country_code, street, city, state, country, date_of_birth, enrollment_date || null,
        parent_guardian_name, parent_guardian_relationship,
        normalizePhone(parent_guardian_phone, parent_guardian_phone_country_code),
        parent_guardian_phone_country_code, notes,
@@ -849,7 +849,7 @@ router.put('/students/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
-    const { first_name, last_name, student_id, gender, email, class_id, date_of_birth,
+    const { first_name, last_name, student_id, gender, email, class_id, date_of_birth, enrollment_date,
             student_phone, student_phone_country_code, street, city, state, country,
             parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code, notes,
             expected_fee, fee_note } = req.body;
@@ -887,12 +887,12 @@ router.put('/students/:id', requireActiveSubscription, async (req, res) => {
     await pool.query(
       `UPDATE students SET first_name = ?, last_name = ?, student_id = ?, gender = ?, email = ?,
        student_phone = ?, student_phone_country_code = ?, street = ?, city = ?, state = ?, country = ?,
-       class_id = ?, date_of_birth = ?, parent_guardian_name = ?, parent_guardian_relationship = ?,
+       class_id = ?, date_of_birth = ?, enrollment_date = ?, parent_guardian_name = ?, parent_guardian_relationship = ?,
        parent_guardian_phone = ?, parent_guardian_phone_country_code = ?, notes = ?,
        expected_fee = ?, fee_note = ? WHERE id = ? AND madrasah_id = ?`,
       [first_name, last_name, student_id, gender, email,
        student_phone, student_phone_country_code, street, city, state, country,
-       class_id || null, date_of_birth,
+       class_id || null, date_of_birth, enrollment_date || null,
        parent_guardian_name, parent_guardian_relationship,
        normalizePhone(parent_guardian_phone, parent_guardian_phone_country_code),
        parent_guardian_phone_country_code, notes,
@@ -2287,7 +2287,8 @@ router.get('/profile', async (req, res) => {
       `SELECT id, name, slug, logo_url, street, city, region, country, phone, email,
        institution_type, verification_status, trial_ends_at, created_at,
        pricing_plan, subscription_status, current_period_end, stripe_customer_id,
-       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency
+       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency,
+       fee_tracking_mode, fee_prorate_mid_period
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -2330,7 +2331,7 @@ router.get('/profile', async (req, res) => {
 router.put('/settings', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency } = req.body;
+    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period } = req.body;
 
     const updates = [];
     const params = [];
@@ -2359,6 +2360,24 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
       updates.push('currency = ?');
       params.push(currency);
     }
+    if (typeof fee_tracking_mode === 'string' && ['manual', 'auto'].includes(fee_tracking_mode)) {
+      // If switching to auto, verify planner data exists
+      if (fee_tracking_mode === 'auto') {
+        const [activeSessions] = await pool.query(
+          'SELECT id FROM sessions WHERE madrasah_id = ? AND is_active = 1 AND deleted_at IS NULL',
+          [madrasahId]
+        );
+        if (activeSessions.length === 0) {
+          return res.status(400).json({ error: 'Cannot enable auto fee tracking without an active session. Please set up your planner first.' });
+        }
+      }
+      updates.push('fee_tracking_mode = ?');
+      params.push(fee_tracking_mode);
+    }
+    if (typeof fee_prorate_mid_period === 'boolean') {
+      updates.push('fee_prorate_mid_period = ?');
+      params.push(fee_prorate_mid_period);
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No valid settings provided' });
@@ -2372,7 +2391,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
 
     // Return updated settings
     const [updated] = await pool.query(
-      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency FROM madrasahs WHERE id = ?',
+      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
 
@@ -2380,6 +2399,357 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
   } catch (error) {
     console.error('Failed to update settings:', error);
     res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
+// ============================================
+// FEE SCHEDULES (Auto Fee Tracking)
+// ============================================
+
+// List fee schedules
+router.get('/fee-schedules', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { class_id } = req.query;
+
+    let sql = `SELECT fs.*, c.name as class_name,
+       CONCAT(s.first_name, ' ', s.last_name) as student_name
+       FROM fee_schedules fs
+       LEFT JOIN classes c ON c.id = fs.class_id
+       LEFT JOIN students s ON s.id = fs.student_id
+       WHERE fs.madrasah_id = ?`;
+    const params = [madrasahId];
+
+    if (class_id) { sql += ' AND fs.class_id = ?'; params.push(class_id); }
+
+    sql += ' ORDER BY fs.class_id, fs.student_id, fs.created_at DESC';
+    const [schedules] = await pool.query(sql, params);
+    res.json(schedules.map(s => ({ ...s, amount: parseFloat(s.amount) })));
+  } catch (error) {
+    console.error('Failed to fetch fee schedules:', error);
+    res.status(500).json({ error: 'Failed to fetch fee schedules' });
+  }
+});
+
+// Create fee schedule
+router.post('/fee-schedules', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { class_id, student_id, billing_cycle, amount, description } = req.body;
+
+    if (!amount || parseFloat(amount) < 0) return res.status(400).json({ error: 'Amount must be 0 or greater' });
+    if (!['weekly', 'monthly', 'per_semester', 'per_session'].includes(billing_cycle)) {
+      return res.status(400).json({ error: 'Invalid billing cycle' });
+    }
+
+    // Verify class belongs to madrasah
+    if (class_id) {
+      const [classCheck] = await pool.query('SELECT id FROM classes WHERE id = ? AND madrasah_id = ?', [class_id, madrasahId]);
+      if (classCheck.length === 0) return res.status(400).json({ error: 'Invalid class' });
+    }
+
+    // Verify student belongs to madrasah
+    if (student_id) {
+      const [stuCheck] = await pool.query('SELECT id FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [student_id, madrasahId]);
+      if (stuCheck.length === 0) return res.status(400).json({ error: 'Invalid student' });
+    }
+
+    const [result] = await pool.query(
+      `INSERT INTO fee_schedules (madrasah_id, class_id, student_id, billing_cycle, amount, description)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [madrasahId, class_id || null, student_id || null, billing_cycle, parseFloat(amount), description || null]
+    );
+
+    res.status(201).json({ id: result.insertId, message: 'Fee schedule created' });
+  } catch (error) {
+    console.error('Failed to create fee schedule:', error);
+    res.status(500).json({ error: 'Failed to create fee schedule' });
+  }
+});
+
+// Update fee schedule
+router.put('/fee-schedules/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    const { billing_cycle, amount, description, is_active } = req.body;
+
+    const [check] = await pool.query('SELECT id FROM fee_schedules WHERE id = ? AND madrasah_id = ?', [id, madrasahId]);
+    if (check.length === 0) return res.status(404).json({ error: 'Fee schedule not found' });
+
+    const updates = [];
+    const params = [];
+
+    if (billing_cycle && ['weekly', 'monthly', 'per_semester', 'per_session'].includes(billing_cycle)) {
+      updates.push('billing_cycle = ?'); params.push(billing_cycle);
+    }
+    if (amount !== undefined) {
+      updates.push('amount = ?'); params.push(parseFloat(amount));
+    }
+    if (description !== undefined) {
+      updates.push('description = ?'); params.push(description || null);
+    }
+    if (typeof is_active === 'boolean') {
+      updates.push('is_active = ?'); params.push(is_active);
+    }
+
+    if (updates.length === 0) return res.status(400).json({ error: 'No valid fields to update' });
+
+    params.push(id, madrasahId);
+    await pool.query(`UPDATE fee_schedules SET ${updates.join(', ')} WHERE id = ? AND madrasah_id = ?`, params);
+    res.json({ message: 'Fee schedule updated' });
+  } catch (error) {
+    console.error('Failed to update fee schedule:', error);
+    res.status(500).json({ error: 'Failed to update fee schedule' });
+  }
+});
+
+// Delete fee schedule
+router.delete('/fee-schedules/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    await pool.query('DELETE FROM fee_schedules WHERE id = ? AND madrasah_id = ?', [id, madrasahId]);
+    res.json({ message: 'Fee schedule deleted' });
+  } catch (error) {
+    console.error('Failed to delete fee schedule:', error);
+    res.status(500).json({ error: 'Failed to delete fee schedule' });
+  }
+});
+
+// Auto fee calculation - compute expected fees based on planner data and fee schedules
+router.get('/fee-auto-calculate', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { class_id } = req.query;
+
+    // Get madrasah settings
+    const [madrasahRows] = await pool.query(
+      'SELECT fee_tracking_mode, fee_prorate_mid_period FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+    if (madrasahRows.length === 0 || madrasahRows[0].fee_tracking_mode !== 'auto') {
+      return res.status(400).json({ error: 'Auto fee tracking is not enabled' });
+    }
+    const prorate = !!madrasahRows[0].fee_prorate_mid_period;
+
+    // Get active session and its semesters
+    const [activeSessions] = await pool.query(
+      'SELECT id, name, start_date, end_date FROM sessions WHERE madrasah_id = ? AND is_active = 1 AND deleted_at IS NULL',
+      [madrasahId]
+    );
+    if (activeSessions.length === 0) {
+      return res.json([]);
+    }
+    const session = activeSessions[0];
+
+    const [sessionSemesters] = await pool.query(
+      'SELECT id, name, start_date, end_date FROM semesters WHERE session_id = ? AND deleted_at IS NULL ORDER BY start_date',
+      [session.id]
+    );
+
+    // Get holidays for this session
+    const [holidays] = await pool.query(
+      'SELECT start_date, end_date FROM academic_holidays WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL',
+      [madrasahId, session.id]
+    );
+
+    // Get all active fee schedules for this madrasah
+    const [schedules] = await pool.query(
+      'SELECT * FROM fee_schedules WHERE madrasah_id = ? AND is_active = 1',
+      [madrasahId]
+    );
+    if (schedules.length === 0) {
+      return res.json([]);
+    }
+
+    // Get students with enrollment dates
+    let studentSql = `SELECT s.id, s.first_name, s.last_name, s.class_id, s.enrollment_date, s.expected_fee, s.fee_note,
+       c.name as class_name, c.school_days
+       FROM students s
+       LEFT JOIN classes c ON c.id = s.class_id
+       WHERE s.madrasah_id = ? AND s.deleted_at IS NULL AND s.class_id IS NOT NULL`;
+    const studentParams = [madrasahId];
+    if (class_id) { studentSql += ' AND s.class_id = ?'; studentParams.push(class_id); }
+    studentSql += ' ORDER BY s.last_name, s.first_name';
+
+    const [students] = await pool.query(studentSql, studentParams);
+
+    // Get payments for all these students
+    const studentIds = students.map(s => s.id);
+    let paymentsMap = {};
+    if (studentIds.length > 0) {
+      const placeholders = studentIds.map(() => '?').join(',');
+      const [payments] = await pool.query(
+        `SELECT student_id, COALESCE(SUM(amount_paid), 0) as total_paid
+         FROM fee_payments WHERE madrasah_id = ? AND student_id IN (${placeholders}) AND deleted_at IS NULL
+         GROUP BY student_id`,
+        [madrasahId, ...studentIds]
+      );
+      payments.forEach(p => { paymentsMap[p.student_id] = parseFloat(p.total_paid); });
+    }
+
+    // Helper: count school days in a date range for a class
+    const countSchoolDays = (startDate, endDate, schoolDaysJson) => {
+      let schoolDays;
+      try { schoolDays = typeof schoolDaysJson === 'string' ? JSON.parse(schoolDaysJson) : schoolDaysJson; }
+      catch { schoolDays = []; }
+      if (!schoolDays || schoolDays.length === 0) return 0;
+
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const schoolDayIndices = new Set(schoolDays.map(d => dayNames.indexOf(d)).filter(i => i >= 0));
+      
+      let count = 0;
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        if (!schoolDayIndices.has(d.getDay())) continue;
+        
+        // Check if this day is a holiday
+        const dateStr = d.toISOString().split('T')[0];
+        const isHoliday = holidays.some(h => {
+          const hStart = new Date(h.start_date).toISOString().split('T')[0];
+          const hEnd = new Date(h.end_date).toISOString().split('T')[0];
+          return dateStr >= hStart && dateStr <= hEnd;
+        });
+        if (!isHoliday) count++;
+      }
+      return count;
+    };
+
+    // Calculate fee for each student
+    const results = students.map(student => {
+      // Find applicable schedule: student-specific > class-level > madrasah default
+      const studentSchedule = schedules.find(s => s.student_id === student.id);
+      const classSchedule = schedules.find(s => s.class_id === student.class_id && !s.student_id);
+      const defaultSchedule = schedules.find(s => !s.class_id && !s.student_id);
+      const schedule = studentSchedule || classSchedule || defaultSchedule;
+
+      if (!schedule) {
+        return {
+          student_id: student.id,
+          student_name: `${student.first_name} ${student.last_name}`,
+          class_name: student.class_name || '',
+          total_fee: 0,
+          total_paid: paymentsMap[student.id] || 0,
+          balance: -(paymentsMap[student.id] || 0),
+          fee_note: 'No fee schedule',
+          status: 'no_schedule',
+          billing_cycle: null,
+          schedule_amount: 0
+        };
+      }
+
+      const amount = parseFloat(schedule.amount);
+      let totalFee = 0;
+      const enrollDate = student.enrollment_date ? new Date(student.enrollment_date) : null;
+
+      switch (schedule.billing_cycle) {
+        case 'per_session': {
+          if (prorate && enrollDate && enrollDate > new Date(session.start_date)) {
+            const totalDays = countSchoolDays(session.start_date, session.end_date, student.school_days);
+            const remainingDays = countSchoolDays(enrollDate, session.end_date, student.school_days);
+            totalFee = totalDays > 0 ? Math.round((amount * remainingDays / totalDays) * 100) / 100 : amount;
+          } else {
+            totalFee = amount;
+          }
+          break;
+        }
+        case 'per_semester': {
+          for (const sem of sessionSemesters) {
+            if (prorate && enrollDate && enrollDate > new Date(sem.start_date)) {
+              if (enrollDate > new Date(sem.end_date)) continue; // enrolled after semester ended
+              const totalDays = countSchoolDays(sem.start_date, sem.end_date, student.school_days);
+              const remainingDays = countSchoolDays(enrollDate, sem.end_date, student.school_days);
+              totalFee += totalDays > 0 ? Math.round((amount * remainingDays / totalDays) * 100) / 100 : amount;
+            } else {
+              // Only charge if student was enrolled by semester start
+              if (!enrollDate || enrollDate <= new Date(sem.end_date)) {
+                totalFee += amount;
+              }
+            }
+          }
+          break;
+        }
+        case 'monthly': {
+          const periodStart = new Date(session.start_date);
+          const periodEnd = new Date(session.end_date);
+          let current = new Date(periodStart);
+          
+          while (current <= periodEnd) {
+            const monthStart = new Date(current);
+            const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0);
+            const effectiveEnd = monthEnd > periodEnd ? periodEnd : monthEnd;
+
+            if (enrollDate && enrollDate > effectiveEnd) {
+              current.setMonth(current.getMonth() + 1, 1);
+              continue;
+            }
+
+            if (prorate && enrollDate && enrollDate > monthStart) {
+              const totalDays = countSchoolDays(monthStart, effectiveEnd, student.school_days);
+              const remainingDays = countSchoolDays(enrollDate, effectiveEnd, student.school_days);
+              totalFee += totalDays > 0 ? Math.round((amount * remainingDays / totalDays) * 100) / 100 : amount;
+            } else {
+              totalFee += amount;
+            }
+
+            current.setMonth(current.getMonth() + 1, 1);
+          }
+          break;
+        }
+        case 'weekly': {
+          const periodStart = new Date(session.start_date);
+          const periodEnd = new Date(session.end_date);
+          let weekStart = new Date(periodStart);
+          
+          while (weekStart <= periodEnd) {
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            const effectiveEnd = weekEnd > periodEnd ? periodEnd : weekEnd;
+
+            if (enrollDate && enrollDate > effectiveEnd) {
+              weekStart.setDate(weekStart.getDate() + 7);
+              continue;
+            }
+
+            if (prorate && enrollDate && enrollDate > weekStart) {
+              const totalDays = countSchoolDays(weekStart, effectiveEnd, student.school_days);
+              const remainingDays = countSchoolDays(enrollDate, effectiveEnd, student.school_days);
+              totalFee += totalDays > 0 ? Math.round((amount * remainingDays / totalDays) * 100) / 100 : amount;
+            } else {
+              totalFee += amount;
+            }
+
+            weekStart.setDate(weekStart.getDate() + 7);
+          }
+          break;
+        }
+      }
+
+      totalFee = Math.round(totalFee * 100) / 100;
+      const totalPaid = paymentsMap[student.id] || 0;
+      const balance = totalFee - totalPaid;
+
+      return {
+        student_id: student.id,
+        student_name: `${student.first_name} ${student.last_name}`,
+        class_name: student.class_name || '',
+        total_fee: totalFee,
+        total_paid: totalPaid,
+        balance,
+        fee_note: schedule.description || `${schedule.billing_cycle} @ ${amount}`,
+        status: totalPaid >= totalFee ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid',
+        billing_cycle: schedule.billing_cycle,
+        schedule_amount: amount
+      };
+    });
+
+    res.json(results);
+  } catch (error) {
+    console.error('Failed to calculate auto fees:', error);
+    res.status(500).json({ error: 'Failed to calculate fees' });
   }
 });
 

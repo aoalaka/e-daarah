@@ -51,7 +51,7 @@ function AdminDashboard() {
     street: '', city: '', state: '', country: ''
   });
   const [newStudent, setNewStudent] = useState({
-    first_name: '', last_name: '', student_id: '', gender: '', class_id: '',
+    first_name: '', last_name: '', student_id: '', gender: '', class_id: '', enrollment_date: '',
     student_phone: '', student_phone_country_code: '+64',
     street: '', city: '', state: '', country: '',
     parent_guardian_name: '', parent_guardian_relationship: '',
@@ -154,6 +154,14 @@ function AdminDashboard() {
   const [editingFee, setEditingFee] = useState(null);
   const [bulkFeeClassFilter, setBulkFeeClassFilter] = useState('');
   const [helpExpanded, setHelpExpanded] = useState(new Set());
+  // Auto fee tracking state
+  const [feeSchedules, setFeeSchedules] = useState([]);
+  const [showFeeScheduleModal, setShowFeeScheduleModal] = useState(false);
+  const [editingFeeSchedule, setEditingFeeSchedule] = useState(null);
+  const [newFeeSchedule, setNewFeeSchedule] = useState({ class_id: '', student_id: '', billing_cycle: 'per_semester', amount: '', description: '' });
+  const [feeScheduleScope, setFeeScheduleScope] = useState('all');
+  const [autoFeeSummary, setAutoFeeSummary] = useState([]);
+  const [feeSubTab, setFeeSubTab] = useState('summary');
   // Support tickets state
   const [supportTickets, setSupportTickets] = useState([]);
   const [showTicketForm, setShowTicketForm] = useState(false);
@@ -424,7 +432,7 @@ function AdminDashboard() {
 
   useEffect(() => {
     if (activeTab === 'fees') loadFeeData();
-  }, [activeTab, feeClassFilter]);
+  }, [activeTab, feeClassFilter, madrasahProfile?.fee_tracking_mode]);
 
   // SMS data loading
   useEffect(() => {
@@ -498,8 +506,28 @@ function AdminDashboard() {
 
   const loadFeeData = async () => {
     setFeeLoading(true);
-    await Promise.all([loadFeeSummary(), loadFeePayments()]);
+    const isAuto = madrasahProfile?.fee_tracking_mode === 'auto';
+    await Promise.all([
+      loadFeeSummary(),
+      loadFeePayments(),
+      ...(isAuto ? [loadFeeSchedules(), loadAutoFeeSummary()] : [])
+    ]);
     setFeeLoading(false);
+  };
+
+  const loadFeeSchedules = async () => {
+    try {
+      const res = await api.get('/admin/fee-schedules');
+      setFeeSchedules(res.data || []);
+    } catch (error) { console.error('Failed to load fee schedules:', error); }
+  };
+
+  const loadAutoFeeSummary = async () => {
+    try {
+      const params = feeClassFilter ? `?class_id=${feeClassFilter}` : '';
+      const res = await api.get(`/admin/fee-auto-calculate${params}`);
+      setAutoFeeSummary(res.data || []);
+    } catch (error) { console.error('Failed to load auto fee summary:', error); }
   };
 
   // SMS functions
@@ -1017,7 +1045,7 @@ function AdminDashboard() {
       }
       setShowStudentForm(false);
       setNewStudent({
-        first_name: '', last_name: '', student_id: '', gender: '', class_id: '',
+        first_name: '', last_name: '', student_id: '', gender: '', class_id: '', enrollment_date: '',
         student_phone: '', student_phone_country_code: '+64',
         street: '', city: '', state: '', country: '',
         parent_guardian_name: '', parent_guardian_relationship: '',
@@ -1040,6 +1068,7 @@ function AdminDashboard() {
       student_id: student.student_id,
       gender: student.gender || '',
       class_id: student.class_id || '',
+      enrollment_date: student.enrollment_date ? student.enrollment_date.split('T')[0] : '',
       student_phone: student.student_phone || '',
       student_phone_country_code: student.student_phone_country_code || '+64',
       street: student.street || '',
@@ -3270,6 +3299,15 @@ function AdminDashboard() {
                             ))}
                           </select>
                         </div>
+                        <div className="form-group">
+                          <label className="form-label">Enrollment Date</label>
+                          <input
+                            type="date"
+                            className="form-input"
+                            value={newStudent.enrollment_date}
+                            onChange={(e) => setNewStudent({ ...newStudent, enrollment_date: e.target.value })}
+                          />
+                        </div>
                       </div>
 
                       <h4 style={{ fontSize: '14px', margin: 'var(--lg) 0 var(--md)', color: 'var(--dark)' }}>
@@ -3990,18 +4028,232 @@ function AdminDashboard() {
             <>
               <div className="page-header no-print">
                 <h2 className="page-title">Fees</h2>
-                <button className="btn btn-primary" disabled={isReadOnly()} onClick={() => {
-                  setSelectedStudentsForFee([]);
-                  setBulkFeeAmount('');
-                  setBulkFeeNote('');
-                  setBulkFeeClassFilter('');
-                  setShowBulkFeeModal(true);
-                }}>Set Expected Fee</button>
+                {madrasahProfile?.fee_tracking_mode === 'auto' ? (
+                  <button className="btn btn-primary" disabled={isReadOnly()} onClick={() => {
+                    setEditingFeeSchedule(null);
+                    setFeeScheduleScope('all');
+                    setNewFeeSchedule({ class_id: '', student_id: '', billing_cycle: 'per_semester', amount: '', description: '' });
+                    setShowFeeScheduleModal(true);
+                  }}>Add Fee Schedule</button>
+                ) : (
+                  <button className="btn btn-primary" disabled={isReadOnly()} onClick={() => {
+                    setSelectedStudentsForFee([]);
+                    setBulkFeeAmount('');
+                    setBulkFeeNote('');
+                    setBulkFeeClassFilter('');
+                    setShowBulkFeeModal(true);
+                  }}>Set Expected Fee</button>
+                )}
               </div>
+
+              {madrasahProfile?.fee_tracking_mode === 'auto' && (
+                <div className="report-tabs no-print" style={{ marginBottom: '16px' }}>
+                  <nav className="report-tabs-nav">
+                    <button className={`report-tab-btn ${feeSubTab === 'summary' ? 'active' : ''}`} onClick={() => setFeeSubTab('summary')}>Summary</button>
+                    <button className={`report-tab-btn ${feeSubTab === 'schedules' ? 'active' : ''}`} onClick={() => setFeeSubTab('schedules')}>Fee Schedules</button>
+                  </nav>
+                </div>
+              )}
 
               {feeLoading && <div className="loading-state"><div className="loading-spinner" /></div>}
 
-              {!feeLoading && (
+              {!feeLoading && madrasahProfile?.fee_tracking_mode === 'auto' && feeSubTab === 'schedules' && (
+                <>
+                  {/* Fee Schedules Management */}
+                  {feeSchedules.length === 0 ? (
+                    <div className="card">
+                      <div className="empty">
+                        <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                        <p>No fee schedules yet. Create a fee schedule to define how much each class or student should be charged.</p>
+                        <button className="btn btn-primary" style={{ marginTop: '12px' }} disabled={isReadOnly()} onClick={() => {
+                          setEditingFeeSchedule(null);
+                          setFeeScheduleScope('all');
+                          setNewFeeSchedule({ class_id: '', student_id: '', billing_cycle: 'per_semester', amount: '', description: '' });
+                          setShowFeeScheduleModal(true);
+                        }}>Create Fee Schedule</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="card">
+                      <div className="card-body" style={{ padding: 0 }}>
+                        <SortableTable
+                          columns={[
+                            { key: 'scope', label: 'Applies To', sortable: true, sortType: 'string',
+                              sortValue: (row) => row.student_name || row.class_name || 'All Students',
+                              render: (row) => row.student_name ? `Student: ${row.student_name}` : row.class_name ? `Class: ${row.class_name}` : 'All Students (Default)' },
+                            { key: 'billing_cycle', label: 'Billing Cycle', sortable: true, sortType: 'string',
+                              render: (row) => ({ weekly: 'Weekly', monthly: 'Monthly', per_semester: 'Per Semester', per_session: 'Per Session' }[row.billing_cycle] || row.billing_cycle) },
+                            { key: 'amount', label: 'Amount', sortable: true, sortType: 'number',
+                              render: (row) => formatCurrency(row.amount) },
+                            { key: 'description', label: 'Description', sortable: false,
+                              render: (row) => row.description || '—' },
+                            { key: 'is_active', label: 'Status', sortable: true, sortType: 'string',
+                              render: (row) => <span className={`badge ${row.is_active ? 'badge-success' : 'badge-warning'}`}>{row.is_active ? 'Active' : 'Inactive'}</span> },
+                            { key: 'actions', label: '', sortable: false,
+                              render: (row) => (
+                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                                  <button className="btn btn-sm btn-secondary" disabled={isReadOnly()} onClick={() => {
+                                    setEditingFeeSchedule(row);
+                                    setFeeScheduleScope(row.student_id ? 'student' : row.class_id ? 'class' : 'all');
+                                    setNewFeeSchedule({ class_id: row.class_id || '', student_id: row.student_id || '', billing_cycle: row.billing_cycle, amount: String(row.amount), description: row.description || '' });
+                                    setShowFeeScheduleModal(true);
+                                  }}>Edit</button>
+                                  <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => {
+                                    setConfirmModal({ title: 'Delete Fee Schedule', message: 'Are you sure you want to delete this fee schedule?', danger: true, confirmLabel: 'Delete', onConfirm: async () => {
+                                      try { await api.delete(`/admin/fee-schedules/${row.id}`); loadFeeSchedules(); loadAutoFeeSummary(); toast.success('Fee schedule deleted'); }
+                                      catch { toast.error('Failed to delete fee schedule'); }
+                                    }});
+                                  }}>Delete</button>
+                                </div>
+                              )}
+                          ]}
+                          data={feeSchedules}
+                          pagination
+                          pageSize={25}
+                          emptyMessage="No fee schedules"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {!feeLoading && madrasahProfile?.fee_tracking_mode === 'auto' && feeSubTab === 'summary' && (
+                <>
+                  {/* Class filter */}
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    <select className="form-select" style={{ maxWidth: '220px' }} value={feeClassFilter}
+                      onChange={(e) => setFeeClassFilter(e.target.value)}>
+                      <option value="">All Classes</option>
+                      {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Auto Summary cards */}
+                  {autoFeeSummary.length > 0 && (
+                    <div className="fee-summary-cards">
+                      <div className="fee-summary-card">
+                        <div className="fee-summary-value">{formatCurrency(autoFeeSummary.reduce((s, r) => s + r.total_fee, 0))}</div>
+                        <div className="fee-summary-label">Total Expected</div>
+                      </div>
+                      <div className="fee-summary-card">
+                        <div className="fee-summary-value">{formatCurrency(autoFeeSummary.reduce((s, r) => s + r.total_paid, 0))}</div>
+                        <div className="fee-summary-label">Collected</div>
+                      </div>
+                      <div className="fee-summary-card">
+                        <div className="fee-summary-value">{formatCurrency(autoFeeSummary.reduce((s, r) => s + Math.max(r.balance, 0), 0))}</div>
+                        <div className="fee-summary-label">Outstanding</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {autoFeeSummary.length === 0 ? (
+                    <div className="card">
+                      <div className="empty">
+                        <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                        <p>No auto-calculated fees yet. Create a fee schedule and assign students to classes to see calculated fees.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="card fee-table-desktop">
+                        <SortableTable
+                          columns={[
+                            { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
+                            { key: 'class_name', label: 'Class', sortable: true, sortType: 'string' },
+                            { key: 'total_fee', label: 'Expected', sortable: true, sortType: 'number',
+                              render: (row) => <span title={row.fee_note || ''}>{formatCurrency(row.total_fee)}{row.fee_note ? ' *' : ''}</span> },
+                            { key: 'total_paid', label: 'Paid', sortable: true, sortType: 'number',
+                              render: (row) => formatCurrency(row.total_paid) },
+                            { key: 'balance', label: 'Balance', sortable: true, sortType: 'number',
+                              render: (row) => formatCurrency(row.balance) },
+                            { key: 'status', label: 'Progress', sortable: true, sortType: 'number',
+                              sortValue: (row) => row.total_fee > 0 ? row.total_paid / row.total_fee : 0,
+                              render: (row) => <FeeProgressBar paid={row.total_paid} total={row.total_fee} /> },
+                            { key: 'actions', label: '', sortable: false,
+                              render: (row) => (
+                                <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
+                                  setShowPaymentModal(row);
+                                  setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '', _labelCategory: '' });
+                                }}>Record</button>
+                              )}
+                          ]}
+                          data={autoFeeSummary}
+                          searchable
+                          searchPlaceholder="Search students..."
+                          searchKeys={['student_name', 'class_name']}
+                          pagination
+                          pageSize={25}
+                          emptyMessage="No fee records"
+                        />
+                      </div>
+                      <div className="fee-mobile-cards">
+                        {autoFeeSummary.map((row, idx) => (
+                          <div key={idx} className="admin-mobile-card">
+                            <div className="admin-mobile-card-top">
+                              <div>
+                                <div className="admin-mobile-card-title">{row.student_name}</div>
+                                <div className="admin-mobile-card-sub">{row.class_name}{row.fee_note ? ` · ${row.fee_note}` : ''}</div>
+                              </div>
+                            </div>
+                            <FeeProgressBar paid={row.total_paid} total={row.total_fee} />
+                            <div className="fee-mobile-card-amounts">
+                              <div className="fee-mobile-card-amount">
+                                <span className="fee-mobile-card-amount-label">Expected</span>
+                                <span>{formatCurrency(row.total_fee)}</span>
+                              </div>
+                              <div className="fee-mobile-card-amount">
+                                <span className="fee-mobile-card-amount-label">Paid</span>
+                                <span>{formatCurrency(row.total_paid)}</span>
+                              </div>
+                              <div className="fee-mobile-card-amount">
+                                <span className="fee-mobile-card-amount-label">Balance</span>
+                                <span style={{ fontWeight: 600 }}>{formatCurrency(row.balance)}</span>
+                              </div>
+                            </div>
+                            <div className="admin-mobile-card-actions">
+                              <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
+                                setShowPaymentModal(row);
+                                setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '', _labelCategory: '' });
+                              }}>Record Payment</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Payment History (shared) */}
+                  {feePayments.length > 0 && (
+                    <div className="card" style={{ marginTop: '20px' }}>
+                      <div className="card-header">Recent Payments</div>
+                      <div className="card-body" style={{ padding: 0 }}>
+                        <SortableTable
+                          columns={[
+                            { key: 'student_name', label: 'Student', sortable: true, sortType: 'string' },
+                            { key: 'amount_paid', label: 'Amount', sortable: true, sortType: 'number',
+                              render: (row) => formatCurrency(row.amount_paid) },
+                            { key: 'payment_date', label: 'Date', sortable: true, sortType: 'string',
+                              render: (row) => new Date(row.payment_date).toLocaleDateString() },
+                            { key: 'payment_method', label: 'Method', sortable: true, sortType: 'string',
+                              render: (row) => ({ cash: 'Cash', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other' }[row.payment_method] || row.payment_method) },
+                            { key: 'actions', label: '', sortable: false,
+                              render: (row) => (
+                                <button className="btn btn-sm btn-secondary btn-danger" disabled={isReadOnly()} onClick={() => handleVoidPayment(row.id)}>Void</button>
+                              )}
+                          ]}
+                          data={feePayments}
+                          pagination
+                          pageSize={10}
+                          emptyMessage="No payments recorded"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {!feeLoading && (!madrasahProfile?.fee_tracking_mode || madrasahProfile?.fee_tracking_mode === 'manual') && (
                 <>
                   {/* Class filter */}
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
@@ -7400,6 +7652,106 @@ function AdminDashboard() {
                 </div>
               </div>
 
+              {/* Fee Tracking Mode */}
+              {(madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false) && (
+                <div className="card" style={{ marginTop: '20px' }}>
+                  <h3>Fee Calculation Mode</h3>
+                  <p style={{ fontSize: '13px', color: 'var(--gray)', margin: '0 0 12px' }}>
+                    Choose how student fees are calculated.
+                  </p>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button
+                      className={`btn ${(!madrasahProfile?.fee_tracking_mode || madrasahProfile?.fee_tracking_mode === 'manual') ? 'btn-primary' : 'btn-secondary'}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        if (madrasahProfile?.fee_tracking_mode === 'manual' || !madrasahProfile?.fee_tracking_mode) return;
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/admin/settings', { fee_tracking_mode: 'manual' });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success('Switched to manual fee tracking');
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                    >
+                      Manual
+                    </button>
+                    <button
+                      className={`btn ${madrasahProfile?.fee_tracking_mode === 'auto' ? 'btn-primary' : 'btn-secondary'}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        if (madrasahProfile?.fee_tracking_mode === 'auto') return;
+                        const hasPlanner = sessions.some(s => s.is_active);
+                        if (!hasPlanner) {
+                          toast.error('You need an active session in your Planner before enabling auto fee tracking.');
+                          return;
+                        }
+                        setConfirmModal({
+                          title: 'Switch to Auto Fee Tracking',
+                          message: 'Auto fee calculation uses your Planner data (sessions, semesters, school days, and holidays) to compute expected fees. Make sure your Planner is up to date before switching.',
+                          confirmLabel: 'Switch to Auto',
+                          onConfirm: async () => {
+                            setSavingSettings(true);
+                            try {
+                              const res = await api.put('/admin/settings', { fee_tracking_mode: 'auto' });
+                              setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                              toast.success('Switched to auto fee tracking');
+                            } catch (error) {
+                              toast.error(error.response?.data?.error || 'Failed to update setting');
+                            } finally {
+                              setSavingSettings(false);
+                            }
+                          }
+                        });
+                      }}
+                    >
+                      Auto
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--gray)', marginTop: '8px' }}>
+                    {(!madrasahProfile?.fee_tracking_mode || madrasahProfile?.fee_tracking_mode === 'manual')
+                      ? 'Manually set expected fees per student.'
+                      : 'Fees are auto-calculated from fee schedules and your Planner data.'}
+                  </p>
+
+                  {madrasahProfile?.fee_tracking_mode === 'auto' && (
+                    <div className="setting-toggle-row" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                      <div className="setting-toggle-info">
+                        <span className="setting-toggle-label">Prorate Mid-Period Enrollment</span>
+                        <p className="setting-toggle-desc">
+                          Reduce fees proportionally when a student enrolls partway through a billing period
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={!!madrasahProfile?.fee_prorate_mid_period}
+                        className={`setting-switch ${madrasahProfile?.fee_prorate_mid_period ? 'on' : ''}`}
+                        disabled={savingSettings}
+                        onClick={async () => {
+                          const newValue = !madrasahProfile?.fee_prorate_mid_period;
+                          setSavingSettings(true);
+                          try {
+                            const res = await api.put('/admin/settings', { fee_prorate_mid_period: newValue });
+                            setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                            toast.success(`Proration ${newValue ? 'enabled' : 'disabled'}`);
+                          } catch (error) {
+                            toast.error('Failed to update setting');
+                          } finally {
+                            setSavingSettings(false);
+                          }
+                        }}
+                      >
+                        <span className="setting-switch-thumb" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Currency Setting */}
               <div className="card" style={{ marginTop: '20px' }}>
                 <h3>Currency</h3>
@@ -7939,6 +8291,99 @@ function AdminDashboard() {
                   Apply to {selectedStudentsForFee.length} Student{selectedStudentsForFee.length !== 1 ? 's' : ''}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fee Schedule Modal */}
+      {showFeeScheduleModal && (
+        <div className="modal-overlay" onClick={() => setShowFeeScheduleModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">{editingFeeSchedule ? 'Edit Fee Schedule' : 'Create Fee Schedule'}</h3>
+              <button onClick={() => setShowFeeScheduleModal(false)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  if (editingFeeSchedule) {
+                    await api.put(`/admin/fee-schedules/${editingFeeSchedule.id}`, newFeeSchedule);
+                    toast.success('Fee schedule updated');
+                  } else {
+                    await api.post('/admin/fee-schedules', newFeeSchedule);
+                    toast.success('Fee schedule created');
+                  }
+                  setShowFeeScheduleModal(false);
+                  loadFeeSchedules();
+                  loadAutoFeeSummary();
+                } catch (error) {
+                  toast.error(error.response?.data?.error || 'Failed to save fee schedule');
+                }
+              }}>
+                {!editingFeeSchedule && (
+                  <div className="form-group">
+                    <label className="form-label">Apply To</label>
+                    <select className="form-select" value={feeScheduleScope}
+                      onChange={(e) => {
+                        setFeeScheduleScope(e.target.value);
+                        setNewFeeSchedule(prev => ({ ...prev, class_id: '', student_id: '' }));
+                      }}>
+                      <option value="all">All Students (Default)</option>
+                      <option value="class">Specific Class</option>
+                      <option value="student">Specific Student</option>
+                    </select>
+                  </div>
+                )}
+                {feeScheduleScope === 'class' && (
+                  <div className="form-group">
+                    <label className="form-label">Class</label>
+                    <select className="form-select" value={newFeeSchedule.class_id}
+                      onChange={(e) => setNewFeeSchedule({ ...newFeeSchedule, class_id: e.target.value })} required>
+                      <option value="">Select Class</option>
+                      {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {feeScheduleScope === 'student' && (
+                  <div className="form-group">
+                    <label className="form-label">Student</label>
+                    <select className="form-select" value={newFeeSchedule.student_id}
+                      onChange={(e) => setNewFeeSchedule({ ...newFeeSchedule, student_id: e.target.value })} required>
+                      <option value="">Select Student</option>
+                      {students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name} ({s.student_id})</option>)}
+                    </select>
+                  </div>
+                )}
+                <div className="form-group">
+                  <label className="form-label">Billing Cycle</label>
+                  <select className="form-select" value={newFeeSchedule.billing_cycle}
+                    onChange={(e) => setNewFeeSchedule({ ...newFeeSchedule, billing_cycle: e.target.value })}>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="per_semester">Per Semester</option>
+                    <option value="per_session">Per Session</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Amount</label>
+                  <input type="number" className="form-input" step="0.01" min="0" placeholder="0.00"
+                    value={newFeeSchedule.amount}
+                    onChange={(e) => setNewFeeSchedule({ ...newFeeSchedule, amount: e.target.value })}
+                    required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Description (Optional)</label>
+                  <input type="text" className="form-input" placeholder="e.g. Tuition fee, Books fee"
+                    value={newFeeSchedule.description}
+                    onChange={(e) => setNewFeeSchedule({ ...newFeeSchedule, description: e.target.value })} />
+                </div>
+                <div className="form-actions">
+                  <button type="button" onClick={() => setShowFeeScheduleModal(false)} className="btn btn-secondary">Cancel</button>
+                  <button type="submit" className="btn btn-primary">{editingFeeSchedule ? 'Update' : 'Create'}</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

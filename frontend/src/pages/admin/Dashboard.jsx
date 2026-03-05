@@ -6825,8 +6825,8 @@ function AdminDashboard() {
                             >
                               <div className="kpi-value">{pack.credits}</div>
                               <div className="kpi-label" style={{ marginBottom: 0 }}>SMS credits</div>
-                              <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--black)' }}>${(pack.price_cents / 100).toFixed(2)}</div>
-                              <div style={{ fontSize: '12px', color: 'var(--muted)' }}>${(pack.price_cents / 100 / pack.credits).toFixed(3)}/SMS</div>
+                              <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--black)' }}>{pack.description}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{smsStatus.currency === 'NZD' ? 'NZ$' : '$'}{(pack.price_cents / 100 / pack.credits).toFixed(3)}/SMS</div>
                               <button className="btn btn-primary" style={{ width: '100%', marginTop: '4px' }}>
                                 Buy Now
                               </button>
@@ -6854,7 +6854,7 @@ function AdminDashboard() {
                                   <tr key={p.id}>
                                     <td>{fmtDate(p.created_at)}</td>
                                     <td>{p.credits}</td>
-                                    <td>${(p.amount_cents / 100).toFixed(2)}</td>
+                                    <td>{p.amount_cents === 0 ? 'Free' : `${(p.currency || '').toUpperCase() === 'NZD' ? 'NZ$' : '$'}${(p.amount_cents / 100).toFixed(2)}`}</td>
                                     <td>
                                       <span className="status-badge status-active">
                                         Completed

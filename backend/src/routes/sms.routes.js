@@ -20,6 +20,13 @@ const SMS_PACKS = [
   { id: 'sms_1000', credits: 1000, price_cents: 3500, label: '1000 SMS', description: '$35.00' },
 ];
 
+const SMS_PACKS_NZD = [
+  { id: 'sms_50_nzd', credits: 50, price_cents: 500, label: '50 SMS', description: 'NZ$5.00' },
+  { id: 'sms_200_nzd', credits: 200, price_cents: 1700, label: '200 SMS', description: 'NZ$17.00' },
+  { id: 'sms_500_nzd', credits: 500, price_cents: 3500, label: '500 SMS', description: 'NZ$35.00' },
+  { id: 'sms_1000_nzd', credits: 1000, price_cents: 5900, label: '1000 SMS', description: 'NZ$59.00' },
+];
+
 // ─── GET /sms/status — Credit balance + config ──────────────────
 router.get('/status', async (req, res) => {
   try {
@@ -35,13 +42,18 @@ router.get('/status', async (req, res) => {
       [madrasahId]
     );
 
+    // Return currency-appropriate packs
+    const [madrasah] = await pool.query('SELECT currency FROM madrasahs WHERE id = ?', [madrasahId]);
+    const isNZD = (madrasah[0]?.currency || 'USD').toUpperCase() === 'NZD';
+
     res.json({
       balance: credits[0]?.balance || 0,
       totalPurchased: credits[0]?.total_purchased || 0,
       totalUsed: credits[0]?.total_used || 0,
       sentThisMonth: recentMessages[0].sent_this_month,
       smsConfigured: isSmsConfigured(),
-      packs: SMS_PACKS
+      packs: isNZD ? SMS_PACKS_NZD : SMS_PACKS,
+      currency: isNZD ? 'NZD' : 'USD'
     });
   } catch (error) {
     console.error('SMS status error:', error);
@@ -55,14 +67,15 @@ router.post('/purchase', async (req, res) => {
     const { packId } = req.body;
     const madrasahId = req.madrasahId;
 
-    const pack = SMS_PACKS.find(p => p.id === packId);
+    // Find pack from either USD or NZD list
+    let pack = SMS_PACKS.find(p => p.id === packId) || SMS_PACKS_NZD.find(p => p.id === packId);
     if (!pack) {
       return res.status(400).json({ error: 'Invalid SMS pack' });
     }
 
     // Get or create Stripe customer
     const [madrasah] = await pool.query(
-      'SELECT id, name, email, stripe_customer_id FROM madrasahs WHERE id = ?',
+      'SELECT id, name, email, stripe_customer_id, currency FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
 
@@ -81,13 +94,18 @@ router.post('/purchase', async (req, res) => {
       await pool.query('UPDATE madrasahs SET stripe_customer_id = ? WHERE id = ?', [customerId, madrasahId]);
     }
 
-    // Create one-time checkout session
-    const session = await stripe.checkout.sessions.create({
+    // Determine currency from madrasah settings
+    const isNZD = (madrasah[0].currency || 'USD').toUpperCase() === 'NZD';
+    const currency = isNZD ? 'nzd' : 'usd';
+
+    // Build checkout session params
+    const sessionParams = {
       customer: customerId,
+      ...(isNZD ? { payment_method_types: ['card', 'nz_bank_account'] } : {}),
       mode: 'payment',
       line_items: [{
         price_data: {
-          currency: 'usd',
+          currency,
           product_data: {
             name: `SMS Credits — ${pack.label}`,
             description: `${pack.credits} SMS messages for fee reminders and notifications`
@@ -104,13 +122,16 @@ router.post('/purchase', async (req, res) => {
       },
       success_url: `${process.env.FRONTEND_URL || process.env.CORS_ORIGIN}/dashboard?tab=sms&purchase=success`,
       cancel_url: `${process.env.FRONTEND_URL || process.env.CORS_ORIGIN}/dashboard?tab=sms&purchase=cancelled`
-    });
+    };
+
+    // Create one-time checkout session
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     // Record pending purchase
     await pool.query(
       `INSERT INTO sms_credit_purchases (madrasah_id, credits, amount_cents, currency, stripe_checkout_session_id, status, purchased_by)
-       VALUES (?, ?, ?, 'usd', ?, 'pending', ?)`,
-      [madrasahId, pack.credits, pack.price_cents, session.id, req.user.id]
+       VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
+      [madrasahId, pack.credits, pack.price_cents, currency, session.id, req.user.id]
     );
 
     res.json({ checkoutUrl: session.url });

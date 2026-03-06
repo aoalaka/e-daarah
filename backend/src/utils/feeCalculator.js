@@ -122,7 +122,12 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
     fromDate, toDate, today,
     sessionStart: session.start_date, sessionEnd: session.end_date,
     periodCalcStart: String(periodCalcStart), periodCalcEnd: String(periodCalcEnd),
-    scheduleCount: schedules.length, studentCount: students.length
+    scheduleCount: schedules.length, studentCount: students.length,
+    scheduleCycles: schedules.map(s => ({ cycle: s.billing_cycle, amount: s.amount, classId: s.class_id, studentId: s.student_id })),
+    semesterCount: sessionSemesters.length,
+    semesters: sessionSemesters.map(s => ({ name: s.name, start: String(s.start_date), end: String(s.end_date) })),
+    firstStudentEnroll: students[0]?.enrollment_date,
+    prorate
   });
 
   // Calculate fee for each student
@@ -247,6 +252,18 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
     totalFee = Math.round(totalFee * 100) / 100;
     const totalPaid = paymentsMap[student.id] || 0;
     const balance = totalFee - totalPaid;
+
+    // Debug: log first student's calculation
+    if (students.indexOf(student) === 0) {
+      console.log('[FeeCalc Student1]', {
+        name: `${student.first_name} ${student.last_name}`,
+        billing_cycle: schedule.billing_cycle,
+        amount: parseFloat(schedule.amount),
+        totalFee, totalPaid, balance,
+        enrollDate: student.enrollment_date,
+        schoolDays: student.school_days
+      });
+    }
 
     return {
       student_id: student.id,

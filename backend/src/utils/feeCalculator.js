@@ -18,13 +18,23 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
   }
   const prorate = !!madrasahRows[0].fee_prorate_mid_period;
 
-  // Get active session and its semesters
-  const [activeSessions] = await pool.query(
-    'SELECT id, name, start_date, end_date FROM sessions WHERE madrasah_id = ? AND is_active = 1 AND deleted_at IS NULL',
-    [madrasahId]
-  );
-  if (activeSessions.length === 0) return [];
-  const session = activeSessions[0];
+  // Resolve session: if period dates given, find the session containing those dates; else active session
+  let session;
+  if (fromDate) {
+    const [dateSession] = await pool.query(
+      'SELECT id, name, start_date, end_date FROM sessions WHERE madrasah_id = ? AND start_date <= ? AND end_date >= ? AND deleted_at IS NULL',
+      [madrasahId, fromDate, fromDate]
+    );
+    session = dateSession[0];
+  }
+  if (!session) {
+    const [activeSessions] = await pool.query(
+      'SELECT id, name, start_date, end_date FROM sessions WHERE madrasah_id = ? AND is_active = 1 AND deleted_at IS NULL',
+      [madrasahId]
+    );
+    session = activeSessions[0];
+  }
+  if (!session) return [];
 
   const [sessionSemesters] = await pool.query(
     'SELECT id, name, start_date, end_date FROM semesters WHERE session_id = ? AND deleted_at IS NULL ORDER BY start_date',

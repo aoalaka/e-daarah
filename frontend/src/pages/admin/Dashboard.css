@@ -4800,11 +4800,24 @@ a:focus-visible,
   max-width: 900px;
 }
 
+.fee-report-filters {
+  margin-bottom: 16px;
+}
+
 .fee-report-header {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
   margin-bottom: 20px;
+}
+
+.fee-report-period {
+  font-size: 14px;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid var(--light);
 }
 
 .fee-report-print-title {

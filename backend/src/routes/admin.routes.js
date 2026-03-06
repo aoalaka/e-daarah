@@ -2681,30 +2681,118 @@ router.get('/fee-summary', async (req, res) => {
 router.get('/fee-report', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
+    const { period, semester_id, session_id } = req.query;
+    // period: 'semester' (default), 'session', 'all'
 
     // Determine fee tracking mode
     const [madrasahRows] = await pool.query(
-      'SELECT fee_tracking_mode, currency FROM madrasahs WHERE id = ?', [madrasahId]
+      'SELECT fee_tracking_mode, currency, name FROM madrasahs WHERE id = ?', [madrasahId]
     );
     const mode = madrasahRows[0]?.fee_tracking_mode || 'manual';
+    const madrasahName = madrasahRows[0]?.name || '';
+
+    // Resolve the period and its date range
+    let periodName = 'All Time';
+    let periodStart = null;
+    let periodEnd = null;
+    let resolvedSessionId = null;
+    let paymentDateFilter = '';
+    const paymentDateParams = [];
+
+    if (period === 'all') {
+      // No date filtering
+    } else if (period === 'session') {
+      // Use specified session or active session
+      let sessionRow;
+      if (session_id) {
+        const [rows] = await pool.query(
+          'SELECT id, name, start_date, end_date FROM sessions WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+          [session_id, madrasahId]
+        );
+        sessionRow = rows[0];
+      } else {
+        const [rows] = await pool.query(
+          'SELECT id, name, start_date, end_date FROM sessions WHERE madrasah_id = ? AND is_active = 1 AND deleted_at IS NULL',
+          [madrasahId]
+        );
+        sessionRow = rows[0];
+      }
+      if (sessionRow) {
+        periodName = sessionRow.name;
+        periodStart = sessionRow.start_date;
+        periodEnd = sessionRow.end_date;
+        resolvedSessionId = sessionRow.id;
+        paymentDateFilter = ' AND fp.payment_date >= ? AND fp.payment_date <= ?';
+        paymentDateParams.push(sessionRow.start_date, sessionRow.end_date);
+      }
+    } else {
+      // Default: semester scope
+      let semesterRow;
+      if (semester_id) {
+        const [rows] = await pool.query(
+          `SELECT sem.id, sem.name, sem.start_date, sem.end_date, ses.name as session_name, ses.id as session_id
+           FROM semesters sem JOIN sessions ses ON ses.id = sem.session_id
+           WHERE sem.id = ? AND ses.madrasah_id = ? AND sem.deleted_at IS NULL`,
+          [semester_id, madrasahId]
+        );
+        semesterRow = rows[0];
+      } else {
+        const [rows] = await pool.query(
+          `SELECT sem.id, sem.name, sem.start_date, sem.end_date, ses.name as session_name, ses.id as session_id
+           FROM semesters sem JOIN sessions ses ON ses.id = sem.session_id
+           WHERE ses.madrasah_id = ? AND sem.is_active = 1 AND sem.deleted_at IS NULL`,
+          [madrasahId]
+        );
+        semesterRow = rows[0];
+      }
+      if (semesterRow) {
+        periodName = `${semesterRow.name} (${semesterRow.session_name})`;
+        periodStart = semesterRow.start_date;
+        periodEnd = semesterRow.end_date;
+        resolvedSessionId = semesterRow.session_id;
+        paymentDateFilter = ' AND fp.payment_date >= ? AND fp.payment_date <= ?';
+        paymentDateParams.push(semesterRow.start_date, semesterRow.end_date);
+      }
+    }
 
     let studentData = [];
 
     if (mode === 'auto') {
-      // Use shared auto calculator
-      studentData = await calculateAutoFees(madrasahId);
+      // Use shared auto calculator (always scopes to active session)
+      const autoData = await calculateAutoFees(madrasahId);
+      // If period-scoped, re-query payments within the period date range
+      if (periodStart && periodEnd && autoData.length > 0) {
+        const studentIds = autoData.map(s => s.student_id);
+        const placeholders = studentIds.map(() => '?').join(',');
+        const [periodPayments] = await pool.query(
+          `SELECT student_id, COALESCE(SUM(amount_paid), 0) as total_paid
+           FROM fee_payments WHERE madrasah_id = ? AND student_id IN (${placeholders}) AND deleted_at IS NULL
+             AND payment_date >= ? AND payment_date <= ?
+           GROUP BY student_id`,
+          [madrasahId, ...studentIds, periodStart, periodEnd]
+        );
+        const periodMap = {};
+        periodPayments.forEach(p => { periodMap[p.student_id] = parseFloat(p.total_paid); });
+
+        studentData = autoData.map(s => {
+          const paid = periodMap[s.student_id] || 0;
+          return { ...s, total_paid: paid, balance: s.total_fee - paid, status: paid >= s.total_fee ? 'paid' : paid > 0 ? 'partial' : 'unpaid' };
+        });
+      } else {
+        studentData = autoData;
+      }
     } else {
-      // Manual mode — query expected fees
+      // Manual mode — query expected fees, filter payments to period
       const [rows] = await pool.query(
         `SELECT s.id as student_id, s.first_name, s.last_name, s.expected_fee,
            s.class_id, c.name as class_name,
            COALESCE(SUM(fp.amount_paid), 0) as total_paid
          FROM students s
          LEFT JOIN classes c ON c.id = s.class_id
-         LEFT JOIN fee_payments fp ON fp.student_id = s.id AND fp.madrasah_id = s.madrasah_id AND fp.deleted_at IS NULL
+         LEFT JOIN fee_payments fp ON fp.student_id = s.id AND fp.madrasah_id = s.madrasah_id AND fp.deleted_at IS NULL${paymentDateFilter}
          WHERE s.madrasah_id = ? AND s.deleted_at IS NULL AND s.expected_fee IS NOT NULL
          GROUP BY s.id ORDER BY s.last_name, s.first_name`,
-        [madrasahId]
+        [...paymentDateParams, madrasahId]
       );
       studentData = rows.map(row => {
         const totalFee = parseFloat(row.expected_fee);
@@ -2753,17 +2841,20 @@ router.get('/fee-report', async (req, res) => {
       collection_rate: c.total_expected > 0 ? Math.round((c.total_collected / c.total_expected) * 100) : 0
     })).sort((a, b) => a.class_name.localeCompare(b.class_name));
 
-    // Monthly collection trend (last 6 months from fee_payments)
-    const [monthlyRows] = await pool.query(
-      `SELECT DATE_FORMAT(payment_date, '%Y-%m') as month,
-              SUM(amount_paid) as total
-       FROM fee_payments
-       WHERE madrasah_id = ? AND deleted_at IS NULL
-         AND payment_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-       GROUP BY DATE_FORMAT(payment_date, '%Y-%m')
-       ORDER BY month ASC`,
-      [madrasahId]
-    );
+    // Monthly collection trend (within period or last 6 months)
+    let trendSql = `SELECT DATE_FORMAT(payment_date, '%Y-%m') as month,
+            SUM(amount_paid) as total
+     FROM fee_payments
+     WHERE madrasah_id = ? AND deleted_at IS NULL`;
+    const trendParams = [madrasahId];
+    if (periodStart && periodEnd) {
+      trendSql += ' AND payment_date >= ? AND payment_date <= ?';
+      trendParams.push(periodStart, periodEnd);
+    } else {
+      trendSql += ' AND payment_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)';
+    }
+    trendSql += ` GROUP BY DATE_FORMAT(payment_date, '%Y-%m') ORDER BY month ASC`;
+    const [monthlyRows] = await pool.query(trendSql, trendParams);
     const monthlyTrend = monthlyRows.map(r => ({
       month: r.month,
       total: parseFloat(r.total)
@@ -2775,6 +2866,13 @@ router.get('/fee-report', async (req, res) => {
       classBreakdown,
       monthlyTrend,
       mode,
+      period: {
+        type: period || 'semester',
+        name: periodName,
+        startDate: periodStart,
+        endDate: periodEnd
+      },
+      madrasahName,
       generatedAt: new Date().toISOString()
     });
   } catch (error) {

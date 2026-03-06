@@ -193,6 +193,9 @@ function AdminDashboard() {
   const [feeSubTab, setFeeSubTab] = useState('summary');
   const [feeReport, setFeeReport] = useState(null);
   const [feeReportLoading, setFeeReportLoading] = useState(false);
+  const [feeReportPeriod, setFeeReportPeriod] = useState('semester');
+  const [feeReportSemesterId, setFeeReportSemesterId] = useState('');
+  const [feeReportSessionId, setFeeReportSessionId] = useState('');
   // Support tickets state
   const [supportTickets, setSupportTickets] = useState([]);
   const [showTicketForm, setShowTicketForm] = useState(false);
@@ -562,10 +565,16 @@ function AdminDashboard() {
     } catch (error) { console.error('Failed to load auto fee summary:', error); }
   };
 
-  const loadFeeReport = async () => {
+  const loadFeeReport = async (periodOverride, semIdOverride, sessIdOverride) => {
     setFeeReportLoading(true);
     try {
-      const res = await api.get('/admin/fee-report');
+      const p = periodOverride ?? feeReportPeriod;
+      const params = new URLSearchParams({ period: p });
+      const semId = semIdOverride ?? feeReportSemesterId;
+      const sessId = sessIdOverride ?? feeReportSessionId;
+      if (p === 'semester' && semId) params.set('semester_id', semId);
+      if (p === 'session' && sessId) params.set('session_id', sessId);
+      const res = await api.get(`/admin/fee-report?${params}`);
       setFeeReport(res.data);
     } catch (error) { console.error('Failed to load fee report:', error); }
     setFeeReportLoading(false);
@@ -4456,18 +4465,71 @@ function AdminDashboard() {
               {/* Fee Report Sub-tab (shared by auto and manual modes) */}
               {!feeLoading && feeSubTab === 'report' && (
                 <>
+                  {/* Period selector */}
+                  <div className="fee-report-filters no-print">
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <select className="form-select" style={{ maxWidth: '180px' }} value={feeReportPeriod}
+                        onChange={(e) => {
+                          setFeeReportPeriod(e.target.value);
+                          setFeeReport(null);
+                          loadFeeReport(e.target.value, feeReportSemesterId, feeReportSessionId);
+                        }}>
+                        <option value="semester">Semester</option>
+                        <option value="session">Session</option>
+                        <option value="all">All Time</option>
+                      </select>
+                      {feeReportPeriod === 'semester' && (
+                        <select className="form-select" style={{ maxWidth: '260px' }} value={feeReportSemesterId}
+                          onChange={(e) => {
+                            setFeeReportSemesterId(e.target.value);
+                            setFeeReport(null);
+                            loadFeeReport('semester', e.target.value, feeReportSessionId);
+                          }}>
+                          <option value="">Active Semester</option>
+                          {semesters.map(s => <option key={s.id} value={s.id}>{s.name} ({s.session_name})</option>)}
+                        </select>
+                      )}
+                      {feeReportPeriod === 'session' && (
+                        <select className="form-select" style={{ maxWidth: '220px' }} value={feeReportSessionId}
+                          onChange={(e) => {
+                            setFeeReportSessionId(e.target.value);
+                            setFeeReport(null);
+                            loadFeeReport('session', feeReportSemesterId, e.target.value);
+                          }}>
+                          <option value="">Active Session</option>
+                          {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+
                   {feeReportLoading && <div className="loading-state"><div className="loading-spinner" /></div>}
                   {!feeReportLoading && feeReport && (
                     <div className="fee-report">
                       <div className="fee-report-header no-print">
-                        <button className="btn btn-secondary" onClick={loadFeeReport}>Refresh</button>
+                        <button className="btn btn-secondary" onClick={() => loadFeeReport()}>Refresh</button>
                         <button className="btn btn-primary" onClick={() => window.print()}>Print Report</button>
                       </div>
 
                       {/* Report title for print */}
                       <div className="fee-report-print-title">
-                        <h2>{madrasahProfile?.name || 'Madrasah'}</h2>
-                        <p>Fee Collection Report &mdash; Generated {new Date(feeReport.generatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        <h2>{feeReport.madrasahName || madrasahProfile?.name || 'Madrasah'}</h2>
+                        <p>Fee Collection Report &mdash; {feeReport.period?.name || 'All Time'}</p>
+                        {feeReport.period?.startDate && (
+                          <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+                            {new Date(feeReport.period.startDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })} &ndash; {new Date(feeReport.period.endDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Period badge */}
+                      <div className="fee-report-period no-print">
+                        <span style={{ fontWeight: 600 }}>{feeReport.period?.name || 'All Time'}</span>
+                        {feeReport.period?.startDate && (
+                          <span style={{ color: 'var(--muted)', marginLeft: '8px' }}>
+                            {new Date(feeReport.period.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} &ndash; {new Date(feeReport.period.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        )}
                       </div>
 
                       {/* Overview cards */}
@@ -4619,7 +4681,7 @@ function AdminDashboard() {
                       )}
 
                       <div className="fee-report-footer">
-                        <span>Fee tracking mode: {feeReport.mode === 'auto' ? 'Automatic' : 'Manual'}</span>
+                        <span>{feeReport.period?.name || 'All Time'} &middot; {feeReport.mode === 'auto' ? 'Auto' : 'Manual'} tracking</span>
                         <span>Generated: {new Date(feeReport.generatedAt).toLocaleString()}</span>
                       </div>
                     </div>

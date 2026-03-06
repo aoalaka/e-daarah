@@ -2479,6 +2479,9 @@ a:focus-visible,
   display: none;
 }
 .desktop-save-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
   padding: 16px;
 }
 
@@ -2489,7 +2492,7 @@ a:focus-visible,
   }
   /* Hide desktop save button on mobile */
   .desktop-save-actions {
-    display: none;
+    display: none !important;
   }
 
   /* Show two-phase mobile flow */

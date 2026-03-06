@@ -5,6 +5,7 @@ import { authenticateToken, requireRole } from '../middleware/auth.middleware.js
 import { requireActiveSubscription } from '../middleware/plan-limits.middleware.js';
 import { sendSMS, formatPhoneNumber, calculateCredits, isSmsConfigured } from '../services/sms.service.js';
 import { sendSmsFailureAlert } from '../services/email.service.js';
+import { calculateAutoFees } from '../utils/feeCalculator.js';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -435,33 +436,65 @@ router.get('/fee-reminder-preview', async (req, res) => {
     const madrasahId = req.madrasahId;
     const { classId, sendTo = 'parent' } = req.query;
 
-    // Build phone filter based on target
-    const phoneCol = sendTo === 'student' ? 's.student_phone' : 's.parent_guardian_phone';
-    let where = `s.madrasah_id = ? AND s.deleted_at IS NULL AND s.expected_fee > 0 AND ${phoneCol} IS NOT NULL`;
-    const params = [madrasahId];
-
-    if (classId) {
-      where += ' AND s.class_id = ?';
-      params.push(classId);
-    }
-
-    const [students] = await pool.query(
-      `SELECT s.id, s.first_name, s.last_name, s.student_id, s.parent_guardian_phone,
-              s.parent_guardian_name, s.student_phone, s.expected_fee, s.class_id, c.name as class_name,
-              COALESCE((SELECT SUM(fp.amount_paid) FROM fee_payments fp WHERE fp.student_id = s.id AND fp.deleted_at IS NULL), 0) as total_paid
-       FROM students s
-       LEFT JOIN classes c ON s.class_id = c.id
-       WHERE ${where}
-       HAVING (s.expected_fee - total_paid) > 0
-       ORDER BY s.first_name, s.last_name`,
-      params
+    // Check fee tracking mode
+    const [madrasahRows] = await pool.query(
+      'SELECT fee_tracking_mode FROM madrasahs WHERE id = ?',
+      [madrasahId]
     );
+    const feeMode = madrasahRows[0]?.fee_tracking_mode || 'manual';
+    const phoneCol = sendTo === 'student' ? 'student_phone' : 'parent_guardian_phone';
 
-    const enriched = students.map(s => ({
-      ...s,
-      balance: Number(s.expected_fee) - Number(s.total_paid),
-      status: Number(s.total_paid) >= Number(s.expected_fee) ? 'paid' : Number(s.total_paid) > 0 ? 'partial' : 'unpaid'
-    }));
+    let enriched;
+
+    if (feeMode === 'auto') {
+      // Auto mode: calculate fees dynamically from fee_schedules
+      const allStudents = await calculateAutoFees(madrasahId, { classId: classId || null });
+      enriched = allStudents
+        .filter(s => s.balance > 0 && s.status !== 'no_schedule' && s[phoneCol])
+        .map(s => ({
+          id: s.student_id,
+          first_name: s.first_name,
+          last_name: s.last_name,
+          student_id: s.student_id_code,
+          parent_guardian_phone: s.parent_guardian_phone,
+          parent_guardian_name: s.parent_guardian_name,
+          student_phone: s.student_phone,
+          expected_fee: s.total_fee,
+          class_id: s.class_id,
+          class_name: s.class_name,
+          total_paid: s.total_paid,
+          balance: s.balance,
+          status: s.status
+        }));
+    } else {
+      // Manual mode: use expected_fee column directly
+      const dbPhoneCol = sendTo === 'student' ? 's.student_phone' : 's.parent_guardian_phone';
+      let where = `s.madrasah_id = ? AND s.deleted_at IS NULL AND s.expected_fee > 0 AND ${dbPhoneCol} IS NOT NULL`;
+      const params = [madrasahId];
+
+      if (classId) {
+        where += ' AND s.class_id = ?';
+        params.push(classId);
+      }
+
+      const [students] = await pool.query(
+        `SELECT s.id, s.first_name, s.last_name, s.student_id, s.parent_guardian_phone,
+                s.parent_guardian_name, s.student_phone, s.expected_fee, s.class_id, c.name as class_name,
+                COALESCE((SELECT SUM(fp.amount_paid) FROM fee_payments fp WHERE fp.student_id = s.id AND fp.deleted_at IS NULL), 0) as total_paid
+         FROM students s
+         LEFT JOIN classes c ON s.class_id = c.id
+         WHERE ${where}
+         HAVING (s.expected_fee - total_paid) > 0
+         ORDER BY s.first_name, s.last_name`,
+        params
+      );
+
+      enriched = students.map(s => ({
+        ...s,
+        balance: Number(s.expected_fee) - Number(s.total_paid),
+        status: Number(s.total_paid) >= Number(s.expected_fee) ? 'paid' : Number(s.total_paid) > 0 ? 'partial' : 'unpaid'
+      }));
+    }
 
     res.json({ students: enriched });
   } catch (error) {

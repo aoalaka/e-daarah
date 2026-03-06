@@ -2164,7 +2164,7 @@ function TeacherDashboard() {
                       </div>
 
                       {/* Desktop save button */}
-                      <div className="form-actions desktop-save-actions">
+                      <div className="desktop-save-actions">
                         <button onClick={saveAttendance} className="btn btn-primary" disabled={saving || isReadOnly()}>
                           {saving ? 'Saving...' : 'Save Attendance'}
                         </button>

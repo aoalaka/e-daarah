@@ -148,17 +148,10 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
 
     const amount = parseFloat(schedule.amount);
     let totalFee = 0;
-    const rawEnrollDate = student.enrollment_date ? new Date(student.enrollment_date) : null;
-    // Only apply enrollment_date filtering if the student enrolled WITHIN or AFTER the calc period.
-    // If enrollment_date is after the period ends, the student was added to the system later but was
-    // already attending — treat as enrolled for the full period.
-    // Only apply enrollment_date filtering when:
-    // - A specific period is selected (fromDate/toDate given) AND enrollment is within that period
-    // - For "All Time" (no dates), ignore it — shows full session fees for all current students
-    // - If enrollment is after the period ends, ignore it — student was imported later
-    const enrollDate = (fromDate || toDate)
-      ? (rawEnrollDate && rawEnrollDate <= new Date(periodCalcEnd)) ? rawEnrollDate : null
-      : null;
+    // enrollment_date reflects when students were imported into the platform, not their
+    // actual school start date. Disable enrollment-based fee skipping entirely — all
+    // current students are charged for the full period being viewed.
+    const enrollDate = null;
 
     switch (schedule.billing_cycle) {
       case 'per_session': {

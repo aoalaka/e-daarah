@@ -2474,93 +2474,255 @@ a:focus-visible,
   display: none;
 }
 
+/* Two-phase mobile attendance — hidden on desktop */
+.mobile-attendance-flow {
+  display: none;
+}
+.desktop-save-actions {
+  padding: 16px;
+}
+
 @media (max-width: 768px) {
   /* Hide table on mobile for attendance recording only */
   .attendance-recording-card .table-wrap {
     display: none;
   }
+  /* Hide desktop save button on mobile */
+  .desktop-save-actions {
+    display: none;
+  }
 
-  /* Show card-based layout */
-  .mobile-student-card {
+  /* Show two-phase mobile flow */
+  .mobile-attendance-flow {
     display: block;
+  }
+
+  /* ── Phase 1: Roll Call ── */
+  .rollcall-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--light);
+  }
+  .rollcall-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .rollcall-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    display: inline-block;
+    animation: pulse-dot 2s infinite;
+  }
+  .rollcall-count {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .rollcall-list {
+    padding: 4px 0;
+  }
+  .rollcall-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--lighter, #f1f5f9);
+    transition: background 0.15s;
+  }
+  .rollcall-row.marked-present {
+    background: rgba(34, 197, 94, 0.04);
+  }
+  .rollcall-row.marked-absent {
+    background: rgba(239, 68, 68, 0.04);
+  }
+  .rollcall-name {
+    flex: 1;
+    min-width: 0;
+  }
+  .rollcall-student-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .rollcall-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+  .rollcall-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--light);
+    background: white;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rollcall-btn.present {
+    color: #9ca3af;
+  }
+  .rollcall-btn.present.active {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: white;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+  }
+  .rollcall-btn.absent {
+    color: #9ca3af;
+  }
+  .rollcall-btn.absent.active {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  }
+  .rollcall-summary {
+    display: flex;
+    gap: 16px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--light);
+  }
+  .rollcall-stat {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .rollcall-stat.present-stat {
+    color: #22c55e;
+  }
+  .rollcall-stat.absent-stat {
+    color: #ef4444;
+  }
+
+  /* ── Phase 2: Details ── */
+  .details-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--light);
+  }
+  .details-back {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .details-title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .details-section {
+    padding: 12px 16px 4px;
+  }
+  .details-section-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .details-card {
     background: white;
     border: 1px solid var(--light);
     border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
   }
-
-  .mobile-student-card .student-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--lighter);
+  .details-card.absent-card {
+    border-left: 3px solid #ef4444;
   }
-
-  .mobile-student-card .student-name {
+  .details-card-name {
+    font-size: 15px;
     font-weight: 600;
-    font-size: 16px;
-    color: var(--text-primary);
+    margin-bottom: 10px;
   }
-
-  .mobile-student-card .student-id {
-    font-size: 14px;
-    color: var(--gray);
-    margin-top: 4px;
+  .details-field {
+    margin-bottom: 10px;
   }
-
-  .mobile-student-card .form-section {
-    margin-bottom: 16px;
-  }
-
-  .mobile-student-card .form-section:last-child {
+  .details-field:last-child {
     margin-bottom: 0;
   }
-
-  .mobile-student-card .form-label {
+  .details-field-label {
     display: block;
     font-size: 12px;
     font-weight: 600;
-    color: var(--gray);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    color: var(--muted);
+    margin-bottom: 6px;
   }
-
-  .mobile-student-card .radio-group {
-    display: flex;
-    gap: 16px;
-  }
-
-  .mobile-student-card .radio-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    font-size: 15px;
-  }
-
-  .mobile-student-card input[type="radio"] {
-    width: 20px;
-    height: 20px;
-  }
-
-  .mobile-student-card select,
-  .mobile-student-card textarea {
+  .details-select,
+  .details-input {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid var(--light);
     border-radius: 6px;
     font-size: 15px;
     font-family: inherit;
+    background: white;
+    -webkit-appearance: none;
+  }
+  .details-select:focus,
+  .details-input:focus {
+    outline: none;
+    border-color: var(--primary);
   }
 
-  .mobile-student-card select:focus,
-  .mobile-student-card textarea:focus {
-    outline: none;
-    border-color: #2d6a4f;
+  /* Grade pills */
+  .grade-pills {
+    display: flex;
+    gap: 6px;
+  }
+  .grade-pill {
+    flex: 1;
+    padding: 10px 4px;
+    border: 2px solid var(--light);
+    border-radius: 8px;
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--muted);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .grade-pill.active.grade-excellent {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: white;
+  }
+  .grade-pill.active.grade-good {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+  }
+  .grade-pill.active.grade-fair {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: white;
+  }
+  .grade-pill.active.grade-poor {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
   }
 
   /* Exam modal adjustments for mobile */
@@ -2594,21 +2756,23 @@ a:focus-visible,
 }
 
 @media (max-width: 480px) {
-  .mobile-student-card {
-    padding: 12px;
-    margin-bottom: 10px;
+  .rollcall-row {
+    padding: 10px 14px;
   }
-
-  .mobile-student-card .student-name {
-    font-size: 15px;
+  .rollcall-student-name {
+    font-size: 14px;
   }
-
-  .mobile-student-card .student-id {
-    font-size: 13px;
+  .rollcall-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
   }
-
-  .mobile-student-card .form-section {
-    margin-bottom: 12px;
+  .details-card {
+    padding: 10px 12px;
+  }
+  .grade-pill {
+    padding: 8px 2px;
+    font-size: 12px;
   }
 }
 

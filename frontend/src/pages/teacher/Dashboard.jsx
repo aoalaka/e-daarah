@@ -125,6 +125,8 @@ function TeacherDashboard() {
   // School day validation state
   const [schoolDayInfo, setSchoolDayInfo] = useState(null);
   const [attendanceDateWarning, setAttendanceDateWarning] = useState('');
+  // Mobile two-phase attendance UI
+  const [mobileAttendancePhase, setMobileAttendancePhase] = useState(1);
   // Overview state
   const [overviewData, setOverviewData] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
@@ -734,12 +736,14 @@ function TeacherDashboard() {
         // No attendance for this date - clear all records (blank slate)
         console.log('No attendance records for this date - showing blank form');
         setAttendanceRecords({});
+        setMobileAttendancePhase(1);
       } else {
         // Map existing attendance records
         const records = {};
         response.data.forEach(record => {
           records[record.student_id] = {
             present: record.present,
+            absence_reason: record.absence_reason || '',
             dressing_grade: record.dressing_grade || '',
             behavior_grade: record.behavior_grade || '',
             punctuality_grade: record.punctuality_grade || '',
@@ -752,6 +756,7 @@ function TeacherDashboard() {
       console.error('Failed to fetch attendance:', error);
       // Clear records on error (blank slate for new entry)
       setAttendanceRecords({});
+      setMobileAttendancePhase(1);
     }
   };
 
@@ -990,6 +995,7 @@ function TeacherDashboard() {
       const nextDayStr = getLocalDate(nextDay);
       setAttendanceDate(nextDayStr);
       setAttendanceRecords({}); // Clear records for blank form
+      setMobileAttendancePhase(1);
     } catch (error) {
       console.error('Failed to save attendance:', error);
     } finally {
@@ -1948,129 +1954,212 @@ function TeacherDashboard() {
                         </table>
                       </div>
 
-                      {/* Mobile Card View */}
-                      {students.map(student => (
-                        <div key={student.id} className="mobile-student-card">
-                          <div className="student-header">
-                            <div>
-                              <div className="student-name">{student.first_name} {student.last_name}</div>
-                              <div className="student-id">{student.student_id}</div>
+                      {/* Mobile Two-Phase Attendance UI */}
+                      <div className="mobile-attendance-flow">
+                        {/* Phase 1: Quick Roll Call */}
+                        {mobileAttendancePhase === 1 && (
+                          <div className="mobile-rollcall">
+                            <div className="rollcall-header">
+                              <div className="rollcall-title">
+                                <span className="rollcall-dot"></span>
+                                <span>Roll Call</span>
+                              </div>
+                              <div className="rollcall-count">
+                                {students.filter(s => attendanceRecords[s.id]?.present === true || attendanceRecords[s.id]?.present === false).length}/{students.length} marked
+                              </div>
+                            </div>
+                            <div className="rollcall-list">
+                              {students.map(student => {
+                                const record = attendanceRecords[student.id];
+                                const isPresent = record?.present === true;
+                                const isAbsent = record?.present === false;
+                                return (
+                                  <div key={student.id} className={`rollcall-row ${isPresent ? 'marked-present' : ''} ${isAbsent ? 'marked-absent' : ''}`}>
+                                    <div className="rollcall-name">
+                                      <span className="rollcall-student-name">{student.first_name} {student.last_name}</span>
+                                    </div>
+                                    <div className="rollcall-actions">
+                                      <button
+                                        type="button"
+                                        className={`rollcall-btn present ${isPresent ? 'active' : ''}`}
+                                        onClick={() => {
+                                          updateAttendanceRecord(student.id, 'present', true);
+                                          updateAttendanceRecord(student.id, 'absence_reason', '');
+                                        }}
+                                        aria-label={`Mark ${student.first_name} present`}
+                                      >✓</button>
+                                      <button
+                                        type="button"
+                                        className={`rollcall-btn absent ${isAbsent ? 'active' : ''}`}
+                                        onClick={() => {
+                                          updateAttendanceRecord(student.id, 'present', false);
+                                          updateAttendanceRecord(student.id, 'dressing_grade', '');
+                                          updateAttendanceRecord(student.id, 'behavior_grade', '');
+                                          updateAttendanceRecord(student.id, 'punctuality_grade', '');
+                                        }}
+                                        aria-label={`Mark ${student.first_name} absent`}
+                                      >✗</button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="rollcall-summary">
+                              <span className="rollcall-stat present-stat">{students.filter(s => attendanceRecords[s.id]?.present === true).length} present</span>
+                              <span className="rollcall-stat absent-stat">{students.filter(s => attendanceRecords[s.id]?.present === false).length} absent</span>
+                            </div>
+                            <div className="form-actions form-actions-sticky">
+                              {(() => {
+                                const enableDressing = madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false;
+                                const enableBehavior = madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false;
+                                const enablePunctuality = madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false;
+                                const hasGrades = enableDressing || enableBehavior || enablePunctuality;
+                                const allMarked = students.every(s => attendanceRecords[s.id]?.present === true || attendanceRecords[s.id]?.present === false);
+                                const hasAbsent = students.some(s => attendanceRecords[s.id]?.present === false);
+                                const needsPhase2 = hasGrades || hasAbsent;
+                                if (needsPhase2) {
+                                  return (
+                                    <button
+                                      type="button"
+                                      className="btn btn-primary"
+                                      disabled={!allMarked}
+                                      onClick={() => setMobileAttendancePhase(2)}
+                                    >
+                                      {allMarked ? 'Continue — Add Details' : `Mark all students (${students.filter(s => attendanceRecords[s.id]?.present === true || attendanceRecords[s.id]?.present === false).length}/${students.length})`}
+                                    </button>
+                                  );
+                                }
+                                return (
+                                  <button onClick={saveAttendance} className="btn btn-primary" disabled={!allMarked || saving || isReadOnly()}>
+                                    {saving ? 'Saving...' : allMarked ? 'Save Attendance' : `Mark all students (${students.filter(s => attendanceRecords[s.id]?.present === true || attendanceRecords[s.id]?.present === false).length}/${students.length})`}
+                                  </button>
+                                );
+                              })()}
                             </div>
                           </div>
+                        )}
 
-                          <div className="form-section">
-                            <div className="form-label">Attendance</div>
-                            <div className="radio-group">
-                              <label className="radio-label">
-                                <input
-                                  type="radio"
-                                  name={`attendance-mobile-${student.id}`}
-                                  checked={attendanceRecords[student.id]?.present === true}
-                                  onChange={() => {
-                                    updateAttendanceRecord(student.id, 'present', true);
-                                    updateAttendanceRecord(student.id, 'absence_reason', '');
-                                  }}
-                                />
-                                <span>Present</span>
-                              </label>
-                              <label className="radio-label">
-                                <input
-                                  type="radio"
-                                  name={`attendance-mobile-${student.id}`}
-                                  checked={attendanceRecords[student.id]?.present === false}
-                                  onChange={() => {
-                                    updateAttendanceRecord(student.id, 'present', false);
-                                    updateAttendanceRecord(student.id, 'dressing_grade', '');
-                                    updateAttendanceRecord(student.id, 'behavior_grade', '');
-                                    updateAttendanceRecord(student.id, 'punctuality_grade', '');
-                                  }}
-                                />
-                                <span>Absent</span>
-                              </label>
+                        {/* Phase 2: Details (grades + absence reasons) */}
+                        {mobileAttendancePhase === 2 && (
+                          <div className="mobile-details">
+                            <div className="details-header">
+                              <button type="button" className="details-back" onClick={() => setMobileAttendancePhase(1)}>← Roll Call</button>
+                              <span className="details-title">Details</span>
+                            </div>
+
+                            {/* Absent students — need reasons */}
+                            {students.filter(s => attendanceRecords[s.id]?.present === false).length > 0 && (
+                              <div className="details-section">
+                                <div className="details-section-label">Absent ({students.filter(s => attendanceRecords[s.id]?.present === false).length})</div>
+                                {students.filter(s => attendanceRecords[s.id]?.present === false).map(student => (
+                                  <div key={student.id} className="details-card absent-card">
+                                    <div className="details-card-name">{student.first_name} {student.last_name}</div>
+                                    <div className="details-field">
+                                      <label className="details-field-label">Reason</label>
+                                      <select
+                                        value={attendanceRecords[student.id]?.absence_reason || ''}
+                                        onChange={(e) => updateAttendanceRecord(student.id, 'absence_reason', e.target.value)}
+                                        className="details-select"
+                                      >
+                                        <option value="">Select reason...</option>
+                                        <option value="Sick">Sick</option>
+                                        <option value="Parent Request">Parent Request</option>
+                                        <option value="School Not Notified">School Not Notified</option>
+                                        <option value="Other">Other</option>
+                                      </select>
+                                    </div>
+                                    {attendanceRecords[student.id]?.absence_reason === 'Other' && (
+                                      <div className="details-field">
+                                        <label className="details-field-label">Note (required)</label>
+                                        <input
+                                          type="text"
+                                          value={attendanceRecords[student.id]?.notes || ''}
+                                          onChange={(e) => updateAttendanceRecord(student.id, 'notes', e.target.value)}
+                                          className="details-input"
+                                          placeholder="Explain absence..."
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Present students — conduct grades */}
+                            {(() => {
+                              const enableDressing = madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false;
+                              const enableBehavior = madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false;
+                              const enablePunctuality = madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false;
+                              const presentStudents = students.filter(s => attendanceRecords[s.id]?.present === true);
+                              if (presentStudents.length === 0 || (!enableDressing && !enableBehavior && !enablePunctuality)) return null;
+                              return (
+                                <div className="details-section">
+                                  <div className="details-section-label">Conduct Grades ({presentStudents.length})</div>
+                                  {presentStudents.map(student => (
+                                    <div key={student.id} className="details-card">
+                                      <div className="details-card-name">{student.first_name} {student.last_name}</div>
+                                      {enableDressing && (
+                                        <div className="details-field">
+                                          <label className="details-field-label">Dressing</label>
+                                          <div className="grade-pills">
+                                            {['Excellent', 'Good', 'Fair', 'Poor'].map(g => (
+                                              <button
+                                                key={g}
+                                                type="button"
+                                                className={`grade-pill ${attendanceRecords[student.id]?.dressing_grade === g ? 'active' : ''} grade-${g.toLowerCase()}`}
+                                                onClick={() => updateAttendanceRecord(student.id, 'dressing_grade', g)}
+                                              >{g.substring(0, 2)}</button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                      {enableBehavior && (
+                                        <div className="details-field">
+                                          <label className="details-field-label">Behavior</label>
+                                          <div className="grade-pills">
+                                            {['Excellent', 'Good', 'Fair', 'Poor'].map(g => (
+                                              <button
+                                                key={g}
+                                                type="button"
+                                                className={`grade-pill ${attendanceRecords[student.id]?.behavior_grade === g ? 'active' : ''} grade-${g.toLowerCase()}`}
+                                                onClick={() => updateAttendanceRecord(student.id, 'behavior_grade', g)}
+                                              >{g.substring(0, 2)}</button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                      {enablePunctuality && (
+                                        <div className="details-field">
+                                          <label className="details-field-label">Punctuality</label>
+                                          <div className="grade-pills">
+                                            {['Excellent', 'Good', 'Fair', 'Poor'].map(g => (
+                                              <button
+                                                key={g}
+                                                type="button"
+                                                className={`grade-pill ${attendanceRecords[student.id]?.punctuality_grade === g ? 'active' : ''} grade-${g.toLowerCase()}`}
+                                                onClick={() => updateAttendanceRecord(student.id, 'punctuality_grade', g)}
+                                              >{g.substring(0, 2)}</button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+
+                            <div className="form-actions form-actions-sticky">
+                              <button onClick={saveAttendance} className="btn btn-primary" disabled={saving || isReadOnly()}>
+                                {saving ? 'Saving...' : 'Save Attendance'}
+                              </button>
                             </div>
                           </div>
+                        )}
+                      </div>
 
-                          {attendanceRecords[student.id]?.present === false && (
-                            <div className="form-section">
-                              <label className="form-label">Absence Reason</label>
-                              <select
-                                value={attendanceRecords[student.id]?.absence_reason || ''}
-                                onChange={(e) => updateAttendanceRecord(student.id, 'absence_reason', e.target.value)}
-                              >
-                                <option value="">Select reason...</option>
-                                <option value="Sick">Sick</option>
-                                <option value="Parent Request">Parent Request</option>
-                                <option value="School Not Notified">School Not Notified</option>
-                                <option value="Other">Other</option>
-                              </select>
-                            </div>
-                          )}
-
-                          {attendanceRecords[student.id]?.present === true && (
-                            <>
-                              {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
-                              <div className="form-section">
-                                <label className="form-label">Dressing</label>
-                                <select
-                                  value={attendanceRecords[student.id]?.dressing_grade || ''}
-                                  onChange={(e) => updateAttendanceRecord(student.id, 'dressing_grade', e.target.value)}
-                                >
-                                  <option value="">Select...</option>
-                                  <option value="Excellent">Excellent</option>
-                                  <option value="Good">Good</option>
-                                  <option value="Fair">Fair</option>
-                                  <option value="Poor">Poor</option>
-                                </select>
-                              </div>
-                              )}
-
-                              {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && (
-                              <div className="form-section">
-                                <label className="form-label">Behavior</label>
-                                <select
-                                  value={attendanceRecords[student.id]?.behavior_grade || ''}
-                                  onChange={(e) => updateAttendanceRecord(student.id, 'behavior_grade', e.target.value)}
-                                >
-                                  <option value="">Select...</option>
-                                  <option value="Excellent">Excellent</option>
-                                  <option value="Good">Good</option>
-                                  <option value="Fair">Fair</option>
-                                  <option value="Poor">Poor</option>
-                                </select>
-                              </div>
-                              )}
-
-                              {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && (
-                              <div className="form-section">
-                                <label className="form-label">Punctuality</label>
-                                <select
-                                  value={attendanceRecords[student.id]?.punctuality_grade || ''}
-                                  onChange={(e) => updateAttendanceRecord(student.id, 'punctuality_grade', e.target.value)}
-                                >
-                                  <option value="">Select...</option>
-                                  <option value="Excellent">Excellent</option>
-                                  <option value="Good">Good</option>
-                                  <option value="Fair">Fair</option>
-                                  <option value="Poor">Poor</option>
-                                </select>
-                              </div>
-                              )}
-                            </>
-                          )}
-
-                          <div className="form-section">
-                            <label className="form-label">Notes (Optional)</label>
-                            <textarea
-                              value={attendanceRecords[student.id]?.notes || ''}
-                              onChange={(e) => updateAttendanceRecord(student.id, 'notes', e.target.value)}
-                              placeholder="Add any notes..."
-                              rows="2"
-                            />
-                          </div>
-                        </div>
-                      ))}
-
-                      <div className="form-actions form-actions-sticky">
+                      {/* Desktop save button */}
+                      <div className="form-actions desktop-save-actions">
                         <button onClick={saveAttendance} className="btn btn-primary" disabled={saving || isReadOnly()}>
                           {saving ? 'Saving...' : 'Save Attendance'}
                         </button>

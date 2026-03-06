@@ -184,7 +184,7 @@ function TeacherDashboard() {
       const trialEndsAt = madrasahProfile.trial_ends_at;
       if (trialEndsAt && new Date(trialEndsAt) <= new Date()) return true;
     }
-    if (status === 'canceled' || status === 'expired') return true;
+    if (status === 'canceled' || status === 'expired' || status === 'past_due') return true;
     return false;
   };
 
@@ -1467,7 +1467,7 @@ function TeacherDashboard() {
             background: '#f5f5f5', color: '#525252', padding: '12px 20px',
             borderBottom: '1px solid #e5e5e5', textAlign: 'center', fontWeight: 500, fontSize: '14px'
           }}>
-            ⚠️ Your {madrasahProfile?.subscription_status === 'trialing' ? 'school\'s trial has expired' : 'school\'s subscription is inactive'}. 
+            ⚠️ {madrasahProfile?.subscription_status === 'trialing' ? 'Your school\'s trial has expired' : madrasahProfile?.subscription_status === 'past_due' ? 'Your school\'s payment is past due' : 'Your school\'s subscription is inactive'}. 
             Your account is in read-only mode. Contact your administrator.
           </div>
         )}

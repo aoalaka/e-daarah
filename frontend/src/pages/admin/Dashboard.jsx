@@ -254,8 +254,8 @@ function AdminDashboard() {
       const trialEndsAt = madrasahProfile.trial_ends_at;
       if (trialEndsAt && new Date(trialEndsAt) <= new Date()) return true;
     }
-    // Canceled or expired subscription = read-only
-    if (status === 'canceled' || status === 'expired') return true;
+    // Canceled, expired, or past due subscription = read-only
+    if (status === 'canceled' || status === 'expired' || status === 'past_due') return true;
     return false;
   };
 
@@ -1805,11 +1805,11 @@ function AdminDashboard() {
             background: '#f5f5f5', color: '#525252', padding: '12px 20px',
             borderBottom: '1px solid #e5e5e5', textAlign: 'center', fontWeight: 500, fontSize: '14px'
           }}>
-            ⚠️ Your {madrasahProfile?.subscription_status === 'trialing' ? 'trial has expired' : 'subscription is inactive'}. 
+            ⚠️ {madrasahProfile?.subscription_status === 'trialing' ? 'Your trial has expired' : madrasahProfile?.subscription_status === 'past_due' ? 'Your payment is past due' : 'Your subscription is inactive'}. 
             Your account is in read-only mode.{' '}
             <button style={{ background: 'none', border: 'none', color: '#0f172a', textDecoration: 'underline', fontWeight: 600, cursor: 'pointer', fontSize: '14px', padding: 0 }}
               onClick={() => { handleTabChange('settings'); setTimeout(() => document.getElementById('settings-billing')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); }}>
-              Subscribe now
+              {madrasahProfile?.subscription_status === 'past_due' ? 'Update payment method' : 'Subscribe now'}
             </button> to make changes.
           </div>
         )}

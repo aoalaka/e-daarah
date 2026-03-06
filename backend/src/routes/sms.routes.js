@@ -21,10 +21,10 @@ const SMS_PACKS = [
 ];
 
 const SMS_PACKS_NZD = [
-  { id: 'sms_50_nzd', credits: 50, price_cents: 1000, label: '50 SMS', description: 'NZ$10.00' },
-  { id: 'sms_200_nzd', credits: 200, price_cents: 3600, label: '200 SMS', description: 'NZ$36.00' },
-  { id: 'sms_500_nzd', credits: 500, price_cents: 8000, label: '500 SMS', description: 'NZ$80.00' },
-  { id: 'sms_1000_nzd', credits: 1000, price_cents: 14000, label: '1000 SMS', description: 'NZ$140.00' },
+  { id: 'sms_50_nzd', credits: 50, price_cents: 1500, label: '50 SMS', description: 'NZ$15.00' },
+  { id: 'sms_200_nzd', credits: 200, price_cents: 5500, label: '200 SMS', description: 'NZ$55.00' },
+  { id: 'sms_500_nzd', credits: 500, price_cents: 12500, label: '500 SMS', description: 'NZ$125.00' },
+  { id: 'sms_1000_nzd', credits: 1000, price_cents: 23000, label: '1000 SMS', description: 'NZ$230.00' },
 ];
 
 // ─── GET /sms/status — Credit balance + config ──────────────────

@@ -128,7 +128,7 @@ function Landing() {
               <div className="ac-header">
                 <span className="ac-dot"></span>
                 <span className="ac-title">Today's Attendance</span>
-                <span className="ac-date">Monday, 3 Feb</span>
+                <span className="ac-date">Sunday, 3 Feb</span>
               </div>
               <div className="ac-rows">
                 <div className="ac-row row-1">

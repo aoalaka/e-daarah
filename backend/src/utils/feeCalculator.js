@@ -118,6 +118,13 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
   // Never calculate fees beyond today — future periods haven't occurred yet
   const periodCalcEnd = new Date(periodCalcEndRaw) > new Date(today) ? today : periodCalcEndRaw;
 
+  console.log('[FeeCalc Debug]', {
+    fromDate, toDate, today,
+    sessionStart: session.start_date, sessionEnd: session.end_date,
+    periodCalcStart: String(periodCalcStart), periodCalcEnd: String(periodCalcEnd),
+    scheduleCount: schedules.length, studentCount: students.length
+  });
+
   // Calculate fee for each student
   return students.map(student => {
     const studentSchedule = schedules.find(s => s.student_id === student.id);

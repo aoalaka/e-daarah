@@ -1,6 +1,35 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import {
+  HomeIcon,
+  CalendarIcon,
+  BookOpenIcon,
+  UsersIcon,
+  UserGroupIcon,
+  ArrowPathIcon,
+  ChartBarIcon,
+  CurrencyDollarIcon,
+  QuestionMarkCircleIcon,
+  ChatBubbleLeftIcon,
+  ChatBubbleOvalLeftIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+  UserIcon,
+  LockClosedIcon,
+  Cog6ToothIcon,
+  CreditCardIcon,
+  ArrowRightStartOnRectangleIcon,
+  CheckIcon,
+  ComputerDesktopIcon,
+  ArrowDownTrayIcon,
+  CheckCircleIcon,
+  StarIcon,
+  ClockIcon,
+  PrinterIcon,
+} from '@heroicons/react/24/outline';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { authService } from '../../services/auth.service';
@@ -1624,41 +1653,31 @@ function AdminDashboard() {
   };
 
   const getNavIcon = (id) => {
-    const iconProps = {
-      width: "18",
-      height: "18",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: "2",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      style: { minWidth: '18px' }
-    };
+    const iconProps = { width: 18, height: 18, style: { minWidth: '18px' } };
 
     switch(id) {
       case 'overview':
-        return <svg {...iconProps}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
+        return <HomeIcon {...iconProps} />;
       case 'planner':
-        return <svg {...iconProps}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="16" y1="14" x2="16" y2="14.01"></line><line x1="8" y1="18" x2="8" y2="18.01"></line><line x1="12" y1="18" x2="12" y2="18.01"></line></svg>;
+        return <CalendarIcon {...iconProps} />;
       case 'classes':
-        return <svg {...iconProps}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>;
+        return <BookOpenIcon {...iconProps} />;
       case 'teachers':
-        return <svg {...iconProps}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
+        return <UsersIcon {...iconProps} />;
       case 'students':
-        return <svg {...iconProps}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
+        return <UserGroupIcon {...iconProps} />;
       case 'promotion':
-        return <svg {...iconProps}><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>;
+        return <ArrowPathIcon {...iconProps} />;
       case 'reports':
-        return <svg {...iconProps}><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>;
+        return <ChartBarIcon {...iconProps} />;
       case 'fees':
-        return <svg {...iconProps}><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>;
+        return <CurrencyDollarIcon {...iconProps} />;
       case 'help':
-        return <svg {...iconProps}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+        return <QuestionMarkCircleIcon {...iconProps} />;
       case 'support':
-        return <svg {...iconProps}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>;
+        return <ChatBubbleLeftIcon {...iconProps} />;
       case 'sms':
-        return <svg {...iconProps}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>;
+        return <ChatBubbleOvalLeftIcon {...iconProps} />;
       default:
         return null;
     }
@@ -1682,9 +1701,7 @@ function AdminDashboard() {
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             aria-label="Toggle sidebar"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points={sidebarCollapsed ? "9 18 15 12 9 6" : "15 18 9 12 15 6"}></polyline>
-            </svg>
+            {sidebarCollapsed ? <ChevronRightIcon width={16} height={16} /> : <ChevronLeftIcon width={16} height={16} />}
           </button>
         </div>
         <nav className="sidebar-nav">
@@ -1715,9 +1732,7 @@ function AdminDashboard() {
               <div className="user-name">{user?.firstName} {user?.lastName}</div>
               <div className="user-role">{user?.role || 'Admin'}</div>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, transform: profileDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
+            <ChevronUpIcon width={16} height={16} style={{ opacity: 0.5, transform: profileDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
           </div>
           {profileDropdownOpen && (
             <div className="profile-dropdown">
@@ -1732,24 +1747,24 @@ function AdminDashboard() {
               </div>
               <div className="profile-dropdown-divider" />
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); setTimeout(() => document.getElementById('settings-account')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <UserIcon width={16} height={16} />
                 Account
               </button>
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); setTimeout(() => document.getElementById('settings-password')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
+                <LockClosedIcon width={16} height={16} />
                 Change Password
               </button>
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+                <Cog6ToothIcon width={16} height={16} />
                 Settings
               </button>
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); setTimeout(() => document.getElementById('settings-billing')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                <CreditCardIcon width={16} height={16} />
                 Billing
               </button>
               <div className="profile-dropdown-divider" />
               <button className="profile-dropdown-item logout" onClick={handleLogout}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <ArrowRightStartOnRectangleIcon width={16} height={16} />
                 Log out
               </button>
             </div>
@@ -2169,7 +2184,7 @@ function AdminDashboard() {
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 12px', borderRadius: '8px', background: s.done ? 'var(--lighter, #f9fafb)' : 'transparent' }}>
                               {s.done ? (
                                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                  <CheckIcon width={14} height={14} style={{ stroke: '#fff', strokeWidth: 3 }} />
                                 </div>
                               ) : (
                                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600, color: 'var(--gray)', flexShrink: 0 }}>{i + 1}</div>
@@ -2261,7 +2276,7 @@ function AdminDashboard() {
 
                   {/* Sessions List */}
                   {sessions.length === 0 ? (
-                    <div className="card"><div className="empty"><div className="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p>No sessions yet. Create one to get started.</p><button className="empty-action" onClick={() => setShowSessionForm(true)}>+ Create Session</button></div></div>
+                    <div className="card"><div className="empty"><div className="empty-icon"><CalendarIcon /></div><p>No sessions yet. Create one to get started.</p><button className="empty-action" onClick={() => setShowSessionForm(true)}>+ Create Session</button></div></div>
                   ) : (
                     <div style={{ display: 'grid', gap: '12px' }}>
                       {sessions.map(session => {
@@ -2705,7 +2720,7 @@ function AdminDashboard() {
                         <tr>
                           <td colSpan="3">
                             <div className="empty">
-                              <div className="empty-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+                              <div className="empty-icon"><ComputerDesktopIcon /></div>
                               <p>No classes yet. Create one to get started.</p>
                               <button className="empty-action" onClick={() => setShowClassForm(true)}>+ Create Class</button>
                             </div>
@@ -3135,19 +3150,13 @@ function AdminDashboard() {
                   <div className="card-body">
                     <div className="upload-template-banner" onClick={downloadTemplate}>
                       <div className="upload-template-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
+                        <ArrowDownTrayIcon width={20} height={20} />
                       </div>
                       <div className="upload-template-text">
                         <strong>Download CSV template</strong>
                         <span>Start here — fill in the template, then upload it below</span>
                       </div>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4, flexShrink: 0 }}>
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
+                      <ChevronRightIcon width={16} height={16} style={{ opacity: 0.4, flexShrink: 0 }} />
                     </div>
                     <div className="upload-info">
                       <p style={{ margin: 0, fontSize: 13, color: '#666' }}>
@@ -4063,7 +4072,7 @@ function AdminDashboard() {
                   {feeSchedules.length === 0 ? (
                     <div className="card">
                       <div className="empty">
-                        <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                        <div className="empty-icon"><CurrencyDollarIcon /></div>
                         <p>No fee schedules yet. Create a fee schedule to define how much each class or student should be charged.</p>
                         <button className="btn btn-primary" style={{ marginTop: '12px' }} disabled={isReadOnly()} onClick={() => {
                           setEditingFeeSchedule(null);
@@ -4150,7 +4159,7 @@ function AdminDashboard() {
                   {autoFeeSummary.length === 0 ? (
                     <div className="card">
                       <div className="empty">
-                        <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                        <div className="empty-icon"><CurrencyDollarIcon /></div>
                         <p>No auto-calculated fees yet. Create a fee schedule and assign students to classes to see calculated fees.</p>
                       </div>
                     </div>
@@ -4285,7 +4294,7 @@ function AdminDashboard() {
                   {feeSummary.length === 0 ? (
                     <div className="card">
                       <div className="empty">
-                        <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                        <div className="empty-icon"><CurrencyDollarIcon /></div>
                         <p>No fee data yet. Set an expected fee on students (via the student form or the "Set Expected Fee" button above) to start tracking.</p>
                       </div>
                     </div>
@@ -5263,20 +5272,14 @@ function AdminDashboard() {
                       className={`subtab-btn ${rankingSubTab === 'exam' ? 'active' : ''}`}
                       onClick={() => setRankingSubTab('exam')}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                      </svg>
+                      <BookOpenIcon width={16} height={16} />
                       Exam
                     </button>
                     <button
                       className={`subtab-btn ${rankingSubTab === 'attendance' ? 'active' : ''}`}
                       onClick={() => setRankingSubTab('attendance')}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                        <polyline points="22 4 12 14.01 9 11.01"/>
-                      </svg>
+                      <CheckCircleIcon width={16} height={16} />
                       Attendance
                     </button>
                     {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
@@ -5284,10 +5287,7 @@ function AdminDashboard() {
                       className={`subtab-btn ${rankingSubTab === 'dressing' ? 'active' : ''}`}
                       onClick={() => setRankingSubTab('dressing')}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
-                      </svg>
+                      <UserIcon width={16} height={16} />
                       Dressing
                     </button>
                     )}
@@ -5296,9 +5296,7 @@ function AdminDashboard() {
                       className={`subtab-btn ${rankingSubTab === 'behavior' ? 'active' : ''}`}
                       onClick={() => setRankingSubTab('behavior')}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                      </svg>
+                      <StarIcon width={16} height={16} />
                       Behavior
                     </button>
                     )}
@@ -5307,10 +5305,7 @@ function AdminDashboard() {
                       className={`subtab-btn ${rankingSubTab === 'punctuality' ? 'active' : ''}`}
                       onClick={() => setRankingSubTab('punctuality')}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                      </svg>
+                      <ClockIcon width={16} height={16} />
                       Punctuality
                     </button>
                     )}
@@ -6190,11 +6185,7 @@ function AdminDashboard() {
                       onClick={() => window.print()}
                       style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="6 9 6 2 18 2 18 9"/>
-                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                        <rect x="6" y="14" width="12" height="8"/>
-                      </svg>
+                      <PrinterIcon width={16} height={16} />
                       Print
                     </button>
                   </div>
@@ -6226,10 +6217,7 @@ function AdminDashboard() {
                     {/* Attendance */}
                     <div className="performance-card">
                       <div className="performance-card-header">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                          <polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
+                        <CheckCircleIcon width={20} height={20} />
                         <span>Attendance</span>
                       </div>
                       <div className="performance-card-body">
@@ -6274,10 +6262,7 @@ function AdminDashboard() {
                     {/* Exam Performance */}
                     <div className="performance-card">
                       <div className="performance-card-header">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                        </svg>
+                        <BookOpenIcon width={20} height={20} />
                         <span>Exam Performance</span>
                       </div>
                       <div className="performance-card-body">
@@ -6321,10 +6306,7 @@ function AdminDashboard() {
                     {(madrasahProfile?.enable_dressing_grade !== 0 && madrasahProfile?.enable_dressing_grade !== false) && (
                     <div className="performance-card">
                       <div className="performance-card-header">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                          <circle cx="12" cy="7" r="4"/>
-                        </svg>
+                        <UserIcon width={20} height={20} />
                         <span>Dressing Standards</span>
                       </div>
                       <div className="performance-card-body">
@@ -6365,9 +6347,7 @@ function AdminDashboard() {
                     {(madrasahProfile?.enable_behavior_grade !== 0 && madrasahProfile?.enable_behavior_grade !== false) && (
                     <div className="performance-card">
                       <div className="performance-card-header">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                        </svg>
+                        <StarIcon width={20} height={20} />
                         <span>Behavior & Conduct</span>
                       </div>
                       <div className="performance-card-body">
@@ -6408,10 +6388,7 @@ function AdminDashboard() {
                     {(madrasahProfile?.enable_punctuality_grade !== 0 && madrasahProfile?.enable_punctuality_grade !== false) && (
                     <div className="performance-card">
                       <div className="performance-card-header">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10"/>
-                          <polyline points="12 6 12 12 16 14"/>
-                        </svg>
+                        <ClockIcon width={20} height={20} />
                         <span>Punctuality</span>
                       </div>
                       <div className="performance-card-body">
@@ -6761,7 +6738,7 @@ function AdminDashboard() {
               <div className="card" style={{ marginBottom: '12px' }}>
                 <button onClick={() => toggleHelp(sectionKey)} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 600, textAlign: 'left' }}>
                   {title}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: helpExpanded.has(sectionKey) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  <ChevronDownIcon width={16} height={16} style={{ transform: helpExpanded.has(sectionKey) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
                 </button>
                 {helpExpanded.has(sectionKey) && (
                   <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>

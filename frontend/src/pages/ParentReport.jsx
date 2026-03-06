@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import {
+  PrinterIcon,
+  CheckCircleIcon,
+  BookOpenIcon,
+  UserIcon,
+  StarIcon,
+  ClockIcon,
+} from '@heroicons/react/24/outline';
 import api from '../services/api';
 import './ParentReport.css';
 
@@ -300,9 +308,7 @@ function ParentReport() {
                     <div className="report-period">{filterLabel()}</div>
                   </div>
                   <button className="print-btn no-print" onClick={() => window.print()}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
-                    </svg>
+                    <PrinterIcon width={16} height={16} />
                     Print
                   </button>
                 </div>
@@ -356,7 +362,7 @@ function ParentReport() {
                   {/* Attendance */}
                   <div className="perf-card">
                     <div className="perf-card-header">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                      <CheckCircleIcon width={18} height={18} />
                       <span>Attendance</span>
                     </div>
                     <div className="perf-card-body">
@@ -382,7 +388,7 @@ function ParentReport() {
                   {/* Exam Performance */}
                   <div className="perf-card">
                     <div className="perf-card-header">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                      <BookOpenIcon width={18} height={18} />
                       <span>Exam Performance</span>
                     </div>
                     <div className="perf-card-body">
@@ -409,7 +415,7 @@ function ParentReport() {
                   {(madrasah?.enable_dressing_grade !== 0 && madrasah?.enable_dressing_grade !== false) && (
                   <div className="perf-card">
                     <div className="perf-card-header">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      <UserIcon width={18} height={18} />
                       <span>Dressing Standards</span>
                     </div>
                     <div className="perf-card-body">
@@ -433,7 +439,7 @@ function ParentReport() {
                   {(madrasah?.enable_behavior_grade !== 0 && madrasah?.enable_behavior_grade !== false) && (
                   <div className="perf-card">
                     <div className="perf-card-header">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      <StarIcon width={18} height={18} />
                       <span>Behavior & Conduct</span>
                     </div>
                     <div className="perf-card-body">
@@ -457,7 +463,7 @@ function ParentReport() {
                   {(madrasah?.enable_punctuality_grade !== 0 && madrasah?.enable_punctuality_grade !== false) && (
                   <div className="perf-card">
                     <div className="perf-card-header">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      <ClockIcon width={18} height={18} />
                       <span>Punctuality</span>
                     </div>
                     <div className="perf-card-body">
@@ -528,7 +534,7 @@ function ParentReport() {
                       <div className="quran-position-grid">
                         <div className="perf-card">
                           <div className="perf-card-header">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                            <BookOpenIcon width={18} height={18} />
                             <span>Current Position</span>
                           </div>
                           <div className="perf-card-body">

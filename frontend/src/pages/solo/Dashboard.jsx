@@ -1,6 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import {
+  HomeIcon,
+  CalendarIcon,
+  BookOpenIcon,
+  UserGroupIcon,
+  ClipboardDocumentCheckIcon,
+  DocumentTextIcon,
+  CurrencyDollarIcon,
+  Cog6ToothIcon,
+  QuestionMarkCircleIcon,
+  ChatBubbleLeftIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+  UserIcon,
+  LockClosedIcon,
+  CreditCardIcon,
+  ArrowRightStartOnRectangleIcon,
+  CheckBadgeIcon,
+  UserPlusIcon,
+  MagnifyingGlassIcon,
+} from '@heroicons/react/24/outline';
 import api from '../../services/api';
 import { authService } from '../../services/auth.service';
 import SortableTable from '../../components/SortableTable';
@@ -1237,34 +1260,30 @@ function SoloDashboard() {
   ];
 
   const getNavIcon = (id) => {
-    const iconProps = {
-      width: "18", height: "18", viewBox: "0 0 24 24", fill: "none",
-      stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round",
-      style: { minWidth: '18px' }
-    };
+    const iconProps = { width: 18, height: 18, style: { minWidth: '18px' } };
     switch (id) {
       case 'overview':
-        return <svg {...iconProps}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
+        return <HomeIcon {...iconProps} />;
       case 'planner':
-        return <svg {...iconProps}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>;
+        return <CalendarIcon {...iconProps} />;
       case 'classes':
-        return <svg {...iconProps}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>;
+        return <BookOpenIcon {...iconProps} />;
       case 'students':
-        return <svg {...iconProps}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
+        return <UserGroupIcon {...iconProps} />;
       case 'attendance':
-        return <svg {...iconProps}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>;
+        return <ClipboardDocumentCheckIcon {...iconProps} />;
       case 'exams':
-        return <svg {...iconProps}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>;
+        return <DocumentTextIcon {...iconProps} />;
       case 'quran':
-        return <svg {...iconProps}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
+        return <BookOpenIcon {...iconProps} />;
       case 'fees':
-        return <svg {...iconProps}><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>;
+        return <CurrencyDollarIcon {...iconProps} />;
       case 'settings':
-        return <svg {...iconProps}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
+        return <Cog6ToothIcon {...iconProps} />;
       case 'help':
-        return <svg {...iconProps}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+        return <QuestionMarkCircleIcon {...iconProps} />;
       case 'support':
-        return <svg {...iconProps}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>;
+        return <ChatBubbleLeftIcon {...iconProps} />;
       default:
         return null;
     }
@@ -1305,9 +1324,7 @@ function SoloDashboard() {
           <img src="/e-daarah-blackbg-logo.png" alt="e-Daarah" className="sidebar-logo-img" />
           <span className="sidebar-logo-text">e-Daarah</span>
           <button className="sidebar-collapse-btn" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label="Toggle sidebar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points={sidebarCollapsed ? "9 18 15 12 9 6" : "15 18 9 12 15 6"}></polyline>
-            </svg>
+            {sidebarCollapsed ? <ChevronRightIcon width={16} height={16} /> : <ChevronLeftIcon width={16} height={16} />}
           </button>
         </div>
         <nav className="sidebar-nav">
@@ -1337,9 +1354,7 @@ function SoloDashboard() {
               <div className="user-name">{user?.firstName} {user?.lastName}</div>
               <div className="user-role">Solo Admin</div>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, transform: profileDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
+            <ChevronUpIcon width={16} height={16} style={{ opacity: 0.5, transform: profileDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
           </div>
           {profileDropdownOpen && (
             <div className="profile-dropdown">
@@ -1354,24 +1369,24 @@ function SoloDashboard() {
               </div>
               <div className="profile-dropdown-divider" />
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); setTimeout(() => document.getElementById('settings-account')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <UserIcon width={16} height={16} />
                 Account
               </button>
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); setTimeout(() => document.getElementById('settings-password')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
+                <LockClosedIcon width={16} height={16} />
                 Change Password
               </button>
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); setTimeout(() => document.getElementById('settings-attendance-features')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+                <Cog6ToothIcon width={16} height={16} />
                 Settings
               </button>
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); setTimeout(() => document.getElementById('settings-billing')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                <CreditCardIcon width={16} height={16} />
                 Billing
               </button>
               <div className="profile-dropdown-divider" />
               <button className="profile-dropdown-item logout" onClick={handleLogout}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <ArrowRightStartOnRectangleIcon width={16} height={16} />
                 Log out
               </button>
             </div>
@@ -1477,26 +1492,26 @@ function SoloDashboard() {
                   <div className="overview-actions" style={{ marginTop: 'var(--lg)' }}>
                     <div className="overview-action-card" onClick={() => handleTabChange('attendance')}>
                       <div className="overview-action-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                        <ClipboardDocumentCheckIcon width={20} height={20} />
                       </div>
                       <div className="overview-action-label">Take Attendance</div>
                     </div>
                     <div className="overview-action-card" onClick={() => handleTabChange('students')}>
                       <div className="overview-action-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                        <UserPlusIcon width={20} height={20} />
                       </div>
                       <div className="overview-action-label">Add Student</div>
                     </div>
                     <div className="overview-action-card" onClick={() => handleTabChange('exams')}>
                       <div className="overview-action-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        <DocumentTextIcon width={20} height={20} />
                       </div>
                       <div className="overview-action-label">Record Exam</div>
                     </div>
                     {madrasahProfile?.enable_fee_tracking && (
                       <div className="overview-action-card" onClick={() => handleTabChange('fees')}>
                         <div className="overview-action-icon">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                          <CurrencyDollarIcon width={20} height={20} />
                         </div>
                         <div className="overview-action-label">Record Payment</div>
                       </div>
@@ -1607,7 +1622,7 @@ function SoloDashboard() {
                   )}
 
                   {sessions.length === 0 ? (
-                    <div className="card"><div className="empty"><div className="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p>No sessions yet. Create one to get started.</p><button className="empty-action" onClick={() => setShowSessionForm(true)}>+ Create Session</button></div></div>
+                    <div className="card"><div className="empty"><div className="empty-icon"><CalendarIcon /></div><p>No sessions yet. Create one to get started.</p><button className="empty-action" onClick={() => setShowSessionForm(true)}>+ Create Session</button></div></div>
                   ) : (
                     <div style={{ display: 'grid', gap: '12px' }}>
                       {sessions.map(session => {
@@ -2865,9 +2880,7 @@ function SoloDashboard() {
                             <h4 style={{ fontSize: 'var(--text-lg)', fontWeight: '600', margin: 0 }}>Student Scores</h4>
                             <div style={{ position: 'relative' }} className="exam-search-container">
                               <input type="text" className="form-input" placeholder="Search by name or ID..." value={examStudentSearch} onChange={(e) => setExamStudentSearch(e.target.value)} style={{ paddingLeft: '32px', fontSize: '16px' }} />
-                              <svg style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: '#666' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                              </svg>
+                              <MagnifyingGlassIcon width={16} height={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
                             </div>
                           </div>
                           <div className="exam-modal-table" style={{ overflowX: 'auto', maxHeight: '400px', border: 'var(--border)', borderRadius: 'var(--radius)' }}>
@@ -3203,9 +3216,7 @@ function SoloDashboard() {
                         {!quranSelectedStudent && (
                           <div style={{ textAlign: 'center', padding: 'var(--lg) 0' }}>
                             <div className="empty-icon">
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-                              </svg>
+                              <BookOpenIcon width={22} height={22} />
                             </div>
                             <p className="empty">Select a student to begin recording</p>
                           </div>
@@ -3363,7 +3374,7 @@ function SoloDashboard() {
                   {feeSummary.length === 0 ? (
                     <div className="card">
                       <div className="empty">
-                        <div className="empty-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                        <div className="empty-icon"><CurrencyDollarIcon /></div>
                         <p>No fee data yet. Set an expected fee on students (via the student form or the "Set Expected Fee" button above) to start tracking.</p>
                       </div>
                     </div>
@@ -4241,7 +4252,7 @@ function SoloDashboard() {
               <div className="card" style={{ marginBottom: '12px' }}>
                 <button onClick={() => toggleHelp(sectionKey)} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 600, textAlign: 'left' }}>
                   {title}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: helpExpanded.has(sectionKey) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  <ChevronDownIcon width={16} height={16} style={{ transform: helpExpanded.has(sectionKey) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
                 </button>
                 {helpExpanded.has(sectionKey) && (
                   <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>

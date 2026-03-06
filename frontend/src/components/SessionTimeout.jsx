@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ClockIcon } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import './SessionTimeout.css';
 
@@ -131,10 +132,7 @@ function SessionTimeout({ onLogout }) {
     <div className="session-timeout-overlay">
       <div className="session-timeout-modal">
         <div className="session-timeout-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
+          <ClockIcon width={48} height={48} />
         </div>
         <h3>Session Expiring</h3>
         <p>Your session will expire due to inactivity in:</p>

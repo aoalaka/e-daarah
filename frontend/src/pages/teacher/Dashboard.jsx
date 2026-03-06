@@ -8,6 +8,23 @@ import EmailVerificationBanner from '../../components/EmailVerificationBanner';
 import DemoBanner from '../../components/DemoBanner';
 import AnnouncementBanner from '../../components/AnnouncementBanner';
 import GuidedTour from '../../components/GuidedTour';
+import {
+  HomeIcon,
+  ClipboardDocumentCheckIcon,
+  BookOpenIcon,
+  DocumentTextIcon,
+  UserGroupIcon,
+  QuestionMarkCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+  UserIcon,
+  LockClosedIcon,
+  Cog6ToothIcon,
+  ArrowRightStartOnRectangleIcon,
+  MagnifyingGlassIcon,
+} from '@heroicons/react/24/outline';
 import '../admin/Dashboard.css';
 
 function TeacherDashboard() {
@@ -1317,31 +1334,23 @@ function TeacherDashboard() {
   }, []);
 
   const getNavIcon = (id) => {
-    const iconProps = {
-      width: "18",
-      height: "18",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: "2",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      style: { minWidth: '18px' }
-    };
+    const cls = "nav-icon";
+    const size = 18;
+    const style = { minWidth: '18px' };
 
     switch(id) {
       case 'overview':
-        return <svg {...iconProps}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
+        return <HomeIcon className={cls} width={size} height={size} style={style} />;
       case 'attendance':
-        return <svg {...iconProps}><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>;
+        return <ClipboardDocumentCheckIcon className={cls} width={size} height={size} style={style} />;
       case 'quran':
-        return <svg {...iconProps}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>;
+        return <BookOpenIcon className={cls} width={size} height={size} style={style} />;
       case 'exams':
-        return <svg {...iconProps}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
+        return <DocumentTextIcon className={cls} width={size} height={size} style={style} />;
       case 'reports':
-        return <svg {...iconProps}><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>;
+        return <UserGroupIcon className={cls} width={size} height={size} style={style} />;
       case 'help':
-        return <svg {...iconProps}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+        return <QuestionMarkCircleIcon className={cls} width={size} height={size} style={style} />;
       default:
         return null;
     }
@@ -1365,9 +1374,7 @@ function TeacherDashboard() {
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             aria-label="Toggle sidebar"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points={sidebarCollapsed ? "9 18 15 12 9 6" : "15 18 9 12 15 6"}></polyline>
-            </svg>
+            {sidebarCollapsed ? <ChevronRightIcon width={16} height={16} /> : <ChevronLeftIcon width={16} height={16} />}
           </button>
         </div>
         <nav className="sidebar-nav">
@@ -1398,9 +1405,7 @@ function TeacherDashboard() {
               <div className="user-name">{user?.firstName} {user?.lastName}</div>
               <div className="user-role">Teacher {user?.staffId ? `• ${user.staffId}` : ''}</div>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, transform: profileDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
+            <ChevronUpIcon width={16} height={16} style={{ opacity: 0.5, transform: profileDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
           </div>
           {profileDropdownOpen && (
             <div className="profile-dropdown">
@@ -1415,20 +1420,20 @@ function TeacherDashboard() {
               </div>
               <div className="profile-dropdown-divider" />
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <UserIcon width={16} height={16} />
                 Account
               </button>
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
+                <LockClosedIcon width={16} height={16} />
                 Change Password
               </button>
               <button className="profile-dropdown-item" onClick={() => { handleTabChange('settings'); setProfileDropdownOpen(false); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+                <Cog6ToothIcon width={16} height={16} />
                 Settings
               </button>
               <div className="profile-dropdown-divider" />
               <button className="profile-dropdown-item logout" onClick={handleLogout}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <ArrowRightStartOnRectangleIcon width={16} height={16} />
                 Log out
               </button>
             </div>
@@ -2863,14 +2868,7 @@ function TeacherDashboard() {
                                 onChange={(e) => setExamStudentSearch(e.target.value)}
                                 style={{ paddingLeft: '32px', fontSize: '16px' }}
                               />
-                              <svg
-                                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: '#666' }}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                              </svg>
+                              <MagnifyingGlassIcon width={16} height={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
                             </div>
                           </div>
                           <div className="exam-modal-table" style={{ overflowX: 'auto', maxHeight: '400px', border: 'var(--border)', borderRadius: 'var(--radius)' }}>
@@ -3573,9 +3571,7 @@ function TeacherDashboard() {
                         {!quranSelectedStudent && (
                           <div style={{ textAlign: 'center', padding: 'var(--lg) 0' }}>
                             <div className="empty-icon">
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-                              </svg>
+                              <BookOpenIcon width={22} height={22} />
                             </div>
                             <p className="empty">Select a student to begin recording</p>
                           </div>
@@ -3748,7 +3744,7 @@ function TeacherDashboard() {
               <div className="card" style={{ marginBottom: '12px' }}>
                 <button onClick={() => toggleHelp(sectionKey)} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 600, textAlign: 'left' }}>
                   {title}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: helpExpanded.has(sectionKey) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  <ChevronDownIcon width={16} height={16} style={{ transform: helpExpanded.has(sectionKey) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
                 </button>
                 {helpExpanded.has(sectionKey) && (
                   <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>

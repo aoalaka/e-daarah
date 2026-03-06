@@ -2763,29 +2763,11 @@ router.get('/fee-report', async (req, res) => {
     let studentData = [];
 
     if (mode === 'auto') {
-      // Use shared auto calculator (always scopes to active session)
-      const autoData = await calculateAutoFees(madrasahId);
-      // If period-scoped, re-query payments within the period date range
-      if (periodStart && periodEnd && autoData.length > 0) {
-        const studentIds = autoData.map(s => s.student_id);
-        const placeholders = studentIds.map(() => '?').join(',');
-        const [periodPayments] = await pool.query(
-          `SELECT student_id, COALESCE(SUM(amount_paid), 0) as total_paid
-           FROM fee_payments WHERE madrasah_id = ? AND student_id IN (${placeholders}) AND deleted_at IS NULL
-             AND payment_date >= ? AND payment_date <= ?
-           GROUP BY student_id`,
-          [madrasahId, ...studentIds, periodStart, periodEnd]
-        );
-        const periodMap = {};
-        periodPayments.forEach(p => { periodMap[p.student_id] = parseFloat(p.total_paid); });
-
-        studentData = autoData.map(s => {
-          const paid = periodMap[s.student_id] || 0;
-          return { ...s, total_paid: paid, balance: s.total_fee - paid, status: paid >= s.total_fee ? 'paid' : paid > 0 ? 'partial' : 'unpaid' };
-        });
-      } else {
-        studentData = autoData;
-      }
+      // Use shared auto calculator with period dates for proper fee scoping
+      const autoOpts = {};
+      if (periodStart) autoOpts.fromDate = periodStart;
+      if (periodEnd) autoOpts.toDate = periodEnd;
+      studentData = await calculateAutoFees(madrasahId, autoOpts);
     } else {
       // Manual mode — query expected fees, filter payments to period
       const [rows] = await pool.query(

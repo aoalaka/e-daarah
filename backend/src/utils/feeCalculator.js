@@ -101,9 +101,12 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
     return count;
   };
 
-  // Effective period for fee calculation (scoped by fromDate/toDate if provided)
+  // Effective period for fee calculation (scoped by fromDate/toDate if provided, capped at today)
+  const today = new Date().toISOString().split('T')[0];
   const periodCalcStart = fromDate && new Date(fromDate) > new Date(session.start_date) ? fromDate : session.start_date;
-  const periodCalcEnd = toDate && new Date(toDate) < new Date(session.end_date) ? toDate : session.end_date;
+  let periodCalcEndRaw = toDate && new Date(toDate) < new Date(session.end_date) ? toDate : session.end_date;
+  // Never calculate fees beyond today — future periods haven't occurred yet
+  const periodCalcEnd = new Date(periodCalcEndRaw) > new Date(today) ? today : periodCalcEndRaw;
 
   // Calculate fee for each student
   return students.map(student => {

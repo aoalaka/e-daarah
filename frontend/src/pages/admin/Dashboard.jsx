@@ -4114,7 +4114,7 @@ function AdminDashboard() {
               {madrasahProfile?.fee_tracking_mode === 'auto' && (
                 <div className="report-tabs no-print" style={{ marginBottom: '16px' }}>
                   <nav className="report-tabs-nav">
-                    <button className={`report-tab-btn ${feeSubTab === 'summary' ? 'active' : ''}`} onClick={() => setFeeSubTab('summary')}>Summary</button>
+                    <button className={`report-tab-btn ${feeSubTab === 'summary' ? 'active' : ''}`} onClick={() => setFeeSubTab('summary')}>Students</button>
                     <button className={`report-tab-btn ${feeSubTab === 'schedules' ? 'active' : ''}`} onClick={() => setFeeSubTab('schedules')}>Fee Schedules</button>
                     <button className={`report-tab-btn ${feeSubTab === 'report' ? 'active' : ''}`} onClick={() => { setFeeSubTab('report'); if (!feeReport) loadFeeReport(); }}>Report</button>
                   </nav>
@@ -4328,7 +4328,7 @@ function AdminDashboard() {
                 <>
                   <div className="report-tabs no-print" style={{ marginBottom: '16px' }}>
                     <nav className="report-tabs-nav">
-                      <button className={`report-tab-btn ${feeSubTab === 'summary' ? 'active' : ''}`} onClick={() => setFeeSubTab('summary')}>Summary</button>
+                      <button className={`report-tab-btn ${feeSubTab === 'summary' ? 'active' : ''}`} onClick={() => setFeeSubTab('summary')}>Students</button>
                       <button className={`report-tab-btn ${feeSubTab === 'report' ? 'active' : ''}`} onClick={() => { setFeeSubTab('report'); if (!feeReport) loadFeeReport(); }}>Report</button>
                     </nav>
                   </div>

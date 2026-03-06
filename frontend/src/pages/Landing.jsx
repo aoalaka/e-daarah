@@ -422,7 +422,7 @@ function Landing() {
             </div>
           </div>
           <div className="sms-addon-note">
-            <p><strong>SMS Add-on</strong> — Every plan includes 100 free SMS credits. Send fee reminders and announcements to parents via SMS. Need more? Credit packs from $3. <Link to="/pricing">See details →</Link></p>
+            <p><strong>SMS Add-on</strong> — Plus plan and above includes 100 free SMS credits. Send fee reminders and announcements to parents via SMS. Need more? Credit packs from $3. <Link to="/pricing">See details →</Link></p>
           </div>
           <p className="pricing-more"><Link to="/pricing">Compare all plans →</Link></p>
         </div>

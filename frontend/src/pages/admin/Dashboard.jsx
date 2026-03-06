@@ -7078,7 +7078,7 @@ function AdminDashboard() {
                               <div className="kpi-value">{pack.credits}</div>
                               <div className="kpi-label" style={{ marginBottom: 0 }}>SMS credits</div>
                               <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--black)' }}>{pack.description}</div>
-                              <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{smsStatus.currency === 'NZD' ? 'NZ$' : '$'}{(pack.price_cents / 100 / pack.credits).toFixed(3)}/SMS</div>
+                              <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{smsStatus.currency === 'NZD' ? 'NZ$' : '$'}{(pack.price_cents / 100 / pack.credits).toFixed(3)}/credit</div>
                               <button className="btn btn-primary" style={{ width: '100%', marginTop: '4px' }}>
                                 Buy Now
                               </button>
@@ -7251,13 +7251,13 @@ function AdminDashboard() {
                               </button>
                               {smsStatus.balance < smsSelectedStudents.length && (
                                 <span style={{ color: '#dc2626', fontSize: '0.875rem' }}>
-                                  Need {smsSelectedStudents.length} credits, have {smsStatus.balance}.{' '}
+                                  Estimated {smsSelectedStudents.length}+ credits needed, have {smsStatus.balance}.{' '}
                                   <button className="btn-link" style={{ fontSize: '0.875rem' }} onClick={() => setSmsSubTab('overview')}>Buy more</button>
                                 </span>
                               )}
                               {smsStatus.balance >= smsSelectedStudents.length && smsSelectedStudents.length > 0 && (
                                 <span style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                                  Will use {smsSelectedStudents.length} credit{smsSelectedStudents.length !== 1 ? 's' : ''} ({smsStatus.balance - smsSelectedStudents.length} remaining)
+                                  Estimated ~{smsSelectedStudents.length} credit{smsSelectedStudents.length !== 1 ? 's' : ''} (longer messages may use more)
                                 </span>
                               )}
                             </div>
@@ -7272,7 +7272,7 @@ function AdminDashboard() {
                     <div className="card">
                       <h3 style={{ marginBottom: '0.25rem' }}>Send Custom Message</h3>
                       <p className="page-description" style={{ marginBottom: '1rem' }}>
-                        Send an SMS to any phone number. Costs 1 credit per message.
+                        Send an SMS to any phone number. Costs 1 credit per SMS segment.
                       </p>
 
                       <div style={{ maxWidth: '480px' }}>

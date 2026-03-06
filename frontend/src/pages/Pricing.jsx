@@ -21,7 +21,7 @@ function Pricing() {
         "Qur'an progress tracking",
         'Fee tracking',
         'Simple dashboard',
-        '100 free SMS credits',
+        'SMS credits (add-on)',
         'Email support'
       ],
       notIncluded: [
@@ -48,7 +48,7 @@ function Pricing() {
         'Fee tracking & payment recording',
         'Student promotion tool',
         'Quick Insights report',
-        '100 free SMS credits',
+        'SMS credits (add-on)',
         'Email support (48hr)'
       ],
       notIncluded: [
@@ -316,36 +316,36 @@ function Pricing() {
         <section className="sms-addon">
           <h2>SMS Add-on</h2>
           <p className="sms-addon-subtitle">
-            Send fee reminders and announcements directly to parents' phones. Every subscription includes <strong>100 free SMS credits</strong> to get you started. Need more? Buy credits as you need them — no subscription required.
+            Send fee reminders and announcements directly to parents' phones. Plus plan and above includes <strong>100 free SMS credits</strong> to get you started. Need more? Buy credits as you need them — no subscription required.
           </p>
           <div className="sms-packs-grid">
             <div className="sms-pack">
               <span className="sms-pack-credits">50</span>
-              <span className="sms-pack-label">messages</span>
+              <span className="sms-pack-label">credits</span>
               <span className="sms-pack-price">$3</span>
-              <span className="sms-pack-unit">$0.06 / SMS</span>
+              <span className="sms-pack-unit">$0.06 / credit</span>
             </div>
             <div className="sms-pack">
               <span className="sms-pack-credits">200</span>
-              <span className="sms-pack-label">messages</span>
+              <span className="sms-pack-label">credits</span>
               <span className="sms-pack-price">$10</span>
-              <span className="sms-pack-unit">$0.05 / SMS</span>
+              <span className="sms-pack-unit">$0.05 / credit</span>
             </div>
             <div className="sms-pack popular">
               <span className="sms-pack-badge">Best Value</span>
               <span className="sms-pack-credits">500</span>
-              <span className="sms-pack-label">messages</span>
+              <span className="sms-pack-label">credits</span>
               <span className="sms-pack-price">$20</span>
-              <span className="sms-pack-unit">$0.04 / SMS</span>
+              <span className="sms-pack-unit">$0.04 / credit</span>
             </div>
             <div className="sms-pack">
               <span className="sms-pack-credits">1,000</span>
-              <span className="sms-pack-label">messages</span>
+              <span className="sms-pack-label">credits</span>
               <span className="sms-pack-price">$35</span>
-              <span className="sms-pack-unit">$0.035 / SMS</span>
+              <span className="sms-pack-unit">$0.035 / credit</span>
             </div>
           </div>
-          <p className="sms-addon-note">Every plan includes 100 free SMS credits. Additional credits never expire. Prices in USD.</p>
+          <p className="sms-addon-note">Plus plan and above includes 100 free SMS credits. 1 credit = 1 SMS segment. Additional credits never expire. Prices in USD.</p>
         </section>
 
         {/* FAQ Section */}
@@ -374,7 +374,7 @@ function Pricing() {
 
           <div className="faq-item">
             <h3>How does the SMS add-on work?</h3>
-            <p>Every subscription starts with 100 free SMS credits. Each SMS sent to a parent uses one credit. Credits never expire. Need more? Buy a credit pack from your dashboard — no extra subscription required.</p>
+            <p>Plus plan and above starts with 100 free SMS credits. Each SMS uses 1 credit per segment (most short messages = 1 segment). Credits never expire. Need more? Buy a credit pack from your dashboard — no extra subscription required.</p>
           </div>
         </section>
       </main>

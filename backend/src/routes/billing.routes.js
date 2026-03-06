@@ -392,22 +392,24 @@ async function handleCheckoutComplete(session) {
     [subscription.id, plan, subscription.current_period_end, madrasahId]
   );
 
-  // Grant 100 free SMS credits on first subscription (welcome bonus)
-  const [existingCredits] = await pool.query(
-    'SELECT id FROM sms_credits WHERE madrasah_id = ?',
-    [madrasahId]
-  );
-  if (existingCredits.length === 0) {
-    await pool.query(
-      `INSERT INTO sms_credits (madrasah_id, balance, total_purchased) VALUES (?, 100, 100)`,
+  // Grant 100 free SMS credits on first subscription (Plus plan and above only)
+  if (plan === 'plus' || plan === 'enterprise') {
+    const [existingCredits] = await pool.query(
+      'SELECT id FROM sms_credits WHERE madrasah_id = ?',
       [madrasahId]
     );
-    await pool.query(
-      `INSERT INTO sms_credit_purchases (madrasah_id, credits, amount_cents, currency, status, purchased_by)
-       VALUES (?, 100, 0, 'usd', 'completed', NULL)`,
-      [madrasahId]
-    );
-    console.log(`Welcome bonus: 100 free SMS credits granted to madrasah ${madrasahId}`);
+    if (existingCredits.length === 0) {
+      await pool.query(
+        `INSERT INTO sms_credits (madrasah_id, balance, total_purchased) VALUES (?, 100, 100)`,
+        [madrasahId]
+      );
+      await pool.query(
+        `INSERT INTO sms_credit_purchases (madrasah_id, credits, amount_cents, currency, status, purchased_by)
+         VALUES (?, 100, 0, 'usd', 'completed', NULL)`,
+        [madrasahId]
+      );
+      console.log(`Welcome bonus: 100 free SMS credits granted to madrasah ${madrasahId} (${plan} plan)`);
+    }
   }
 
   console.log(`Checkout complete for madrasah ${madrasahId}, plan: ${plan}`);

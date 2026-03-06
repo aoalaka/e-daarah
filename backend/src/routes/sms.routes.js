@@ -21,10 +21,10 @@ const SMS_PACKS = [
 ];
 
 const SMS_PACKS_NZD = [
-  { id: 'sms_50_nzd', credits: 50, price_cents: 500, label: '50 SMS', description: 'NZ$5.00' },
-  { id: 'sms_200_nzd', credits: 200, price_cents: 1700, label: '200 SMS', description: 'NZ$17.00' },
-  { id: 'sms_500_nzd', credits: 500, price_cents: 3500, label: '500 SMS', description: 'NZ$35.00' },
-  { id: 'sms_1000_nzd', credits: 1000, price_cents: 5900, label: '1000 SMS', description: 'NZ$59.00' },
+  { id: 'sms_50_nzd', credits: 50, price_cents: 1000, label: '50 SMS', description: 'NZ$10.00' },
+  { id: 'sms_200_nzd', credits: 200, price_cents: 3600, label: '200 SMS', description: 'NZ$36.00' },
+  { id: 'sms_500_nzd', credits: 500, price_cents: 8000, label: '500 SMS', description: 'NZ$80.00' },
+  { id: 'sms_1000_nzd', credits: 1000, price_cents: 14000, label: '1000 SMS', description: 'NZ$140.00' },
 ];
 
 // ─── GET /sms/status — Credit balance + config ──────────────────
@@ -283,8 +283,9 @@ router.post('/send-bulk', async (req, res) => {
       return res.status(400).json({ error: `None of the selected students have a ${targetLabel} phone number` });
     }
 
-    // Check credits
-    const creditsNeeded = sendable.length;
+    // Check credits (estimate based on template — personalized messages may vary slightly)
+    const estimatedCreditsPerMsg = calculateCredits(message);
+    const creditsNeeded = sendable.length * estimatedCreditsPerMsg;
     const [credits] = await pool.query(
       'SELECT balance FROM sms_credits WHERE madrasah_id = ?',
       [madrasahId]
@@ -300,7 +301,7 @@ router.post('/send-bulk', async (req, res) => {
     }
 
     // Send messages
-    const results = { sent: 0, failed: 0, skipped: noPhone.length, errors: [] };
+    const results = { sent: 0, failed: 0, skipped: noPhone.length, errors: [], totalCredits: 0 };
 
     for (const student of sendable) {
       const formattedPhone = formatPhoneNumber(
@@ -318,14 +319,16 @@ router.post('/send-bulk', async (req, res) => {
 
       try {
         const smsResult = await sendSMS(formattedPhone, personalizedMsg);
+        const msgCredits = calculateCredits(personalizedMsg);
 
         await pool.query(
           `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, provider_message_id, credits_used, sent_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
-          [madrasahId, student.id, formattedPhone, personalizedMsg, messageType, smsResult.status, smsResult.sid, req.user.id]
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [madrasahId, student.id, formattedPhone, personalizedMsg, messageType, smsResult.status, smsResult.sid, msgCredits, req.user.id]
         );
 
         results.sent++;
+        results.totalCredits += msgCredits;
       } catch (smsError) {
         await pool.query(
           `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, error_message, credits_used, sent_by)
@@ -337,11 +340,11 @@ router.post('/send-bulk', async (req, res) => {
       }
     }
 
-    // Deduct credits (only for sent messages)
-    if (results.sent > 0) {
+    // Deduct credits (based on actual segments used)
+    if (results.totalCredits > 0) {
       await pool.query(
         `UPDATE sms_credits SET balance = balance - ?, total_used = total_used + ? WHERE madrasah_id = ?`,
-        [results.sent, results.sent, madrasahId]
+        [results.totalCredits, results.totalCredits, madrasahId]
       );
     }
 
@@ -354,7 +357,8 @@ router.post('/send-bulk', async (req, res) => {
     res.json({
       success: true,
       ...results,
-      balanceRemaining: currentBalance - results.sent
+      creditsUsed: results.totalCredits,
+      balanceRemaining: currentBalance - results.totalCredits
     });
   } catch (error) {
     console.error('Bulk SMS error:', error);

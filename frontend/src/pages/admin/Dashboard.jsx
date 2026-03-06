@@ -7162,8 +7162,32 @@ function AdminDashboard() {
                             const formatDisplay = (s) => { const code = getPhoneCode(s); const ph = getPhone(s); return code && ph ? `${code}${ph}` : ph || '—'; };
                             // Count unique phones among selected students
                             const selectedStudents = smsReminderStudents.filter(s => smsSelectedStudents.includes(s.id));
-                            const uniquePhones = new Set(selectedStudents.map(s => getPhoneCode(s) + getPhone(s))).size;
+                            const phoneGroups = {};
+                            selectedStudents.forEach(s => {
+                              const key = getPhoneCode(s) + getPhone(s);
+                              if (!phoneGroups[key]) phoneGroups[key] = [];
+                              phoneGroups[key].push(s);
+                            });
+                            const uniquePhones = Object.keys(phoneGroups).length;
                             const duplicateParents = selectedStudents.length - uniquePhones;
+
+                            // Estimate credits by simulating personalized message per group
+                            const estimateSegments = (text) => {
+                              if (!text) return 1;
+                              const len = text.length;
+                              return len <= 160 ? 1 : Math.ceil(len / 153);
+                            };
+                            const estimatedCredits = Object.values(phoneGroups).reduce((total, group) => {
+                              const names = group.map(s => `${s.first_name} ${s.last_name}`).join(', ');
+                              const simulated = smsReminderMsg
+                                .replace(/\{student_name\}/gi, names)
+                                .replace(/\{first_name\}/gi, group.map(s => s.first_name).join(', '))
+                                .replace(/\{last_name\}/gi, group.map(s => s.last_name).join(', '))
+                                .replace(/\{madrasah_name\}/gi, madrasahProfile?.name || '')
+                                .replace(/\{expected_fee\}/gi, '$0.00')
+                                .replace(/\{balance\}/gi, '$0.00');
+                              return total + estimateSegments(simulated);
+                            }, 0);
 
                             return (
                               <>
@@ -7258,18 +7282,18 @@ function AdminDashboard() {
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                                   <button className="btn btn-primary" onClick={handleSendFeeReminders}
-                                    disabled={smsSending || smsSelectedStudents.length === 0 || smsStatus.balance < uniquePhones}>
+                                    disabled={smsSending || smsSelectedStudents.length === 0 || smsStatus.balance < estimatedCredits}>
                                     {smsSending ? 'Sending...' : `Send to ${uniquePhones} recipient${uniquePhones !== 1 ? 's' : ''}`}
                                   </button>
-                                  {smsStatus.balance < uniquePhones && uniquePhones > 0 && (
+                                  {smsStatus.balance < estimatedCredits && estimatedCredits > 0 && (
                                     <span style={{ color: '#dc2626', fontSize: '0.875rem' }}>
-                                      Estimated {uniquePhones}+ credits needed, have {smsStatus.balance}.{' '}
+                                      Estimated ~{estimatedCredits} credits needed, have {smsStatus.balance}.{' '}
                                       <button className="btn-link" style={{ fontSize: '0.875rem' }} onClick={() => setSmsSubTab('overview')}>Buy more</button>
                                     </span>
                                   )}
-                                  {smsStatus.balance >= uniquePhones && uniquePhones > 0 && (
+                                  {smsStatus.balance >= estimatedCredits && estimatedCredits > 0 && (
                                     <span style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                                      Estimated ~{uniquePhones} credit{uniquePhones !== 1 ? 's' : ''} (longer messages may use more)
+                                      Estimated ~{estimatedCredits} credit{estimatedCredits !== 1 ? 's' : ''}
                                     </span>
                                   )}
                                 </div>

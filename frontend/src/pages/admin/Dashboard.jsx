@@ -1238,7 +1238,12 @@ function AdminDashboard() {
       const fileInput = e.target.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = '';
       loadData();
-      toast.success(`Upload complete: ${response.data.successful} successful, ${response.data.failed} failed`);
+      const { created = 0, updated = 0, failed = 0 } = response.data;
+      const parts = [];
+      if (created > 0) parts.push(`${created} created`);
+      if (updated > 0) parts.push(`${updated} updated`);
+      if (failed > 0) parts.push(`${failed} failed`);
+      toast.success(`Upload complete: ${parts.join(', ')}`);
     } catch (error) {
       console.error('Bulk upload error:', error.response?.data);
       
@@ -3256,7 +3261,7 @@ function AdminDashboard() {
                         <strong> Optional:</strong> class, student_id, email, phone, parent details, notes
                       </p>
                       <p style={{ margin: '4px 0 0', fontSize: 12, color: '#999' }}>
-                        Gender must be Male or Female. Class must match an existing class name exactly. If student_id is provided it will be used as-is, otherwise auto-generated. The dropdown below is a fallback for rows without a class column value.
+                        Gender must be Male or Female. Classes are auto-created if they don't exist yet. If student_id is provided it will be used as-is, otherwise auto-generated. Re-uploading the same file will update existing students instead of creating duplicates. The dropdown below is a fallback for rows without a class column value.
                       </p>
                     </div>
 
@@ -3303,16 +3308,17 @@ function AdminDashboard() {
                         <h4>Upload Results</h4>
                         <p>
                           Total: {uploadResults.total} |
-                          Successful: {uploadResults.successful} |
+                          Created: {uploadResults.created || 0} |
+                          Updated: {uploadResults.updated || 0} |
                           Failed: {uploadResults.failed}
                         </p>
 
                         {uploadResults.results.success.length > 0 && (
                           <details open>
-                            <summary>Successful Uploads ({uploadResults.results.success.length})</summary>
+                            <summary>Successful ({uploadResults.results.success.length})</summary>
                             <ul>
                               {uploadResults.results.success.map((s, i) => (
-                                <li key={i}>{s.name} — ID: {s.student_id}</li>
+                                <li key={i}>{s.name} — ID: {s.student_id}{s.updated ? ' (updated)' : ''}</li>
                               ))}
                             </ul>
                           </details>

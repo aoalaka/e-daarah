@@ -136,6 +136,7 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
     );
     const classNameMap = new Map(allClasses.map(c => [c.name.toLowerCase().trim(), c.id]));
 
+    // Auto-create classes from CSV data before processing students
     let students = [];
 
     // Parse file based on type
@@ -147,6 +148,20 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
 
     if (students.length === 0) {
       return res.status(400).json({ error: 'No data found in file' });
+    }
+
+    // Collect unique class names from CSV and auto-create missing ones
+    const uniqueClassNames = [...new Set(
+      students.map(s => s.class?.trim()).filter(Boolean)
+    )];
+    for (const className of uniqueClassNames) {
+      if (!classNameMap.has(className.toLowerCase())) {
+        const [result] = await pool.query(
+          'INSERT INTO classes (madrasah_id, name) VALUES (?, ?)',
+          [madrasahId, className]
+        );
+        classNameMap.set(className.toLowerCase(), result.insertId);
+      }
     }
 
     // Validate all rows first
@@ -174,19 +189,6 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
         validationErrors.push(`Row ${row}: Duplicate student ID "${id}" (also in row ${seenIds.get(id)})`);
       } else {
         seenIds.set(id, row);
-      }
-    }
-
-    // Check provided student_ids against existing DB records
-    if (fileStudentIds.length > 0) {
-      const ids = fileStudentIds.map(s => s.id);
-      const [existing] = await pool.query(
-        'SELECT student_id FROM students WHERE madrasah_id = ? AND student_id IN (?) AND deleted_at IS NULL',
-        [madrasahId, ids]
-      );
-      for (const ex of existing) {
-        const row = fileStudentIds.find(s => s.id === ex.student_id)?.row;
-        validationErrors.push(`Row ${row}: Student ID "${ex.student_id}" already exists in this madrasah`);
       }
     }
 
@@ -227,46 +229,61 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
           const matchedId = classNameMap.get(csvClassName.toLowerCase());
           if (matchedId) {
             resolvedClassId = matchedId;
-          } else {
-            // Class name doesn't match any existing class — warn but don't fail
-            results.failed.push({
-              name: `${student.first_name} ${student.last_name}`,
-              error: `Class "${csvClassName}" not found. Student added without class assignment.`
-            });
-            resolvedClassId = null;
           }
         }
 
-        // Check if a soft-deleted student with same student_id exists
-        const [softDeleted] = await pool.query(
-          'SELECT id FROM students WHERE madrasah_id = ? AND student_id = ? AND deleted_at IS NOT NULL',
+        // Check if an active student with same student_id already exists (idempotent)
+        const [existingActive] = await pool.query(
+          'SELECT id FROM students WHERE madrasah_id = ? AND student_id = ? AND deleted_at IS NULL',
           [madrasahId, studentId]
         );
 
-        if (softDeleted.length > 0) {
-          // Reactivate the soft-deleted student with new data
+        if (existingActive.length > 0) {
+          // Update existing student with latest data
           await pool.query(
             `UPDATE students SET first_name = ?, last_name = ?, gender = ?, email = ?, phone = ?, class_id = ?,
-             parent_guardian_name = ?, parent_guardian_relationship = ?, parent_guardian_phone = ?, notes = ?,
-             deleted_at = NULL WHERE id = ?`,
+             parent_guardian_name = ?, parent_guardian_relationship = ?, parent_guardian_phone = ?, notes = ?
+             WHERE id = ? AND madrasah_id = ?`,
             [firstName, lastName, gender, email, phone, resolvedClassId,
-             parentName, parentRelationship, parentPhone, notes, softDeleted[0].id]
+             parentName, parentRelationship, parentPhone, notes, existingActive[0].id, madrasahId]
           );
+          results.success.push({
+            name: `${firstName} ${lastName}`,
+            student_id: studentId,
+            updated: true
+          });
         } else {
-          await pool.query(
-            `INSERT INTO students (
-              madrasah_id, first_name, last_name, student_id, gender, email, phone, class_id,
-              parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [madrasahId, firstName, lastName, studentId, gender, email, phone, resolvedClassId,
-             parentName, parentRelationship, parentPhone, notes]
+          // Check if a soft-deleted student with same student_id exists
+          const [softDeleted] = await pool.query(
+            'SELECT id FROM students WHERE madrasah_id = ? AND student_id = ? AND deleted_at IS NOT NULL',
+            [madrasahId, studentId]
           );
-        }
 
-        results.success.push({
-          name: `${student.first_name} ${student.last_name}`,
-          student_id: studentId
-        });
+          if (softDeleted.length > 0) {
+            // Reactivate the soft-deleted student with new data
+            await pool.query(
+              `UPDATE students SET first_name = ?, last_name = ?, gender = ?, email = ?, phone = ?, class_id = ?,
+               parent_guardian_name = ?, parent_guardian_relationship = ?, parent_guardian_phone = ?, notes = ?,
+               deleted_at = NULL WHERE id = ?`,
+              [firstName, lastName, gender, email, phone, resolvedClassId,
+               parentName, parentRelationship, parentPhone, notes, softDeleted[0].id]
+            );
+          } else {
+            await pool.query(
+              `INSERT INTO students (
+                madrasah_id, first_name, last_name, student_id, gender, email, phone, class_id,
+                parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [madrasahId, firstName, lastName, studentId, gender, email, phone, resolvedClassId,
+               parentName, parentRelationship, parentPhone, notes]
+            );
+          }
+
+          results.success.push({
+            name: `${firstName} ${lastName}`,
+            student_id: studentId
+          });
+        }
       } catch (error) {
         results.failed.push({
           name: `${student.first_name} ${student.last_name}`,
@@ -275,10 +292,15 @@ router.post('/students/bulk', requireActiveSubscription, requirePlusPlan('Bulk s
       }
     }
 
+    const created = results.success.filter(s => !s.updated).length;
+    const updated = results.success.filter(s => s.updated).length;
+
     res.json({
       message: 'Bulk upload completed',
       total: students.length,
       successful: results.success.length,
+      created,
+      updated,
       failed: results.failed.length,
       results
     });

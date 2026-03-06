@@ -7,7 +7,7 @@ import pool from '../config/database.js';
  *   parent_guardian_phone, parent_guardian_name, student_phone, total_fee, total_paid, balance,
  *   status, billing_cycle, schedule_amount, fee_note }
  */
-export async function calculateAutoFees(madrasahId, { classId = null } = {}) {
+export async function calculateAutoFees(madrasahId, { classId = null, fromDate = null, toDate = null } = {}) {
   // Get madrasah settings
   const [madrasahRows] = await pool.query(
     'SELECT fee_tracking_mode, fee_prorate_mid_period FROM madrasahs WHERE id = ?',
@@ -64,12 +64,13 @@ export async function calculateAutoFees(madrasahId, { classId = null } = {}) {
   let paymentsMap = {};
   if (studentIds.length > 0) {
     const placeholders = studentIds.map(() => '?').join(',');
-    const [payments] = await pool.query(
-      `SELECT student_id, COALESCE(SUM(amount_paid), 0) as total_paid
-       FROM fee_payments WHERE madrasah_id = ? AND student_id IN (${placeholders}) AND deleted_at IS NULL
-       GROUP BY student_id`,
-      [madrasahId, ...studentIds]
-    );
+    let paymentSql = `SELECT student_id, COALESCE(SUM(amount_paid), 0) as total_paid
+       FROM fee_payments WHERE madrasah_id = ? AND student_id IN (${placeholders}) AND deleted_at IS NULL`;
+    const paymentParams = [madrasahId, ...studentIds];
+    if (fromDate) { paymentSql += ' AND payment_date >= ?'; paymentParams.push(fromDate); }
+    if (toDate) { paymentSql += ' AND payment_date <= ?'; paymentParams.push(toDate); }
+    paymentSql += ' GROUP BY student_id';
+    const [payments] = await pool.query(paymentSql, paymentParams);
     payments.forEach(p => { paymentsMap[p.student_id] = parseFloat(p.total_paid); });
   }
 

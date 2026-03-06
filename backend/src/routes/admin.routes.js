@@ -2522,7 +2522,7 @@ router.delete('/fee-schedules/:id', requireActiveSubscription, async (req, res) 
 router.get('/fee-auto-calculate', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { class_id } = req.query;
+    const { class_id, from, to } = req.query;
 
     // Check mode before calling helper
     const [madrasahRows] = await pool.query(
@@ -2533,7 +2533,7 @@ router.get('/fee-auto-calculate', async (req, res) => {
       return res.status(400).json({ error: 'Auto fee tracking is not enabled' });
     }
 
-    const results = await calculateAutoFees(madrasahId, { classId: class_id || null });
+    const results = await calculateAutoFees(madrasahId, { classId: class_id || null, fromDate: from || null, toDate: to || null });
 
     // Map to existing response format (student_name instead of first_name/last_name)
     const mapped = results.map(r => ({
@@ -2638,16 +2638,21 @@ router.delete('/fee-payments/:id', requireActiveSubscription, async (req, res) =
 router.get('/fee-summary', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { class_id } = req.query;
+    const { class_id, from, to } = req.query;
+
+    let paymentDateFilter = '';
+    const paymentDateParams = [];
+    if (from) { paymentDateFilter += ' AND fp.payment_date >= ?'; paymentDateParams.push(from); }
+    if (to) { paymentDateFilter += ' AND fp.payment_date <= ?'; paymentDateParams.push(to); }
 
     let sql = `SELECT s.id as student_id, s.first_name, s.last_name, s.expected_fee, s.fee_note,
        c.name as class_name,
        COALESCE(SUM(fp.amount_paid), 0) as total_paid
        FROM students s
        LEFT JOIN classes c ON c.id = s.class_id
-       LEFT JOIN fee_payments fp ON fp.student_id = s.id AND fp.madrasah_id = s.madrasah_id AND fp.deleted_at IS NULL
+       LEFT JOIN fee_payments fp ON fp.student_id = s.id AND fp.madrasah_id = s.madrasah_id AND fp.deleted_at IS NULL${paymentDateFilter}
        WHERE s.madrasah_id = ? AND s.deleted_at IS NULL AND s.expected_fee IS NOT NULL`;
-    const params = [madrasahId];
+    const params = [...paymentDateParams, madrasahId];
 
     if (class_id) { sql += ' AND s.class_id = ?'; params.push(class_id); }
 

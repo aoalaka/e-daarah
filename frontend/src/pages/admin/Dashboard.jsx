@@ -196,6 +196,7 @@ function AdminDashboard() {
   const [feeReportPeriod, setFeeReportPeriod] = useState('semester');
   const [feeReportSemesterId, setFeeReportSemesterId] = useState('');
   const [feeReportSessionId, setFeeReportSessionId] = useState('');
+  const [feeSemesterFilter, setFeeSemesterFilter] = useState('');
   // Support tickets state
   const [supportTickets, setSupportTickets] = useState([]);
   const [showTicketForm, setShowTicketForm] = useState(false);
@@ -467,7 +468,7 @@ function AdminDashboard() {
 
   useEffect(() => {
     if (activeTab === 'fees') loadFeeData();
-  }, [activeTab, feeClassFilter, madrasahProfile?.fee_tracking_mode]);
+  }, [activeTab, feeClassFilter, feeSemesterFilter, madrasahProfile?.fee_tracking_mode]);
 
   // SMS data loading
   useEffect(() => {
@@ -513,6 +514,7 @@ function AdminDashboard() {
       if (activeSemester) {
         setReportSemester(String(activeSemester.id));
         setReportFilterSemester(String(activeSemester.id));
+        setFeeSemesterFilter(String(activeSemester.id));
       }
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -523,18 +525,37 @@ function AdminDashboard() {
   };
 
   // Fee data loading
+  const getFeeDateRange = () => {
+    if (!feeSemesterFilter) return {};
+    const sem = semesters.find(s => String(s.id) === String(feeSemesterFilter));
+    if (!sem) return {};
+    const from = typeof sem.start_date === 'string' ? sem.start_date.split('T')[0] : new Date(sem.start_date).toISOString().split('T')[0];
+    const to = typeof sem.end_date === 'string' ? sem.end_date.split('T')[0] : new Date(sem.end_date).toISOString().split('T')[0];
+    return { from, to };
+  };
+
   const loadFeeSummary = async () => {
     try {
-      const params = feeClassFilter ? `?class_id=${feeClassFilter}` : '';
-      const res = await api.get(`/admin/fee-summary${params}`);
+      const urlParams = new URLSearchParams();
+      if (feeClassFilter) urlParams.set('class_id', feeClassFilter);
+      const { from, to } = getFeeDateRange();
+      if (from) urlParams.set('from', from);
+      if (to) urlParams.set('to', to);
+      const qs = urlParams.toString();
+      const res = await api.get(`/admin/fee-summary${qs ? '?' + qs : ''}`);
       setFeeSummary(res.data || []);
     } catch (error) { console.error('Failed to load fee summary:', error); }
   };
 
   const loadFeePayments = async () => {
     try {
-      const params = feeClassFilter ? `?class_id=${feeClassFilter}` : '';
-      const res = await api.get(`/admin/fee-payments${params}`);
+      const urlParams = new URLSearchParams();
+      if (feeClassFilter) urlParams.set('class_id', feeClassFilter);
+      const { from, to } = getFeeDateRange();
+      if (from) urlParams.set('from', from);
+      if (to) urlParams.set('to', to);
+      const qs = urlParams.toString();
+      const res = await api.get(`/admin/fee-payments${qs ? '?' + qs : ''}`);
       setFeePayments(res.data || []);
     } catch (error) { console.error('Failed to load fee payments:', error); }
   };
@@ -559,8 +580,13 @@ function AdminDashboard() {
 
   const loadAutoFeeSummary = async () => {
     try {
-      const params = feeClassFilter ? `?class_id=${feeClassFilter}` : '';
-      const res = await api.get(`/admin/fee-auto-calculate${params}`);
+      const urlParams = new URLSearchParams();
+      if (feeClassFilter) urlParams.set('class_id', feeClassFilter);
+      const { from, to } = getFeeDateRange();
+      if (from) urlParams.set('from', from);
+      if (to) urlParams.set('to', to);
+      const qs = urlParams.toString();
+      const res = await api.get(`/admin/fee-auto-calculate${qs ? '?' + qs : ''}`);
       setAutoFeeSummary(res.data || []);
     } catch (error) { console.error('Failed to load auto fee summary:', error); }
   };
@@ -699,6 +725,7 @@ function AdminDashboard() {
       setNewPayment({ amount_paid: '', payment_date: '', payment_method: 'cash', reference_note: '', payment_label: '' });
       loadFeeSummary();
       loadFeePayments();
+      if (madrasahProfile?.fee_tracking_mode === 'auto') loadAutoFeeSummary();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to record payment');
     }
@@ -706,7 +733,13 @@ function AdminDashboard() {
 
   const handleVoidPayment = (id) => {
     setConfirmModal({ title: 'Void Payment', message: 'Void this payment? This cannot be undone.', danger: true, confirmLabel: 'Void', onConfirm: async () => {
-      try { await api.delete(`/admin/fee-payments/${id}`); toast.success('Payment voided'); loadFeeSummary(); loadFeePayments(); }
+      try {
+        await api.delete(`/admin/fee-payments/${id}`);
+        toast.success('Payment voided');
+        loadFeeSummary();
+        loadFeePayments();
+        if (madrasahProfile?.fee_tracking_mode === 'auto') loadAutoFeeSummary();
+      }
       catch (error) { toast.error('Failed to void payment'); }
     }});
   };
@@ -4153,8 +4186,13 @@ function AdminDashboard() {
 
               {!feeLoading && madrasahProfile?.fee_tracking_mode === 'auto' && feeSubTab === 'summary' && (
                 <>
-                  {/* Class filter */}
+                  {/* Filters */}
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    <select className="form-select" style={{ maxWidth: '260px' }} value={feeSemesterFilter}
+                      onChange={(e) => setFeeSemesterFilter(e.target.value)}>
+                      <option value="">All Time</option>
+                      {semesters.map(s => <option key={s.id} value={s.id}>{s.name}{s.session_name ? ` (${s.session_name})` : ''}{s.is_active ? ' ✓' : ''}</option>)}
+                    </select>
                     <select className="form-select" style={{ maxWidth: '220px' }} value={feeClassFilter}
                       onChange={(e) => setFeeClassFilter(e.target.value)}>
                       <option value="">All Classes</option>
@@ -4297,8 +4335,13 @@ function AdminDashboard() {
 
                   {feeSubTab === 'summary' && (
                   <>
-                  {/* Class filter */}
+                  {/* Filters */}
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    <select className="form-select" style={{ maxWidth: '260px' }} value={feeSemesterFilter}
+                      onChange={(e) => setFeeSemesterFilter(e.target.value)}>
+                      <option value="">All Time</option>
+                      {semesters.map(s => <option key={s.id} value={s.id}>{s.name}{s.session_name ? ` (${s.session_name})` : ''}{s.is_active ? ' ✓' : ''}</option>)}
+                    </select>
                     <select className="form-select" style={{ maxWidth: '220px' }} value={feeClassFilter}
                       onChange={(e) => setFeeClassFilter(e.target.value)}>
                       <option value="">All Classes</option>

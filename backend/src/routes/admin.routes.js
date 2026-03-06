@@ -2677,6 +2677,112 @@ router.get('/fee-summary', async (req, res) => {
   }
 });
 
+// Fee collection report (for meetings/presentations)
+router.get('/fee-report', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+
+    // Determine fee tracking mode
+    const [madrasahRows] = await pool.query(
+      'SELECT fee_tracking_mode, currency FROM madrasahs WHERE id = ?', [madrasahId]
+    );
+    const mode = madrasahRows[0]?.fee_tracking_mode || 'manual';
+
+    let studentData = [];
+
+    if (mode === 'auto') {
+      // Use shared auto calculator
+      studentData = await calculateAutoFees(madrasahId);
+    } else {
+      // Manual mode — query expected fees
+      const [rows] = await pool.query(
+        `SELECT s.id as student_id, s.first_name, s.last_name, s.expected_fee,
+           s.class_id, c.name as class_name,
+           COALESCE(SUM(fp.amount_paid), 0) as total_paid
+         FROM students s
+         LEFT JOIN classes c ON c.id = s.class_id
+         LEFT JOIN fee_payments fp ON fp.student_id = s.id AND fp.madrasah_id = s.madrasah_id AND fp.deleted_at IS NULL
+         WHERE s.madrasah_id = ? AND s.deleted_at IS NULL AND s.expected_fee IS NOT NULL
+         GROUP BY s.id ORDER BY s.last_name, s.first_name`,
+        [madrasahId]
+      );
+      studentData = rows.map(row => {
+        const totalFee = parseFloat(row.expected_fee);
+        const totalPaid = parseFloat(row.total_paid);
+        return {
+          student_id: row.student_id,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          class_id: row.class_id,
+          class_name: row.class_name || 'Unassigned',
+          total_fee: totalFee,
+          total_paid: totalPaid,
+          balance: totalFee - totalPaid,
+          status: totalPaid >= totalFee ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid'
+        };
+      });
+    }
+
+    // Overall totals
+    const totalExpected = studentData.reduce((s, r) => s + (r.total_fee || 0), 0);
+    const totalCollected = studentData.reduce((s, r) => s + (r.total_paid || 0), 0);
+    const totalOutstanding = studentData.reduce((s, r) => s + Math.max((r.balance || 0), 0), 0);
+    const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
+
+    // Status counts
+    const statusCounts = {
+      paid: studentData.filter(s => s.status === 'paid').length,
+      partial: studentData.filter(s => s.status === 'partial').length,
+      unpaid: studentData.filter(s => s.status === 'unpaid').length,
+      total: studentData.length
+    };
+
+    // Per-class breakdown
+    const classMap = {};
+    for (const s of studentData) {
+      const key = s.class_name || 'Unassigned';
+      if (!classMap[key]) classMap[key] = { class_name: key, student_count: 0, total_expected: 0, total_collected: 0, outstanding: 0, paid: 0, partial: 0, unpaid: 0 };
+      classMap[key].student_count++;
+      classMap[key].total_expected += s.total_fee || 0;
+      classMap[key].total_collected += s.total_paid || 0;
+      classMap[key].outstanding += Math.max(s.balance || 0, 0);
+      classMap[key][s.status]++;
+    }
+    const classBreakdown = Object.values(classMap).map(c => ({
+      ...c,
+      collection_rate: c.total_expected > 0 ? Math.round((c.total_collected / c.total_expected) * 100) : 0
+    })).sort((a, b) => a.class_name.localeCompare(b.class_name));
+
+    // Monthly collection trend (last 6 months from fee_payments)
+    const [monthlyRows] = await pool.query(
+      `SELECT DATE_FORMAT(payment_date, '%Y-%m') as month,
+              SUM(amount_paid) as total
+       FROM fee_payments
+       WHERE madrasah_id = ? AND deleted_at IS NULL
+         AND payment_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+       GROUP BY DATE_FORMAT(payment_date, '%Y-%m')
+       ORDER BY month ASC`,
+      [madrasahId]
+    );
+    const monthlyTrend = monthlyRows.map(r => ({
+      month: r.month,
+      total: parseFloat(r.total)
+    }));
+
+    res.json({
+      overview: { totalExpected, totalCollected, totalOutstanding, collectionRate },
+      statusCounts,
+      classBreakdown,
+      monthlyTrend,
+      mode,
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Failed to generate fee report:', error);
+    res.status(500).json({ error: 'Failed to generate fee report' });
+  }
+});
+
 // Analytics Dashboard - School-wide insights (available to all plans for Insights overview)
 router.get('/analytics', async (req, res) => {
   try {

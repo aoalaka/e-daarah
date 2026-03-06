@@ -191,6 +191,8 @@ function AdminDashboard() {
   const [feeScheduleScope, setFeeScheduleScope] = useState('all');
   const [autoFeeSummary, setAutoFeeSummary] = useState([]);
   const [feeSubTab, setFeeSubTab] = useState('summary');
+  const [feeReport, setFeeReport] = useState(null);
+  const [feeReportLoading, setFeeReportLoading] = useState(false);
   // Support tickets state
   const [supportTickets, setSupportTickets] = useState([]);
   const [showTicketForm, setShowTicketForm] = useState(false);
@@ -558,6 +560,15 @@ function AdminDashboard() {
       const res = await api.get(`/admin/fee-auto-calculate${params}`);
       setAutoFeeSummary(res.data || []);
     } catch (error) { console.error('Failed to load auto fee summary:', error); }
+  };
+
+  const loadFeeReport = async () => {
+    setFeeReportLoading(true);
+    try {
+      const res = await api.get('/admin/fee-report');
+      setFeeReport(res.data);
+    } catch (error) { console.error('Failed to load fee report:', error); }
+    setFeeReportLoading(false);
   };
 
   // SMS functions
@@ -4063,6 +4074,7 @@ function AdminDashboard() {
                   <nav className="report-tabs-nav">
                     <button className={`report-tab-btn ${feeSubTab === 'summary' ? 'active' : ''}`} onClick={() => setFeeSubTab('summary')}>Summary</button>
                     <button className={`report-tab-btn ${feeSubTab === 'schedules' ? 'active' : ''}`} onClick={() => setFeeSubTab('schedules')}>Fee Schedules</button>
+                    <button className={`report-tab-btn ${feeSubTab === 'report' ? 'active' : ''}`} onClick={() => { setFeeSubTab('report'); if (!feeReport) loadFeeReport(); }}>Report</button>
                   </nav>
                 </div>
               )}
@@ -4267,6 +4279,15 @@ function AdminDashboard() {
 
               {!feeLoading && (!madrasahProfile?.fee_tracking_mode || madrasahProfile?.fee_tracking_mode === 'manual') && (
                 <>
+                  <div className="report-tabs no-print" style={{ marginBottom: '16px' }}>
+                    <nav className="report-tabs-nav">
+                      <button className={`report-tab-btn ${feeSubTab === 'summary' ? 'active' : ''}`} onClick={() => setFeeSubTab('summary')}>Summary</button>
+                      <button className={`report-tab-btn ${feeSubTab === 'report' ? 'active' : ''}`} onClick={() => { setFeeSubTab('report'); if (!feeReport) loadFeeReport(); }}>Report</button>
+                    </nav>
+                  </div>
+
+                  {feeSubTab === 'summary' && (
+                  <>
                   {/* Class filter */}
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
                     <select className="form-select" style={{ maxWidth: '220px' }} value={feeClassFilter}
@@ -4426,6 +4447,190 @@ function AdminDashboard() {
                         ))}
                       </div>
                     </>
+                  )}
+                  </>
+                  )}
+                </>
+              )}
+
+              {/* Fee Report Sub-tab (shared by auto and manual modes) */}
+              {!feeLoading && feeSubTab === 'report' && (
+                <>
+                  {feeReportLoading && <div className="loading-state"><div className="loading-spinner" /></div>}
+                  {!feeReportLoading && feeReport && (
+                    <div className="fee-report">
+                      <div className="fee-report-header no-print">
+                        <button className="btn btn-secondary" onClick={loadFeeReport}>Refresh</button>
+                        <button className="btn btn-primary" onClick={() => window.print()}>Print Report</button>
+                      </div>
+
+                      {/* Report title for print */}
+                      <div className="fee-report-print-title">
+                        <h2>{madrasahProfile?.name || 'Madrasah'}</h2>
+                        <p>Fee Collection Report &mdash; Generated {new Date(feeReport.generatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      </div>
+
+                      {/* Overview cards */}
+                      <div className="fee-report-cards">
+                        <div className="fee-report-card">
+                          <div className="fee-report-card-value">{feeReport.overview.collectionRate}%</div>
+                          <div className="fee-report-card-label">Collection Rate</div>
+                          <div className="fee-report-card-bar">
+                            <div className="fee-report-card-bar-fill" style={{
+                              width: `${Math.min(feeReport.overview.collectionRate, 100)}%`,
+                              backgroundColor: feeReport.overview.collectionRate >= 80 ? '#16a34a' : feeReport.overview.collectionRate >= 50 ? '#ca8a04' : '#dc2626'
+                            }} />
+                          </div>
+                        </div>
+                        <div className="fee-report-card">
+                          <div className="fee-report-card-value">{formatCurrency(feeReport.overview.totalExpected)}</div>
+                          <div className="fee-report-card-label">Total Expected</div>
+                        </div>
+                        <div className="fee-report-card">
+                          <div className="fee-report-card-value" style={{ color: '#16a34a' }}>{formatCurrency(feeReport.overview.totalCollected)}</div>
+                          <div className="fee-report-card-label">Collected</div>
+                        </div>
+                        <div className="fee-report-card">
+                          <div className="fee-report-card-value" style={{ color: '#dc2626' }}>{formatCurrency(feeReport.overview.totalOutstanding)}</div>
+                          <div className="fee-report-card-label">Outstanding</div>
+                        </div>
+                      </div>
+
+                      {/* Student status breakdown */}
+                      <div className="fee-report-section">
+                        <h3 className="fee-report-section-title">Student Payment Status</h3>
+                        <div className="fee-report-status-row">
+                          <div className="fee-report-status-item">
+                            <span className="fee-report-status-dot" style={{ backgroundColor: '#16a34a' }} />
+                            <span className="fee-report-status-label">Paid</span>
+                            <span className="fee-report-status-count">{feeReport.statusCounts.paid}</span>
+                          </div>
+                          <div className="fee-report-status-item">
+                            <span className="fee-report-status-dot" style={{ backgroundColor: '#ca8a04' }} />
+                            <span className="fee-report-status-label">Partial</span>
+                            <span className="fee-report-status-count">{feeReport.statusCounts.partial}</span>
+                          </div>
+                          <div className="fee-report-status-item">
+                            <span className="fee-report-status-dot" style={{ backgroundColor: '#dc2626' }} />
+                            <span className="fee-report-status-label">Unpaid</span>
+                            <span className="fee-report-status-count">{feeReport.statusCounts.unpaid}</span>
+                          </div>
+                          <div className="fee-report-status-item">
+                            <span className="fee-report-status-dot" style={{ backgroundColor: '#6b7280' }} />
+                            <span className="fee-report-status-label">Total Students</span>
+                            <span className="fee-report-status-count">{feeReport.statusCounts.total}</span>
+                          </div>
+                        </div>
+                        {/* Visual bar */}
+                        {feeReport.statusCounts.total > 0 && (
+                          <div className="fee-report-status-bar">
+                            {feeReport.statusCounts.paid > 0 && (
+                              <div className="fee-report-status-bar-seg" style={{ width: `${(feeReport.statusCounts.paid / feeReport.statusCounts.total) * 100}%`, backgroundColor: '#16a34a' }}
+                                title={`Paid: ${feeReport.statusCounts.paid}`} />
+                            )}
+                            {feeReport.statusCounts.partial > 0 && (
+                              <div className="fee-report-status-bar-seg" style={{ width: `${(feeReport.statusCounts.partial / feeReport.statusCounts.total) * 100}%`, backgroundColor: '#ca8a04' }}
+                                title={`Partial: ${feeReport.statusCounts.partial}`} />
+                            )}
+                            {feeReport.statusCounts.unpaid > 0 && (
+                              <div className="fee-report-status-bar-seg" style={{ width: `${(feeReport.statusCounts.unpaid / feeReport.statusCounts.total) * 100}%`, backgroundColor: '#dc2626' }}
+                                title={`Unpaid: ${feeReport.statusCounts.unpaid}`} />
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Class breakdown table */}
+                      {feeReport.classBreakdown.length > 0 && (
+                        <div className="fee-report-section">
+                          <h3 className="fee-report-section-title">Collection by Class</h3>
+                          <div className="table-responsive">
+                          <table className="fee-report-table">
+                            <thead>
+                              <tr>
+                                <th>Class</th>
+                                <th style={{ textAlign: 'right' }}>Students</th>
+                                <th style={{ textAlign: 'right' }}>Expected</th>
+                                <th style={{ textAlign: 'right' }}>Collected</th>
+                                <th style={{ textAlign: 'right' }}>Outstanding</th>
+                                <th style={{ textAlign: 'right' }}>Rate</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {feeReport.classBreakdown.map((c, i) => (
+                                <tr key={i}>
+                                  <td>{c.class_name}</td>
+                                  <td style={{ textAlign: 'right' }}>{c.student_count}</td>
+                                  <td style={{ textAlign: 'right' }}>{formatCurrency(c.total_expected)}</td>
+                                  <td style={{ textAlign: 'right' }}>{formatCurrency(c.total_collected)}</td>
+                                  <td style={{ textAlign: 'right', color: c.outstanding > 0 ? '#dc2626' : undefined }}>{formatCurrency(c.outstanding)}</td>
+                                  <td style={{ textAlign: 'right' }}>
+                                    <span style={{
+                                      fontWeight: 600,
+                                      color: c.collection_rate >= 80 ? '#16a34a' : c.collection_rate >= 50 ? '#ca8a04' : '#dc2626'
+                                    }}>{c.collection_rate}%</span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr style={{ fontWeight: 600 }}>
+                                <td>Total</td>
+                                <td style={{ textAlign: 'right' }}>{feeReport.statusCounts.total}</td>
+                                <td style={{ textAlign: 'right' }}>{formatCurrency(feeReport.overview.totalExpected)}</td>
+                                <td style={{ textAlign: 'right' }}>{formatCurrency(feeReport.overview.totalCollected)}</td>
+                                <td style={{ textAlign: 'right', color: feeReport.overview.totalOutstanding > 0 ? '#dc2626' : undefined }}>{formatCurrency(feeReport.overview.totalOutstanding)}</td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <span style={{
+                                    color: feeReport.overview.collectionRate >= 80 ? '#16a34a' : feeReport.overview.collectionRate >= 50 ? '#ca8a04' : '#dc2626'
+                                  }}>{feeReport.overview.collectionRate}%</span>
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Monthly collection trend */}
+                      {feeReport.monthlyTrend.length > 0 && (
+                        <div className="fee-report-section">
+                          <h3 className="fee-report-section-title">Monthly Collections (Last 6 Months)</h3>
+                          <div className="fee-report-trend">
+                            {(() => {
+                              const maxVal = Math.max(...feeReport.monthlyTrend.map(m => m.total));
+                              return feeReport.monthlyTrend.map((m, i) => {
+                                const pct = maxVal > 0 ? (m.total / maxVal) * 100 : 0;
+                                const [year, month] = m.month.split('-');
+                                const label = new Date(year, parseInt(month) - 1).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+                                return (
+                                  <div key={i} className="fee-report-trend-item">
+                                    <div className="fee-report-trend-bar-wrap">
+                                      <div className="fee-report-trend-bar" style={{ height: `${Math.max(pct, 4)}%` }} />
+                                    </div>
+                                    <div className="fee-report-trend-amount">{formatCurrency(m.total)}</div>
+                                    <div className="fee-report-trend-label">{label}</div>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="fee-report-footer">
+                        <span>Fee tracking mode: {feeReport.mode === 'auto' ? 'Automatic' : 'Manual'}</span>
+                        <span>Generated: {new Date(feeReport.generatedAt).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {!feeReportLoading && !feeReport && (
+                    <div className="card">
+                      <div className="empty">
+                        <p>Loading report data...</p>
+                      </div>
+                    </div>
                   )}
                 </>
               )}

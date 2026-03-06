@@ -101,6 +101,10 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
     return count;
   };
 
+  // Effective period for fee calculation (scoped by fromDate/toDate if provided)
+  const periodCalcStart = fromDate && new Date(fromDate) > new Date(session.start_date) ? fromDate : session.start_date;
+  const periodCalcEnd = toDate && new Date(toDate) < new Date(session.end_date) ? toDate : session.end_date;
+
   // Calculate fee for each student
   return students.map(student => {
     const studentSchedule = schedules.find(s => s.student_id === student.id);
@@ -135,7 +139,13 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
 
     switch (schedule.billing_cycle) {
       case 'per_session': {
-        if (prorate && enrollDate && enrollDate > new Date(session.start_date)) {
+        if (fromDate || toDate) {
+          // Period-scoped: prorate session fee to visible period
+          const totalDays = countSchoolDays(session.start_date, session.end_date, student.school_days);
+          const effectiveStart = (prorate && enrollDate && enrollDate > new Date(periodCalcStart)) ? enrollDate : new Date(periodCalcStart);
+          const periodDays = countSchoolDays(effectiveStart, periodCalcEnd, student.school_days);
+          totalFee = totalDays > 0 ? Math.round((amount * periodDays / totalDays) * 100) / 100 : amount;
+        } else if (prorate && enrollDate && enrollDate > new Date(session.start_date)) {
           const totalDays = countSchoolDays(session.start_date, session.end_date, student.school_days);
           const remainingDays = countSchoolDays(enrollDate, session.end_date, student.school_days);
           totalFee = totalDays > 0 ? Math.round((amount * remainingDays / totalDays) * 100) / 100 : amount;
@@ -145,7 +155,10 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
         break;
       }
       case 'per_semester': {
-        for (const sem of sessionSemesters) {
+        const relevantSemesters = (fromDate || toDate)
+          ? sessionSemesters.filter(sem => new Date(sem.start_date) <= new Date(periodCalcEnd) && new Date(sem.end_date) >= new Date(periodCalcStart))
+          : sessionSemesters;
+        for (const sem of relevantSemesters) {
           if (prorate && enrollDate && enrollDate > new Date(sem.start_date)) {
             if (enrollDate > new Date(sem.end_date)) continue;
             const totalDays = countSchoolDays(sem.start_date, sem.end_date, student.school_days);
@@ -160,8 +173,8 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
         break;
       }
       case 'monthly': {
-        const periodStart = new Date(session.start_date);
-        const periodEnd = new Date(session.end_date);
+        const periodStart = new Date(periodCalcStart);
+        const periodEnd = new Date(periodCalcEnd);
         let current = new Date(periodStart);
 
         while (current <= periodEnd) {
@@ -185,8 +198,8 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
         break;
       }
       case 'weekly': {
-        const periodStart = new Date(session.start_date);
-        const periodEnd = new Date(session.end_date);
+        const periodStart = new Date(periodCalcStart);
+        const periodEnd = new Date(periodCalcEnd);
         let weekStart = new Date(periodStart);
 
         while (weekStart <= periodEnd) {

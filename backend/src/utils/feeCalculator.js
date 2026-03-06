@@ -47,7 +47,8 @@ export async function calculateAutoFees(madrasahId, { classId = null } = {}) {
   // Get students with enrollment dates + contact info
   let studentSql = `SELECT s.id, s.first_name, s.last_name, s.student_id as student_id_code,
      s.class_id, s.enrollment_date, s.expected_fee, s.fee_note,
-     s.parent_guardian_phone, s.parent_guardian_name, s.student_phone,
+     s.parent_guardian_phone, s.parent_guardian_phone_country_code,
+     s.parent_guardian_name, s.student_phone, s.student_phone_country_code,
      c.name as class_name, c.school_days
      FROM students s
      LEFT JOIN classes c ON c.id = s.class_id
@@ -221,8 +222,10 @@ export async function calculateAutoFees(madrasahId, { classId = null } = {}) {
       class_id: student.class_id,
       class_name: student.class_name || '',
       parent_guardian_phone: student.parent_guardian_phone,
+      parent_guardian_phone_country_code: student.parent_guardian_phone_country_code,
       parent_guardian_name: student.parent_guardian_name,
       student_phone: student.student_phone,
+      student_phone_country_code: student.student_phone_country_code,
       total_fee: totalFee,
       total_paid: totalPaid,
       balance,

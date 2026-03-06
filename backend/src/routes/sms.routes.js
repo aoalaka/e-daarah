@@ -246,7 +246,7 @@ router.post('/send', async (req, res) => {
 // ─── POST /sms/send-bulk — Send fee reminders to multiple students ─
 router.post('/send-bulk', async (req, res) => {
   try {
-    const { studentIds, message, messageType = 'fee_reminder', sendTo = 'parent' } = req.body;
+    const { studentIds, message, messageType = 'fee_reminder', sendTo = 'parent', groupByPhone = false } = req.body;
     const madrasahId = req.madrasahId;
 
     if (!studentIds?.length || !message) {
@@ -266,10 +266,11 @@ router.post('/send-bulk', async (req, res) => {
 
     // Get students with phone numbers
     const [students] = await pool.query(
-      `SELECT id, first_name, last_name, parent_guardian_phone, parent_guardian_phone_country_code,
-              student_phone, student_phone_country_code, expected_fee
-       FROM students
-       WHERE id IN (?) AND madrasah_id = ? AND deleted_at IS NULL`,
+      `SELECT s.id, s.first_name, s.last_name, s.parent_guardian_phone, s.parent_guardian_phone_country_code,
+              s.student_phone, s.student_phone_country_code, s.expected_fee,
+              COALESCE((SELECT SUM(fp.amount_paid) FROM fee_payments fp WHERE fp.student_id = s.id AND fp.deleted_at IS NULL), 0) as total_paid
+       FROM students s
+       WHERE s.id IN (?) AND s.madrasah_id = ? AND s.deleted_at IS NULL`,
       [studentIds, madrasahId]
     );
 
@@ -286,7 +287,10 @@ router.post('/send-bulk', async (req, res) => {
 
     // Check credits (estimate based on template — personalized messages may vary slightly)
     const estimatedCreditsPerMsg = calculateCredits(message);
-    const creditsNeeded = sendable.length * estimatedCreditsPerMsg;
+    const uniquePhoneCount = groupByPhone
+      ? new Set(sendable.map(s => formatPhoneNumber(getPhone(s), getCountryCode(s)))).size
+      : sendable.length;
+    const creditsNeeded = uniquePhoneCount * estimatedCreditsPerMsg;
     const [credits] = await pool.query(
       'SELECT balance FROM sms_credits WHERE madrasah_id = ?',
       [madrasahId]
@@ -304,40 +308,96 @@ router.post('/send-bulk', async (req, res) => {
     // Send messages
     const results = { sent: 0, failed: 0, skipped: noPhone.length, errors: [], totalCredits: 0 };
 
-    for (const student of sendable) {
-      const formattedPhone = formatPhoneNumber(
-        getPhone(student),
-        getCountryCode(student)
-      );
+    // Group students by phone number when groupByPhone is enabled (e.g. same parent, multiple children)
+    if (groupByPhone) {
+      const phoneGroups = {};
+      for (const student of sendable) {
+        const formattedPhone = formatPhoneNumber(getPhone(student), getCountryCode(student));
+        if (!phoneGroups[formattedPhone]) phoneGroups[formattedPhone] = [];
+        phoneGroups[formattedPhone].push(student);
+      }
 
-      // Personalize message with student name and madrasah name
-      const personalizedMsg = message
-        .replace(/\{student_name\}/gi, `${student.first_name} ${student.last_name}`)
-        .replace(/\{first_name\}/gi, student.first_name)
-        .replace(/\{last_name\}/gi, student.last_name)
-        .replace(/\{expected_fee\}/gi, student.expected_fee ? `$${Number(student.expected_fee).toFixed(2)}` : 'N/A')
-        .replace(/\{madrasah_name\}/gi, madrasahName);
+      for (const [formattedPhone, groupStudents] of Object.entries(phoneGroups)) {
+        // Combine student names for grouped message
+        const studentNames = groupStudents.map(s => `${s.first_name} ${s.last_name}`).join(', ');
+        const firstNames = groupStudents.map(s => s.first_name).join(', ');
+        const lastNames = groupStudents.map(s => s.last_name).join(', ');
+        const totalExpected = groupStudents.reduce((sum, s) => sum + (Number(s.expected_fee) || 0), 0);
+        const totalBalance = groupStudents.reduce((sum, s) => sum + (Number(s.expected_fee) || 0), 0) - groupStudents.reduce((sum, s) => sum + (Number(s.total_paid) || 0), 0);
 
-      try {
-        const smsResult = await sendSMS(formattedPhone, personalizedMsg);
-        const msgCredits = calculateCredits(personalizedMsg);
+        const personalizedMsg = message
+          .replace(/\{student_name\}/gi, studentNames)
+          .replace(/\{first_name\}/gi, firstNames)
+          .replace(/\{last_name\}/gi, lastNames)
+          .replace(/\{expected_fee\}/gi, totalExpected ? `$${totalExpected.toFixed(2)}` : 'N/A')
+          .replace(/\{balance\}/gi, totalBalance ? `$${totalBalance.toFixed(2)}` : 'N/A')
+          .replace(/\{madrasah_name\}/gi, madrasahName);
 
-        await pool.query(
-          `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, provider_message_id, credits_used, sent_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [madrasahId, student.id, formattedPhone, personalizedMsg, messageType, smsResult.status, smsResult.sid, msgCredits, req.user.id]
+        try {
+          const smsResult = await sendSMS(formattedPhone, personalizedMsg);
+          const msgCredits = calculateCredits(personalizedMsg);
+
+          // Log one sms_messages row per student for tracking
+          for (const student of groupStudents) {
+            await pool.query(
+              `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, provider_message_id, credits_used, sent_by)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [madrasahId, student.id, formattedPhone, personalizedMsg, messageType, smsResult.status, smsResult.sid, groupStudents.indexOf(student) === 0 ? msgCredits : 0, req.user.id]
+            );
+          }
+
+          results.sent++;
+          results.totalCredits += msgCredits;
+        } catch (smsError) {
+          for (const student of groupStudents) {
+            await pool.query(
+              `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, error_message, credits_used, sent_by)
+               VALUES (?, ?, ?, ?, ?, 'failed', ?, 0, ?)`,
+              [madrasahId, student.id, formattedPhone, personalizedMsg, messageType, smsError.message, req.user.id]
+            );
+          }
+          results.failed++;
+          results.errors.push({ student: groupStudents.map(s => `${s.first_name} ${s.last_name}`).join(', '), error: smsError.message });
+        }
+      }
+    } else {
+      // Original per-student sending
+      for (const student of sendable) {
+        const formattedPhone = formatPhoneNumber(
+          getPhone(student),
+          getCountryCode(student)
         );
 
-        results.sent++;
-        results.totalCredits += msgCredits;
-      } catch (smsError) {
-        await pool.query(
-          `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, error_message, credits_used, sent_by)
-           VALUES (?, ?, ?, ?, ?, 'failed', ?, 0, ?)`,
-          [madrasahId, student.id, formattedPhone, personalizedMsg, messageType, smsError.message, req.user.id]
-        );
-        results.failed++;
-        results.errors.push({ student: `${student.first_name} ${student.last_name}`, error: smsError.message });
+        // Personalize message with student name and madrasah name
+        const personalizedMsg = message
+          .replace(/\{student_name\}/gi, `${student.first_name} ${student.last_name}`)
+          .replace(/\{first_name\}/gi, student.first_name)
+          .replace(/\{last_name\}/gi, student.last_name)
+          .replace(/\{expected_fee\}/gi, student.expected_fee ? `$${Number(student.expected_fee).toFixed(2)}` : 'N/A')
+          .replace(/\{balance\}/gi, student.expected_fee ? `$${(Number(student.expected_fee) - Number(student.total_paid || 0)).toFixed(2)}` : 'N/A')
+          .replace(/\{madrasah_name\}/gi, madrasahName);
+
+        try {
+          const smsResult = await sendSMS(formattedPhone, personalizedMsg);
+          const msgCredits = calculateCredits(personalizedMsg);
+
+          await pool.query(
+            `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, provider_message_id, credits_used, sent_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [madrasahId, student.id, formattedPhone, personalizedMsg, messageType, smsResult.status, smsResult.sid, msgCredits, req.user.id]
+          );
+
+          results.sent++;
+          results.totalCredits += msgCredits;
+        } catch (smsError) {
+          await pool.query(
+            `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, error_message, credits_used, sent_by)
+             VALUES (?, ?, ?, ?, ?, 'failed', ?, 0, ?)`,
+            [madrasahId, student.id, formattedPhone, personalizedMsg, messageType, smsError.message, req.user.id]
+          );
+          results.failed++;
+          results.errors.push({ student: `${student.first_name} ${student.last_name}`, error: smsError.message });
+        }
       }
     }
 
@@ -457,8 +517,10 @@ router.get('/fee-reminder-preview', async (req, res) => {
           last_name: s.last_name,
           student_id: s.student_id_code,
           parent_guardian_phone: s.parent_guardian_phone,
+          parent_guardian_phone_country_code: s.parent_guardian_phone_country_code,
           parent_guardian_name: s.parent_guardian_name,
           student_phone: s.student_phone,
+          student_phone_country_code: s.student_phone_country_code,
           expected_fee: s.total_fee,
           class_id: s.class_id,
           class_name: s.class_name,
@@ -479,7 +541,9 @@ router.get('/fee-reminder-preview', async (req, res) => {
 
       const [students] = await pool.query(
         `SELECT s.id, s.first_name, s.last_name, s.student_id, s.parent_guardian_phone,
-                s.parent_guardian_name, s.student_phone, s.expected_fee, s.class_id, c.name as class_name,
+                s.parent_guardian_phone_country_code, s.parent_guardian_name,
+                s.student_phone, s.student_phone_country_code,
+                s.expected_fee, s.class_id, c.name as class_name,
                 COALESCE((SELECT SUM(fp.amount_paid) FROM fee_payments fp WHERE fp.student_id = s.id AND fp.deleted_at IS NULL), 0) as total_paid
          FROM students s
          LEFT JOIN classes c ON s.class_id = c.id

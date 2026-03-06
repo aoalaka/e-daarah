@@ -224,6 +224,7 @@ function AdminDashboard() {
   const [smsReminderMsg, setSmsReminderMsg] = useState('[{madrasah_name}] Dear Parent/Guardian, this is a reminder that the fee for {student_name} has an outstanding balance. Please make the payment at your earliest convenience. Thank you.');
   const [smsSelectedStudents, setSmsSelectedStudents] = useState([]);
   const [smsSending, setSmsSending] = useState(false);
+  const [smsReminderPage, setSmsReminderPage] = useState(1);
   const [smsCustomPhone, setSmsCustomPhone] = useState('');
   const [smsCustomMsg, setSmsCustomMsg] = useState('');
   const [smsHistoryFilter, setSmsHistoryFilter] = useState('');
@@ -595,6 +596,7 @@ function AdminDashboard() {
       const res = await api.get(`/sms/fee-reminder-preview?${qp}`);
       setSmsReminderStudents(res.data.students || []);
       setSmsSelectedStudents(res.data.students?.map(s => s.id) || []);
+      setSmsReminderPage(1);
     } catch (error) {
       console.error('Failed to load fee reminder preview:', error);
     }
@@ -626,7 +628,8 @@ function AdminDashboard() {
         studentIds: smsSelectedStudents,
         message: smsReminderMsg,
         messageType: 'fee_reminder',
-        sendTo: smsReminderSendTo
+        sendTo: smsReminderSendTo,
+        groupByPhone: true
       });
       const r = res.data;
       toast.success(`Sent: ${r.sent}, Failed: ${r.failed}, Skipped (no phone): ${r.skipped}`);
@@ -7136,7 +7139,7 @@ function AdminDashboard() {
                             maxLength={1600} />
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
                             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                              Variables: {'{madrasah_name}'}, {'{student_name}'}, {'{first_name}'}, {'{last_name}'}, {'{expected_fee}'}
+                              Variables: {'{madrasah_name}'}, {'{student_name}'}, {'{first_name}'}, {'{last_name}'}, {'{expected_fee}'}, {'{balance}'}
                             </span>
                             <span style={{ fontSize: '0.75rem', color: smsReminderMsg.length > 1400 ? '#dc2626' : '#94a3b8' }}>
                               {smsReminderMsg.length}/1600
@@ -7150,95 +7153,129 @@ function AdminDashboard() {
                             <p>No students with outstanding balances and phone numbers found.</p>
                           </div>
                         ) : (
-                          <>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                              <label className="form-label" style={{ margin: 0 }}>
-                                Recipients ({smsSelectedStudents.length} of {smsReminderStudents.length} selected)
-                              </label>
-                              <button className="btn btn-sm btn-secondary"
-                                onClick={() => setSmsSelectedStudents(
-                                  smsSelectedStudents.length === smsReminderStudents.length ? [] : smsReminderStudents.map(s => s.id)
-                                )}>
-                                {smsSelectedStudents.length === smsReminderStudents.length ? 'Deselect All' : 'Select All'}
-                              </button>
-                            </div>
+                          (() => {
+                            const perPage = 20;
+                            const totalPages = Math.ceil(smsReminderStudents.length / perPage);
+                            const paged = smsReminderStudents.slice((smsReminderPage - 1) * perPage, smsReminderPage * perPage);
+                            const getPhone = (s) => smsReminderSendTo === 'student' ? s.student_phone : s.parent_guardian_phone;
+                            const getPhoneCode = (s) => smsReminderSendTo === 'student' ? (s.student_phone_country_code || '') : (s.parent_guardian_phone_country_code || '');
+                            const formatDisplay = (s) => { const code = getPhoneCode(s); const ph = getPhone(s); return code && ph ? `${code}${ph}` : ph || '—'; };
+                            // Count unique phones among selected students
+                            const selectedStudents = smsReminderStudents.filter(s => smsSelectedStudents.includes(s.id));
+                            const uniquePhones = new Set(selectedStudents.map(s => getPhoneCode(s) + getPhone(s))).size;
+                            const duplicateParents = selectedStudents.length - uniquePhones;
 
-                            <div className="table-responsive" style={{ maxHeight: '400px', overflow: 'auto', marginBottom: '1rem' }}>
-                              <table className="data-table">
-                                <thead>
-                                  <tr>
-                                    <th style={{ width: '40px' }}>
-                                      <input type="checkbox"
-                                        checked={smsSelectedStudents.length === smsReminderStudents.length}
-                                        onChange={() => setSmsSelectedStudents(
-                                          smsSelectedStudents.length === smsReminderStudents.length ? [] : smsReminderStudents.map(s => s.id)
-                                        )} />
-                                    </th>
-                                    <th>Student</th>
-                                    <th>Class</th>
-                                    <th>{smsReminderSendTo === 'student' ? 'Student Phone' : 'Parent Phone'}</th>
-                                    <th>Balance</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {smsReminderStudents.map(s => (
-                                    <tr key={s.id}>
-                                      <td>
-                                        <input type="checkbox"
-                                          checked={smsSelectedStudents.includes(s.id)}
-                                          onChange={() => setSmsSelectedStudents(prev =>
-                                            prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
-                                          )} />
-                                      </td>
-                                      <td>{s.first_name} {s.last_name}</td>
-                                      <td>{s.class_name || '—'}</td>
-                                      <td>{smsReminderSendTo === 'student' ? s.student_phone : s.parent_guardian_phone}</td>
-                                      <td style={{ color: '#dc2626', fontWeight: '600' }}>{formatCurrency(s.balance)}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+                            return (
+                              <>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                  <label className="form-label" style={{ margin: 0 }}>
+                                    Recipients ({smsSelectedStudents.length} of {smsReminderStudents.length} selected)
+                                  </label>
+                                  <button className="btn btn-sm btn-secondary"
+                                    onClick={() => setSmsSelectedStudents(
+                                      smsSelectedStudents.length === smsReminderStudents.length ? [] : smsReminderStudents.map(s => s.id)
+                                    )}>
+                                    {smsSelectedStudents.length === smsReminderStudents.length ? 'Deselect All' : 'Select All'}
+                                  </button>
+                                </div>
 
-                            {/* Mobile cards */}
-                            <div className="support-mobile-cards" style={{ marginBottom: '1rem' }}>
-                              {smsReminderStudents.map(s => (
-                                <div key={s.id} className="admin-mobile-card" style={{ cursor: 'pointer' }}
-                                  onClick={() => setSmsSelectedStudents(prev =>
-                                    prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
-                                  )}>
-                                  <div className="admin-mobile-card-top">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <input type="checkbox" checked={smsSelectedStudents.includes(s.id)} readOnly />
-                                      <div>
-                                        <div className="admin-mobile-card-title">{s.first_name} {s.last_name}</div>
-                                        <div className="admin-mobile-card-sub">{s.class_name || 'No class'} · {smsReminderSendTo === 'student' ? s.student_phone : s.parent_guardian_phone}</div>
+                                {duplicateParents > 0 && (
+                                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '8px 12px', marginBottom: '0.75rem', fontSize: '0.8125rem', color: '#1e40af' }}>
+                                    {uniquePhones} SMS will be sent — {duplicateParents} student{duplicateParents !== 1 ? 's share' : ' shares'} a phone number with another student. Children of the same parent are combined into one message.
+                                  </div>
+                                )}
+
+                                <div className="table-responsive" style={{ marginBottom: '0.5rem' }}>
+                                  <table className="data-table">
+                                    <thead>
+                                      <tr>
+                                        <th style={{ width: '40px' }}>
+                                          <input type="checkbox"
+                                            checked={smsSelectedStudents.length === smsReminderStudents.length}
+                                            onChange={() => setSmsSelectedStudents(
+                                              smsSelectedStudents.length === smsReminderStudents.length ? [] : smsReminderStudents.map(s => s.id)
+                                            )} />
+                                        </th>
+                                        <th>Student</th>
+                                        <th>Class</th>
+                                        <th>{smsReminderSendTo === 'student' ? 'Student Phone' : 'Parent Phone'}</th>
+                                        <th>Balance</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {paged.map(s => (
+                                        <tr key={s.id}>
+                                          <td>
+                                            <input type="checkbox"
+                                              checked={smsSelectedStudents.includes(s.id)}
+                                              onChange={() => setSmsSelectedStudents(prev =>
+                                                prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                              )} />
+                                          </td>
+                                          <td>{s.first_name} {s.last_name}</td>
+                                          <td>{s.class_name || '—'}</td>
+                                          <td>{formatDisplay(s)}</td>
+                                          <td style={{ color: '#dc2626', fontWeight: '600' }}>{formatCurrency(s.balance)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+
+                                {/* Pagination */}
+                                {totalPages > 1 && (
+                                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                    <button className="btn btn-sm btn-secondary" disabled={smsReminderPage <= 1}
+                                      onClick={() => setSmsReminderPage(p => p - 1)}>Previous</button>
+                                    <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>
+                                      Page {smsReminderPage} of {totalPages}
+                                    </span>
+                                    <button className="btn btn-sm btn-secondary" disabled={smsReminderPage >= totalPages}
+                                      onClick={() => setSmsReminderPage(p => p + 1)}>Next</button>
+                                  </div>
+                                )}
+
+                                {/* Mobile cards */}
+                                <div className="support-mobile-cards" style={{ marginBottom: '1rem' }}>
+                                  {paged.map(s => (
+                                    <div key={s.id} className="admin-mobile-card" style={{ cursor: 'pointer' }}
+                                      onClick={() => setSmsSelectedStudents(prev =>
+                                        prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                      )}>
+                                      <div className="admin-mobile-card-top">
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                          <input type="checkbox" checked={smsSelectedStudents.includes(s.id)} readOnly />
+                                          <div>
+                                            <div className="admin-mobile-card-title">{s.first_name} {s.last_name}</div>
+                                            <div className="admin-mobile-card-sub">{s.class_name || 'No class'} · {formatDisplay(s)}</div>
+                                          </div>
+                                        </div>
+                                        <span style={{ color: '#dc2626', fontWeight: '600', fontSize: '0.875rem' }}>{formatCurrency(s.balance)}</span>
                                       </div>
                                     </div>
-                                    <span style={{ color: '#dc2626', fontWeight: '600', fontSize: '0.875rem' }}>{formatCurrency(s.balance)}</span>
-                                  </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              <button className="btn btn-primary" onClick={handleSendFeeReminders}
-                                disabled={smsSending || smsSelectedStudents.length === 0 || smsStatus.balance < smsSelectedStudents.length}>
-                                {smsSending ? 'Sending...' : `Send to ${smsSelectedStudents.length} recipient${smsSelectedStudents.length !== 1 ? 's' : ''}`}
-                              </button>
-                              {smsStatus.balance < smsSelectedStudents.length && (
-                                <span style={{ color: '#dc2626', fontSize: '0.875rem' }}>
-                                  Estimated {smsSelectedStudents.length}+ credits needed, have {smsStatus.balance}.{' '}
-                                  <button className="btn-link" style={{ fontSize: '0.875rem' }} onClick={() => setSmsSubTab('overview')}>Buy more</button>
-                                </span>
-                              )}
-                              {smsStatus.balance >= smsSelectedStudents.length && smsSelectedStudents.length > 0 && (
-                                <span style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                                  Estimated ~{smsSelectedStudents.length} credit{smsSelectedStudents.length !== 1 ? 's' : ''} (longer messages may use more)
-                                </span>
-                              )}
-                            </div>
-                          </>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                  <button className="btn btn-primary" onClick={handleSendFeeReminders}
+                                    disabled={smsSending || smsSelectedStudents.length === 0 || smsStatus.balance < uniquePhones}>
+                                    {smsSending ? 'Sending...' : `Send to ${uniquePhones} recipient${uniquePhones !== 1 ? 's' : ''}`}
+                                  </button>
+                                  {smsStatus.balance < uniquePhones && uniquePhones > 0 && (
+                                    <span style={{ color: '#dc2626', fontSize: '0.875rem' }}>
+                                      Estimated {uniquePhones}+ credits needed, have {smsStatus.balance}.{' '}
+                                      <button className="btn-link" style={{ fontSize: '0.875rem' }} onClick={() => setSmsSubTab('overview')}>Buy more</button>
+                                    </span>
+                                  )}
+                                  {smsStatus.balance >= uniquePhones && uniquePhones > 0 && (
+                                    <span style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                                      Estimated ~{uniquePhones} credit{uniquePhones !== 1 ? 's' : ''} (longer messages may use more)
+                                    </span>
+                                  )}
+                                </div>
+                              </>
+                            );
+                          })()
                         )}
                       </div>
                     </>

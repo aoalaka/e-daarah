@@ -824,6 +824,34 @@ router.put('/students/bulk-fee', requireActiveSubscription, async (req, res) => 
   }
 });
 
+// Bulk update enrollment dates for students (must be before /students/:id)
+router.put('/students/bulk-enrollment-date', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { enrollment_date, student_ids } = req.body;
+
+    if (!enrollment_date) {
+      return res.status(400).json({ error: 'Enrollment date is required' });
+    }
+
+    let sql, params;
+    if (student_ids && student_ids.length > 0) {
+      const placeholders = student_ids.map(() => '?').join(',');
+      sql = `UPDATE students SET enrollment_date = ? WHERE madrasah_id = ? AND id IN (${placeholders}) AND deleted_at IS NULL`;
+      params = [enrollment_date, madrasahId, ...student_ids];
+    } else {
+      sql = 'UPDATE students SET enrollment_date = ? WHERE madrasah_id = ? AND deleted_at IS NULL';
+      params = [enrollment_date, madrasahId];
+    }
+
+    const [result] = await pool.query(sql, params);
+    res.json({ message: `Updated enrollment date for ${result.affectedRows} students`, count: result.affectedRows });
+  } catch (error) {
+    console.error('Failed to bulk update enrollment dates:', error);
+    res.status(500).json({ error: 'Failed to update enrollment dates' });
+  }
+});
+
 // Update expected fee for a single student
 router.put('/students/:id/fee', requireActiveSubscription, async (req, res) => {
   try {

@@ -67,6 +67,8 @@ function AdminDashboard() {
   const [showTeacherForm, setShowTeacherForm] = useState(false);
   const [showStudentForm, setShowStudentForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showBulkEnrollment, setShowBulkEnrollment] = useState(false);
+  const [bulkEnrollmentDate, setBulkEnrollmentDate] = useState('');
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadClass, setUploadClass] = useState('');
   const [uploadResults, setUploadResults] = useState(null);
@@ -1187,6 +1189,18 @@ function AdminDashboard() {
       try { await api.post('/admin/students/bulk-delete', { ids: selectedStudentIds }); setSelectedStudentIds([]); loadData(); toast.success(`${count} student(s) deleted`); }
       catch (error) { toast.error('Failed to delete students'); }
     }});
+  };
+
+  const handleBulkEnrollmentDate = async () => {
+    if (!bulkEnrollmentDate) { toast.error('Please select a date'); return; }
+    try {
+      const res = await api.put('/admin/students/bulk-enrollment-date', { enrollment_date: bulkEnrollmentDate });
+      toast.success(res.data.message);
+      setShowBulkEnrollment(false);
+      setBulkEnrollmentDate('');
+      loadData();
+      if (activeTab === 'fees') loadFeeData();
+    } catch (error) { toast.error(error.response?.data?.error || 'Failed to update enrollment dates'); }
   };
 
   const handleResetParentPin = (student) => {
@@ -3172,6 +3186,9 @@ function AdminDashboard() {
                       Bulk Upload
                     </button>
                   )}
+                  <button onClick={() => { setShowBulkEnrollment(!showBulkEnrollment); }} className="btn btn-secondary" disabled={isReadOnly()}>
+                    Set Enrollment Date
+                  </button>
                   <button onClick={() => {
                     setEditingStudent(null);
                     setNewStudent({
@@ -3185,6 +3202,25 @@ function AdminDashboard() {
                   </button>
                 </div>
               </div>
+
+              {/* Bulk set enrollment date */}
+              {showBulkEnrollment && (
+                <div className="card" style={{ marginBottom: '16px', padding: '16px' }}>
+                  <p style={{ margin: '0 0 8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    Set the enrollment date for all students. This affects fee calculations — students are only charged from their enrollment date onwards.
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input type="date" className="form-input" style={{ maxWidth: '200px' }} value={bulkEnrollmentDate}
+                      onChange={(e) => setBulkEnrollmentDate(e.target.value)} />
+                    <button className="btn btn-primary" onClick={handleBulkEnrollmentDate} disabled={!bulkEnrollmentDate}>
+                      Apply to All Students
+                    </button>
+                    <button className="btn btn-secondary" onClick={() => { setShowBulkEnrollment(false); setBulkEnrollmentDate(''); }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Students Sub-Tabs */}
               <div className="report-tabs no-print">

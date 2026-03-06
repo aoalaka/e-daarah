@@ -148,10 +148,7 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
 
     const amount = parseFloat(schedule.amount);
     let totalFee = 0;
-    // enrollment_date reflects when students were imported into the platform, not their
-    // actual school start date. Disable enrollment-based fee skipping entirely — all
-    // current students are charged for the full period being viewed.
-    const enrollDate = null;
+    const enrollDate = student.enrollment_date ? new Date(student.enrollment_date) : null;
 
     switch (schedule.billing_cycle) {
       case 'per_session': {

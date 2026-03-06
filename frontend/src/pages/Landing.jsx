@@ -132,7 +132,7 @@ function Landing() {
               </div>
               <div className="ac-rows">
                 <div className="ac-row row-1">
-                  <span className="ac-name">Ahmad Hassan</span>
+                  <span className="ac-name">Ahmad Hussein</span>
                   <span className="ac-check present">✓</span>
                 </div>
                 <div className="ac-row row-2">

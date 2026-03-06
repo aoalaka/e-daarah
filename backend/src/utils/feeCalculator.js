@@ -162,6 +162,17 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
     let totalFee = 0;
     const enrollDate = student.enrollment_date ? new Date(student.enrollment_date) : null;
 
+    // Debug first student
+    const isFirst = student.id === students[0]?.id;
+    if (isFirst) {
+      console.log('[FeeCalc DETAIL]', JSON.stringify({
+        cycle: schedule.billing_cycle, amount, enrollDate: enrollDate ? enrollDate.toISOString() : null,
+        periodCalcStart: String(periodCalcStart), periodCalcEnd: String(periodCalcEnd),
+        prorate, schoolDays: student.school_days,
+        scheduleId: schedule.id, scheduleClassId: schedule.class_id, scheduleStudentId: schedule.student_id
+      }));
+    }
+
     switch (schedule.billing_cycle) {
       case 'per_session': {
         if (fromDate || toDate) {
@@ -253,16 +264,8 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
     const totalPaid = paymentsMap[student.id] || 0;
     const balance = totalFee - totalPaid;
 
-    // Debug: log first student's calculation
-    if (students.indexOf(student) === 0) {
-      console.log('[FeeCalc Student1]', {
-        name: `${student.first_name} ${student.last_name}`,
-        billing_cycle: schedule.billing_cycle,
-        amount: parseFloat(schedule.amount),
-        totalFee, totalPaid, balance,
-        enrollDate: student.enrollment_date,
-        schoolDays: student.school_days
-      });
+    if (isFirst) {
+      console.log('[FeeCalc RESULT]', JSON.stringify({ totalFee, totalPaid, balance }));
     }
 
     return {

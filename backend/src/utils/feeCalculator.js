@@ -118,18 +118,6 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
   // Never calculate fees beyond today — future periods haven't occurred yet
   const periodCalcEnd = new Date(periodCalcEndRaw) > new Date(today) ? today : periodCalcEndRaw;
 
-  console.log('[FeeCalc Debug]', {
-    fromDate, toDate, today,
-    sessionStart: session.start_date, sessionEnd: session.end_date,
-    periodCalcStart: String(periodCalcStart), periodCalcEnd: String(periodCalcEnd),
-    scheduleCount: schedules.length, studentCount: students.length,
-    scheduleCycles: schedules.map(s => ({ cycle: s.billing_cycle, amount: s.amount, classId: s.class_id, studentId: s.student_id })),
-    semesterCount: sessionSemesters.length,
-    semesters: sessionSemesters.map(s => ({ name: s.name, start: String(s.start_date), end: String(s.end_date) })),
-    firstStudentEnroll: students[0]?.enrollment_date,
-    prorate
-  });
-
   // Calculate fee for each student
   return students.map(student => {
     const studentSchedule = schedules.find(s => s.student_id === student.id);
@@ -160,18 +148,11 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
 
     const amount = parseFloat(schedule.amount);
     let totalFee = 0;
-    const enrollDate = student.enrollment_date ? new Date(student.enrollment_date) : null;
-
-    // Debug first student
-    const isFirst = student.id === students[0]?.id;
-    if (isFirst) {
-      console.log('[FeeCalc DETAIL]', JSON.stringify({
-        cycle: schedule.billing_cycle, amount, enrollDate: enrollDate ? enrollDate.toISOString() : null,
-        periodCalcStart: String(periodCalcStart), periodCalcEnd: String(periodCalcEnd),
-        prorate, schoolDays: student.school_days,
-        scheduleId: schedule.id, scheduleClassId: schedule.class_id, scheduleStudentId: schedule.student_id
-      }));
-    }
+    const rawEnrollDate = student.enrollment_date ? new Date(student.enrollment_date) : null;
+    // Only apply enrollment_date filtering if the student enrolled WITHIN or AFTER the calc period.
+    // If enrollment_date is after the period ends, the student was added to the system later but was
+    // already attending — treat as enrolled for the full period.
+    const enrollDate = (rawEnrollDate && rawEnrollDate <= new Date(periodCalcEnd)) ? rawEnrollDate : null;
 
     switch (schedule.billing_cycle) {
       case 'per_session': {
@@ -263,10 +244,6 @@ export async function calculateAutoFees(madrasahId, { classId = null, fromDate =
     totalFee = Math.round(totalFee * 100) / 100;
     const totalPaid = paymentsMap[student.id] || 0;
     const balance = totalFee - totalPaid;
-
-    if (isFirst) {
-      console.log('[FeeCalc RESULT]', JSON.stringify({ totalFee, totalPaid, balance }));
-    }
 
     return {
       student_id: student.id,

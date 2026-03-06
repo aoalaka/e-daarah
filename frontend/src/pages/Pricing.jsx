@@ -78,7 +78,7 @@ function Pricing() {
         'PDF report cards',
         'Bulk student upload',
         'Email notifications',
-        '100 free SMS credits',
+        '25 free SMS credits',
         'Priority support (24hr)'
       ],
       notIncluded: []
@@ -316,7 +316,7 @@ function Pricing() {
         <section className="sms-addon">
           <h2>SMS Add-on</h2>
           <p className="sms-addon-subtitle">
-            Send fee reminders and announcements directly to parents' phones. Plus plan and above includes <strong>100 free SMS credits</strong> to get you started. Need more? Buy credits as you need them — no subscription required.
+            Send fee reminders and announcements directly to parents' phones. Plus plan and above includes <strong>25 free SMS credits</strong> to get you started. Need more? Buy credits as you need them — no subscription required.
           </p>
           <div className="sms-packs-grid">
             <div className="sms-pack">
@@ -345,7 +345,7 @@ function Pricing() {
               <span className="sms-pack-unit">$0.035 / credit</span>
             </div>
           </div>
-          <p className="sms-addon-note">Plus plan and above includes 100 free SMS credits. 1 credit = 1 SMS segment. Additional credits never expire. Prices in USD.</p>
+          <p className="sms-addon-note">Plus plan and above includes 25 free SMS credits. 1 credit = 1 SMS segment. Additional credits never expire. Prices in USD.</p>
         </section>
 
         {/* FAQ Section */}
@@ -374,7 +374,7 @@ function Pricing() {
 
           <div className="faq-item">
             <h3>How does the SMS add-on work?</h3>
-            <p>Plus plan and above starts with 100 free SMS credits. Each SMS uses 1 credit per segment (most short messages = 1 segment). Credits never expire. Need more? Buy a credit pack from your dashboard — no extra subscription required.</p>
+            <p>Plus plan and above starts with 25 free SMS credits. Each SMS uses 1 credit per segment (most short messages = 1 segment). Credits never expire. Need more? Buy a credit pack from your dashboard — no extra subscription required.</p>
           </div>
         </section>
       </main>

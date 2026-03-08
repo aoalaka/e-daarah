@@ -21,7 +21,7 @@ const faqs = [
       },
       {
         q: 'What is the Solo plan?',
-        a: 'The Solo plan is designed for very small madrasahs or pilot use. It supports 1 class, 1 teacher, and up to 30 students. It includes basic attendance tracking, Quran progress, fee tracking, and a simple dashboard. It does not include the parent portal, bulk import, or advanced analytics.'
+        a: 'The Solo plan is designed for very small madrasahs or pilot use. It supports 1 class, 1 teacher, and up to 50 students. It includes basic attendance tracking, Quran progress, fee tracking, and a simple dashboard. It does not include the parent portal, bulk import, or advanced analytics.'
       }
     ]
   },
@@ -179,7 +179,7 @@ const faqs = [
     questions: [
       {
         q: 'What is included in the Solo plan?',
-        a: 'The Solo plan supports 1 class, 1 teacher, and up to 30 students. It includes basic attendance tracking, Quran progress, fee tracking, and a simple dashboard. It does not include the parent portal, bulk import, or advanced analytics. Designed for very small madrasahs or pilot use.'
+        a: 'The Solo plan supports 1 class, 1 teacher, and up to 50 students. It includes basic attendance tracking, Quran progress, fee tracking, and a simple dashboard. It does not include the parent portal, bulk import, or advanced analytics. Designed for very small madrasahs or pilot use.'
       },
       {
         q: 'What is the difference between Standard and Plus?',

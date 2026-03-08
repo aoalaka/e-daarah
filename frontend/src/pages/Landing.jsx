@@ -280,6 +280,10 @@ function Landing() {
               <p>Move students between classes at the end of each session. Bulk promote, retain, or mark as graduated.</p>
             </div>
             <div className="feature-card">
+              <h3>Teacher Availability</h3>
+              <p>Teachers mark days they'll be away. Admins see who's unavailable at a glance — so there are no surprises on teaching day.</p>
+            </div>
+            <div className="feature-card">
               <h3>Separate Logins</h3>
               <p>Admins manage everything. Teachers see only their classes. Parents see only their children. Everyone gets what they need.</p>
             </div>

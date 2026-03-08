@@ -3,6 +3,7 @@ import { Toaster } from 'sonner';
 import { PrivateRoute } from './components/PrivateRoute';
 import { MadrasahProvider } from './contexts/MadrasahContext';
 import SessionTimeout from './components/SessionTimeout';
+import PullToRefresh from './components/PullToRefresh';
 
 // Public pages
 import Landing from './pages/Landing';
@@ -92,43 +93,47 @@ function App() {
   if (isAdminSubdomain()) {
     return (
       <BrowserRouter>
-        <Toaster position="top-right" closeButton richColors />
-        <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<SuperAdminLogin />} />
-          <Route path="/dashboard" element={<SuperAdminDashboard />} />
-          <Route path="/madrasahs/:id" element={<MadrasahDetail />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <PullToRefresh>
+          <Toaster position="top-right" closeButton richColors />
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<SuperAdminLogin />} />
+            <Route path="/dashboard" element={<SuperAdminDashboard />} />
+            <Route path="/madrasahs/:id" element={<MadrasahDetail />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </PullToRefresh>
       </BrowserRouter>
     );
   }
 
   return (
     <BrowserRouter>
-      <Toaster position="top-right" closeButton richColors />
-      <Routes>
-        {/* Global public routes */}
-        <Route path="/" element={<Landing />} />
-        <Route path="/pricing" element={<Pricing />} />
-        <Route path="/register" element={<MadrasahRegistration />} />
-        <Route path="/demo" element={<Demo />} />
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/terms" element={<Terms />} />
-        <Route path="/privacy" element={<Privacy />} />
-        <Route path="/help" element={<Help />} />
+      <PullToRefresh>
+        <Toaster position="top-right" closeButton richColors />
+        <Routes>
+          {/* Global public routes */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/register" element={<MadrasahRegistration />} />
+          <Route path="/demo" element={<Demo />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/help" element={<Help />} />
 
-        {/* Super Admin routes (also accessible via /superadmin on main domain) */}
-        <Route path="/superadmin/login" element={<SuperAdminLogin />} />
-        <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
-        <Route path="/superadmin/madrasahs/:id" element={<MadrasahDetail />} />
+          {/* Super Admin routes (also accessible via /superadmin on main domain) */}
+          <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+          <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
+          <Route path="/superadmin/madrasahs/:id" element={<MadrasahDetail />} />
 
-        {/* Madrasah-scoped routes */}
-        <Route path="/:madrasahSlug/*" element={<MadrasahRoutes />} />
+          {/* Madrasah-scoped routes */}
+          <Route path="/:madrasahSlug/*" element={<MadrasahRoutes />} />
 
-        {/* 404 Page */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          {/* 404 Page */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </PullToRefresh>
     </BrowserRouter>
   );
 }

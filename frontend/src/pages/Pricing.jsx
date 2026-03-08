@@ -26,6 +26,7 @@ function Pricing() {
       ],
       notIncluded: [
         'Multiple teachers',
+        'Teacher availability',
         'Academic planner',
         'Reports & rankings',
         'Parent portal',
@@ -47,6 +48,7 @@ function Pricing() {
         'Exam recording & tie-aware ranking',
         'Fee tracking & payment recording',
         'Student promotion tool',
+        'Teacher availability tracking',
         'Quick Insights report',
         'SMS credits (add-on)',
         'Email support (48hr)'
@@ -71,6 +73,7 @@ function Pricing() {
         'Up to 50 teachers',
         'Unlimited classes',
         'Everything in Standard',
+        'Planner-aware availability',
         'Holidays & schedule overrides',
         'Parent portal access',
         'Advanced reports & rankings',

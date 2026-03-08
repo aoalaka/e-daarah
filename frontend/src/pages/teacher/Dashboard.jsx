@@ -24,6 +24,7 @@ import {
   Cog6ToothIcon,
   ArrowRightStartOnRectangleIcon,
   MagnifyingGlassIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 import '../admin/Dashboard.css';
 
@@ -47,7 +48,7 @@ function TeacherDashboard() {
 
   // Browser tab title
   useEffect(() => {
-    const labels = { overview: 'Overview', attendance: 'Attendance', exams: 'Exams', reports: 'Reports', quran: "Qur'an Progress", help: 'Help', settings: 'Settings' };
+    const labels = { overview: 'Overview', attendance: 'Attendance', exams: 'Exams', reports: 'Reports', quran: "Qur'an Progress", availability: 'Availability', help: 'Help', settings: 'Settings' };
     document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
   }, [activeTab]);
 
@@ -152,6 +153,16 @@ function TeacherDashboard() {
   const [teacherFeeClassFilter, setTeacherFeeClassFilter] = useState('');
   const [showTour, setShowTour] = useState(false);
   const [helpExpanded, setHelpExpanded] = useState(new Set());
+  // Availability state
+  const [availabilityWeekStart, setAvailabilityWeekStart] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - d.getDay()); // start of current week (Sunday)
+    return getLocalDate(d);
+  });
+  const [availabilityData, setAvailabilityData] = useState([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityReason, setAvailabilityReason] = useState('');
+  const [availabilityReasonDate, setAvailabilityReasonDate] = useState(null);
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
@@ -164,6 +175,9 @@ function TeacherDashboard() {
     ]},
     { label: 'Reports', items: [
       { id: 'reports', label: 'Exam Reports' },
+    ]},
+    { items: [
+      { id: 'availability', label: 'Availability' },
     ]},
     { label: 'Help', items: [
       { id: 'help', label: 'Help' },
@@ -332,6 +346,88 @@ function TeacherDashboard() {
       fetchAttendanceHistory();
     }
   }, [activeTab, attendanceSubTab, historyClass, selectedSemester]);
+
+  // Fetch availability when tab or week changes
+  useEffect(() => {
+    if (activeTab === 'availability') {
+      fetchAvailability();
+    }
+  }, [activeTab, availabilityWeekStart]);
+
+  const fetchAvailability = async () => {
+    setAvailabilityLoading(true);
+    try {
+      const start = new Date(availabilityWeekStart + 'T00:00:00');
+      const end = new Date(start);
+      end.setDate(end.getDate() + 27); // 4 weeks
+      const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+      const response = await api.get(`/teacher/availability?start_date=${availabilityWeekStart}&end_date=${endStr}`);
+      setAvailabilityData(response.data);
+    } catch (error) {
+      console.error('Failed to fetch availability:', error);
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  };
+
+  const toggleAvailability = async (dateStr, currentStatus) => {
+    const newStatus = currentStatus === 'unavailable' ? 'available' : 'unavailable';
+
+    if (newStatus === 'unavailable') {
+      setAvailabilityReasonDate(dateStr);
+      setAvailabilityReason('');
+      return;
+    }
+
+    try {
+      await api.put('/teacher/availability', { date: dateStr, status: newStatus });
+      setAvailabilityData(prev => prev.filter(r => r.date?.split('T')[0] !== dateStr));
+      toast.success('Marked as available');
+    } catch (error) {
+      toast.error('Failed to update availability');
+    }
+  };
+
+  const confirmUnavailable = async () => {
+    if (!availabilityReasonDate) return;
+    try {
+      await api.put('/teacher/availability', {
+        date: availabilityReasonDate,
+        status: 'unavailable',
+        reason: availabilityReason || null,
+      });
+      setAvailabilityData(prev => {
+        const filtered = prev.filter(r => r.date?.split('T')[0] !== availabilityReasonDate);
+        return [...filtered, { date: availabilityReasonDate, status: 'unavailable', reason: availabilityReason || null }];
+      });
+      setAvailabilityReasonDate(null);
+      setAvailabilityReason('');
+      toast.success('Marked as unavailable');
+    } catch (error) {
+      toast.error('Failed to update availability');
+    }
+  };
+
+  const getAvailabilityDays = () => {
+    const days = [];
+    const start = new Date(availabilityWeekStart + 'T00:00:00');
+    for (let i = 0; i < 28; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const record = availabilityData.find(r => r.date?.split('T')[0] === dateStr);
+      days.push({
+        date: dateStr,
+        dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        dayNum: d.getDate(),
+        month: d.toLocaleDateString('en-US', { month: 'short' }),
+        status: record?.status || 'available',
+        reason: record?.reason || null,
+        isPast: d < new Date(getLocalDate() + 'T00:00:00'),
+      });
+    }
+    return days;
+  };
 
   const fetchAttendanceHistory = async () => {
     if (!historyClass) return;
@@ -1349,6 +1445,8 @@ function TeacherDashboard() {
         return <DocumentTextIcon className={cls} width={size} height={size} style={style} />;
       case 'reports':
         return <UserGroupIcon className={cls} width={size} height={size} style={style} />;
+      case 'availability':
+        return <CalendarDaysIcon className={cls} width={size} height={size} style={style} />;
       case 'help':
         return <QuestionMarkCircleIcon className={cls} width={size} height={size} style={style} />;
       default:
@@ -3729,6 +3827,159 @@ function TeacherDashboard() {
                     </div>
                   )}
                 </>
+              )}
+            </>
+          )}
+
+          {/* Availability Tab */}
+          {activeTab === 'availability' && (
+            <>
+              <div className="page-header">
+                <h2 className="page-title">My Availability</h2>
+                <div style={{ display: 'flex', gap: 'var(--sm)', alignItems: 'center' }}>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      const d = new Date(availabilityWeekStart + 'T00:00:00');
+                      d.setDate(d.getDate() - 28);
+                      setAvailabilityWeekStart(getLocalDate(d));
+                    }}
+                  >
+                    <ChevronLeftIcon width={16} height={16} />
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      const d = new Date();
+                      d.setDate(d.getDate() - d.getDay());
+                      setAvailabilityWeekStart(getLocalDate(d));
+                    }}
+                    style={{ fontSize: '13px' }}
+                  >
+                    Today
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      const d = new Date(availabilityWeekStart + 'T00:00:00');
+                      d.setDate(d.getDate() + 28);
+                      setAvailabilityWeekStart(getLocalDate(d));
+                    }}
+                  >
+                    <ChevronRightIcon width={16} height={16} />
+                  </button>
+                </div>
+              </div>
+
+              <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: 'var(--md)' }}>
+                Tap a date to mark yourself as unavailable. Your admin will see this on their dashboard.
+              </p>
+
+              {availabilityLoading ? (
+                <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>Loading...</div>
+              ) : (
+                <>
+                  {(() => {
+                    const days = getAvailabilityDays();
+                    const weeks = [];
+                    for (let i = 0; i < days.length; i += 7) {
+                      weeks.push(days.slice(i, i + 7));
+                    }
+                    return weeks.map((week, wi) => (
+                      <div key={wi} className="card" style={{ marginBottom: 'var(--md)' }}>
+                        <div className="card-header" style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>
+                          {week[0].month} {week[0].dayNum} — {week[6].month} {week[6].dayNum}
+                        </div>
+                        <div className="card-body" style={{ padding: 0 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', background: '#e5e7eb' }}>
+                            {week.map(day => {
+                              const isUnavailable = day.status === 'unavailable';
+                              const isToday = day.date === getLocalDate();
+                              return (
+                                <button
+                                  key={day.date}
+                                  onClick={() => !day.isPast && toggleAvailability(day.date, day.status)}
+                                  disabled={day.isPast}
+                                  title={isUnavailable && day.reason ? day.reason : (isUnavailable ? 'Unavailable' : 'Available')}
+                                  style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '12px 4px',
+                                    minHeight: '72px',
+                                    background: day.isPast ? '#f9fafb' : isUnavailable ? '#fef2f2' : '#f0fdf4',
+                                    border: isToday ? '2px solid #1a1a1a' : 'none',
+                                    borderRadius: isToday ? '4px' : '0',
+                                    cursor: day.isPast ? 'default' : 'pointer',
+                                    opacity: day.isPast ? 0.5 : 1,
+                                    transition: 'background 0.15s',
+                                  }}
+                                >
+                                  <span style={{ fontSize: '11px', fontWeight: 500, color: '#6b7280', marginBottom: '2px' }}>
+                                    {day.dayName}
+                                  </span>
+                                  <span style={{ fontSize: '18px', fontWeight: 600, color: isUnavailable ? '#dc2626' : '#16a34a' }}>
+                                    {day.dayNum}
+                                  </span>
+                                  <span style={{
+                                    fontSize: '10px',
+                                    marginTop: '2px',
+                                    fontWeight: 600,
+                                    color: isUnavailable ? '#dc2626' : '#16a34a',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                  }}>
+                                    {isUnavailable ? 'Off' : 'On'}
+                                  </span>
+                                  {isUnavailable && day.reason && (
+                                    <span style={{ fontSize: '9px', color: '#9ca3af', marginTop: '2px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 2px' }}>
+                                      {day.reason}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </>
+              )}
+
+              {/* Reason modal */}
+              {availabilityReasonDate && (
+                <div className="modal-overlay" onClick={() => setAvailabilityReasonDate(null)}>
+                  <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+                    <div className="modal-header">
+                      <h3 className="modal-title">Mark Unavailable</h3>
+                      <button className="modal-close" onClick={() => setAvailabilityReasonDate(null)}>&times;</button>
+                    </div>
+                    <div className="modal-body">
+                      <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: 'var(--md)' }}>
+                        {new Date(availabilityReasonDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' })}
+                      </p>
+                      <div className="form-group">
+                        <label className="form-label">Reason (optional)</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="e.g. Sick leave, travel, personal"
+                          value={availabilityReason}
+                          onChange={e => setAvailabilityReason(e.target.value)}
+                          maxLength={255}
+                          autoFocus
+                          onKeyDown={e => e.key === 'Enter' && confirmUnavailable()}
+                        />
+                      </div>
+                    </div>
+                    <div className="modal-footer">
+                      <button className="btn btn-secondary" onClick={() => setAvailabilityReasonDate(null)}>Cancel</button>
+                      <button className="btn btn-primary" onClick={confirmUnavailable}>Confirm</button>
+                    </div>
+                  </div>
+                </div>
               )}
             </>
           )}

@@ -4147,4 +4147,62 @@ router.get('/teacher-performance/:teacherId', requirePlusPlan('teacher_performan
   }
 });
 
+// ── Teacher Availability (Admin view) ──
+
+// Get all teacher availability for a date range
+router.get('/teacher-availability', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { start_date, end_date } = req.query;
+
+    if (!start_date || !end_date) {
+      return res.status(400).json({ error: 'start_date and end_date are required' });
+    }
+
+    const [rows] = await pool.query(
+      `SELECT ta.id, ta.teacher_id, ta.date, ta.status, ta.reason,
+              u.first_name, u.last_name
+       FROM teacher_availability ta
+       JOIN users u ON ta.teacher_id = u.id
+       WHERE ta.madrasah_id = ? AND ta.date BETWEEN ? AND ?
+       ORDER BY ta.date, u.first_name`,
+      [madrasahId, start_date, end_date]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch teacher availability:', error);
+    res.status(500).json({ error: 'Failed to fetch teacher availability' });
+  }
+});
+
+// Get upcoming unavailable teachers (next 7 days) - for overview
+router.get('/teacher-availability/upcoming', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    const startDate = today.toISOString().split('T')[0];
+    const endDate = nextWeek.toISOString().split('T')[0];
+
+    const [rows] = await pool.query(
+      `SELECT ta.teacher_id, ta.date, ta.status, ta.reason,
+              u.first_name, u.last_name
+       FROM teacher_availability ta
+       JOIN users u ON ta.teacher_id = u.id
+       WHERE ta.madrasah_id = ? AND ta.status = 'unavailable'
+         AND ta.date BETWEEN ? AND ?
+       ORDER BY ta.date, u.first_name`,
+      [madrasahId, startDate, endDate]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch upcoming availability:', error);
+    res.status(500).json({ error: 'Failed to fetch upcoming availability' });
+  }
+});
+
 export default router;

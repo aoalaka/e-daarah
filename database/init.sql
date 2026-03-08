@@ -458,6 +458,22 @@ CREATE TABLE IF NOT EXISTS ticket_messages (
     INDEX idx_ticket (ticket_id)
 );
 
+CREATE TABLE IF NOT EXISTS teacher_availability (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    madrasah_id INT NOT NULL,
+    teacher_id INT NOT NULL,
+    date DATE NOT NULL,
+    status ENUM('available', 'unavailable') NOT NULL DEFAULT 'available',
+    reason VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id),
+    FOREIGN KEY (teacher_id) REFERENCES users(id),
+    UNIQUE KEY unique_teacher_date (teacher_id, date),
+    INDEX idx_teacher_avail_madrasah_date (madrasah_id, date),
+    INDEX idx_teacher_avail_teacher_date (teacher_id, date)
+);
+
 -- =====================================================
 -- Default data
 -- =====================================================

@@ -114,6 +114,7 @@ function AdminDashboard() {
   const [analyticsFilterClass, setAnalyticsFilterClass] = useState('');
   const [analyticsFilterGender, setAnalyticsFilterGender] = useState('');
   const [expandedMetric, setExpandedMetric] = useState(null); // 'attention' | 'struggling' | null
+  const [upcomingUnavailable, setUpcomingUnavailable] = useState([]);
   const [examKpis, setExamKpis] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [currentSubjectPage, setCurrentSubjectPage] = useState(1);
@@ -443,6 +444,7 @@ function AdminDashboard() {
   useEffect(() => {
     if (activeTab === 'overview' && madrasahProfile) {
       fetchAnalytics();
+      fetchUpcomingUnavailable();
     }
   }, [activeTab, reportSemester, madrasahProfile]);
 
@@ -1635,6 +1637,15 @@ function AdminDashboard() {
     }
   };
 
+  const fetchUpcomingUnavailable = async () => {
+    try {
+      const response = await api.get('/admin/teacher-availability/upcoming');
+      setUpcomingUnavailable(response.data);
+    } catch (error) {
+      // Silently fail - not critical for overview
+    }
+  };
+
   const fetchTeacherPerformance = async () => {
     setTeacherPerformanceLoading(true);
     try {
@@ -2184,6 +2195,42 @@ function AdminDashboard() {
 
                     <div></div>
                   </div>
+
+                  {/* Upcoming Teacher Unavailability */}
+                  {upcomingUnavailable.length > 0 && (
+                    <div className="card" style={{ marginTop: 'var(--md)' }}>
+                      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Teacher Availability — Next 7 Days</span>
+                        <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>
+                          {upcomingUnavailable.length} unavailable
+                        </span>
+                      </div>
+                      <div className="card-body" style={{ padding: 0 }}>
+                        <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb', fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500 }}>Teacher</th>
+                              <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500 }}>Date</th>
+                              <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500 }}>Reason</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {upcomingUnavailable.map((item, i) => (
+                              <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                <td style={{ padding: '10px 16px', fontWeight: 500 }}>{item.first_name} {item.last_name}</td>
+                                <td style={{ padding: '10px 16px', color: '#6b7280' }}>
+                                  {new Date(item.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}
+                                </td>
+                                <td style={{ padding: '10px 16px', color: '#9ca3af', fontStyle: item.reason ? 'normal' : 'italic' }}>
+                                  {item.reason || 'No reason given'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Quick Actions — separated at bottom */}
                   <div className="overview-actions">

@@ -1731,4 +1731,71 @@ router.get('/fee-summary', async (req, res) => {
   }
 });
 
+// ── Teacher Availability ──
+
+// Get my availability for a date range
+router.get('/availability', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const teacherId = req.user.id;
+    const { start_date, end_date } = req.query;
+
+    if (!start_date || !end_date) {
+      return res.status(400).json({ error: 'start_date and end_date are required' });
+    }
+
+    const [rows] = await pool.query(
+      `SELECT id, date, status, reason
+       FROM teacher_availability
+       WHERE madrasah_id = ? AND teacher_id = ? AND date BETWEEN ? AND ?
+       ORDER BY date`,
+      [madrasahId, teacherId, start_date, end_date]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch availability:', error);
+    res.status(500).json({ error: 'Failed to fetch availability' });
+  }
+});
+
+// Set availability for a specific date (upsert)
+router.put('/availability', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const teacherId = req.user.id;
+    const { date, status, reason } = req.body;
+
+    if (!date || !status) {
+      return res.status(400).json({ error: 'date and status are required' });
+    }
+
+    if (!['available', 'unavailable'].includes(status)) {
+      return res.status(400).json({ error: 'status must be "available" or "unavailable"' });
+    }
+
+    // If marking as available with no reason, just delete the record (available is the default)
+    if (status === 'available') {
+      await pool.query(
+        'DELETE FROM teacher_availability WHERE madrasah_id = ? AND teacher_id = ? AND date = ?',
+        [madrasahId, teacherId, date]
+      );
+      return res.json({ date, status: 'available', reason: null });
+    }
+
+    // Upsert unavailable
+    await pool.query(
+      `INSERT INTO teacher_availability (madrasah_id, teacher_id, date, status, reason)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE status = VALUES(status), reason = VALUES(reason)`,
+      [madrasahId, teacherId, date, status, reason || null]
+    );
+
+    res.json({ date, status, reason: reason || null });
+  } catch (error) {
+    console.error('Failed to set availability:', error);
+    res.status(500).json({ error: 'Failed to set availability' });
+  }
+});
+
 export default router;

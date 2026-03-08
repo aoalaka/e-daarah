@@ -2199,35 +2199,47 @@ function AdminDashboard() {
                   {/* Upcoming Teacher Unavailability */}
                   {upcomingUnavailable.length > 0 && (
                     <div className="card" style={{ marginTop: 'var(--md)' }}>
-                      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>Teacher Availability — Next 7 Days</span>
+                      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                        <span>Teacher Availability</span>
                         <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>
-                          {upcomingUnavailable.length} unavailable
+                          {upcomingUnavailable.length} unavailable this week
                         </span>
                       </div>
-                      <div className="card-body" style={{ padding: 0 }}>
-                        <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
-                          <thead>
-                            <tr style={{ borderBottom: '1px solid #e5e7eb', fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500 }}>Teacher</th>
-                              <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500 }}>Date</th>
-                              <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500 }}>Reason</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {upcomingUnavailable.map((item, i) => (
-                              <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                                <td style={{ padding: '10px 16px', fontWeight: 500 }}>{item.first_name} {item.last_name}</td>
-                                <td style={{ padding: '10px 16px', color: '#6b7280' }}>
-                                  {new Date(item.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })}
-                                </td>
-                                <td style={{ padding: '10px 16px', color: '#9ca3af', fontStyle: item.reason ? 'normal' : 'italic' }}>
-                                  {item.reason || 'No reason given'}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div style={{ padding: 0 }}>
+                        {upcomingUnavailable.map((item, i) => (
+                          <div key={i} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px 16px',
+                            borderBottom: i < upcomingUnavailable.length - 1 ? '1px solid #f3f4f6' : 'none',
+                          }}>
+                            <div style={{
+                              minWidth: '44px',
+                              height: '44px',
+                              background: '#fef2f2',
+                              borderRadius: '8px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              lineHeight: 1,
+                            }}>
+                              <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 500 }}>
+                                {new Date(item.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
+                              </span>
+                              <span style={{ fontSize: '16px', color: '#dc2626', fontWeight: 700 }}>
+                                {new Date(item.date + 'T00:00:00').getDate()}
+                              </span>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 500, fontSize: '14px' }}>{item.first_name} {item.last_name}</div>
+                              <div style={{ fontSize: '13px', color: '#9ca3af', fontStyle: item.reason ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {item.reason || 'No reason given'}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

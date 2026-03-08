@@ -3885,12 +3885,13 @@ function TeacherDashboard() {
                     for (let i = 0; i < days.length; i += 7) {
                       weeks.push(days.slice(i, i + 7));
                     }
+                    const isMobile = window.innerWidth < 480;
                     return weeks.map((week, wi) => (
-                      <div key={wi} className="card" style={{ marginBottom: 'var(--md)' }}>
-                        <div className="card-header" style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>
+                      <div key={wi} className="card" style={{ marginBottom: 'var(--md)', overflow: 'hidden' }}>
+                        <div className="card-header" style={{ fontSize: '13px', fontWeight: 600, color: '#374151', padding: '10px 12px' }}>
                           {week[0].month} {week[0].dayNum} — {week[6].month} {week[6].dayNum}
                         </div>
-                        <div className="card-body" style={{ padding: 0 }}>
+                        <div style={{ padding: 0 }}>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', background: '#e5e7eb' }}>
                             {week.map(day => {
                               const isUnavailable = day.status === 'unavailable';
@@ -3900,43 +3901,44 @@ function TeacherDashboard() {
                                   key={day.date}
                                   onClick={() => !day.isPast && toggleAvailability(day.date, day.status)}
                                   disabled={day.isPast}
-                                  title={isUnavailable && day.reason ? day.reason : (isUnavailable ? 'Unavailable' : 'Available')}
+                                  aria-label={`${day.dayName} ${day.dayNum} ${day.month} — ${isUnavailable ? 'Unavailable' : 'Available'}${day.reason ? ': ' + day.reason : ''}`}
                                   style={{
                                     display: 'flex',
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    padding: '12px 4px',
-                                    minHeight: '72px',
+                                    padding: '10px 2px',
+                                    minHeight: '80px',
                                     background: day.isPast ? '#f9fafb' : isUnavailable ? '#fef2f2' : '#f0fdf4',
                                     border: isToday ? '2px solid #1a1a1a' : 'none',
                                     borderRadius: isToday ? '4px' : '0',
                                     cursor: day.isPast ? 'default' : 'pointer',
                                     opacity: day.isPast ? 0.5 : 1,
                                     transition: 'background 0.15s',
+                                    WebkitTapHighlightColor: 'transparent',
+                                    touchAction: 'manipulation',
                                   }}
                                 >
-                                  <span style={{ fontSize: '11px', fontWeight: 500, color: '#6b7280', marginBottom: '2px' }}>
-                                    {day.dayName}
+                                  <span style={{ fontSize: '11px', fontWeight: 500, color: '#6b7280', marginBottom: '2px', lineHeight: 1 }}>
+                                    {isMobile ? day.dayName.charAt(0) : day.dayName}
                                   </span>
-                                  <span style={{ fontSize: '18px', fontWeight: 600, color: isUnavailable ? '#dc2626' : '#16a34a' }}>
+                                  <span style={{ fontSize: '20px', fontWeight: 700, color: isUnavailable ? '#dc2626' : '#16a34a', lineHeight: 1.2 }}>
                                     {day.dayNum}
                                   </span>
                                   <span style={{
                                     fontSize: '10px',
-                                    marginTop: '2px',
-                                    fontWeight: 600,
-                                    color: isUnavailable ? '#dc2626' : '#16a34a',
+                                    marginTop: '4px',
+                                    fontWeight: 700,
+                                    color: '#fff',
+                                    background: isUnavailable ? '#dc2626' : '#16a34a',
+                                    borderRadius: '3px',
+                                    padding: '1px 6px',
+                                    lineHeight: '16px',
                                     textTransform: 'uppercase',
                                     letterSpacing: '0.5px',
                                   }}>
                                     {isUnavailable ? 'Off' : 'On'}
                                   </span>
-                                  {isUnavailable && day.reason && (
-                                    <span style={{ fontSize: '9px', color: '#9ca3af', marginTop: '2px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 2px' }}>
-                                      {day.reason}
-                                    </span>
-                                  )}
                                 </button>
                               );
                             })}
@@ -3945,19 +3947,42 @@ function TeacherDashboard() {
                       </div>
                     ));
                   })()}
+
+                  {/* Legend */}
+                  <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', padding: '8px 0', fontSize: '12px', color: '#6b7280' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '12px', height: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '2px', display: 'inline-block' }} /> Available
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '12px', height: '12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '2px', display: 'inline-block' }} /> Unavailable
+                    </span>
+                  </div>
                 </>
               )}
 
-              {/* Reason modal */}
+              {/* Reason modal — mobile-friendly bottom sheet style */}
               {availabilityReasonDate && (
-                <div className="modal-overlay" onClick={() => setAvailabilityReasonDate(null)}>
-                  <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-                    <div className="modal-header">
+                <div className="modal-overlay" onClick={() => setAvailabilityReasonDate(null)} style={{ alignItems: 'flex-end' }}>
+                  <div
+                    className="modal"
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      maxWidth: '400px',
+                      width: '100%',
+                      margin: '0 auto',
+                      borderRadius: '16px 16px 0 0',
+                      paddingBottom: 'env(safe-area-inset-bottom, 16px)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 4px' }}>
+                      <div style={{ width: '36px', height: '4px', background: '#d1d5db', borderRadius: '2px' }} />
+                    </div>
+                    <div className="modal-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
                       <h3 className="modal-title">Mark Unavailable</h3>
                       <button className="modal-close" onClick={() => setAvailabilityReasonDate(null)}>&times;</button>
                     </div>
                     <div className="modal-body">
-                      <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: 'var(--md)' }}>
+                      <p style={{ fontSize: '15px', color: '#374151', marginBottom: 'var(--md)', fontWeight: 500 }}>
                         {new Date(availabilityReasonDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' })}
                       </p>
                       <div className="form-group">
@@ -3971,12 +3996,13 @@ function TeacherDashboard() {
                           maxLength={255}
                           autoFocus
                           onKeyDown={e => e.key === 'Enter' && confirmUnavailable()}
+                          style={{ fontSize: '16px', padding: '12px' }}
                         />
                       </div>
                     </div>
-                    <div className="modal-footer">
-                      <button className="btn btn-secondary" onClick={() => setAvailabilityReasonDate(null)}>Cancel</button>
-                      <button className="btn btn-primary" onClick={confirmUnavailable}>Confirm</button>
+                    <div className="modal-footer" style={{ display: 'flex', gap: '8px', padding: '12px 16px' }}>
+                      <button className="btn btn-secondary" onClick={() => setAvailabilityReasonDate(null)} style={{ flex: 1, padding: '12px', fontSize: '15px' }}>Cancel</button>
+                      <button className="btn btn-primary" onClick={confirmUnavailable} style={{ flex: 1, padding: '12px', fontSize: '15px' }}>Confirm</button>
                     </div>
                   </div>
                 </div>

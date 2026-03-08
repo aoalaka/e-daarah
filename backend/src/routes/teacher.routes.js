@@ -177,7 +177,7 @@ router.get('/school-day-info', async (req, res) => {
       [madrasahId, session.id]
     );
 
-    res.json({ schoolDays, holidays, overrides });
+    res.json({ schoolDays, holidays, overrides, sessionStart: session.start_date, sessionEnd: session.end_date });
   } catch (error) {
     console.error('Get school day info error:', error);
     res.status(500).json({ error: 'Failed to fetch school day info' });

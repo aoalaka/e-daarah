@@ -429,6 +429,14 @@ function TeacherDashboard() {
     const holidays = plannerAware ? (schoolDayInfo?.holidays || []) : [];
     const overrides = plannerAware ? (schoolDayInfo?.overrides || []) : [];
 
+    // Session date boundaries
+    const sessionStart = plannerAware && schoolDayInfo?.sessionStart
+      ? new Date((typeof schoolDayInfo.sessionStart === 'string' ? schoolDayInfo.sessionStart.split('T')[0] : new Date(schoolDayInfo.sessionStart).toISOString().split('T')[0]) + 'T00:00:00')
+      : null;
+    const sessionEnd = plannerAware && schoolDayInfo?.sessionEnd
+      ? new Date((typeof schoolDayInfo.sessionEnd === 'string' ? schoolDayInfo.sessionEnd.split('T')[0] : new Date(schoolDayInfo.sessionEnd).toISOString().split('T')[0]) + 'T00:00:00')
+      : null;
+
     for (let i = 0; i < 28; i++) {
       const d = new Date(start);
       d.setDate(d.getDate() + i);
@@ -439,29 +447,36 @@ function TeacherDashboard() {
       let isHoliday = false;
       let holidayTitle = '';
       let isNonSchoolDay = false;
+      let isOutsideSession = false;
 
       if (plannerAware) {
-        // Check holidays
-        const holiday = holidays.find(h => {
-          const hs = new Date((h.start_date?.split('T')[0] || h.start_date) + 'T00:00:00');
-          const he = new Date((h.end_date?.split('T')[0] || h.end_date) + 'T00:00:00');
-          return d >= hs && d <= he;
-        });
-        if (holiday) {
-          isHoliday = true;
-          holidayTitle = holiday.title;
+        // Check if date falls outside the active session period
+        if (sessionStart && sessionEnd && (d < sessionStart || d > sessionEnd)) {
+          isOutsideSession = true;
+          isNonSchoolDay = true;
         } else {
-          // Check schedule override
-          const override = overrides.find(o => {
-            const os = new Date((o.start_date?.split('T')[0] || o.start_date) + 'T00:00:00');
-            const oe = new Date((o.end_date?.split('T')[0] || o.end_date) + 'T00:00:00');
-            return d >= os && d <= oe;
+          // Check holidays
+          const holiday = holidays.find(h => {
+            const hs = new Date((h.start_date?.split('T')[0] || h.start_date) + 'T00:00:00');
+            const he = new Date((h.end_date?.split('T')[0] || h.end_date) + 'T00:00:00');
+            return d >= hs && d <= he;
           });
-          if (override) {
-            const overrideDays = typeof override.school_days === 'string' ? JSON.parse(override.school_days) : override.school_days;
-            if (!overrideDays.includes(dayName)) isNonSchoolDay = true;
-          } else if (effectiveSchoolDays.length > 0 && !effectiveSchoolDays.includes(dayName)) {
-            isNonSchoolDay = true;
+          if (holiday) {
+            isHoliday = true;
+            holidayTitle = holiday.title;
+          } else {
+            // Check schedule override
+            const override = overrides.find(o => {
+              const os = new Date((o.start_date?.split('T')[0] || o.start_date) + 'T00:00:00');
+              const oe = new Date((o.end_date?.split('T')[0] || o.end_date) + 'T00:00:00');
+              return d >= os && d <= oe;
+            });
+            if (override) {
+              const overrideDays = typeof override.school_days === 'string' ? JSON.parse(override.school_days) : override.school_days;
+              if (!overrideDays.includes(dayName)) isNonSchoolDay = true;
+            } else if (effectiveSchoolDays.length > 0 && !effectiveSchoolDays.includes(dayName)) {
+              isNonSchoolDay = true;
+            }
           }
         }
       }
@@ -478,6 +493,7 @@ function TeacherDashboard() {
         isHoliday,
         holidayTitle,
         isNonSchoolDay,
+        isOutsideSession,
       });
     }
     return days;
@@ -3956,7 +3972,7 @@ function TeacherDashboard() {
                                   key={day.date}
                                   onClick={() => !day.isPast && !isOff && toggleAvailability(day.date, day.status)}
                                   disabled={day.isPast || isOff}
-                                  aria-label={`${day.dayName} ${day.dayNum} ${day.month} — ${day.isHoliday ? 'Holiday: ' + day.holidayTitle : day.isNonSchoolDay ? 'No class' : isUnavailable ? 'Unavailable' : 'Available'}${day.reason ? ': ' + day.reason : ''}`}
+                                  aria-label={`${day.dayName} ${day.dayNum} ${day.month} — ${day.isOutsideSession ? 'Outside session' : day.isHoliday ? 'Holiday: ' + day.holidayTitle : day.isNonSchoolDay ? 'No class' : isUnavailable ? 'Unavailable' : 'Available'}${day.reason ? ': ' + day.reason : ''}`}
                                   style={{
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -3995,7 +4011,7 @@ function TeacherDashboard() {
                                       whiteSpace: 'nowrap',
                                       padding: '0 2px',
                                     }}>
-                                      {day.isHoliday ? 'Holiday' : 'No class'}
+                                      {day.isHoliday ? 'Holiday' : day.isOutsideSession ? 'No term' : 'No class'}
                                     </span>
                                   ) : (
                                     <span style={{

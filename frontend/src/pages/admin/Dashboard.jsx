@@ -3381,7 +3381,15 @@ function AdminDashboard() {
                       const { schoolDays: pSchoolDays, holidays: pHolidays, overrides: pOverrides } = availabilityPlannerData;
 
                       const getDayInfo = (date) => {
-                        if (!plannerAware || pSchoolDays.length === 0) return { isOff: false, label: '' };
+                        if (!plannerAware) return { isOff: false, label: '' };
+                        // Check if date falls outside the active session period
+                        const activeSession = sessions.find(s => s.is_active);
+                        if (activeSession) {
+                          const sStart = new Date((typeof activeSession.start_date === 'string' ? activeSession.start_date.split('T')[0] : new Date(activeSession.start_date).toISOString().split('T')[0]) + 'T00:00:00');
+                          const sEnd = new Date((typeof activeSession.end_date === 'string' ? activeSession.end_date.split('T')[0] : new Date(activeSession.end_date).toISOString().split('T')[0]) + 'T00:00:00');
+                          if (date < sStart || date > sEnd) return { isOff: true, label: 'No term' };
+                        }
+                        if (pSchoolDays.length === 0) return { isOff: false, label: '' };
                         const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
                         // Holiday check
                         const holiday = pHolidays.find(h => {

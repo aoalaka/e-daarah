@@ -3904,9 +3904,9 @@ function TeacherDashboard() {
           {/* Availability Tab */}
           {activeTab === 'availability' && (
             <>
-              <div className="page-header">
-                <h2 className="page-title">My Availability</h2>
-                <div style={{ display: 'flex', gap: 'var(--sm)', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--sm)' }}>
+                <h2 className="page-title" style={{ margin: 0 }}>My Availability</h2>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <button
                     className="btn btn-secondary"
                     onClick={() => {
@@ -3914,6 +3914,7 @@ function TeacherDashboard() {
                       d.setDate(d.getDate() - 28);
                       setAvailabilityWeekStart(getLocalDate(d));
                     }}
+                    style={{ minWidth: '36px', minHeight: '36px', padding: 0 }}
                   >
                     <ChevronLeftIcon width={16} height={16} />
                   </button>
@@ -3924,7 +3925,7 @@ function TeacherDashboard() {
                       d.setDate(d.getDate() - d.getDay());
                       setAvailabilityWeekStart(getLocalDate(d));
                     }}
-                    style={{ fontSize: '13px' }}
+                    style={{ fontSize: '12px', minHeight: '36px', padding: '0 10px' }}
                   >
                     Today
                   </button>
@@ -3935,6 +3936,7 @@ function TeacherDashboard() {
                       d.setDate(d.getDate() + 28);
                       setAvailabilityWeekStart(getLocalDate(d));
                     }}
+                    style={{ minWidth: '36px', minHeight: '36px', padding: 0 }}
                   >
                     <ChevronRightIcon width={16} height={16} />
                   </button>
@@ -3955,100 +3957,77 @@ function TeacherDashboard() {
                     for (let i = 0; i < days.length; i += 7) {
                       weeks.push(days.slice(i, i + 7));
                     }
-                    const isMobile = window.innerWidth < 480;
                     return weeks.map((week, wi) => (
-                      <div key={wi} className="card" style={{ marginBottom: 'var(--md)', overflow: 'hidden' }}>
-                        <div className="card-header" style={{ fontSize: '13px', fontWeight: 600, color: '#374151', padding: '10px 12px' }}>
+                      <div key={wi} className="card" style={{ marginBottom: 'var(--sm)', overflow: 'hidden' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
                           {week[0].month} {week[0].dayNum} — {week[6].month} {week[6].dayNum}
                         </div>
-                        <div style={{ padding: 0 }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', background: '#e5e7eb' }}>
-                            {week.map(day => {
-                              const isUnavailable = day.status === 'unavailable';
-                              const isToday = day.date === getLocalDate();
-                              const isOff = day.isHoliday || day.isNonSchoolDay;
-                              return (
-                                <button
-                                  key={day.date}
-                                  onClick={() => !day.isPast && !isOff && toggleAvailability(day.date, day.status)}
-                                  disabled={day.isPast || isOff}
-                                  aria-label={`${day.dayName} ${day.dayNum} ${day.month} — ${day.isOutsideSession ? 'Outside session' : day.isHoliday ? 'Holiday: ' + day.holidayTitle : day.isNonSchoolDay ? 'No class' : isUnavailable ? 'Unavailable' : 'Available'}${day.reason ? ': ' + day.reason : ''}`}
-                                  style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: '10px 2px',
-                                    minHeight: '80px',
-                                    background: isOff ? '#f3f4f6' : day.isPast ? '#f9fafb' : isUnavailable ? '#fef2f2' : '#f0fdf4',
-                                    border: isToday ? '2px solid #1a1a1a' : 'none',
-                                    borderRadius: isToday ? '4px' : '0',
-                                    cursor: day.isPast || isOff ? 'default' : 'pointer',
-                                    opacity: day.isPast ? 0.5 : isOff ? 0.6 : 1,
-                                    transition: 'background 0.15s',
-                                    WebkitTapHighlightColor: 'transparent',
-                                    touchAction: 'manipulation',
-                                  }}
-                                >
-                                  <span style={{ fontSize: '11px', fontWeight: 500, color: '#6b7280', marginBottom: '2px', lineHeight: 1 }}>
-                                    {isMobile ? day.dayName.charAt(0) : day.dayName}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px', background: '#e5e7eb' }}>
+                          {week.map(day => {
+                            const isUnavailable = day.status === 'unavailable';
+                            const isToday = day.date === getLocalDate();
+                            const isOff = day.isHoliday || day.isNonSchoolDay;
+                            const statusColor = isOff ? '#9ca3af' : isUnavailable ? '#dc2626' : '#16a34a';
+                            return (
+                              <button
+                                key={day.date}
+                                onClick={() => !day.isPast && !isOff && toggleAvailability(day.date, day.status)}
+                                disabled={day.isPast || isOff}
+                                aria-label={`${day.dayName} ${day.dayNum} ${day.month} — ${day.isOutsideSession ? 'Outside session' : day.isHoliday ? 'Holiday: ' + day.holidayTitle : day.isNonSchoolDay ? 'No class' : isUnavailable ? 'Unavailable' : 'Available'}${day.reason ? ': ' + day.reason : ''}`}
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: '6px 2px',
+                                  minHeight: '60px',
+                                  background: isOff ? '#f3f4f6' : day.isPast ? '#f9fafb' : isUnavailable ? '#fef2f2' : '#f0fdf4',
+                                  border: 'none',
+                                  outline: isToday ? '2px solid #1a1a1a' : 'none',
+                                  outlineOffset: '-2px',
+                                  borderRadius: isToday ? '4px' : '0',
+                                  cursor: day.isPast || isOff ? 'default' : 'pointer',
+                                  opacity: day.isPast ? 0.45 : isOff ? 0.55 : 1,
+                                  WebkitTapHighlightColor: 'transparent',
+                                  touchAction: 'manipulation',
+                                  gap: '2px',
+                                }}
+                              >
+                                <span style={{ fontSize: '10px', fontWeight: 500, color: '#9ca3af', lineHeight: 1, letterSpacing: '0.3px' }}>
+                                  {day.dayName.charAt(0)}
+                                </span>
+                                <span style={{ fontSize: '17px', fontWeight: 700, color: statusColor, lineHeight: 1 }}>
+                                  {day.dayNum}
+                                </span>
+                                {isOff ? (
+                                  <span style={{ fontSize: '8px', fontWeight: 600, color: '#b0b7c0', lineHeight: 1, textTransform: 'uppercase', letterSpacing: '0.2px' }}>
+                                    {day.isHoliday ? 'Hol' : day.isOutsideSession ? '—' : '—'}
                                   </span>
-                                  <span style={{ fontSize: '20px', fontWeight: 700, color: isOff ? '#9ca3af' : isUnavailable ? '#dc2626' : '#16a34a', lineHeight: 1.2 }}>
-                                    {day.dayNum}
-                                  </span>
-                                  {isOff ? (
-                                    <span style={{
-                                      fontSize: '9px',
-                                      marginTop: '4px',
-                                      fontWeight: 600,
-                                      color: '#9ca3af',
-                                      lineHeight: '16px',
-                                      textTransform: 'uppercase',
-                                      letterSpacing: '0.3px',
-                                      maxWidth: '100%',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                      padding: '0 2px',
-                                    }}>
-                                      {day.isHoliday ? 'Holiday' : day.isOutsideSession ? 'No term' : 'No class'}
-                                    </span>
-                                  ) : (
-                                    <span style={{
-                                      fontSize: '10px',
-                                      marginTop: '4px',
-                                      fontWeight: 700,
-                                      color: '#fff',
-                                      background: isUnavailable ? '#dc2626' : '#16a34a',
-                                      borderRadius: '3px',
-                                      padding: '1px 6px',
-                                      lineHeight: '16px',
-                                      textTransform: 'uppercase',
-                                      letterSpacing: '0.5px',
-                                    }}>
-                                      {isUnavailable ? 'Off' : 'On'}
-                                    </span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
+                                ) : (
+                                  <span style={{
+                                    width: '6px', height: '6px', borderRadius: '50%',
+                                    background: isUnavailable ? '#dc2626' : '#16a34a',
+                                  }} />
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     ));
                   })()}
 
                   {/* Legend */}
-                  <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', padding: '8px 0', fontSize: '12px', color: '#6b7280' }}>
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', padding: '8px 0', fontSize: '11px', color: '#9ca3af' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ width: '12px', height: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '2px', display: 'inline-block' }} /> Available
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} /> Available
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ width: '12px', height: '12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '2px', display: 'inline-block' }} /> Unavailable
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} /> Unavailable
                     </span>
                     {(madrasahProfile?.availability_planner_aware === 1 || madrasahProfile?.availability_planner_aware === true) && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '12px', height: '12px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '2px', display: 'inline-block' }} /> No class / Holiday
+                        <span style={{ width: '10px', height: '2px', background: '#d1d5db', display: 'inline-block', borderRadius: '1px' }} /> No class
                       </span>
                     )}
                   </div>

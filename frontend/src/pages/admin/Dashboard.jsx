@@ -29,7 +29,6 @@ import {
   StarIcon,
   ClockIcon,
   PrinterIcon,
-  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
@@ -94,6 +93,7 @@ function AdminDashboard() {
   const [editingSemester, setEditingSemester] = useState(null);
   const [editingClass, setEditingClass] = useState(null);
   const [editingTeacher, setEditingTeacher] = useState(null);
+  const [teacherSubTab, setTeacherSubTab] = useState('list');
   const [editingStudent, setEditingStudent] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
   const [classTeachers, setClassTeachers] = useState([]);
@@ -310,7 +310,6 @@ function AdminDashboard() {
     { label: 'Manage', items: [
       { id: 'classes', label: 'Classes' },
       { id: 'teachers', label: 'Teachers' },
-      { id: 'availability', label: 'Availability' },
       { id: 'students', label: 'Students' },
       ...(madrasahProfile?.enable_fee_tracking ? [{ id: 'fees', label: 'Fees' }] : []),
     ]},
@@ -345,7 +344,7 @@ function AdminDashboard() {
 
   // Update browser tab title based on active tab
   useEffect(() => {
-    const labels = { overview: 'Overview', classes: 'Classes', teachers: 'Teachers', availability: 'Availability', students: 'Students', fees: 'Fees', planner: 'Planner', reports: 'Reports', sms: 'SMS', help: 'Help', support: 'Support', settings: 'Settings' };
+    const labels = { overview: 'Overview', classes: 'Classes', teachers: 'Teachers', students: 'Students', fees: 'Fees', planner: 'Planner', reports: 'Reports', sms: 'SMS', help: 'Help', support: 'Support', settings: 'Settings' };
     document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
   }, [activeTab]);
 
@@ -456,12 +455,12 @@ function AdminDashboard() {
     }
   }, [activeTab, reportSemester, madrasahProfile]);
 
-  // Fetch availability data when Availability tab is active
+  // Fetch availability data when Teachers > Availability sub-tab is active
   useEffect(() => {
-    if (activeTab === 'availability' && madrasahProfile) {
+    if (activeTab === 'teachers' && teacherSubTab === 'availability' && madrasahProfile) {
       fetchAvailabilityData();
     }
-  }, [activeTab, availabilityWeekStart, madrasahProfile]);
+  }, [activeTab, teacherSubTab, availabilityWeekStart, madrasahProfile]);
 
   // Fetch teacher performance when Teacher Activity sub-tab is selected
   useEffect(() => {
@@ -1665,7 +1664,7 @@ function AdminDashboard() {
     setAvailabilityLoading(true);
     try {
       const endDate = new Date(availabilityWeekStart);
-      endDate.setDate(endDate.getDate() + 27); // 4 weeks
+      endDate.setDate(endDate.getDate() + 13); // 2 weeks
       const startStr = availabilityWeekStart.toISOString().split('T')[0];
       const endStr = endDate.toISOString().split('T')[0];
       const [availRes, teacherRes] = await Promise.all([
@@ -1797,8 +1796,6 @@ function AdminDashboard() {
         return <QuestionMarkCircleIcon {...iconProps} />;
       case 'support':
         return <ChatBubbleLeftIcon {...iconProps} />;
-      case 'availability':
-        return <CalendarDaysIcon {...iconProps} />;
       case 'sms':
         return <ChatBubbleOvalLeftIcon {...iconProps} />;
       default:
@@ -2285,7 +2282,7 @@ function AdminDashboard() {
                             </div>
                           ))}
                           <div style={{ padding: '8px 16px', borderTop: '1px solid #f3f4f6' }}>
-                            <button onClick={() => setActiveTab('availability')} style={{ fontSize: '13px', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                            <button onClick={() => { setActiveTab('teachers'); setTeacherSubTab('availability'); }} style={{ fontSize: '13px', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                               View full availability →
                             </button>
                           </div>
@@ -2293,7 +2290,7 @@ function AdminDashboard() {
                       ) : (
                         <div style={{ padding: '20px 16px', textAlign: 'center' }}>
                           <div style={{ fontSize: '14px', color: '#6b7280' }}>All teachers are available this week</div>
-                          <button onClick={() => setActiveTab('availability')} style={{ fontSize: '13px', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: '8px' }}>
+                          <button onClick={() => { setActiveTab('teachers'); setTeacherSubTab('availability'); }} style={{ fontSize: '13px', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: '8px' }}>
                             View full availability →
                           </button>
                         </div>
@@ -3022,6 +3019,7 @@ function AdminDashboard() {
             <>
               <div className="page-header">
                 <h2 className="page-title">Teachers</h2>
+                {teacherSubTab === 'list' && (
                 <button onClick={() => {
                   setEditingTeacher(null);
                   setNewTeacher({ first_name: '', last_name: '', staff_id: '', email: '', phone: '' });
@@ -3029,8 +3027,35 @@ function AdminDashboard() {
                 }} className="btn btn-primary" disabled={isReadOnly()}>
                   + New Teacher
                 </button>
+                )}
               </div>
 
+              {/* Sub-tabs */}
+              <div className="sub-tabs" style={{ display: 'flex', gap: '0', marginBottom: 'var(--md)', borderBottom: '2px solid #e5e7eb' }}>
+                {[{ id: 'list', label: 'Teacher List' }, { id: 'availability', label: 'Availability' }].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setTeacherSubTab(tab.id)}
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '14px',
+                      fontWeight: teacherSubTab === tab.id ? 600 : 400,
+                      color: teacherSubTab === tab.id ? 'var(--accent)' : '#6b7280',
+                      background: 'none',
+                      border: 'none',
+                      borderBottom: teacherSubTab === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
+                      marginBottom: '-2px',
+                      cursor: 'pointer',
+                      minHeight: '44px',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {teacherSubTab === 'list' && (
+              <>
               <div className="info-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sm)', flexWrap: 'wrap', padding: '12px 16px', background: '#fafafa', borderRadius: '8px', fontSize: '13px', color: '#525252', marginBottom: 'var(--md)' }}>
                 <span>Teachers can also self-register using this link:</span>
                 <code
@@ -3280,6 +3305,152 @@ function AdminDashboard() {
                   );
                 })()}
               </div>
+              </>
+              )}
+
+              {/* Availability Sub-Tab */}
+              {teacherSubTab === 'availability' && (
+              <>
+                {/* Week Navigation */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                  <button className="btn btn-secondary" style={{ minWidth: '44px', minHeight: '44px', padding: '0 12px' }} onClick={() => {
+                    const d = new Date(availabilityWeekStart);
+                    d.setDate(d.getDate() - 14);
+                    setAvailabilityWeekStart(d);
+                  }}>← Prev</button>
+                  <div style={{ textAlign: 'center', flex: 1 }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600 }}>
+                      {availabilityWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — {(() => {
+                        const end = new Date(availabilityWeekStart);
+                        end.setDate(end.getDate() + 13);
+                        return end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                      })()}
+                    </span>
+                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>2 weeks</div>
+                  </div>
+                  <button className="btn btn-secondary" style={{ minWidth: '44px', minHeight: '44px', padding: '0 12px' }} onClick={() => {
+                    const d = new Date(availabilityWeekStart);
+                    d.setDate(d.getDate() + 14);
+                    setAvailabilityWeekStart(d);
+                  }}>Next →</button>
+                </div>
+
+                {availabilityLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>Loading...</div>
+                ) : allTeachers.length === 0 ? (
+                  <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
+                    <p style={{ color: '#9ca3af' }}>No active teachers found</p>
+                  </div>
+                ) : (
+                  <div className="card" style={{ overflow: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ position: 'sticky', left: 0, background: '#fff', zIndex: 2, padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', minWidth: '120px' }}>Teacher</th>
+                          {Array.from({ length: 14 }, (_, i) => {
+                            const d = new Date(availabilityWeekStart);
+                            d.setDate(d.getDate() + i);
+                            const isToday = d.toDateString() === new Date().toDateString();
+                            const isSunday = d.getDay() === 0;
+                            return (
+                              <th key={i} style={{
+                                padding: '4px 2px',
+                                textAlign: 'center',
+                                borderBottom: '2px solid #e5e7eb',
+                                minWidth: '36px',
+                                background: isToday ? '#eff6ff' : isSunday ? '#fafafa' : '#fff',
+                                borderLeft: i % 7 === 0 && i > 0 ? '2px solid #e5e7eb' : 'none',
+                              }}>
+                                <div style={{ fontSize: '10px', color: '#9ca3af' }}>{d.toLocaleDateString('en-US', { weekday: 'narrow' })}</div>
+                                <div style={{ fontSize: '12px', fontWeight: isToday ? 700 : 500, color: isToday ? 'var(--accent)' : '#374151' }}>{d.getDate()}</div>
+                              </th>
+                            );
+                          })}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allTeachers.map(teacher => (
+                          <tr key={teacher.id}>
+                            <td style={{ position: 'sticky', left: 0, background: '#fff', zIndex: 1, padding: '8px 12px', borderBottom: '1px solid #f3f4f6', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                              {teacher.first_name} {teacher.last_name}
+                            </td>
+                            {Array.from({ length: 14 }, (_, i) => {
+                              const d = new Date(availabilityWeekStart);
+                              d.setDate(d.getDate() + i);
+                              const dateStr = d.toISOString().split('T')[0];
+                              const record = availabilityData.find(r => r.teacher_id === teacher.id && (r.date === dateStr || r.date?.split('T')[0] === dateStr));
+                              const isUnavailable = record?.status === 'unavailable';
+                              const isToday = d.toDateString() === new Date().toDateString();
+                              const isSunday = d.getDay() === 0;
+                              return (
+                                <td key={i} style={{
+                                  padding: '4px 2px',
+                                  textAlign: 'center',
+                                  borderBottom: '1px solid #f3f4f6',
+                                  background: isUnavailable ? '#fef2f2' : isToday ? '#eff6ff' : isSunday ? '#fafafa' : 'transparent',
+                                  borderLeft: i % 7 === 0 && i > 0 ? '2px solid #e5e7eb' : 'none',
+                                }} title={isUnavailable ? `${teacher.first_name}: ${record.reason || 'No reason'}` : ''}>
+                                  {isUnavailable ? (
+                                    <span style={{ color: '#ef4444', fontSize: '16px', cursor: 'default' }} title={record.reason || 'Unavailable'}>✕</span>
+                                  ) : (
+                                    <span style={{ color: '#d1d5db' }}>·</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {/* Legend */}
+                    <div style={{ display: 'flex', gap: '16px', padding: '12px', fontSize: '12px', color: '#6b7280', borderTop: '1px solid #f3f4f6' }}>
+                      <span><span style={{ color: '#d1d5db', marginRight: '4px' }}>·</span> Available</span>
+                      <span><span style={{ color: '#ef4444', marginRight: '4px' }}>✕</span> Unavailable</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Unavailable detail list */}
+                {!availabilityLoading && availabilityData.filter(r => r.status === 'unavailable').length > 0 && (
+                  <div className="card" style={{ marginTop: '16px' }}>
+                    <div className="card-header">Unavailable Days</div>
+                    <div style={{ padding: 0 }}>
+                      {availabilityData.filter(r => r.status === 'unavailable').map((item, i, arr) => (
+                        <div key={item.id} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '10px 16px',
+                          borderBottom: i < arr.length - 1 ? '1px solid #f3f4f6' : 'none',
+                        }}>
+                          <div style={{
+                            minWidth: '44px', height: '44px', background: '#fef2f2', borderRadius: '8px',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+                          }}>
+                            <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 500 }}>
+                              {new Date((item.date?.split('T')[0] || item.date) + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
+                            </span>
+                            <span style={{ fontSize: '16px', color: '#dc2626', fontWeight: 700 }}>
+                              {new Date((item.date?.split('T')[0] || item.date) + 'T00:00:00').getDate()}
+                            </span>
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 500, fontSize: '14px' }}>{item.first_name} {item.last_name}</div>
+                            <div style={{ fontSize: '13px', color: '#9ca3af', fontStyle: item.reason ? 'normal' : 'italic' }}>
+                              {item.reason || 'No reason given'}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap' }}>
+                            {new Date((item.date?.split('T')[0] || item.date) + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+              )}
             </>
           )}
 
@@ -8674,154 +8845,6 @@ function AdminDashboard() {
             </>
           )}
           </>
-          )}
-
-          {/* ─── Availability Tab ─── */}
-          {activeTab === 'availability' && (
-            <>
-              <div className="page-header">
-                <h2>Teacher Availability</h2>
-              </div>
-
-              {/* Week Navigation */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                <button className="btn btn-secondary" style={{ minWidth: '44px', minHeight: '44px', padding: '0 12px' }} onClick={() => {
-                  const d = new Date(availabilityWeekStart);
-                  d.setDate(d.getDate() - 28);
-                  setAvailabilityWeekStart(d);
-                }}>← Prev</button>
-                <div style={{ textAlign: 'center', flex: 1 }}>
-                  <span style={{ fontSize: '14px', fontWeight: 600 }}>
-                    {availabilityWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — {(() => {
-                      const end = new Date(availabilityWeekStart);
-                      end.setDate(end.getDate() + 27);
-                      return end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    })()}
-                  </span>
-                  <div style={{ fontSize: '12px', color: '#9ca3af' }}>4 weeks</div>
-                </div>
-                <button className="btn btn-secondary" style={{ minWidth: '44px', minHeight: '44px', padding: '0 12px' }} onClick={() => {
-                  const d = new Date(availabilityWeekStart);
-                  d.setDate(d.getDate() + 28);
-                  setAvailabilityWeekStart(d);
-                }}>Next →</button>
-              </div>
-
-              {availabilityLoading ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>Loading...</div>
-              ) : allTeachers.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-                  <p style={{ color: '#9ca3af' }}>No active teachers found</p>
-                </div>
-              ) : (
-                <div className="card" style={{ overflow: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                    <thead>
-                      <tr>
-                        <th style={{ position: 'sticky', left: 0, background: '#fff', zIndex: 2, padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', minWidth: '120px' }}>Teacher</th>
-                        {Array.from({ length: 28 }, (_, i) => {
-                          const d = new Date(availabilityWeekStart);
-                          d.setDate(d.getDate() + i);
-                          const isToday = d.toDateString() === new Date().toDateString();
-                          const isSunday = d.getDay() === 0;
-                          return (
-                            <th key={i} style={{
-                              padding: '4px 2px',
-                              textAlign: 'center',
-                              borderBottom: '2px solid #e5e7eb',
-                              minWidth: '36px',
-                              background: isToday ? '#eff6ff' : isSunday ? '#fafafa' : '#fff',
-                              borderLeft: i % 7 === 0 && i > 0 ? '2px solid #e5e7eb' : 'none',
-                            }}>
-                              <div style={{ fontSize: '10px', color: '#9ca3af' }}>{d.toLocaleDateString('en-US', { weekday: 'narrow' })}</div>
-                              <div style={{ fontSize: '12px', fontWeight: isToday ? 700 : 500, color: isToday ? 'var(--accent)' : '#374151' }}>{d.getDate()}</div>
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allTeachers.map(teacher => (
-                        <tr key={teacher.id}>
-                          <td style={{ position: 'sticky', left: 0, background: '#fff', zIndex: 1, padding: '8px 12px', borderBottom: '1px solid #f3f4f6', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                            {teacher.first_name} {teacher.last_name}
-                          </td>
-                          {Array.from({ length: 28 }, (_, i) => {
-                            const d = new Date(availabilityWeekStart);
-                            d.setDate(d.getDate() + i);
-                            const dateStr = d.toISOString().split('T')[0];
-                            const record = availabilityData.find(r => r.teacher_id === teacher.id && (r.date === dateStr || r.date?.split('T')[0] === dateStr));
-                            const isUnavailable = record?.status === 'unavailable';
-                            const isToday = d.toDateString() === new Date().toDateString();
-                            const isSunday = d.getDay() === 0;
-                            return (
-                              <td key={i} style={{
-                                padding: '4px 2px',
-                                textAlign: 'center',
-                                borderBottom: '1px solid #f3f4f6',
-                                background: isUnavailable ? '#fef2f2' : isToday ? '#eff6ff' : isSunday ? '#fafafa' : 'transparent',
-                                borderLeft: i % 7 === 0 && i > 0 ? '2px solid #e5e7eb' : 'none',
-                              }} title={isUnavailable ? `${teacher.first_name}: ${record.reason || 'No reason'}` : ''}>
-                                {isUnavailable ? (
-                                  <span style={{ color: '#ef4444', fontSize: '16px', cursor: 'default' }} title={record.reason || 'Unavailable'}>✕</span>
-                                ) : (
-                                  <span style={{ color: '#d1d5db' }}>·</span>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  {/* Legend */}
-                  <div style={{ display: 'flex', gap: '16px', padding: '12px', fontSize: '12px', color: '#6b7280', borderTop: '1px solid #f3f4f6' }}>
-                    <span><span style={{ color: '#d1d5db', marginRight: '4px' }}>·</span> Available</span>
-                    <span><span style={{ color: '#ef4444', marginRight: '4px' }}>✕</span> Unavailable</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Unavailable summary for current view */}
-              {!availabilityLoading && availabilityData.filter(r => r.status === 'unavailable').length > 0 && (
-                <div className="card" style={{ marginTop: '16px' }}>
-                  <div className="card-header">Unavailable Days Detail</div>
-                  <div style={{ padding: 0 }}>
-                    {availabilityData.filter(r => r.status === 'unavailable').map((item, i, arr) => (
-                      <div key={item.id} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        padding: '10px 16px',
-                        borderBottom: i < arr.length - 1 ? '1px solid #f3f4f6' : 'none',
-                      }}>
-                        <div style={{
-                          minWidth: '44px', height: '44px', background: '#fef2f2', borderRadius: '8px',
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
-                        }}>
-                          <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 500 }}>
-                            {new Date((item.date?.split('T')[0] || item.date) + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
-                          </span>
-                          <span style={{ fontSize: '16px', color: '#dc2626', fontWeight: 700 }}>
-                            {new Date((item.date?.split('T')[0] || item.date) + 'T00:00:00').getDate()}
-                          </span>
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 500, fontSize: '14px' }}>{item.first_name} {item.last_name}</div>
-                          <div style={{ fontSize: '13px', color: '#9ca3af', fontStyle: item.reason ? 'normal' : 'italic' }}>
-                            {item.reason || 'No reason given'}
-                          </div>
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap' }}>
-                          {new Date((item.date?.split('T')[0] || item.date) + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
           )}
 
         </main>

@@ -122,6 +122,7 @@ function AdminDashboard() {
   const [availabilityData, setAvailabilityData] = useState([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [allTeachers, setAllTeachers] = useState([]);
+  const [availabilityPlannerData, setAvailabilityPlannerData] = useState({ schoolDays: [], holidays: [], overrides: [] });
   const [examKpis, setExamKpis] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [currentSubjectPage, setCurrentSubjectPage] = useState(1);
@@ -1667,12 +1668,38 @@ function AdminDashboard() {
       endDate.setDate(endDate.getDate() + 13); // 2 weeks
       const startStr = availabilityWeekStart.toISOString().split('T')[0];
       const endStr = endDate.toISOString().split('T')[0];
-      const [availRes, teacherRes] = await Promise.all([
+
+      const fetches = [
         api.get(`/admin/teacher-availability?start_date=${startStr}&end_date=${endStr}`),
         api.get('/admin/teachers'),
-      ]);
-      setAvailabilityData(availRes.data);
-      setAllTeachers(teacherRes.data.filter(t => t.status === 'active'));
+      ];
+
+      // Fetch planner data if planner-aware is enabled
+      const plannerAware = madrasahProfile?.availability_planner_aware === 1 || madrasahProfile?.availability_planner_aware === true;
+      const activeSession = plannerAware ? sessions.find(s => s.is_active) : null;
+      if (activeSession) {
+        fetches.push(
+          api.get(`/admin/sessions/${activeSession.id}/holidays`),
+          api.get(`/admin/sessions/${activeSession.id}/schedule-overrides`),
+        );
+      }
+
+      const results = await Promise.all(fetches);
+      setAvailabilityData(results[0].data);
+      setAllTeachers(results[1].data.filter(t => t.status === 'active'));
+
+      if (activeSession) {
+        const sessionDays = activeSession.default_school_days
+          ? (typeof activeSession.default_school_days === 'string' ? JSON.parse(activeSession.default_school_days) : activeSession.default_school_days)
+          : [];
+        setAvailabilityPlannerData({
+          schoolDays: sessionDays,
+          holidays: results[2]?.data || [],
+          overrides: results[3]?.data || [],
+        });
+      } else {
+        setAvailabilityPlannerData({ schoolDays: [], holidays: [], overrides: [] });
+      }
     } catch (error) {
       toast.error('Failed to load availability data');
     } finally {
@@ -3349,6 +3376,36 @@ function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="card" style={{ overflow: 'auto' }}>
+                    {(() => {
+                      const plannerAware = madrasahProfile?.availability_planner_aware === 1 || madrasahProfile?.availability_planner_aware === true;
+                      const { schoolDays: pSchoolDays, holidays: pHolidays, overrides: pOverrides } = availabilityPlannerData;
+
+                      const getDayInfo = (date) => {
+                        if (!plannerAware || pSchoolDays.length === 0) return { isOff: false, label: '' };
+                        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+                        // Holiday check
+                        const holiday = pHolidays.find(h => {
+                          const hs = new Date((h.start_date?.split('T')[0] || h.start_date) + 'T00:00:00');
+                          const he = new Date((h.end_date?.split('T')[0] || h.end_date) + 'T00:00:00');
+                          return date >= hs && date <= he;
+                        });
+                        if (holiday) return { isOff: true, label: holiday.title };
+                        // Override check
+                        const override = pOverrides.find(o => {
+                          const os = new Date((o.start_date?.split('T')[0] || o.start_date) + 'T00:00:00');
+                          const oe = new Date((o.end_date?.split('T')[0] || o.end_date) + 'T00:00:00');
+                          return date >= os && date <= oe;
+                        });
+                        if (override) {
+                          const od = typeof override.school_days === 'string' ? JSON.parse(override.school_days) : override.school_days;
+                          if (!od.includes(dayName)) return { isOff: true, label: 'No class' };
+                          return { isOff: false, label: '' };
+                        }
+                        if (!pSchoolDays.includes(dayName)) return { isOff: true, label: 'No class' };
+                        return { isOff: false, label: '' };
+                      };
+
+                      return (
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead>
                         <tr>
@@ -3357,18 +3414,19 @@ function AdminDashboard() {
                             const d = new Date(availabilityWeekStart);
                             d.setDate(d.getDate() + i);
                             const isToday = d.toDateString() === new Date().toDateString();
-                            const isSunday = d.getDay() === 0;
+                            const info = getDayInfo(d);
                             return (
                               <th key={i} style={{
                                 padding: '4px 2px',
                                 textAlign: 'center',
                                 borderBottom: '2px solid #e5e7eb',
                                 minWidth: '36px',
-                                background: isToday ? '#eff6ff' : isSunday ? '#fafafa' : '#fff',
+                                background: info.isOff ? '#f3f4f6' : isToday ? '#eff6ff' : '#fff',
                                 borderLeft: i % 7 === 0 && i > 0 ? '2px solid #e5e7eb' : 'none',
-                              }}>
-                                <div style={{ fontSize: '10px', color: '#9ca3af' }}>{d.toLocaleDateString('en-US', { weekday: 'narrow' })}</div>
-                                <div style={{ fontSize: '12px', fontWeight: isToday ? 700 : 500, color: isToday ? 'var(--accent)' : '#374151' }}>{d.getDate()}</div>
+                                opacity: info.isOff ? 0.6 : 1,
+                              }} title={info.label || undefined}>
+                                <div style={{ fontSize: '10px', color: info.isOff ? '#d1d5db' : '#9ca3af' }}>{d.toLocaleDateString('en-US', { weekday: 'narrow' })}</div>
+                                <div style={{ fontSize: '12px', fontWeight: isToday ? 700 : 500, color: info.isOff ? '#9ca3af' : isToday ? 'var(--accent)' : '#374151' }}>{d.getDate()}</div>
                               </th>
                             );
                           })}
@@ -3387,16 +3445,19 @@ function AdminDashboard() {
                               const record = availabilityData.find(r => r.teacher_id === teacher.id && (r.date === dateStr || r.date?.split('T')[0] === dateStr));
                               const isUnavailable = record?.status === 'unavailable';
                               const isToday = d.toDateString() === new Date().toDateString();
-                              const isSunday = d.getDay() === 0;
+                              const info = getDayInfo(d);
                               return (
                                 <td key={i} style={{
                                   padding: '4px 2px',
                                   textAlign: 'center',
                                   borderBottom: '1px solid #f3f4f6',
-                                  background: isUnavailable ? '#fef2f2' : isToday ? '#eff6ff' : isSunday ? '#fafafa' : 'transparent',
+                                  background: info.isOff ? '#f3f4f6' : isUnavailable ? '#fef2f2' : isToday ? '#eff6ff' : 'transparent',
                                   borderLeft: i % 7 === 0 && i > 0 ? '2px solid #e5e7eb' : 'none',
-                                }} title={isUnavailable ? `${teacher.first_name}: ${record.reason || 'No reason'}` : ''}>
-                                  {isUnavailable ? (
+                                  opacity: info.isOff ? 0.5 : 1,
+                                }} title={info.isOff ? info.label : isUnavailable ? `${teacher.first_name}: ${record.reason || 'No reason'}` : ''}>
+                                  {info.isOff ? (
+                                    <span style={{ color: '#d1d5db', fontSize: '12px' }}>—</span>
+                                  ) : isUnavailable ? (
                                     <span style={{ color: '#ef4444', fontSize: '16px', cursor: 'default' }} title={record.reason || 'Unavailable'}>✕</span>
                                   ) : (
                                     <span style={{ color: '#d1d5db' }}>·</span>
@@ -3408,11 +3469,16 @@ function AdminDashboard() {
                         ))}
                       </tbody>
                     </table>
+                      );
+                    })()}
 
                     {/* Legend */}
-                    <div style={{ display: 'flex', gap: '16px', padding: '12px', fontSize: '12px', color: '#6b7280', borderTop: '1px solid #f3f4f6' }}>
+                    <div style={{ display: 'flex', gap: '16px', padding: '12px', fontSize: '12px', color: '#6b7280', borderTop: '1px solid #f3f4f6', flexWrap: 'wrap' }}>
                       <span><span style={{ color: '#d1d5db', marginRight: '4px' }}>·</span> Available</span>
                       <span><span style={{ color: '#ef4444', marginRight: '4px' }}>✕</span> Unavailable</span>
+                      {(madrasahProfile?.availability_planner_aware === 1 || madrasahProfile?.availability_planner_aware === true) && availabilityPlannerData.schoolDays.length > 0 && (
+                        <span><span style={{ color: '#d1d5db', marginRight: '4px' }}>—</span> No class / Holiday</span>
+                      )}
                     </div>
                   </div>
                 )}

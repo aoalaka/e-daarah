@@ -411,19 +411,73 @@ function TeacherDashboard() {
   const getAvailabilityDays = () => {
     const days = [];
     const start = new Date(availabilityWeekStart + 'T00:00:00');
+    const plannerAware = madrasahProfile?.availability_planner_aware === 1 || madrasahProfile?.availability_planner_aware === true;
+
+    // Compute union of school days from all assigned classes (or fall back to session default from schoolDayInfo)
+    let effectiveSchoolDays = [];
+    if (plannerAware && classes.length > 0) {
+      const daySet = new Set();
+      classes.forEach(cls => {
+        const cd = typeof cls.school_days === 'string' ? JSON.parse(cls.school_days || '[]') : (cls.school_days || []);
+        if (Array.isArray(cd)) cd.forEach(d => daySet.add(d));
+      });
+      effectiveSchoolDays = daySet.size > 0 ? [...daySet] : (schoolDayInfo?.schoolDays || []);
+    } else if (plannerAware) {
+      effectiveSchoolDays = schoolDayInfo?.schoolDays || [];
+    }
+
+    const holidays = plannerAware ? (schoolDayInfo?.holidays || []) : [];
+    const overrides = plannerAware ? (schoolDayInfo?.overrides || []) : [];
+
     for (let i = 0; i < 28; i++) {
       const d = new Date(start);
       d.setDate(d.getDate() + i);
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const record = availabilityData.find(r => r.date?.split('T')[0] === dateStr);
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+
+      let isHoliday = false;
+      let holidayTitle = '';
+      let isNonSchoolDay = false;
+
+      if (plannerAware) {
+        // Check holidays
+        const holiday = holidays.find(h => {
+          const hs = new Date((h.start_date?.split('T')[0] || h.start_date) + 'T00:00:00');
+          const he = new Date((h.end_date?.split('T')[0] || h.end_date) + 'T00:00:00');
+          return d >= hs && d <= he;
+        });
+        if (holiday) {
+          isHoliday = true;
+          holidayTitle = holiday.title;
+        } else {
+          // Check schedule override
+          const override = overrides.find(o => {
+            const os = new Date((o.start_date?.split('T')[0] || o.start_date) + 'T00:00:00');
+            const oe = new Date((o.end_date?.split('T')[0] || o.end_date) + 'T00:00:00');
+            return d >= os && d <= oe;
+          });
+          if (override) {
+            const overrideDays = typeof override.school_days === 'string' ? JSON.parse(override.school_days) : override.school_days;
+            if (!overrideDays.includes(dayName)) isNonSchoolDay = true;
+          } else if (effectiveSchoolDays.length > 0 && !effectiveSchoolDays.includes(dayName)) {
+            isNonSchoolDay = true;
+          }
+        }
+      }
+
       days.push({
         date: dateStr,
         dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        fullDayName: dayName,
         dayNum: d.getDate(),
         month: d.toLocaleDateString('en-US', { month: 'short' }),
         status: record?.status || 'available',
         reason: record?.reason || null,
         isPast: d < new Date(getLocalDate() + 'T00:00:00'),
+        isHoliday,
+        holidayTitle,
+        isNonSchoolDay,
       });
     }
     return days;
@@ -3896,12 +3950,13 @@ function TeacherDashboard() {
                             {week.map(day => {
                               const isUnavailable = day.status === 'unavailable';
                               const isToday = day.date === getLocalDate();
+                              const isOff = day.isHoliday || day.isNonSchoolDay;
                               return (
                                 <button
                                   key={day.date}
-                                  onClick={() => !day.isPast && toggleAvailability(day.date, day.status)}
-                                  disabled={day.isPast}
-                                  aria-label={`${day.dayName} ${day.dayNum} ${day.month} — ${isUnavailable ? 'Unavailable' : 'Available'}${day.reason ? ': ' + day.reason : ''}`}
+                                  onClick={() => !day.isPast && !isOff && toggleAvailability(day.date, day.status)}
+                                  disabled={day.isPast || isOff}
+                                  aria-label={`${day.dayName} ${day.dayNum} ${day.month} — ${day.isHoliday ? 'Holiday: ' + day.holidayTitle : day.isNonSchoolDay ? 'No class' : isUnavailable ? 'Unavailable' : 'Available'}${day.reason ? ': ' + day.reason : ''}`}
                                   style={{
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -3909,11 +3964,11 @@ function TeacherDashboard() {
                                     justifyContent: 'center',
                                     padding: '10px 2px',
                                     minHeight: '80px',
-                                    background: day.isPast ? '#f9fafb' : isUnavailable ? '#fef2f2' : '#f0fdf4',
+                                    background: isOff ? '#f3f4f6' : day.isPast ? '#f9fafb' : isUnavailable ? '#fef2f2' : '#f0fdf4',
                                     border: isToday ? '2px solid #1a1a1a' : 'none',
                                     borderRadius: isToday ? '4px' : '0',
-                                    cursor: day.isPast ? 'default' : 'pointer',
-                                    opacity: day.isPast ? 0.5 : 1,
+                                    cursor: day.isPast || isOff ? 'default' : 'pointer',
+                                    opacity: day.isPast ? 0.5 : isOff ? 0.6 : 1,
                                     transition: 'background 0.15s',
                                     WebkitTapHighlightColor: 'transparent',
                                     touchAction: 'manipulation',
@@ -3922,23 +3977,42 @@ function TeacherDashboard() {
                                   <span style={{ fontSize: '11px', fontWeight: 500, color: '#6b7280', marginBottom: '2px', lineHeight: 1 }}>
                                     {isMobile ? day.dayName.charAt(0) : day.dayName}
                                   </span>
-                                  <span style={{ fontSize: '20px', fontWeight: 700, color: isUnavailable ? '#dc2626' : '#16a34a', lineHeight: 1.2 }}>
+                                  <span style={{ fontSize: '20px', fontWeight: 700, color: isOff ? '#9ca3af' : isUnavailable ? '#dc2626' : '#16a34a', lineHeight: 1.2 }}>
                                     {day.dayNum}
                                   </span>
-                                  <span style={{
-                                    fontSize: '10px',
-                                    marginTop: '4px',
-                                    fontWeight: 700,
-                                    color: '#fff',
-                                    background: isUnavailable ? '#dc2626' : '#16a34a',
-                                    borderRadius: '3px',
-                                    padding: '1px 6px',
-                                    lineHeight: '16px',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                  }}>
-                                    {isUnavailable ? 'Off' : 'On'}
-                                  </span>
+                                  {isOff ? (
+                                    <span style={{
+                                      fontSize: '9px',
+                                      marginTop: '4px',
+                                      fontWeight: 600,
+                                      color: '#9ca3af',
+                                      lineHeight: '16px',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.3px',
+                                      maxWidth: '100%',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                      padding: '0 2px',
+                                    }}>
+                                      {day.isHoliday ? 'Holiday' : 'No class'}
+                                    </span>
+                                  ) : (
+                                    <span style={{
+                                      fontSize: '10px',
+                                      marginTop: '4px',
+                                      fontWeight: 700,
+                                      color: '#fff',
+                                      background: isUnavailable ? '#dc2626' : '#16a34a',
+                                      borderRadius: '3px',
+                                      padding: '1px 6px',
+                                      lineHeight: '16px',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px',
+                                    }}>
+                                      {isUnavailable ? 'Off' : 'On'}
+                                    </span>
+                                  )}
                                 </button>
                               );
                             })}
@@ -3949,13 +4023,18 @@ function TeacherDashboard() {
                   })()}
 
                   {/* Legend */}
-                  <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', padding: '8px 0', fontSize: '12px', color: '#6b7280' }}>
+                  <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', padding: '8px 0', fontSize: '12px', color: '#6b7280' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span style={{ width: '12px', height: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '2px', display: 'inline-block' }} /> Available
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span style={{ width: '12px', height: '12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '2px', display: 'inline-block' }} /> Unavailable
                     </span>
+                    {(madrasahProfile?.availability_planner_aware === 1 || madrasahProfile?.availability_planner_aware === true) && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ width: '12px', height: '12px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '2px', display: 'inline-block' }} /> No class / Holiday
+                      </span>
+                    )}
                   </div>
                 </>
               )}

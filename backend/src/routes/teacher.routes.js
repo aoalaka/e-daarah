@@ -1315,10 +1315,17 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
 router.get('/madrasah-info', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
+    // Check if availability_planner_aware column exists
+    let hasAvailabilityCol = false;
+    try {
+      await pool.query('SELECT availability_planner_aware FROM madrasahs LIMIT 0');
+      hasAvailabilityCol = true;
+    } catch (e) { /* column doesn't exist yet */ }
+
     const [madrasahs] = await pool.query(
       `SELECT pricing_plan, subscription_status, trial_ends_at,
        enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking,
-       enable_fee_tracking, currency
+       enable_fee_tracking, currency${hasAvailabilityCol ? ', availability_planner_aware' : ''}
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );

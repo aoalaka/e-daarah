@@ -41,31 +41,68 @@
   color: var(--muted);
 }
 
-.help-contact-banner {
-  background: var(--white);
-  border: var(--border);
-  border-radius: var(--radius);
-  padding: var(--md) var(--lg);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.help-search {
+  position: relative;
   margin-bottom: var(--xl);
 }
 
-.help-contact-banner p {
-  color: var(--gray);
-  font-size: 14px;
-  margin: 0;
+.help-search-input {
+  width: 100%;
+  padding: var(--md) var(--lg);
+  padding-right: 40px;
+  border: var(--border);
+  border-radius: var(--radius);
+  font-size: 15px;
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
-.help-contact-banner a {
+.help-search-input:focus {
+  border-color: var(--dark);
+}
+
+.help-search-input::placeholder {
+  color: var(--gray);
+}
+
+.help-search-clear {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--gray);
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.help-search-clear:hover {
+  color: var(--dark);
+}
+
+.help-no-results {
+  text-align: center;
+  padding: var(--xl) var(--lg);
+  color: var(--gray);
+}
+
+.help-no-results p {
+  margin-bottom: var(--sm);
+  font-size: 15px;
+}
+
+.help-no-results a {
   color: var(--dark);
   font-weight: 500;
   text-decoration: none;
-  font-size: 14px;
 }
 
-.help-contact-banner a:hover {
+.help-no-results a:hover {
   text-decoration: underline;
 }
 
@@ -208,12 +245,6 @@
 
   .help-header h1 {
     font-size: 26px;
-  }
-
-  .help-contact-banner {
-    flex-direction: column;
-    gap: var(--sm);
-    text-align: center;
   }
 
   .faq-question {

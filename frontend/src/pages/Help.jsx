@@ -124,15 +124,23 @@ const faqs = [
     questions: [
       {
         q: 'How does fee tracking work?',
-        a: 'Fee tracking is available on the Plus and Enterprise plans. Admins can set expected fees per student, record payments, view outstanding balances, and generate fee reports by class or semester.'
+        a: 'Fee tracking lets admins manage student fees directly from the dashboard. You can set expected fees per student, record payments, view outstanding balances, and generate fee reports filtered by class or semester. Fee tracking is available on all plans.'
+      },
+      {
+        q: 'What is the difference between auto and manual fee tracking?',
+        a: 'With manual fee tracking, admins individually set the expected fee amount for each student every semester. With auto fee tracking, you configure a fee amount once per class or per madrasah and fees are automatically generated for all students when a new semester begins. Both modes let you record payments and track balances the same way.'
+      },
+      {
+        q: 'How do I switch between auto and manual fee tracking?',
+        a: 'Go to Settings in your admin dashboard and find the Fee Tracking section. Toggle between Auto and Manual mode. When switching to auto, you will be asked to set a default fee amount. You can switch at any time \u2014 existing fee records are not affected, only future semesters will use the new mode.'
+      },
+      {
+        q: 'Can I override the auto fee amount for individual students?',
+        a: 'Yes. Even in auto mode, you can adjust the expected fee for any individual student. This is useful for scholarships, discounts, or partial fee waivers. The override applies only to that student and does not affect the class default.'
       },
       {
         q: 'Can parents see fee information?',
-        a: "Yes. On Plus and Enterprise plans, parents can view their child's fee status and payment history in the parent portal (if fee tracking is enabled by the admin)."
-      },
-      {
-        q: 'What is auto fee calculation?',
-        a: 'On the Enterprise plan, admins can set up automatic fee schedules (per semester or custom billing cycles) that automatically generate fee records for students. This eliminates the need to manually set fees each term.'
+        a: "Yes. On Plus and Enterprise plans, parents can view their child's fee status and payment history in the parent portal (if fee tracking is enabled by the admin). On Solo and Standard plans, only the admin can see fee records."
       }
     ]
   },
@@ -217,6 +225,7 @@ const faqs = [
 
 function Help() {
   const [openItems, setOpenItems] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   const toggleItem = (categoryIndex, questionIndex) => {
     const key = `${categoryIndex}-${questionIndex}`;
@@ -225,6 +234,19 @@ function Help() {
       [key]: !prev[key]
     }));
   };
+
+  const filteredFaqs = searchQuery.trim()
+    ? faqs
+        .map(category => ({
+          ...category,
+          questions: category.questions.filter(
+            item =>
+              item.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              item.a.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        }))
+        .filter(category => category.questions.length > 0)
+    : faqs;
 
   return (
     <div className="help-page">
@@ -240,13 +262,33 @@ function Help() {
           <p>Find answers to common questions about using e-Daarah</p>
         </div>
 
-        <div className="help-contact-banner">
-          <p>Can't find what you're looking for?</p>
-          <a href="mailto:support@e-daarah.com">Contact Support</a>
+        <div className="help-search">
+          <input
+            type="text"
+            placeholder="Search for a question..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="help-search-input"
+          />
+          {searchQuery && (
+            <button
+              className="help-search-clear"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+            >
+              &times;
+            </button>
+          )}
         </div>
 
         <div className="help-content">
-          {faqs.map((category, categoryIndex) => (
+          {filteredFaqs.length === 0 && (
+            <div className="help-no-results">
+              <p>No results found for "{searchQuery}"</p>
+              <a href="mailto:support@e-daarah.com">Contact Support</a>
+            </div>
+          )}
+          {filteredFaqs.map((category, categoryIndex) => (
             <section key={categoryIndex} className="help-section">
               <h2>{category.category}</h2>
               <div className="faq-list">

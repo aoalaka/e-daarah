@@ -4044,33 +4044,45 @@ function TeacherDashboard() {
 
                 <HelpSection sectionKey="getting-started" title="Getting Started" items={[
                   { title: 'Your dashboard overview', content: 'The Overview tab shows your assigned classes, today\'s schedule, and quick-action buttons to take attendance. It\'s your starting point each day.' },
-                  { title: 'How classes are assigned', content: 'Your admin assigns classes to you. You\'ll see all your assigned classes on the Overview and can mark attendance or record exams for them.' },
+                  { title: 'How classes are assigned', content: 'Your admin assigns classes to you. You\'ll see all your assigned classes on the Overview and can mark attendance or record exams for them. If a class is missing, contact your admin.' },
+                  { title: 'Active semester', content: 'Your dashboard automatically uses the active semester set by your admin. You cannot change the semester — all attendance and exam records are filed under the current active semester.' },
                 ]} />
 
                 <HelpSection sectionKey="attendance" title="Attendance" items={[
                   { title: 'Mark attendance for a class', content: 'Go to Attendance, select your class and the date. You\'ll see a list of students — mark each as Present, Absent, Late, or Excused. Click "Save Attendance" when done.' },
-                  { title: 'Mark dressing, behavior, and punctuality', content: 'After marking presence, you can rate each student\'s dressing, behavior, and punctuality on a scale. These ratings appear in parent and admin reports.' },
-                  { title: 'Edit past attendance', content: 'Select a past date in the Attendance tab to view and edit previously marked records. Changes are saved immediately.' },
+                  { title: 'Mark dressing, behavior, and punctuality', content: 'After marking presence, you can rate each student\'s dressing, behavior, and punctuality (Excellent, Good, Fair, or Poor) if these are enabled by your admin. These ratings appear in parent and admin reports.' },
+                  { title: 'Absent reasons', content: 'For absent students, select a reason: Sick, Parent Request, School Not Notified, or Other. This helps the admin track absence patterns.' },
+                  { title: 'Edit past attendance', content: 'Select a past date in the Attendance tab to view and edit previously marked records. Changes are saved immediately. You cannot record attendance for future dates.' },
+                  { title: 'View attendance history', content: 'Switch to the "View" sub-tab in Attendance to see a summary of past attendance records for any class and date range.' },
                 ]} />
 
                 <HelpSection sectionKey="exams" title="Exams" items={[
                   { title: 'Record exam scores', content: 'Go to Exam Recording, select a class, subject, and exam type (e.g. Test, Quiz, Final). Enter each student\'s score out of the maximum marks, then save.' },
+                  { title: 'Mark a student absent for an exam', content: 'If a student was absent for an exam, you can mark them as absent with a reason instead of entering a score.' },
                   { title: 'Edit or delete exam records', content: 'In Exam Recording, select the same class/subject/exam to view existing records. You can update scores or delete the entire exam record.' },
                 ]} />
 
                 <HelpSection sectionKey="reports" title="Reports" items={[
                   { title: 'View exam results', content: 'Go to Exam Reports and select a class. You\'ll see exam results sorted by subject and date, with averages and individual student scores.' },
+                  { title: 'Student rankings', content: 'Reports show student rankings within their class based on exam performance. Rankings are tie-aware — students with the same percentage share the same rank.' },
                   { title: 'Export exam reports', content: 'Use the export button on the reports page to download results as a file for printing or sharing.' },
                 ]} />
 
                 {madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false && (
                   <HelpSection sectionKey="quran" title="Qur'an Tracker" items={[
                     { title: 'Update student progress', content: 'Go to Qur\'an Tracker and select a class. For each student, update their current position (Juz, Surah, Ayah). This helps track memorisation or reading progress over time.' },
+                    { title: 'View progress history', content: 'Select a student to see their full Qur\'an progress history, including past positions and dates of each update.' },
                   ]} />
                 )}
 
+                <HelpSection sectionKey="availability" title="Availability" items={[
+                  { title: 'Mark yourself as unavailable', content: 'Go to the Availability tab and tap on a date to mark yourself as unavailable. You can optionally add a reason (e.g. sick leave, travel). Your admin will see this on their dashboard.' },
+                  { title: 'Cancel an unavailability', content: 'Tap on a date you\'ve already marked as unavailable to revert it back to available.' },
+                ]} />
+
                 <HelpSection sectionKey="settings" title="Settings" items={[
                   { title: 'Update your password', content: 'Click your profile icon at the bottom of the sidebar, then go to Settings. You can change your password from there.' },
+                  { title: 'Keyboard shortcut', content: 'Press "/" on any page with a search field to quickly focus the search bar.' },
                 ]} />
               </>
             );

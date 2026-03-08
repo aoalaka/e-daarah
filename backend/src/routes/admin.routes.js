@@ -2312,12 +2312,21 @@ router.put('/students/:id/comment', requireActiveSubscription, async (req, res) 
 router.get('/profile', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
+
+    // Check if availability_planner_aware column exists
+    let hasAvailabilityCol = true;
+    try {
+      await pool.query('SELECT availability_planner_aware FROM madrasahs LIMIT 0');
+    } catch {
+      hasAvailabilityCol = false;
+    }
+
     const [madrasahs] = await pool.query(
       `SELECT id, name, slug, logo_url, street, city, region, country, phone, email,
        institution_type, verification_status, trial_ends_at, created_at,
        pricing_plan, subscription_status, current_period_end, stripe_customer_id,
        enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency,
-       fee_tracking_mode, fee_prorate_mid_period, availability_planner_aware
+       fee_tracking_mode, fee_prorate_mid_period${hasAvailabilityCol ? ', availability_planner_aware' : ''}
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -2408,8 +2417,11 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
       params.push(fee_prorate_mid_period);
     }
     if (typeof availability_planner_aware === 'boolean') {
-      updates.push('availability_planner_aware = ?');
-      params.push(availability_planner_aware);
+      try {
+        await pool.query('SELECT availability_planner_aware FROM madrasahs LIMIT 0');
+        updates.push('availability_planner_aware = ?');
+        params.push(availability_planner_aware);
+      } catch {}
     }
 
     if (updates.length === 0) {
@@ -2423,8 +2435,13 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
     );
 
     // Return updated settings
+    let settingsCols = 'enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period';
+    try {
+      await pool.query('SELECT availability_planner_aware FROM madrasahs LIMIT 0');
+      settingsCols += ', availability_planner_aware';
+    } catch {}
     const [updated] = await pool.query(
-      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, availability_planner_aware FROM madrasahs WHERE id = ?',
+      `SELECT ${settingsCols} FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
 

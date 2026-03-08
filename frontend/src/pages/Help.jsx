@@ -1,140 +1,230 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import SEO from '../components/SEO';
 import './Help.css';
+import { authService } from '../services/auth.service';
 
-const faqs = [
-  {
-    category: 'Getting Started',
-    questions: [
-      {
-        q: 'How do I create my madrasah account?',
-        a: 'Click "Get Started" on the homepage and fill in your madrasah details including name, location, and institution type. You\'ll receive a verification email to confirm your account. Once verified, you can log in and start setting up your madrasah.'
-      },
-      {
-        q: 'What happens during the 14-day free trial?',
-        a: 'During your trial, you have full access to all features including the parent portal. You can add students, teachers, track attendance, and record exams. After 14 days, you\'ll need to subscribe to continue using the service.'
-      },
-      {
-        q: 'How do I add teachers?',
-        a: 'There are two ways. As an admin, go to your dashboard and add a teacher with their name, email, and staff ID — they\'ll get a default password matching their staff ID. Alternatively, teachers can self-register using your madrasah\'s registration link, where they\'ll set their own password and receive an auto-generated staff ID.'
-      }
-    ]
-  },
-  {
-    category: 'Student Management',
-    questions: [
-      {
-        q: 'How do I enroll a new student?',
-        a: 'From the admin dashboard, go to the Students section and click "Add Student". Enter their first name, last name, gender, and a unique student ID. You can also add parent/guardian contact details, assign them to a class, and add notes. On Plus and Enterprise plans, a parent access code is automatically generated.'
-      },
-      {
-        q: 'Can I import students from a spreadsheet?',
-        a: 'Bulk student upload is available on the Plus plan and above. On the Standard plan, students are added individually through the dashboard.'
-      },
-      {
-        q: 'How do parents access their child\'s information?',
-        a: 'On the Plus and Enterprise plans, each student receives a unique access code when enrolled. Parents log in to the parent portal with the student ID, access code, and madrasah name to view attendance records, dressing and behavior performance, and exam results. They can also filter by semester.'
-      }
-    ]
-  },
-  {
-    category: 'Attendance',
-    questions: [
-      {
-        q: 'How do I mark attendance?',
-        a: 'Teachers select a class and date from their dashboard, then mark each student as present or absent. For present students, you can also rate their dressing, behavior, and punctuality (Excellent, Good, Fair, or Poor) depending on your madrasah\'s settings. For absent students, select a reason (Sick, Parent Request, School Not Notified, or Other). Save all records at once with bulk save.'
-      },
-      {
-        q: 'Can I edit past attendance records?',
-        a: 'Yes, you can edit attendance for any past date by selecting it from the date picker. Simply update the records and save. Note that attendance cannot be recorded for future dates.'
-      },
-      {
-        q: 'How do I view attendance reports?',
-        a: 'Admins can view class-level attendance from the dashboard. For individual students, click on a student to see their complete attendance history, including attendance rate, dressing and behavior performance summaries, and punctuality trends filtered by semester.'
-      }
-    ]
-  },
-  {
-    category: 'Exams & Results',
-    questions: [
-      {
-        q: 'How do I record exam results?',
-        a: 'From the teacher dashboard, select a class and go to the Exams section. Enter the subject name, exam date, and maximum score, then enter each student\'s score. All scores are saved in bulk. You can also mark students as absent with a reason instead of entering a score.'
-      },
-      {
-        q: 'How are results calculated?',
-        a: 'Results are calculated as a percentage of the score obtained versus the maximum score. Students are ranked within their class using tie-aware ranking — students with the same percentage share the same rank.'
-      },
-      {
-        q: 'How do I view student reports?',
-        a: 'Admins can view a detailed report for any student from the Students section. The report shows attendance statistics, dressing and behavior performance, exam results by subject, and overall ranking. You can filter by semester. Parents on the Plus plan can also view their child\'s report through the parent portal.'
-      }
-    ]
-  },
-  {
-    category: 'Billing & Subscription',
-    questions: [
-      {
-        q: 'What payment methods do you accept?',
-        a: 'We accept all major credit and debit cards through our secure payment processor, Stripe. This includes Visa, Mastercard, and American Express.'
-      },
-      {
-        q: 'How do I upgrade or change my plan?',
-        a: 'Go to Settings → Billing in your admin dashboard to manage your subscription. You can upgrade from Standard ($12/mo) to Plus ($29/mo) at any time. Annual billing is also available and saves you roughly two months.'
-      },
-      {
-        q: 'Can I get a refund?',
-        a: 'Refunds are handled on a case-by-case basis. Please contact our support team at support@e-daarah.com with your request and we\'ll work with you to find a solution.'
-      },
-      {
-        q: 'What happens if my payment fails?',
-        a: 'If a payment fails, we\'ll notify you via email and retry the payment a few times. You\'ll have a grace period to update your payment method before access is restricted.'
-      }
-    ]
-  },
-  {
-    category: 'Account & Security',
-    questions: [
-      {
-        q: 'How do I reset my password?',
-        a: 'Click "Forgot Password" on the login page and enter your email address. You\'ll receive a link to create a new password. The link expires after 1 hour for security.'
-      },
-      {
-        q: 'Why was my account locked?',
-        a: 'Accounts are temporarily locked after 5 failed login attempts to protect against unauthorized access. Wait 15 minutes and try again, or reset your password.'
-      },
-      {
-        q: 'How do I delete my account?',
-        a: 'Contact our support team at support@e-daarah.com to request account deletion. Please note that this action is permanent and all data will be removed after a 30-day grace period.'
-      }
-    ]
-  }
-];
+// Helper: get user role and plan from localStorage (or authService)
+function getUserContext() {
+  let user = null;
+  let plan = null;
+  try {
+    user = authService.getUser?.() || JSON.parse(localStorage.getItem('user'));
+    plan = user?.madrasah?.pricingPlan || user?.madrasah?.plan || user?.plan || null;
+  } catch (e) {}
+  return {
+    role: user?.role || null,
+    plan: plan,
+    madrasah: user?.madrasah || null,
+    user,
+  };
+}
+
+// Comprehensive help content for each role/plan
+const helpContent = {
+  admin: [
+    {
+      category: 'Dashboard Overview',
+      items: [
+        'The admin dashboard provides full control over your madrasah: manage sessions, semesters, classes, teachers, students, fees, reports, SMS, and more.',
+        'Navigation is on the left sidebar. Use the top bar for quick actions and notifications.'
+      ]
+    },
+    {
+      category: 'Sessions & Semesters',
+      items: [
+        'Create and manage academic sessions (years) and semesters. Only one session and one semester can be active at a time.',
+        'When activating a session/semester, all others are automatically deactivated.',
+        'Semester dates must be within the parent session and cannot overlap.'
+      ]
+    },
+    {
+      category: 'Classes & Teachers',
+      items: [
+        'Create classes and assign teachers. Each class can have multiple teachers (e.g., for team teaching).',
+        'Assign school days for each class (e.g., Monday, Wednesday).',
+        'Teachers can only access their assigned classes.'
+      ]
+    },
+    {
+      category: 'Student Management',
+      items: [
+        'Add students individually or (on Plus/Enterprise) import in bulk from a spreadsheet.',
+        'Each student can be assigned to a class and have parent/guardian contact info.',
+        'Parents log in using their phone number and a password they create. If a parent forgets their password, the admin can reset it from the Students section.',
+      ]
+    },
+    {
+      category: 'Attendance Tracking',
+      items: [
+        'View class-level and individual student attendance, including dressing, behavior, and punctuality grades.',
+        'Teachers record attendance daily for their assigned classes.',
+        'Admins can edit any attendance record.'
+      ]
+    },
+    {
+      category: 'Exam Performance',
+      items: [
+        'View and analyze exam results by class, subject, and semester.',
+        'Students are ranked using tie-aware ranking. Export results for printing/sharing.'
+      ]
+    },
+    {
+      category: 'Fee Tracking',
+      items: [
+        'Track student fees (Plus/Enterprise only). Record payments, view summaries, and export reports.',
+        'Admins can record payments, view outstanding balances, and generate fee reports by class or semester.',
+        'Auto fee calculation and schedules are available on Enterprise.',
+        'Parents can view fee status and payment history in the parent portal (if enabled).',
+      ]
+    },
+    {
+      category: 'Planner & Holidays',
+      items: [
+        'Plan school terms, holidays, and schedule overrides. All changes are reflected in class schedules.'
+      ]
+    },
+    {
+      category: 'Parent Portal',
+      items: [
+        'On Plus/Enterprise, parents can log in to view their child’s attendance, grades, and exam results.',
+        'Admins can reset parent access codes and view parent login activity.'
+      ]
+    },
+    {
+      category: 'Promotions & Rollovers',
+      items: [
+        'Promote students to the next class at the end of a session/semester.',
+        'Bulk promotion and dropout tracking are available.'
+      ]
+    },
+    {
+      category: 'Subscription & Billing',
+      items: [
+        'Manage your plan and billing in Settings → Billing.',
+        'Upgrade/downgrade at any time. Annual billing saves ~2 months.',
+        'If a payment fails, you will receive an email notification and see a banner in your dashboard. Please update your payment method promptly to avoid service interruption.'
+      ]
+    },
+    {
+      category: 'Troubleshooting & Support',
+      items: [
+        'If you encounter issues, try refreshing the page or logging out and back in.',
+        'For technical support, email support@e-daarah.com.'
+      ]
+    },
+    {
+      category: 'Plan Differences',
+      items: [
+        'Solo: 1 class, 1 teacher, up to 30 students. No parent portal, no fee tracking, and no bulk import. Designed for very small madrasahs or pilot use.',
+        'Standard: Unlimited classes/teachers, no parent portal, no fee tracking.',
+        'Plus: Adds parent portal, bulk import, fee tracking, analytics.',
+        'Enterprise: Adds advanced analytics, auto fee schedules, multi-branch support.'
+      ]
+    }
+  ],
+  teacher: [
+    {
+      category: 'Dashboard Overview',
+      items: [
+        'Your dashboard shows assigned classes, today’s schedule, and quick links to take attendance or record exams.',
+        'Navigation is on the left sidebar.'
+      ]
+    },
+    {
+      category: 'Class Assignment',
+      items: [
+        'You can only access classes assigned by your admin.',
+        'If you’re missing a class, contact your admin.'
+      ]
+    },
+    {
+      category: 'Attendance Recording',
+      items: [
+        'Mark attendance for each student: Present, Absent, Late, or Excused.',
+        'Grade dressing, behavior, and punctuality (if enabled).',
+        'Bulk save attendance for the whole class.'
+      ]
+    },
+    {
+      category: 'Exam Recording',
+      items: [
+        'Record exam scores by class, subject, and exam type.',
+        'Edit or delete exam records as needed.'
+      ]
+    },
+    {
+      category: 'Qur’an Tracker',
+      items: [
+        'If enabled, update each student’s Qur’an memorization or reading progress.'
+      ]
+    },
+    {
+      category: 'Reports & Exports',
+      items: [
+        'View exam results and attendance summaries for your classes.',
+        'Export reports for printing or sharing.'
+      ]
+    },
+    {
+      category: 'Availability',
+      items: [
+        'Mark days you are unavailable. Admins will see this in their dashboard.'
+      ]
+    },
+    {
+      category: 'Settings',
+      items: [
+        'Update your password and profile info in Settings.'
+      ]
+    },
+    {
+      category: 'Plan Differences',
+      items: [
+        'Solo: 1 class, 1 teacher, basic features only.',
+        'Standard: All core features except parent portal and fee tracking.',
+        'Plus/Enterprise: Adds parent portal, fee tracking, Qur’an tracker, analytics.'
+      ]
+    },
+    {
+      category: 'Troubleshooting & Support',
+      items: [
+        'If you have trouble accessing a class or feature, contact your admin.',
+        'For technical support, email support@e-daarah.com.'
+      ]
+    }
+  ]
+};
 
 function Help() {
-  const [openItems, setOpenItems] = useState({});
+  const [openSections, setOpenSections] = useState({});
+  const location = useLocation();
+  const { role, plan } = getUserContext();
 
-  const toggleItem = (categoryIndex, questionIndex) => {
-    const key = `${categoryIndex}-${questionIndex}`;
-    setOpenItems(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+  // Pick help content based on role (default to admin)
+  const sections = helpContent[role === 'teacher' ? 'teacher' : 'admin'];
+
+  const toggleSection = (idx) => {
+    setOpenSections((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
   return (
     <div className="help-page">
       <SEO
         title="Help & FAQ — e-Daarah"
-        description="Get help with e-Daarah. Frequently asked questions about attendance tracking, exam recording, parent access, and school management."
+        description="Comprehensive help for all admin and teacher dashboard features, including plan differences."
       />
       <div className="help-container">
         <Link to="/" className="help-back">← Back to Home</Link>
 
         <div className="help-header">
           <h1>Help Center</h1>
-          <p>Find answers to common questions about using e-Daarah</p>
+          <p>
+            {role === 'teacher'
+              ? 'Find answers to common questions about using your teacher dashboard.'
+              : 'Find answers to common questions about managing your madrasah as an admin.'}
+          </p>
         </div>
 
         <div className="help-contact-banner">
@@ -143,32 +233,24 @@ function Help() {
         </div>
 
         <div className="help-content">
-          {faqs.map((category, categoryIndex) => (
-            <section key={categoryIndex} className="help-section">
-              <h2>{category.category}</h2>
-              <div className="faq-list">
-                {category.questions.map((item, questionIndex) => {
-                  const key = `${categoryIndex}-${questionIndex}`;
-                  const isOpen = openItems[key];
-                  return (
-                    <div key={questionIndex} className={`faq-item ${isOpen ? 'open' : ''}`}>
-                      <button
-                        className="faq-question"
-                        onClick={() => toggleItem(categoryIndex, questionIndex)}
-                        aria-expanded={isOpen}
-                      >
-                        <span>{item.q}</span>
-                        <span className="faq-icon">{isOpen ? '−' : '+'}</span>
-                      </button>
-                      {isOpen && (
-                        <div className="faq-answer">
-                          <p>{item.a}</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+          {sections.map((section, idx) => (
+            <section key={idx} className="help-section">
+              <button
+                className="faq-question"
+                onClick={() => toggleSection(idx)}
+                aria-expanded={!!openSections[idx]}
+                style={{ fontWeight: 600, fontSize: '16px', width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '12px 0', cursor: 'pointer' }}
+              >
+                {section.category}
+                <span className="faq-icon" style={{ float: 'right' }}>{openSections[idx] ? '−' : '+'}</span>
+              </button>
+              {openSections[idx] && (
+                <ul className="faq-list" style={{ marginLeft: 0, paddingLeft: 16 }}>
+                  {section.items.map((item, i) => (
+                    <li key={i} style={{ marginBottom: 8, fontSize: '15px', color: 'var(--gray)' }}>{item}</li>
+                  ))}
+                </ul>
+              )}
             </section>
           ))}
         </div>

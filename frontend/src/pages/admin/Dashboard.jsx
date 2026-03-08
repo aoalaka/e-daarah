@@ -2086,6 +2086,78 @@ function AdminDashboard() {
                     )}
                   </div>
 
+                  {/* Upcoming Teacher Unavailability */}
+                  <div className="card" style={{ marginTop: 'var(--md)' }}>
+                    <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                      <span>Teacher Availability</span>
+                      {upcomingUnavailable.length > 0 ? (
+                        <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>
+                          {upcomingUnavailable.length} unavailable this week
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: '#22c55e', fontWeight: 600 }}>
+                          All available
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ padding: 0 }}>
+                      {upcomingUnavailable.length > 0 ? (
+                        <>
+                          {upcomingUnavailable.map((item, i) => {
+                            const dateStr = typeof item.date === 'string' ? item.date.split('T')[0] : new Date(item.date).toISOString().split('T')[0];
+                            const dateObj = new Date(dateStr + 'T00:00:00');
+                            return (
+                            <div key={i} style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              padding: '12px 16px',
+                              borderBottom: i < upcomingUnavailable.length - 1 ? '1px solid #f3f4f6' : 'none',
+                            }}>
+                              <div style={{
+                                minWidth: '44px',
+                                height: '44px',
+                                background: '#fef2f2',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                lineHeight: 1,
+                              }}>
+                                <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 500 }}>
+                                  {dateObj.toLocaleDateString('en-US', { weekday: 'short' })}
+                                </span>
+                                <span style={{ fontSize: '16px', color: '#dc2626', fontWeight: 700 }}>
+                                  {dateObj.getDate()}
+                                </span>
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 500, fontSize: '14px' }}>{item.first_name} {item.last_name}</div>
+                                <div style={{ fontSize: '13px', color: '#9ca3af', fontStyle: item.reason ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {item.reason || 'No reason given'}
+                                </div>
+                              </div>
+                            </div>
+                            );
+                          })}
+                          <div style={{ padding: '8px 16px', borderTop: '1px solid #f3f4f6' }}>
+                            <button onClick={() => { setActiveTab('teachers'); setTeacherSubTab('availability'); }} style={{ fontSize: '13px', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                              View full availability →
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{ padding: '20px 16px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '14px', color: '#6b7280' }}>All teachers are available this week</div>
+                          <button onClick={() => { setActiveTab('teachers'); setTeacherSubTab('availability'); }} style={{ fontSize: '13px', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: '8px' }}>
+                            View full availability →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Today's Status */}
                   {analyticsData.quickActions && (
                     <div className={`alert-panel ${(analyticsData.quickActions.attendanceMarkedToday || !analyticsData.quickActions.todayIsSchoolDay) && analyticsData.quickActions.classesWithoutExams === 0 ? 'success' : ''}`}>
@@ -2230,73 +2302,7 @@ function AdminDashboard() {
                     <div></div>
                   </div>
 
-                  {/* Upcoming Teacher Unavailability */}
-                  <div className="card" style={{ marginTop: 'var(--md)' }}>
-                    <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-                      <span>Teacher Availability</span>
-                      {upcomingUnavailable.length > 0 ? (
-                        <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>
-                          {upcomingUnavailable.length} unavailable this week
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '12px', color: '#22c55e', fontWeight: 600 }}>
-                          All available
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ padding: 0 }}>
-                      {upcomingUnavailable.length > 0 ? (
-                        <>
-                          {upcomingUnavailable.map((item, i) => (
-                            <div key={i} style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '12px',
-                              padding: '12px 16px',
-                              borderBottom: i < upcomingUnavailable.length - 1 ? '1px solid #f3f4f6' : 'none',
-                            }}>
-                              <div style={{
-                                minWidth: '44px',
-                                height: '44px',
-                                background: '#fef2f2',
-                                borderRadius: '8px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                lineHeight: 1,
-                              }}>
-                                <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 500 }}>
-                                  {new Date(item.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
-                                </span>
-                                <span style={{ fontSize: '16px', color: '#dc2626', fontWeight: 700 }}>
-                                  {new Date(item.date + 'T00:00:00').getDate()}
-                                </span>
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontWeight: 500, fontSize: '14px' }}>{item.first_name} {item.last_name}</div>
-                                <div style={{ fontSize: '13px', color: '#9ca3af', fontStyle: item.reason ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {item.reason || 'No reason given'}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                          <div style={{ padding: '8px 16px', borderTop: '1px solid #f3f4f6' }}>
-                            <button onClick={() => { setActiveTab('teachers'); setTeacherSubTab('availability'); }} style={{ fontSize: '13px', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                              View full availability →
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <div style={{ padding: '20px 16px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '14px', color: '#6b7280' }}>All teachers are available this week</div>
-                          <button onClick={() => { setActiveTab('teachers'); setTeacherSubTab('availability'); }} style={{ fontSize: '13px', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: '8px' }}>
-                            View full availability →
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+
 
                   {/* Quick Actions — separated at bottom */}
                   <div className="overview-actions">
@@ -8316,6 +8322,46 @@ function AdminDashboard() {
                           const res = await api.put('/admin/settings', { enable_fee_tracking: newValue });
                           setMadrasahProfile(prev => ({ ...prev, ...res.data }));
                           toast.success(`Fee tracking ${newValue ? 'enabled' : 'disabled'}`);
+                        } catch (error) {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                    >
+                      <span className="setting-switch-thumb" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Teacher Availability */}
+              <div className="card" style={{ marginTop: '20px' }}>
+                <h3>Teacher Availability</h3>
+                <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
+                  Control how teacher availability interacts with your madrasah planner.
+                </p>
+                <div style={{ display: 'grid', gap: '16px', maxWidth: '400px' }}>
+                  <div className="setting-toggle-row">
+                    <div className="setting-toggle-info">
+                      <span className="setting-toggle-label">Planner-Aware Availability</span>
+                      <p className="setting-toggle-desc">
+                        When enabled, non-school days and holidays from your planner are automatically shown as unavailable. When disabled, availability is tracked independently of the planner.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={madrasahProfile?.availability_planner_aware !== 0 && madrasahProfile?.availability_planner_aware !== false}
+                      className={`setting-switch ${(madrasahProfile?.availability_planner_aware !== 0 && madrasahProfile?.availability_planner_aware !== false) ? 'on' : ''}`}
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        const newValue = !(madrasahProfile?.availability_planner_aware !== 0 && madrasahProfile?.availability_planner_aware !== false);
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/admin/settings', { availability_planner_aware: newValue });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(`Planner-aware availability ${newValue ? 'enabled' : 'disabled'}`);
                         } catch (error) {
                           toast.error('Failed to update setting');
                         } finally {

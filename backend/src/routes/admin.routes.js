@@ -2317,7 +2317,7 @@ router.get('/profile', async (req, res) => {
        institution_type, verification_status, trial_ends_at, created_at,
        pricing_plan, subscription_status, current_period_end, stripe_customer_id,
        enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency,
-       fee_tracking_mode, fee_prorate_mid_period
+       fee_tracking_mode, fee_prorate_mid_period, availability_planner_aware
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -2360,7 +2360,7 @@ router.get('/profile', async (req, res) => {
 router.put('/settings', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period } = req.body;
+    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, availability_planner_aware } = req.body;
 
     const updates = [];
     const params = [];
@@ -2407,6 +2407,10 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
       updates.push('fee_prorate_mid_period = ?');
       params.push(fee_prorate_mid_period);
     }
+    if (typeof availability_planner_aware === 'boolean') {
+      updates.push('availability_planner_aware = ?');
+      params.push(availability_planner_aware);
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No valid settings provided' });
@@ -2420,7 +2424,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
 
     // Return updated settings
     const [updated] = await pool.query(
-      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period FROM madrasahs WHERE id = ?',
+      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, availability_planner_aware FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
 

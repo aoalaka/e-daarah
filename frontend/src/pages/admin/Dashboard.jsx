@@ -4960,7 +4960,34 @@ function AdminDashboard() {
                     <div className="fee-report">
                       <div className="fee-report-header no-print">
                         <button className="btn btn-secondary" onClick={() => loadFeeReport()}>Refresh</button>
-                        <button className="btn btn-primary" onClick={() => window.print()}>Print Report</button>
+                        <button className="btn btn-primary" onClick={() => {
+                          const reportEl = document.querySelector('.fee-report');
+                          if (!reportEl) return;
+                          const printWindow = window.open('', '_blank', 'width=800,height=600');
+                          if (!printWindow) { toast.error('Please allow pop-ups to print'); return; }
+                          const reportHtml = reportEl.cloneNode(true);
+                          // Remove no-print elements
+                          reportHtml.querySelectorAll('.no-print').forEach(el => el.remove());
+                          // Show print-only elements
+                          const printTitle = reportHtml.querySelector('.fee-report-print-title');
+                          if (printTitle) printTitle.style.display = 'block';
+                          // Get styles
+                          const styles = Array.from(document.styleSheets).map(sheet => {
+                            try { return Array.from(sheet.cssRules).map(r => r.cssText).join('\n'); } catch(e) { return ''; }
+                          }).join('\n');
+                          printWindow.document.write(`<!DOCTYPE html><html><head><title>Fee Report</title><style>${styles}
+                            body { margin: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+                            .fee-report { max-width: none; width: 100%; }
+                            .fee-report-print-title { display: block !important; text-align: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #333; }
+                            .fee-report-print-title h2 { font-size: 20px; margin: 0 0 4px 0; }
+                            .fee-report-print-title p { font-size: 12px; color: #666; margin: 0; }
+                            .fee-report-header { display: none !important; }
+                            .fee-report-period { display: none !important; }
+                            @media print { @page { size: A4; margin: 8mm 12mm; } body { margin: 0; } }
+                          </style></head><body>${reportHtml.outerHTML}</body></html>`);
+                          printWindow.document.close();
+                          printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
+                        }}>Print Report</button>
                       </div>
 
                       {/* Report title for print */}

@@ -80,7 +80,16 @@ app.use((req, res, next) => {
 // Rate limiting - general API
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
+  max: 300, // 300 requests per window
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Rate limiting - public read-only endpoints (madrasah lookup, enroll page)
+const publicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 60, // 60 requests per window
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false
@@ -133,6 +142,10 @@ app.use('/api/password', passwordLimiter);
 
 // Apply lenient rate limiting to search endpoint
 app.use('/api/auth/madrasahs/search', searchLimiter);
+
+// Apply separate limiter for public read-only endpoints
+app.use('/api/auth/madrasah/', publicLimiter);
+app.use('/api/auth/student-application', publicLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);

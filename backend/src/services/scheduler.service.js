@@ -90,6 +90,26 @@ export const checkTrialExpirations = async () => {
 };
 
 /**
+ * Delete rejected student applications older than 30 days
+ */
+export const cleanupRejectedApplications = async () => {
+  try {
+    const [result] = await pool.query(
+      'DELETE FROM student_applications WHERE status = ? AND rejected_at < DATE_SUB(NOW(), INTERVAL 30 DAY)',
+      ['rejected']
+    );
+    if (result.affectedRows > 0) {
+      console.log(`[Scheduler] Cleaned up ${result.affectedRows} rejected applications`);
+    }
+  } catch (error) {
+    // Table may not exist yet
+    if (error.code !== 'ER_NO_SUCH_TABLE') {
+      console.error('[Scheduler] Rejected applications cleanup error:', error.message);
+    }
+  }
+};
+
+/**
  * Start the scheduler with interval-based execution
  * @param {number} intervalHours - How often to run (default: 24 hours)
  */
@@ -118,6 +138,12 @@ export const startScheduler = (intervalHours = 24) => {
   cleanupExpiredSessions().catch(err => {
     console.error('[Scheduler] Initial session cleanup error:', err.message);
   });
+
+  // Rejected applications cleanup — runs daily alongside trial checks
+  cleanupRejectedApplications().catch(console.error);
+  setInterval(() => {
+    cleanupRejectedApplications().catch(console.error);
+  }, intervalMs);
 };
 
 export default { checkTrialExpirations, startScheduler };

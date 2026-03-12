@@ -4226,4 +4226,139 @@ router.get('/teacher-availability/upcoming', async (req, res) => {
   }
 });
 
+// ─── Student Applications ───
+
+// List all applications
+router.get('/student-applications', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const status = req.query.status || 'pending';
+    const [rows] = await pool.query(
+      `SELECT * FROM student_applications
+       WHERE madrasah_id = ? AND status = ?
+       ORDER BY created_at DESC`,
+      [madrasahId, status]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch applications:', error);
+    res.status(500).json({ error: 'Failed to fetch applications' });
+  }
+});
+
+// Count pending applications
+router.get('/student-applications/count', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [[{ count }]] = await pool.query(
+      'SELECT COUNT(*) as count FROM student_applications WHERE madrasah_id = ? AND status = ?',
+      [madrasahId, 'pending']
+    );
+    res.json({ count });
+  } catch (error) {
+    console.error('Failed to count applications:', error);
+    res.status(500).json({ error: 'Failed to count applications' });
+  }
+});
+
+// Approve application — creates a student record
+router.post('/student-applications/:id/approve', requireActiveSubscription, enforceStudentLimit, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const applicationId = req.params.id;
+    const { student_id, class_id, expected_fee, fee_note } = req.body;
+
+    if (!student_id) {
+      return res.status(400).json({ error: 'Student ID is required' });
+    }
+
+    // Get the application
+    const [apps] = await pool.query(
+      'SELECT * FROM student_applications WHERE id = ? AND madrasah_id = ? AND status = ?',
+      [applicationId, madrasahId, 'pending']
+    );
+    if (apps.length === 0) {
+      return res.status(404).json({ error: 'Application not found or already processed' });
+    }
+    const app = apps[0];
+
+    // Validate class if provided
+    if (class_id) {
+      const [classCheck] = await pool.query(
+        'SELECT id FROM classes WHERE id = ? AND madrasah_id = ?',
+        [class_id, madrasahId]
+      );
+      if (classCheck.length === 0) {
+        return res.status(400).json({ error: 'Invalid class' });
+      }
+    }
+
+    // Create the student
+    const [result] = await pool.query(
+      `INSERT INTO students (madrasah_id, first_name, last_name, student_id, gender, email, class_id,
+         student_phone, student_phone_country_code, street, city, state, country, date_of_birth,
+         parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, parent_guardian_phone_country_code,
+         notes, expected_fee, fee_note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [madrasahId, app.first_name, app.last_name, student_id, app.gender, app.email, class_id || null,
+       app.phone, app.phone_country_code, app.street, app.city, app.state, app.country, app.date_of_birth,
+       app.parent_guardian_name, app.parent_guardian_relationship,
+       app.parent_guardian_phone, app.parent_guardian_phone_country_code,
+       app.notes, expected_fee != null ? parseFloat(expected_fee) : null, fee_note || null]
+    );
+
+    // Mark application as approved
+    await pool.query(
+      'UPDATE student_applications SET status = ? WHERE id = ?',
+      ['approved', applicationId]
+    );
+
+    res.json({ message: 'Application approved', studentId: result.insertId });
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'Student ID already exists in this madrasah' });
+    }
+    console.error('Failed to approve application:', error);
+    res.status(500).json({ error: 'Failed to approve application' });
+  }
+});
+
+// Reject application
+router.post('/student-applications/:id/reject', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const applicationId = req.params.id;
+
+    const [result] = await pool.query(
+      'UPDATE student_applications SET status = ?, rejected_at = NOW() WHERE id = ? AND madrasah_id = ? AND status = ?',
+      ['rejected', applicationId, madrasahId, 'pending']
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Application not found or already processed' });
+    }
+    res.json({ message: 'Application rejected' });
+  } catch (error) {
+    console.error('Failed to reject application:', error);
+    res.status(500).json({ error: 'Failed to reject application' });
+  }
+});
+
+// Delete an application (manual cleanup)
+router.delete('/student-applications/:id', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [result] = await pool.query(
+      'DELETE FROM student_applications WHERE id = ? AND madrasah_id = ?',
+      [req.params.id, madrasahId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    res.json({ message: 'Application deleted' });
+  } catch (error) {
+    console.error('Failed to delete application:', error);
+    res.status(500).json({ error: 'Failed to delete application' });
+  }
+});
+
 export default router;

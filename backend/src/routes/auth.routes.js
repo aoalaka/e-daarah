@@ -1432,4 +1432,65 @@ router.get('/verification-status', authenticateToken, async (req, res) => {
   }
 });
 
+// ─── Public Student Application ───
+router.post('/student-application', async (req, res) => {
+  try {
+    const {
+      madrasahSlug, first_name, last_name, gender, date_of_birth,
+      email, phone, phone_country_code,
+      street, city, state, country,
+      parent_guardian_name, parent_guardian_relationship,
+      parent_guardian_phone, parent_guardian_phone_country_code,
+      notes
+    } = req.body;
+
+    if (!madrasahSlug || !first_name || !last_name || !gender) {
+      return res.status(400).json({ error: 'Student name and gender are required' });
+    }
+
+    if (!isValidName(first_name) || !isValidName(last_name)) {
+      return res.status(400).json({ error: 'Invalid name format' });
+    }
+
+    if (!['Male', 'Female'].includes(gender)) {
+      return res.status(400).json({ error: 'Gender must be Male or Female' });
+    }
+
+    if (email && !isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Resolve madrasah
+    const [madrasahs] = await pool.query(
+      'SELECT id FROM madrasahs WHERE slug = ? AND is_active = TRUE AND deleted_at IS NULL',
+      [madrasahSlug]
+    );
+    if (madrasahs.length === 0) {
+      return res.status(404).json({ error: 'Madrasah not found' });
+    }
+    const madrasahId = madrasahs[0].id;
+
+    const guardianPhone = parent_guardian_phone ? normalizePhone(parent_guardian_phone) : null;
+
+    await pool.query(
+      `INSERT INTO student_applications
+        (madrasah_id, first_name, last_name, gender, date_of_birth, email, phone, phone_country_code,
+         street, city, state, country, parent_guardian_name, parent_guardian_relationship,
+         parent_guardian_phone, parent_guardian_phone_country_code, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [madrasahId, first_name.trim(), last_name.trim(), gender, date_of_birth || null,
+       email || null, phone || null, phone_country_code || '+64',
+       street || null, city || null, state || null, country || null,
+       parent_guardian_name || null, parent_guardian_relationship || null,
+       guardianPhone, parent_guardian_phone_country_code || '+64',
+       notes || null]
+    );
+
+    res.status(201).json({ message: 'Application submitted successfully' });
+  } catch (error) {
+    console.error('Student application error:', error);
+    res.status(500).json({ error: 'Failed to submit application' });
+  }
+});
+
 export default router;

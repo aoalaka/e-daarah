@@ -475,6 +475,37 @@ CREATE TABLE IF NOT EXISTS teacher_availability (
 );
 
 -- =====================================================
+-- Student applications (enrollment requests from public)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS student_applications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    madrasah_id INT NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    gender ENUM('Male', 'Female') NOT NULL,
+    date_of_birth DATE,
+    email VARCHAR(255),
+    phone VARCHAR(20),
+    phone_country_code VARCHAR(5) DEFAULT '+64',
+    street VARCHAR(255),
+    city VARCHAR(100),
+    state VARCHAR(100),
+    country VARCHAR(100),
+    parent_guardian_name VARCHAR(255),
+    parent_guardian_relationship VARCHAR(100),
+    parent_guardian_phone VARCHAR(20),
+    parent_guardian_phone_country_code VARCHAR(5) DEFAULT '+64',
+    notes TEXT,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    rejected_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+    INDEX idx_applications_madrasah_status (madrasah_id, status),
+    INDEX idx_applications_rejected_at (rejected_at)
+);
+
+-- =====================================================
 -- Default data
 -- =====================================================
 

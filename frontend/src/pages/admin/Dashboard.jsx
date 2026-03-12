@@ -94,6 +94,11 @@ function AdminDashboard() {
   const [editingClass, setEditingClass] = useState(null);
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [teacherSubTab, setTeacherSubTab] = useState('list');
+  const [studentSubTab, setStudentSubTab] = useState('list');
+  const [applications, setApplications] = useState([]);
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
+  const [pendingAppCount, setPendingAppCount] = useState(0);
+  const [approveModal, setApproveModal] = useState(null);
   const [editingStudent, setEditingStudent] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
   const [classTeachers, setClassTeachers] = useState([]);
@@ -455,6 +460,18 @@ function AdminDashboard() {
       fetchUpcomingUnavailable();
     }
   }, [activeTab, reportSemester, madrasahProfile]);
+
+  // Fetch applications when Students > Applications sub-tab is active
+  useEffect(() => {
+    if (activeTab === 'students' && studentSubTab === 'applications' && madrasahProfile) {
+      fetchApplications();
+    }
+  }, [activeTab, studentSubTab, madrasahProfile]);
+
+  // Fetch pending application count on load
+  useEffect(() => {
+    if (madrasahProfile) fetchPendingAppCount();
+  }, [madrasahProfile]);
 
   // Fetch availability data when Teachers > Availability sub-tab is active
   useEffect(() => {
@@ -1661,6 +1678,56 @@ function AdminDashboard() {
     }
   };
 
+  const fetchApplications = async () => {
+    setApplicationsLoading(true);
+    try {
+      const response = await api.get('/admin/student-applications?status=pending');
+      setApplications(response.data);
+    } catch (error) {
+      // Table may not exist yet
+    } finally {
+      setApplicationsLoading(false);
+    }
+  };
+
+  const fetchPendingAppCount = async () => {
+    try {
+      const response = await api.get('/admin/student-applications/count');
+      setPendingAppCount(response.data.count);
+    } catch (error) {
+      // Silently fail
+    }
+  };
+
+  const handleApproveApplication = async (applicationId, studentId, classId, expectedFee, feeNote) => {
+    try {
+      await api.post(`/admin/student-applications/${applicationId}/approve`, {
+        student_id: studentId,
+        class_id: classId || null,
+        expected_fee: expectedFee || null,
+        fee_note: feeNote || null,
+      });
+      toast.success('Application approved — student created');
+      setApproveModal(null);
+      fetchApplications();
+      fetchPendingAppCount();
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to approve');
+    }
+  };
+
+  const handleRejectApplication = async (id) => {
+    try {
+      await api.post(`/admin/student-applications/${id}/reject`);
+      toast.success('Application rejected');
+      fetchApplications();
+      fetchPendingAppCount();
+    } catch (error) {
+      toast.error('Failed to reject application');
+    }
+  };
+
   const fetchAvailabilityData = async () => {
     setAvailabilityLoading(true);
     try {
@@ -2330,6 +2397,22 @@ function AdminDashboard() {
                   </div>
 
 
+
+                  {/* Pending Applications */}
+                  {pendingAppCount > 0 && (
+                    <div className="card" style={{ marginTop: 'var(--md)', cursor: 'pointer' }} onClick={() => { setActiveTab('students'); setStudentSubTab('applications'); }}>
+                      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Student Applications</span>
+                        <span style={{ background: '#ef4444', color: '#fff', fontSize: '12px', fontWeight: 700, borderRadius: '10px', padding: '2px 10px' }}>
+                          {pendingAppCount} pending
+                        </span>
+                      </div>
+                      <div style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
+                        You have {pendingAppCount} enrollment {pendingAppCount === 1 ? 'application' : 'applications'} to review.
+                        <span style={{ color: 'var(--accent)', marginLeft: '8px' }}>Review →</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Quick Actions — separated at bottom */}
                   <div className="overview-actions">
@@ -3539,6 +3622,7 @@ function AdminDashboard() {
             <>
               <div className="page-header">
                 <h2 className="page-title">Students</h2>
+                {studentSubTab === 'list' && (
                 <div style={{ display: 'flex', gap: 'var(--sm)', flexWrap: 'wrap' }}>
                   {hasPlusAccess() && (
                     <button
@@ -3573,8 +3657,66 @@ function AdminDashboard() {
                     + New Student
                   </button>
                 </div>
+                )}
               </div>
 
+              {/* Sub-tabs */}
+              <div style={{ display: 'flex', gap: '0', marginBottom: 'var(--md)', borderBottom: '2px solid #e5e7eb' }}>
+                {[{ id: 'list', label: 'Student List' }, { id: 'applications', label: 'Applications', count: pendingAppCount }].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setStudentSubTab(tab.id)}
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '14px',
+                      fontWeight: studentSubTab === tab.id ? 600 : 400,
+                      color: studentSubTab === tab.id ? 'var(--accent)' : '#6b7280',
+                      background: 'none',
+                      border: 'none',
+                      borderBottom: studentSubTab === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
+                      marginBottom: '-2px',
+                      cursor: 'pointer',
+                      minHeight: '44px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <span style={{
+                        background: '#ef4444',
+                        color: '#fff',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        borderRadius: '10px',
+                        padding: '1px 7px',
+                        minWidth: '18px',
+                        textAlign: 'center',
+                      }}>{tab.count}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Enrollment link */}
+              {studentSubTab === 'applications' && (
+                <div className="info-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sm)', flexWrap: 'wrap', padding: '12px 16px', background: '#fafafa', borderRadius: '8px', fontSize: '13px', color: '#525252', marginBottom: 'var(--md)' }}>
+                  <span>Share this link for public enrollment:</span>
+                  <code
+                    style={{ padding: '4px 10px', background: '#f0f0f0', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', userSelect: 'all' }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/${madrasahSlug}/enroll`);
+                      toast.success('Link copied');
+                    }}
+                  >
+                    {window.location.origin}/{madrasahSlug}/enroll
+                  </code>
+                </div>
+              )}
+
+              {studentSubTab === 'list' && (
+              <>
               {/* Bulk set enrollment date */}
               {showBulkEnrollment && (
                 <div className="card" style={{ marginBottom: '16px', padding: '16px' }}>
@@ -4492,6 +4634,152 @@ function AdminDashboard() {
                 </div>
               )}
               </>
+              )}
+              </>
+              )}
+
+              {/* Applications Sub-Tab */}
+              {studentSubTab === 'applications' && (
+              <>
+                {applicationsLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>Loading...</div>
+                ) : applications.length === 0 ? (
+                  <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
+                    <p style={{ color: '#9ca3af', margin: 0 }}>No pending applications</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {applications.map(app => (
+                      <div key={app.id} className="card" style={{ padding: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                          <div style={{ flex: 1, minWidth: '200px' }}>
+                            <div style={{ fontWeight: 600, fontSize: '15px' }}>{app.first_name} {app.last_name}</div>
+                            <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>
+                              {app.gender}{app.date_of_birth ? ` · Born ${new Date(app.date_of_birth.split('T')[0] + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}` : ''}
+                            </div>
+                            {app.parent_guardian_name && (
+                              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
+                                Guardian: {app.parent_guardian_name}{app.parent_guardian_relationship ? ` (${app.parent_guardian_relationship})` : ''}
+                                {app.parent_guardian_phone ? ` · ${app.parent_guardian_phone}` : ''}
+                              </div>
+                            )}
+                            {app.email && <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{app.email}</div>}
+                            {(app.city || app.country) && (
+                              <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px' }}>
+                                {[app.street, app.city, app.state, app.country].filter(Boolean).join(', ')}
+                              </div>
+                            )}
+                            {app.notes && <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px', fontStyle: 'italic' }}>{app.notes}</div>}
+                            <div style={{ fontSize: '12px', color: '#d1d5db', marginTop: '6px' }}>
+                              Applied {new Date(app.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => setApproveModal({ ...app, student_id: '', class_id: '', expected_fee: '', fee_note: '' })}
+                              disabled={isReadOnly()}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => {
+                                if (window.confirm(`Reject application from ${app.first_name} ${app.last_name}?`)) {
+                                  handleRejectApplication(app.id);
+                                }
+                              }}
+                              disabled={isReadOnly()}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+              )}
+
+              {/* Approve Modal */}
+              {approveModal && (
+                <div className="modal-overlay" onClick={() => setApproveModal(null)}>
+                  <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+                    <div className="modal-header">
+                      <h3 className="modal-title">Approve Application</h3>
+                      <button onClick={() => setApproveModal(null)} className="modal-close">×</button>
+                    </div>
+                    <div className="modal-body">
+                      <p style={{ fontSize: '14px', color: '#525252', margin: '0 0 16px' }}>
+                        Approve <strong>{approveModal.first_name} {approveModal.last_name}</strong> and create a student record.
+                      </p>
+                      <div className="form-group" style={{ marginBottom: '12px' }}>
+                        <label className="form-label">Student ID *</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={approveModal.student_id}
+                          onChange={(e) => setApproveModal({ ...approveModal, student_id: e.target.value })}
+                          placeholder="e.g. 00001"
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '12px' }}>
+                        <label className="form-label">Assign to Class</label>
+                        <select
+                          className="form-select"
+                          value={approveModal.class_id}
+                          onChange={(e) => setApproveModal({ ...approveModal, class_id: e.target.value })}
+                        >
+                          <option value="">No class (assign later)</option>
+                          {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      {madrasahProfile?.enable_fee_tracking && (
+                        <>
+                          <div className="form-group" style={{ marginBottom: '12px' }}>
+                            <label className="form-label">Expected Fee</label>
+                            <input
+                              type="number"
+                              className="form-input"
+                              value={approveModal.expected_fee}
+                              onChange={(e) => setApproveModal({ ...approveModal, expected_fee: e.target.value })}
+                              placeholder="0.00"
+                              step="0.01"
+                            />
+                          </div>
+                          <div className="form-group" style={{ marginBottom: '12px' }}>
+                            <label className="form-label">Fee Note</label>
+                            <input
+                              type="text"
+                              className="form-input"
+                              value={approveModal.fee_note}
+                              onChange={(e) => setApproveModal({ ...approveModal, fee_note: e.target.value })}
+                              placeholder="Optional note"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <div className="modal-footer">
+                      <button onClick={() => setApproveModal(null)} className="btn btn-secondary">Cancel</button>
+                      <button
+                        onClick={() => handleApproveApplication(
+                          approveModal.id,
+                          approveModal.student_id,
+                          approveModal.class_id,
+                          approveModal.expected_fee,
+                          approveModal.fee_note
+                        )}
+                        className="btn btn-primary"
+                        disabled={!approveModal.student_id}
+                      >
+                        Approve & Create Student
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
 
             </>

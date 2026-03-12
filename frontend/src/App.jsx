@@ -30,6 +30,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import ParentLogin from './pages/ParentLogin';
 import ParentReport from './pages/ParentReport';
 import TeacherRegistration from './pages/TeacherRegistration';
+import StudentApplication from './pages/StudentApplication';
 import AdminDashboard from './pages/admin/Dashboard';
 import TeacherDashboard from './pages/teacher/Dashboard';
 import SoloDashboard from './pages/solo/Dashboard';
@@ -53,6 +54,7 @@ function MadrasahRoutes() {
         <Route path="parent-login" element={<ParentLogin />} />
         <Route path="parent" element={<ParentReport />} />
         <Route path="register-teacher" element={<TeacherRegistration />} />
+        <Route path="enroll" element={<StudentApplication />} />
 
         <Route
           path="admin/*"

@@ -24,8 +24,12 @@ export function MadrasahProvider({ children }) {
         setError(null);
       } catch (err) {
         console.error('Madrasah lookup failed:', err);
-        setError('Madrasah not found');
-        navigate('/', { replace: true });
+        if (err.response?.status === 429) {
+          setError('Too many requests. Please wait a moment and refresh the page.');
+        } else {
+          setError('Madrasah not found');
+          navigate('/', { replace: true });
+        }
       } finally {
         setLoading(false);
       }
@@ -49,7 +53,38 @@ export function MadrasahProvider({ children }) {
   }
 
   if (error) {
-    return null; // Will redirect
+    if (error.includes('Too many requests')) {
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+          padding: '20px',
+          textAlign: 'center'
+        }}>
+          <h2 style={{ marginBottom: '8px', color: '#374151' }}>Too Many Requests</h2>
+          <p style={{ color: '#6b7280', marginBottom: '16px' }}>Please wait a moment and try again.</p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '10px 24px',
+              background: '#2563eb',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return null; // Will redirect for other errors
   }
 
   return (

@@ -3645,10 +3645,14 @@ function AdminDashboard() {
                   <button onClick={() => { setShowBulkEnrollment(!showBulkEnrollment); }} className="btn btn-secondary" disabled={isReadOnly()}>
                     Set Enrollment Date
                   </button>
-                  <button onClick={() => {
+                  <button onClick={async () => {
                     setEditingStudent(null);
+                    let nextId = '';
+                    if (!showStudentForm) {
+                      try { const res = await api.get('/admin/next-student-id'); nextId = res.data.student_id; } catch(e) {}
+                    }
                     setNewStudent({
-                      first_name: '', last_name: '', student_id: '', gender: '', class_id: '',
+                      first_name: '', last_name: '', student_id: nextId, gender: '', class_id: '',
                       parent_guardian_name: '', parent_guardian_relationship: '', parent_guardian_phone: '', notes: ''
                     });
                     setShowStudentForm(!showStudentForm);
@@ -4677,7 +4681,11 @@ function AdminDashboard() {
                           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                             <button
                               className="btn btn-primary btn-sm"
-                              onClick={() => setApproveModal({ ...app, student_id: '', class_id: '', expected_fee: '', fee_note: '' })}
+                              onClick={async () => {
+                                let nextId = '';
+                                try { const res = await api.get('/admin/next-student-id'); nextId = res.data.student_id; } catch(e) {}
+                                setApproveModal({ ...app, student_id: nextId, class_id: '', expected_fee: '', fee_note: '' });
+                              }}
                               disabled={isReadOnly()}
                             >
                               Approve

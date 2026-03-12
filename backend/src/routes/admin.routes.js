@@ -745,6 +745,26 @@ router.get('/students', async (req, res) => {
   }
 });
 
+// Generate next student ID for a madrasah
+const getNextStudentId = async (madrasahId) => {
+  const [[{ maxId }]] = await pool.query(
+    `SELECT MAX(CAST(student_id AS UNSIGNED)) as maxId
+     FROM students WHERE madrasah_id = ? AND student_id REGEXP '^[0-9]+$' AND deleted_at IS NULL`,
+    [madrasahId]
+  );
+  return String((maxId || 0) + 1).padStart(5, '0');
+};
+
+router.get('/next-student-id', async (req, res) => {
+  try {
+    const nextId = await getNextStudentId(req.madrasahId);
+    res.json({ student_id: nextId });
+  } catch (error) {
+    console.error('Failed to generate student ID:', error);
+    res.status(500).json({ error: 'Failed to generate student ID' });
+  }
+});
+
 // Create student (scoped to madrasah)
 router.post('/students', requireActiveSubscription, enforceStudentLimit, async (req, res) => {
   try {
@@ -4266,10 +4286,11 @@ router.post('/student-applications/:id/approve', requireActiveSubscription, enfo
   try {
     const madrasahId = req.madrasahId;
     const applicationId = req.params.id;
-    const { student_id, class_id, expected_fee, fee_note } = req.body;
+    let { student_id, class_id, expected_fee, fee_note } = req.body;
 
+    // Auto-generate student_id if not provided
     if (!student_id) {
-      return res.status(400).json({ error: 'Student ID is required' });
+      student_id = await getNextStudentId(madrasahId);
     }
 
     // Get the application

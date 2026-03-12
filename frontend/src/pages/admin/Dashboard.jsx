@@ -4960,30 +4960,7 @@ function AdminDashboard() {
                     <div className="fee-report">
                       <div className="fee-report-header no-print">
                         <button className="btn btn-secondary" onClick={() => loadFeeReport()}>Refresh</button>
-                        <button className="btn btn-primary" onClick={async () => {
-                          const reportEl = document.querySelector('.fee-report');
-                          if (!reportEl) return;
-                          const clone = reportEl.cloneNode(true);
-                          clone.querySelectorAll('.no-print').forEach(el => el.remove());
-                          const printTitle = clone.querySelector('.fee-report-print-title');
-                          if (printTitle) printTitle.style.display = 'block';
-                          toast.info('Generating PDF...');
-                          try {
-                            const { default: html2pdf } = await import('html2pdf.js');
-                            const blob = await html2pdf().set({
-                              margin: [10, 10, 10, 10],
-                              filename: `fee-report-${new Date().toISOString().split('T')[0]}.pdf`,
-                              image: { type: 'jpeg', quality: 0.95 },
-                              html2canvas: { scale: 2, useCORS: true },
-                              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                            }).from(clone).outputPdf('blob');
-                            const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-                            window.open(url, '_blank');
-                          } catch (err) {
-                            console.error('PDF generation failed:', err);
-                            toast.error('Failed to generate PDF');
-                          }
-                        }}>Print Report</button>
+                        <button className="btn btn-primary" onClick={() => window.print()}>Print Report</button>
                       </div>
 
                       {/* Report title for print */}

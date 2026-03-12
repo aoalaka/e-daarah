@@ -193,6 +193,41 @@ function Landing() {
         </div>
       </section>
 
+      {/* Install as App */}
+      <section className="install-app scroll-reveal" ref={addRevealRef}>
+        <div className="section-inner">
+          <p className="section-label">Works Like a Mobile App</p>
+          <h2 className="section-heading">Add e-Daarah to your home screen</h2>
+          <p className="section-desc">No app store needed. Install it directly from your browser in seconds.</p>
+          <div className="install-grid">
+            <div className="install-card">
+              <div className="install-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 18.5V3.5M12 3.5l5 5M12 3.5l-5 5"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+              </div>
+              <h3>iPhone / iPad</h3>
+              <ol className="install-steps">
+                <li>Open <strong>e-daarah.com</strong> in Safari</li>
+                <li>Tap the <strong>Share</strong> button <span className="install-inline-icon">⬆</span></li>
+                <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                <li>Tap <strong>Add</strong> — done!</li>
+              </ol>
+            </div>
+            <div className="install-card">
+              <div className="install-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </div>
+              <h3>Android</h3>
+              <ol className="install-steps">
+                <li>Open <strong>e-daarah.com</strong> in Chrome</li>
+                <li>Tap the <strong>menu</strong> <span className="install-inline-icon">⋮</span> (three dots)</li>
+                <li>Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong></li>
+                <li>Tap <strong>Install</strong> — done!</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* How It Works */}
       <section className="how-it-works scroll-reveal" ref={addRevealRef}>
         <div className="section-inner">

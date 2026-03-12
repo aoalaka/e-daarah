@@ -672,6 +672,104 @@
   color: var(--black);
 }
 
+/* ── Install as App ── */
+.install-app {
+  padding: 60px 20px;
+  background: #f8fafb;
+  border-bottom: 1px solid var(--light);
+}
+
+.install-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 680px;
+  margin: 36px auto 0;
+}
+
+.install-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 28px 24px;
+  text-align: left;
+}
+
+.install-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--black);
+  color: #fff;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.install-card h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 14px;
+  color: var(--black);
+}
+
+.install-steps {
+  list-style: none;
+  counter-reset: step;
+  padding: 0;
+  margin: 0;
+}
+
+.install-steps li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 28px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #525252;
+  margin-bottom: 10px;
+}
+
+.install-steps li:last-child {
+  margin-bottom: 0;
+}
+
+.install-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 20px;
+  height: 20px;
+  background: #f3f4f6;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.install-inline-icon {
+  display: inline-block;
+  font-size: 14px;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+  .install-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .install-card {
+    padding: 22px 20px;
+  }
+}
+
 /* ── How It Works ── */
 .how-it-works {
   padding: 80px 20px;

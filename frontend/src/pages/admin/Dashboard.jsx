@@ -4039,7 +4039,7 @@ function AdminDashboard() {
                           />
                         </div>
                       </div>
-                      {madrasahProfile?.enable_fee_tracking && (
+                      {madrasahProfile?.enable_fee_tracking && madrasahProfile?.fee_tracking_mode !== 'auto' && (
                         <div className="form-grid form-grid-2">
                           <div className="form-group">
                             <label className="form-label">Expected Fee</label>
@@ -4744,7 +4744,7 @@ function AdminDashboard() {
                           {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                       </div>
-                      {madrasahProfile?.enable_fee_tracking && (
+                      {madrasahProfile?.enable_fee_tracking && madrasahProfile?.fee_tracking_mode !== 'auto' && (
                         <>
                           <div className="form-group" style={{ marginBottom: '12px' }}>
                             <label className="form-label">Expected Fee</label>
@@ -4768,6 +4768,11 @@ function AdminDashboard() {
                             />
                           </div>
                         </>
+                      )}
+                      {madrasahProfile?.enable_fee_tracking && madrasahProfile?.fee_tracking_mode === 'auto' && (
+                        <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 12px', padding: '8px 12px', background: '#f3f4f6', borderRadius: '6px' }}>
+                          Fees will be auto-calculated from your fee schedules.
+                        </p>
                       )}
                     </div>
                     <div className="modal-footer">

@@ -295,8 +295,8 @@ function Landing() {
               <p>See which students are missing too many days before it becomes a problem. Get alerts, not surprises.</p>
             </div>
             <div className="feature-card">
-              <h3>Fee Records Parents Can See</h3>
-              <p>Parents see exactly what they owe and what they've paid — no arguments. You see who's behind at a glance, so you can follow up before it piles up.</p>
+              <h3>Fee Tracking — Manual or Auto</h3>
+              <p>Set fees manually per student, or let the system calculate them from fee schedules based on your academic planner. Either way, parents see what they owe and you see who's behind.</p>
             </div>
             <div className="feature-card">
               <h3>Parents Stay in the Loop</h3>
@@ -325,6 +325,10 @@ function Landing() {
             <div className="feature-card">
               <h3>Reports &amp; Exports</h3>
               <p>Download attendance records, student reports, and exam results as CSV or PDF. Ready for your committee meetings.</p>
+            </div>
+            <div className="feature-card">
+              <h3>Online Student Enrollment</h3>
+              <p>Share your enrollment link and let parents submit applications online. Review, approve, and assign students to classes — or reject with one click.</p>
             </div>
             <div className="feature-card">
               <h3>SMS Notifications</h3>

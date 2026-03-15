@@ -2346,7 +2346,9 @@ router.get('/profile', async (req, res) => {
        institution_type, verification_status, trial_ends_at, created_at,
        pricing_plan, subscription_status, current_period_end, stripe_customer_id,
        enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency,
-       fee_tracking_mode, fee_prorate_mid_period${hasAvailabilityCol ? ', availability_planner_aware' : ''}
+       fee_tracking_mode, fee_prorate_mid_period,
+       auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent
+       ${hasAvailabilityCol ? ', availability_planner_aware' : ''}
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -2436,6 +2438,20 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
       updates.push('fee_prorate_mid_period = ?');
       params.push(fee_prorate_mid_period);
     }
+    // Auto fee reminder settings
+    if (typeof req.body.auto_fee_reminder_enabled === 'boolean') {
+      updates.push('auto_fee_reminder_enabled = ?');
+      params.push(req.body.auto_fee_reminder_enabled);
+    }
+    if (typeof req.body.auto_fee_reminder_message === 'string') {
+      updates.push('auto_fee_reminder_message = ?');
+      params.push(req.body.auto_fee_reminder_message.substring(0, 1600));
+    }
+    if (typeof req.body.auto_fee_reminder_day === 'number' && req.body.auto_fee_reminder_day >= 1 && req.body.auto_fee_reminder_day <= 28) {
+      updates.push('auto_fee_reminder_day = ?');
+      params.push(req.body.auto_fee_reminder_day);
+    }
+
     if (typeof availability_planner_aware === 'boolean') {
       try {
         await pool.query('SELECT availability_planner_aware FROM madrasahs LIMIT 0');
@@ -2455,7 +2471,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
     );
 
     // Return updated settings
-    let settingsCols = 'enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period';
+    let settingsCols = 'enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent';
     try {
       await pool.query('SELECT availability_planner_aware FROM madrasahs LIMIT 0');
       settingsCols += ', availability_planner_aware';

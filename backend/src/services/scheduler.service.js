@@ -1,6 +1,7 @@
 import pool from '../config/database.js';
-import { sendTrialExpiringEmail } from './email.service.js';
+import { sendTrialExpiringEmail, sendSmsFailureAlert } from './email.service.js';
 import { cleanupExpiredSessions } from './security.service.js';
+import { sendSMS, formatPhoneNumber, calculateCredits, isSmsConfigured } from './sms.service.js';
 
 /**
  * Check for trials expiring soon and send reminder emails
@@ -110,6 +111,168 @@ export const cleanupRejectedApplications = async () => {
 };
 
 /**
+ * Send automatic monthly fee reminders to all parents
+ * Runs daily — only sends on the configured day of each month during active semesters
+ */
+export const processAutoFeeReminders = async () => {
+  if (!isSmsConfigured()) return;
+
+  const today = new Date();
+  const todayDay = today.getDate();
+  const todayDate = today.toISOString().split('T')[0];
+
+  try {
+    // Find madrasahs with auto reminders enabled, matching today's day, not already sent this month
+    const [madrasahs] = await pool.query(`
+      SELECT m.id, m.name, m.auto_fee_reminder_message, m.auto_fee_reminder_day
+      FROM madrasahs m
+      WHERE m.auto_fee_reminder_enabled = 1
+        AND m.auto_fee_reminder_day = ?
+        AND m.auto_fee_reminder_message IS NOT NULL
+        AND m.deleted_at IS NULL
+        AND m.subscription_status IN ('active', 'trialing')
+        AND (m.auto_fee_reminder_last_sent IS NULL OR MONTH(m.auto_fee_reminder_last_sent) != MONTH(NOW()) OR YEAR(m.auto_fee_reminder_last_sent) != YEAR(NOW()))
+    `, [todayDay]);
+
+    if (madrasahs.length === 0) return;
+
+    console.log(`[Scheduler] Processing auto fee reminders for ${madrasahs.length} madrasah(s)`);
+
+    for (const madrasah of madrasahs) {
+      try {
+        // Check SMS credits
+        const [credits] = await pool.query(
+          'SELECT balance FROM sms_credits WHERE madrasah_id = ?', [madrasah.id]
+        );
+        const balance = credits[0]?.balance || 0;
+        if (balance < 1) {
+          console.log(`[Scheduler] Skipping ${madrasah.name} — no SMS credits`);
+          continue;
+        }
+
+        // Check for active semester
+        const [activeSemesters] = await pool.query(`
+          SELECT sem.id FROM semesters sem
+          JOIN sessions s ON s.id = sem.session_id
+          WHERE s.madrasah_id = ? AND s.is_active = 1 AND s.deleted_at IS NULL
+            AND sem.deleted_at IS NULL AND sem.start_date <= ? AND sem.end_date >= ?
+        `, [madrasah.id, todayDate, todayDate]);
+
+        if (activeSemesters.length === 0) {
+          console.log(`[Scheduler] Skipping ${madrasah.name} — no active semester`);
+          continue;
+        }
+
+        // Get all students with parent phone numbers in active classes
+        const [students] = await pool.query(`
+          SELECT s.id, s.first_name, s.last_name,
+                 s.parent_guardian_phone, s.parent_guardian_phone_country_code
+          FROM students s
+          WHERE s.madrasah_id = ? AND s.deleted_at IS NULL
+            AND s.class_id IS NOT NULL
+            AND s.parent_guardian_phone IS NOT NULL AND s.parent_guardian_phone != ''
+        `, [madrasah.id]);
+
+        if (students.length === 0) {
+          console.log(`[Scheduler] Skipping ${madrasah.name} — no students with parent phones`);
+          continue;
+        }
+
+        // Group by phone number to avoid duplicate messages to same parent
+        const phoneGroups = {};
+        for (const student of students) {
+          const phone = formatPhoneNumber(student.parent_guardian_phone, student.parent_guardian_phone_country_code || '');
+          if (!phone) continue;
+          if (!phoneGroups[phone]) phoneGroups[phone] = [];
+          phoneGroups[phone].push(student);
+        }
+
+        const uniquePhones = Object.keys(phoneGroups);
+        const msgTemplate = madrasah.auto_fee_reminder_message;
+        const estimatedCredits = uniquePhones.length * calculateCredits(msgTemplate);
+
+        if (balance < estimatedCredits) {
+          console.log(`[Scheduler] Skipping ${madrasah.name} — insufficient credits (need ~${estimatedCredits}, have ${balance})`);
+          continue;
+        }
+
+        // Get admin user id for sent_by
+        const [admins] = await pool.query(
+          'SELECT id FROM users WHERE madrasah_id = ? AND role = ? AND deleted_at IS NULL LIMIT 1',
+          [madrasah.id, 'admin']
+        );
+        const adminId = admins[0]?.id || null;
+
+        let sent = 0, failed = 0, totalCreditsUsed = 0;
+        const errors = [];
+
+        for (const [phone, groupStudents] of Object.entries(phoneGroups)) {
+          const studentNames = groupStudents.map(s => `${s.first_name} ${s.last_name}`).join(', ');
+          const firstNames = groupStudents.map(s => s.first_name).join(', ');
+
+          const personalizedMsg = msgTemplate
+            .replace(/\{student_name\}/gi, studentNames)
+            .replace(/\{first_name\}/gi, firstNames)
+            .replace(/\{madrasah_name\}/gi, madrasah.name);
+
+          try {
+            const smsResult = await sendSMS(phone, personalizedMsg);
+            const msgCredits = calculateCredits(personalizedMsg);
+            totalCreditsUsed += msgCredits;
+
+            for (const student of groupStudents) {
+              await pool.query(
+                `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, provider_message_id, credits_used, sent_by)
+                 VALUES (?, ?, ?, ?, 'fee_reminder', ?, ?, ?, ?)`,
+                [madrasah.id, student.id, phone, personalizedMsg, smsResult.status, smsResult.sid,
+                 groupStudents.indexOf(student) === 0 ? msgCredits : 0, adminId]
+              );
+            }
+            sent++;
+          } catch (smsError) {
+            for (const student of groupStudents) {
+              await pool.query(
+                `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, error_message, credits_used, sent_by)
+                 VALUES (?, ?, ?, ?, 'fee_reminder', 'failed', ?, 0, ?)`,
+                [madrasah.id, student.id, phone, personalizedMsg, smsError.message, adminId]
+              );
+            }
+            failed++;
+            errors.push({ phone, error: smsError.message });
+          }
+        }
+
+        // Deduct credits
+        if (totalCreditsUsed > 0) {
+          await pool.query(
+            'UPDATE sms_credits SET balance = balance - ?, total_used = total_used + ? WHERE madrasah_id = ?',
+            [totalCreditsUsed, totalCreditsUsed, madrasah.id]
+          );
+        }
+
+        // Mark as sent this month
+        await pool.query(
+          'UPDATE madrasahs SET auto_fee_reminder_last_sent = ? WHERE id = ?',
+          [todayDate, madrasah.id]
+        );
+
+        console.log(`[Scheduler] ${madrasah.name}: sent ${sent} reminders, ${failed} failed, ${totalCreditsUsed} credits used`);
+
+        if (failed > 0) {
+          sendSmsFailureAlert(madrasah.name, failed, uniquePhones.length, errors).catch(console.error);
+        }
+      } catch (err) {
+        console.error(`[Scheduler] Auto fee reminder error for ${madrasah.name}:`, err.message);
+      }
+    }
+  } catch (error) {
+    if (error.code !== 'ER_BAD_FIELD_ERROR') {
+      console.error('[Scheduler] Auto fee reminders error:', error.message);
+    }
+  }
+};
+
+/**
  * Start the scheduler with interval-based execution
  * @param {number} intervalHours - How often to run (default: 24 hours)
  */
@@ -143,6 +306,12 @@ export const startScheduler = (intervalHours = 24) => {
   cleanupRejectedApplications().catch(console.error);
   setInterval(() => {
     cleanupRejectedApplications().catch(console.error);
+  }, intervalMs);
+
+  // Auto fee reminders — runs daily, sends only on configured day of month
+  processAutoFeeReminders().catch(console.error);
+  setInterval(() => {
+    processAutoFeeReminders().catch(console.error);
   }, intervalMs);
 };
 

@@ -3652,8 +3652,12 @@ function AdminDashboard() {
                       try { const res = await api.get('/admin/next-student-id'); nextId = res.data.student_id; } catch(e) {}
                     }
                     setNewStudent({
-                      first_name: '', last_name: '', student_id: nextId, gender: '', class_id: '',
-                      parent_guardian_name: '', parent_guardian_relationship: '', parent_guardian_phone: '', notes: ''
+                      first_name: '', last_name: '', student_id: nextId, gender: '', class_id: '', enrollment_date: '',
+                      student_phone: '', student_phone_country_code: '+64',
+                      street: '', city: '', state: '', country: '',
+                      parent_guardian_name: '', parent_guardian_relationship: '',
+                      parent_guardian_phone: '', parent_guardian_phone_country_code: '+64', notes: '',
+                      expected_fee: '', fee_note: ''
                     });
                     setShowStudentForm(!showStudentForm);
                     setShowBulkUpload(false);

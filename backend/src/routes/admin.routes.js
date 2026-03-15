@@ -806,7 +806,7 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
        parent_guardian_name, parent_guardian_relationship,
        normalizePhone(parent_guardian_phone, parent_guardian_phone_country_code),
        parent_guardian_phone_country_code, notes,
-       expected_fee != null ? parseFloat(expected_fee) : null, fee_note || null]
+       expected_fee != null && expected_fee !== '' ? parseFloat(expected_fee) : null, fee_note || null]
     );
     res.status(201).json({ id: result.insertId, first_name, last_name, student_id });
   } catch (error) {
@@ -4325,7 +4325,7 @@ router.post('/student-applications/:id/approve', requireActiveSubscription, enfo
        app.phone, app.phone_country_code, app.street, app.city, app.state, app.country, app.date_of_birth,
        app.parent_guardian_name, app.parent_guardian_relationship,
        app.parent_guardian_phone, app.parent_guardian_phone_country_code,
-       app.notes, expected_fee != null ? parseFloat(expected_fee) : null, fee_note || null]
+       app.notes, expected_fee != null && expected_fee !== '' ? parseFloat(expected_fee) : null, fee_note || null]
     );
 
     // Mark application as approved

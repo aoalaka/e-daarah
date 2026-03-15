@@ -284,7 +284,7 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
        parent_guardian_name, parent_guardian_relationship,
        normalizePhone(parent_guardian_phone, parent_guardian_phone_country_code),
        parent_guardian_phone_country_code, notes,
-       expected_fee != null ? parseFloat(expected_fee) : null, fee_note || null]
+       expected_fee != null && expected_fee !== '' ? parseFloat(expected_fee) : null, fee_note || null]
     );
     res.status(201).json({ id: result.insertId, first_name, last_name, student_id });
   } catch (error) {
@@ -365,7 +365,7 @@ router.put('/students/:id', requireActiveSubscription, async (req, res) => {
        parent_guardian_name, parent_guardian_relationship,
        normalizePhone(parent_guardian_phone, parent_guardian_phone_country_code),
        parent_guardian_phone_country_code, notes,
-       expected_fee != null ? parseFloat(expected_fee) : null, fee_note || null, id, madrasahId]
+       expected_fee != null && expected_fee !== '' ? parseFloat(expected_fee) : null, fee_note || null, id, madrasahId]
     );
     res.json({ message: 'Student updated successfully' });
   } catch (error) {

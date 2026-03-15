@@ -332,7 +332,7 @@ function Landing() {
             </div>
             <div className="feature-card">
               <h3>SMS Notifications</h3>
-              <p>Send fee reminders and announcements directly to parents' phones. Buy credit packs as you need them — no monthly commitment.</p>
+              <p>Send fee reminders and announcements to parents via SMS — manually or on autopilot with monthly auto-reminders. Buy credit packs as needed.</p>
             </div>
           </div>
         </div>

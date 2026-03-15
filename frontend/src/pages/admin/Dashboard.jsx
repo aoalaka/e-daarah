@@ -247,6 +247,7 @@ function AdminDashboard() {
   const [smsSelectedStudents, setSmsSelectedStudents] = useState([]);
   const [smsSending, setSmsSending] = useState(false);
   const [smsReminderPage, setSmsReminderPage] = useState(1);
+  const [smsShowRecipients, setSmsShowRecipients] = useState(false);
   const [smsCustomPhone, setSmsCustomPhone] = useState('');
   const [smsCustomMsg, setSmsCustomMsg] = useState('');
   const [smsHistoryFilter, setSmsHistoryFilter] = useState('');
@@ -8131,13 +8132,130 @@ function AdminDashboard() {
                   {/* Fee Reminders Sub-tab */}
                   {smsSubTab === 'reminders' && (
                     <>
+                      {/* Auto Monthly Reminder — prominent card */}
+                      <div className="card" style={{
+                        marginBottom: '16px',
+                        border: madrasahProfile?.auto_fee_reminder_enabled ? '1px solid #22c55e' : '1px solid var(--border, #e5e7eb)',
+                        background: madrasahProfile?.auto_fee_reminder_enabled ? 'var(--surface, #f9fafb)' : undefined
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                          <div style={{ flex: 1, minWidth: '200px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              <h3 style={{ margin: 0 }}>Auto Monthly Reminder</h3>
+                              {madrasahProfile?.auto_fee_reminder_enabled && (
+                                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#16a34a', background: '#dcfce7', padding: '2px 8px', borderRadius: '10px' }}>ACTIVE</span>
+                              )}
+                            </div>
+                            <p className="page-description" style={{ margin: 0 }}>
+                              Automatically send a fee reminder to all parents every month during active semesters. No manual action needed.
+                            </p>
+                          </div>
+                          <label className="toggle-switch" style={{ flexShrink: 0, marginTop: '2px' }}>
+                            <input
+                              type="checkbox"
+                              checked={!!madrasahProfile?.auto_fee_reminder_enabled}
+                              disabled={savingSettings}
+                              onChange={async (e) => {
+                                const enabled = e.target.checked;
+                                const updates = { auto_fee_reminder_enabled: enabled };
+                                if (enabled) {
+                                  updates.auto_fee_reminder_message = madrasahProfile?.auto_fee_reminder_message
+                                    || `Assalaamu Alaikum. This is a reminder from {madrasah_name} that fees for this month are now due. Please ensure payment is made at your earliest convenience. JazakAllahu Khairan.`;
+                                }
+                                setSavingSettings(true);
+                                try {
+                                  const res = await api.put('/admin/settings', updates);
+                                  setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                                  toast.success(enabled ? 'Auto reminder enabled' : 'Auto reminder disabled');
+                                } catch (err) { toast.error('Failed to update'); }
+                                setSavingSettings(false);
+                              }}
+                            />
+                            <span className="toggle-slider"></span>
+                          </label>
+                        </div>
+
+                        {madrasahProfile?.auto_fee_reminder_enabled && (
+                          <div style={{ marginTop: '16px', maxWidth: '520px' }}>
+                            <div className="form-group" style={{ marginBottom: '12px' }}>
+                              <label className="form-label">Send on day of month</label>
+                              <input
+                                type="number"
+                                className="form-input"
+                                style={{ width: '80px' }}
+                                min={1}
+                                max={28}
+                                placeholder="e.g. 1"
+                                value={madrasahProfile?.auto_fee_reminder_day || ''}
+                                onChange={(e) => setMadrasahProfile(prev => ({ ...prev, auto_fee_reminder_day: e.target.value }))}
+                                onBlur={async (e) => {
+                                  const day = parseInt(e.target.value);
+                                  if (!day || day < 1 || day > 28) return;
+                                  setSavingSettings(true);
+                                  try {
+                                    const res = await api.put('/admin/settings', { auto_fee_reminder_day: day });
+                                    setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                                  } catch (err) { toast.error('Failed to update'); }
+                                  setSavingSettings(false);
+                                }}
+                              />
+                            </div>
+
+                            <div className="form-group" style={{ marginBottom: '12px' }}>
+                              <label className="form-label">Message</label>
+                              <textarea
+                                className="form-textarea"
+                                rows={3}
+                                value={madrasahProfile?.auto_fee_reminder_message || ''}
+                                onChange={(e) => setMadrasahProfile(prev => ({ ...prev, auto_fee_reminder_message: e.target.value }))}
+                                maxLength={1600}
+                                placeholder="Type your reminder message..."
+                              />
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                                  Variables: {'{madrasah_name}'} {'{student_name}'} {'{first_name}'}
+                                </span>
+                                <span style={{ fontSize: '0.75rem', color: (madrasahProfile?.auto_fee_reminder_message || '').length > 1400 ? '#dc2626' : 'var(--muted)' }}>
+                                  {(madrasahProfile?.auto_fee_reminder_message || '').length}/1600
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <button
+                                className="btn btn-primary"
+                                disabled={savingSettings || !(madrasahProfile?.auto_fee_reminder_message || '').trim()}
+                                onClick={async () => {
+                                  setSavingSettings(true);
+                                  try {
+                                    const res = await api.put('/admin/settings', {
+                                      auto_fee_reminder_message: madrasahProfile.auto_fee_reminder_message
+                                    });
+                                    setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                                    toast.success('Message saved');
+                                  } catch (err) { toast.error('Failed to save'); }
+                                  setSavingSettings(false);
+                                }}
+                              >
+                                {savingSettings ? 'Saving...' : 'Save Message'}
+                              </button>
+                              {madrasahProfile?.auto_fee_reminder_last_sent && (
+                                <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                                  Last sent: {new Date(madrasahProfile.auto_fee_reminder_last_sent).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Manual Send — collapsible recipients */}
                       <div className="card">
-                        <h3 style={{ marginBottom: '0.25rem' }}>Fee Reminders</h3>
+                        <h3 style={{ marginBottom: '0.25rem' }}>Send Now</h3>
                         <p className="page-description" style={{ marginBottom: '1rem' }}>
-                          Send SMS fee reminders to parents or students. You can send now or set it to repeat automatically each month.
+                          Send a one-time fee reminder to selected students with outstanding balances.
                         </p>
 
-                        {/* Send To + Class Filter */}
                         <div className="form-grid">
                           <div className="form-group">
                             <label className="form-label">Send To</label>
@@ -8157,7 +8275,6 @@ function AdminDashboard() {
                           </div>
                         </div>
 
-                        {/* Message Template */}
                         <div className="form-group">
                           <label className="form-label">Message</label>
                           <textarea className="form-textarea" rows={4} value={smsReminderMsg}
@@ -8173,7 +8290,6 @@ function AdminDashboard() {
                           </div>
                         </div>
 
-                        {/* Student List */}
                         {smsReminderStudents.length === 0 ? (
                           <div className="empty-state">
                             <p>No students with outstanding balances and phone numbers found.</p>
@@ -8215,97 +8331,115 @@ function AdminDashboard() {
 
                             return (
                               <>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                  <label className="form-label" style={{ margin: 0 }}>
-                                    Recipients ({smsSelectedStudents.length} of {smsReminderStudents.length} selected)
-                                  </label>
-                                  <button className="btn btn-sm btn-secondary"
-                                    onClick={() => setSmsSelectedStudents(
-                                      smsSelectedStudents.length === smsReminderStudents.length ? [] : smsReminderStudents.map(s => s.id)
-                                    )}>
-                                    {smsSelectedStudents.length === smsReminderStudents.length ? 'Deselect All' : 'Select All'}
-                                  </button>
-                                </div>
-
-                                {duplicateParents > 0 && (
-                                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '8px 12px', marginBottom: '0.75rem', fontSize: '0.8125rem', color: '#1e40af' }}>
-                                    {uniquePhones} SMS will be sent — {duplicateParents} student{duplicateParents !== 1 ? 's share' : ' shares'} a phone number with another student. Children of the same parent are combined into one message.
+                                {/* Collapsible recipient header */}
+                                <div
+                                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: smsShowRecipients ? '0.75rem' : 0, cursor: 'pointer', padding: '8px 0' }}
+                                  onClick={() => setSmsShowRecipients(!smsShowRecipients)}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '0.75rem', transition: 'transform 0.2s', transform: smsShowRecipients ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block' }}>&#9654;</span>
+                                    <label className="form-label" style={{ margin: 0, cursor: 'pointer' }}>
+                                      {smsSelectedStudents.length} of {smsReminderStudents.length} students selected
+                                    </label>
                                   </div>
-                                )}
-
-                                <div className="table-responsive" style={{ marginBottom: '0.5rem' }}>
-                                  <table className="data-table">
-                                    <thead>
-                                      <tr>
-                                        <th style={{ width: '40px' }}>
-                                          <input type="checkbox"
-                                            checked={smsSelectedStudents.length === smsReminderStudents.length}
-                                            onChange={() => setSmsSelectedStudents(
-                                              smsSelectedStudents.length === smsReminderStudents.length ? [] : smsReminderStudents.map(s => s.id)
-                                            )} />
-                                        </th>
-                                        <th>Student</th>
-                                        <th>Class</th>
-                                        <th>{smsReminderSendTo === 'student' ? 'Student Phone' : 'Parent Phone'}</th>
-                                        <th>Balance</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {paged.map(s => (
-                                        <tr key={s.id}>
-                                          <td>
-                                            <input type="checkbox"
-                                              checked={smsSelectedStudents.includes(s.id)}
-                                              onChange={() => setSmsSelectedStudents(prev =>
-                                                prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
-                                              )} />
-                                          </td>
-                                          <td>{s.first_name} {s.last_name}</td>
-                                          <td>{s.class_name || '—'}</td>
-                                          <td>{formatDisplay(s)}</td>
-                                          <td style={{ color: '#dc2626', fontWeight: '600' }}>{formatCurrency(s.balance)}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-
-                                {/* Pagination */}
-                                {totalPages > 1 && (
-                                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                                    <button className="btn btn-sm btn-secondary" disabled={smsReminderPage <= 1}
-                                      onClick={() => setSmsReminderPage(p => p - 1)}>Previous</button>
-                                    <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>
-                                      Page {smsReminderPage} of {totalPages}
+                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <button className="btn btn-sm btn-secondary"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSmsSelectedStudents(
+                                          smsSelectedStudents.length === smsReminderStudents.length ? [] : smsReminderStudents.map(s => s.id)
+                                        );
+                                      }}>
+                                      {smsSelectedStudents.length === smsReminderStudents.length ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                                      {smsShowRecipients ? 'Hide' : 'Preview'}
                                     </span>
-                                    <button className="btn btn-sm btn-secondary" disabled={smsReminderPage >= totalPages}
-                                      onClick={() => setSmsReminderPage(p => p + 1)}>Next</button>
                                   </div>
-                                )}
+                                </div>
 
-                                {/* Mobile cards */}
-                                <div className="support-mobile-cards" style={{ marginBottom: '1rem' }}>
-                                  {paged.map(s => (
-                                    <div key={s.id} className="admin-mobile-card" style={{ cursor: 'pointer' }}
-                                      onClick={() => setSmsSelectedStudents(prev =>
-                                        prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
-                                      )}>
-                                      <div className="admin-mobile-card-top">
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                          <input type="checkbox" checked={smsSelectedStudents.includes(s.id)} readOnly />
-                                          <div>
-                                            <div className="admin-mobile-card-title">{s.first_name} {s.last_name}</div>
-                                            <div className="admin-mobile-card-sub">{s.class_name || 'No class'} · {formatDisplay(s)}</div>
+                                {smsShowRecipients && (
+                                  <>
+                                    {duplicateParents > 0 && (
+                                      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '8px 12px', marginBottom: '0.75rem', fontSize: '0.8125rem', color: '#1e40af' }}>
+                                        {uniquePhones} SMS will be sent — {duplicateParents} student{duplicateParents !== 1 ? 's share' : ' shares'} a phone number with another student. Children of the same parent are combined into one message.
+                                      </div>
+                                    )}
+
+                                    <div className="table-responsive" style={{ marginBottom: '0.5rem' }}>
+                                      <table className="data-table">
+                                        <thead>
+                                          <tr>
+                                            <th style={{ width: '40px' }}>
+                                              <input type="checkbox"
+                                                checked={smsSelectedStudents.length === smsReminderStudents.length}
+                                                onChange={() => setSmsSelectedStudents(
+                                                  smsSelectedStudents.length === smsReminderStudents.length ? [] : smsReminderStudents.map(s => s.id)
+                                                )} />
+                                            </th>
+                                            <th>Student</th>
+                                            <th>Class</th>
+                                            <th>{smsReminderSendTo === 'student' ? 'Student Phone' : 'Parent Phone'}</th>
+                                            <th>Balance</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {paged.map(s => (
+                                            <tr key={s.id}>
+                                              <td>
+                                                <input type="checkbox"
+                                                  checked={smsSelectedStudents.includes(s.id)}
+                                                  onChange={() => setSmsSelectedStudents(prev =>
+                                                    prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                                  )} />
+                                              </td>
+                                              <td>{s.first_name} {s.last_name}</td>
+                                              <td>{s.class_name || '—'}</td>
+                                              <td>{formatDisplay(s)}</td>
+                                              <td style={{ color: '#dc2626', fontWeight: '600' }}>{formatCurrency(s.balance)}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+
+                                    {totalPages > 1 && (
+                                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                        <button className="btn btn-sm btn-secondary" disabled={smsReminderPage <= 1}
+                                          onClick={() => setSmsReminderPage(p => p - 1)}>Previous</button>
+                                        <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>
+                                          Page {smsReminderPage} of {totalPages}
+                                        </span>
+                                        <button className="btn btn-sm btn-secondary" disabled={smsReminderPage >= totalPages}
+                                          onClick={() => setSmsReminderPage(p => p + 1)}>Next</button>
+                                      </div>
+                                    )}
+
+                                    {/* Mobile cards */}
+                                    <div className="support-mobile-cards" style={{ marginBottom: '1rem' }}>
+                                      {paged.map(s => (
+                                        <div key={s.id} className="admin-mobile-card" style={{ cursor: 'pointer' }}
+                                          onClick={() => setSmsSelectedStudents(prev =>
+                                            prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                                          )}>
+                                          <div className="admin-mobile-card-top">
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                              <input type="checkbox" checked={smsSelectedStudents.includes(s.id)} readOnly />
+                                              <div>
+                                                <div className="admin-mobile-card-title">{s.first_name} {s.last_name}</div>
+                                                <div className="admin-mobile-card-sub">{s.class_name || 'No class'} · {formatDisplay(s)}</div>
+                                              </div>
+                                            </div>
+                                            <span style={{ color: '#dc2626', fontWeight: '600', fontSize: '0.875rem' }}>{formatCurrency(s.balance)}</span>
                                           </div>
                                         </div>
-                                        <span style={{ color: '#dc2626', fontWeight: '600', fontSize: '0.875rem' }}>{formatCurrency(s.balance)}</span>
-                                      </div>
+                                      ))}
                                     </div>
-                                  ))}
-                                </div>
+                                  </>
+                                )}
 
-                                {/* Send Now */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                {/* Send button — always visible */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
                                   <button className="btn btn-primary" onClick={handleSendFeeReminders}
                                     disabled={smsSending || smsSelectedStudents.length === 0 || smsStatus.balance < estimatedCredits}>
                                     {smsSending ? 'Sending...' : `Send Now to ${uniquePhones} recipient${uniquePhones !== 1 ? 's' : ''}`}
@@ -8326,66 +8460,6 @@ function AdminDashboard() {
                             );
                           })()
                         )}
-
-                        {/* Auto-repeat section */}
-                        <div style={{ borderTop: '1px solid var(--border, #e5e7eb)', marginTop: '1.25rem', paddingTop: '1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                              <input
-                                type="checkbox"
-                                checked={!!madrasahProfile?.auto_fee_reminder_enabled}
-                                disabled={savingSettings}
-                                onChange={async (e) => {
-                                  const enabled = e.target.checked;
-                                  const updates = { auto_fee_reminder_enabled: enabled };
-                                  if (enabled) {
-                                    updates.auto_fee_reminder_message = madrasahProfile?.auto_fee_reminder_message
-                                      || `Assalaamu Alaikum. This is a reminder from {madrasah_name} that fees for this month are now due. Please ensure payment is made at your earliest convenience. JazakAllahu Khairan.`;
-                                  }
-                                  setSavingSettings(true);
-                                  try {
-                                    const res = await api.put('/admin/settings', updates);
-                                    setMadrasahProfile(prev => ({ ...prev, ...res.data }));
-                                    toast.success(enabled ? 'Auto reminder enabled' : 'Auto reminder disabled');
-                                  } catch (err) { toast.error('Failed to update'); }
-                                  setSavingSettings(false);
-                                }}
-                              />
-                              Also send this automatically every month on day
-                            </label>
-                            <input
-                              type="number"
-                              className="form-input"
-                              style={{ width: '64px', padding: '4px 8px', textAlign: 'center' }}
-                              min={1}
-                              max={28}
-                              placeholder="1"
-                              disabled={!madrasahProfile?.auto_fee_reminder_enabled}
-                              value={madrasahProfile?.auto_fee_reminder_enabled ? (madrasahProfile?.auto_fee_reminder_day || '') : ''}
-                              onChange={(e) => setMadrasahProfile(prev => ({ ...prev, auto_fee_reminder_day: e.target.value }))}
-                              onBlur={async (e) => {
-                                const day = parseInt(e.target.value);
-                                if (!day || day < 1 || day > 28) return;
-                                setSavingSettings(true);
-                                try {
-                                  const res = await api.put('/admin/settings', { auto_fee_reminder_day: day });
-                                  setMadrasahProfile(prev => ({ ...prev, ...res.data }));
-                                } catch (err) { toast.error('Failed to update'); }
-                                setSavingSettings(false);
-                              }}
-                            />
-                            {madrasahProfile?.auto_fee_reminder_enabled && madrasahProfile?.auto_fee_reminder_last_sent && (
-                              <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-                                · Last sent: {new Date(madrasahProfile.auto_fee_reminder_last_sent).toLocaleDateString()}
-                              </span>
-                            )}
-                          </div>
-                          {madrasahProfile?.auto_fee_reminder_enabled && (
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #6b7280)', margin: '6px 0 0', paddingLeft: '1.5rem' }}>
-                              Sends to all parents with a phone number on file during active semesters. 1 credit per SMS segment.
-                            </p>
-                          )}
-                        </div>
                       </div>
                     </>
                   )}

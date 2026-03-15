@@ -30,6 +30,7 @@ function Pricing() {
         'Teacher availability',
         'Academic planner',
         'Auto fee schedules',
+        'Auto monthly fee reminders',
         'Reports & rankings',
         'Parent portal',
         'CSV/Excel exports'
@@ -53,6 +54,7 @@ function Pricing() {
         'Student promotion tool',
         'Teacher availability tracking',
         'Quick Insights report',
+        'Auto monthly fee reminders',
         'SMS credits (add-on)',
         'Email support (48hr)'
       ],

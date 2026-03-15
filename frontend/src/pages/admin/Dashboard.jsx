@@ -1160,9 +1160,11 @@ function AdminDashboard() {
     try {
       if (editingStudent) {
         await api.put(`/admin/students/${editingStudent.id}`, newStudent);
+        toast.success('Student updated');
         setEditingStudent(null);
       } else {
         await api.post('/admin/students', newStudent);
+        toast.success('Student created');
       }
       setShowStudentForm(false);
       setNewStudent({

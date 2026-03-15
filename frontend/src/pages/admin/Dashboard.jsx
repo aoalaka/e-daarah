@@ -8131,6 +8131,130 @@ function AdminDashboard() {
                   {/* Fee Reminders Sub-tab */}
                   {smsSubTab === 'reminders' && (
                     <>
+                      {/* Auto Monthly Fee Reminder */}
+                      <div className="card" style={{ marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                          <div>
+                            <h3 style={{ margin: 0 }}>Monthly Fee Reminder</h3>
+                            <p className="page-description" style={{ margin: '4px 0 0' }}>
+                              Automatically send a fee reminder to all parents at the start of each month during active semesters.
+                            </p>
+                          </div>
+                          <div className="setting-toggle-row" style={{ margin: 0, padding: 0, border: 'none' }}>
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                checked={!!madrasahProfile?.auto_fee_reminder_enabled}
+                                disabled={savingSettings}
+                                onChange={async (e) => {
+                                  const enabled = e.target.checked;
+                                  if (enabled && !madrasahProfile?.auto_fee_reminder_message) {
+                                    const defaultMsg = `Assalaamu Alaikum. This is a reminder from {madrasah_name} that fees for this month are now due. Please ensure payment is made at your earliest convenience. JazakAllahu Khairan.`;
+                                    setSavingSettings(true);
+                                    try {
+                                      const res = await api.put('/admin/settings', {
+                                        auto_fee_reminder_enabled: true,
+                                        auto_fee_reminder_message: defaultMsg
+                                      });
+                                      setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                                      toast.success('Monthly fee reminder enabled');
+                                    } catch (err) { toast.error('Failed to update setting'); }
+                                    setSavingSettings(false);
+                                  } else {
+                                    setSavingSettings(true);
+                                    try {
+                                      const res = await api.put('/admin/settings', { auto_fee_reminder_enabled: enabled });
+                                      setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                                      toast.success(enabled ? 'Monthly fee reminder enabled' : 'Monthly fee reminder disabled');
+                                    } catch (err) { toast.error('Failed to update setting'); }
+                                    setSavingSettings(false);
+                                  }
+                                }}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {madrasahProfile?.auto_fee_reminder_enabled && (
+                          <div style={{ maxWidth: '520px' }}>
+                            <div className="form-group" style={{ marginBottom: '12px' }}>
+                              <label className="form-label">Send on day of month</label>
+                              <input
+                                type="number"
+                                className="form-input"
+                                style={{ maxWidth: '120px' }}
+                                min={1}
+                                max={28}
+                                placeholder="e.g. 1"
+                                value={madrasahProfile?.auto_fee_reminder_day || ''}
+                                onChange={(e) => setMadrasahProfile(prev => ({ ...prev, auto_fee_reminder_day: e.target.value }))}
+                                onBlur={async (e) => {
+                                  const day = parseInt(e.target.value);
+                                  if (!day || day < 1 || day > 28) return;
+                                  if (day === (madrasahProfile?.auto_fee_reminder_day)) return;
+                                  setSavingSettings(true);
+                                  try {
+                                    const res = await api.put('/admin/settings', { auto_fee_reminder_day: day });
+                                    setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                                  } catch (err) { toast.error('Failed to update'); }
+                                  setSavingSettings(false);
+                                }}
+                              />
+                            </div>
+
+                            <div className="form-group" style={{ marginBottom: '12px' }}>
+                              <label className="form-label">Message Template</label>
+                              <textarea
+                                className="form-textarea"
+                                rows={4}
+                                value={madrasahProfile?.auto_fee_reminder_message || ''}
+                                onChange={(e) => setMadrasahProfile(prev => ({ ...prev, auto_fee_reminder_message: e.target.value }))}
+                                maxLength={1600}
+                                placeholder="Type your reminder message..."
+                              />
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                                  Variables: {'{madrasah_name}'} {'{student_name}'} {'{first_name}'}
+                                </span>
+                                <span style={{ fontSize: '0.75rem', color: (madrasahProfile?.auto_fee_reminder_message || '').length > 1400 ? '#dc2626' : 'var(--muted)' }}>
+                                  {(madrasahProfile?.auto_fee_reminder_message || '').length}/1600
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <button
+                                className="btn btn-primary"
+                                disabled={savingSettings || !(madrasahProfile?.auto_fee_reminder_message || '').trim()}
+                                onClick={async () => {
+                                  setSavingSettings(true);
+                                  try {
+                                    const res = await api.put('/admin/settings', {
+                                      auto_fee_reminder_message: madrasahProfile.auto_fee_reminder_message
+                                    });
+                                    setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                                    toast.success('Reminder template saved');
+                                  } catch (err) { toast.error('Failed to save template'); }
+                                  setSavingSettings(false);
+                                }}
+                              >
+                                {savingSettings ? 'Saving...' : 'Save Template'}
+                              </button>
+                              {madrasahProfile?.auto_fee_reminder_last_sent && (
+                                <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                                  Last sent: {new Date(madrasahProfile.auto_fee_reminder_last_sent).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+
+                            <div style={{ marginTop: '12px', padding: '10px 12px', background: 'var(--surface, #f9fafb)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--text-secondary, #6b7280)' }}>
+                              Reminders are sent once per month on the selected day to all parents with a phone number on file. Messages are grouped per phone number to avoid duplicates. Each SMS uses 1 credit per segment.
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="card">
                         <h3 style={{ marginBottom: '0.25rem' }}>Send Fee Reminders</h3>
                         <p className="page-description" style={{ marginBottom: '1rem' }}>
@@ -8334,130 +8458,8 @@ function AdminDashboard() {
                   {/* Custom Message Sub-tab */}
                   {smsSubTab === 'send' && (
                     <>
-                      {/* Auto Monthly Fee Reminder */}
-                      <div className="card" style={{ marginBottom: '16px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-                          <div>
-                            <h3 style={{ margin: 0 }}>Monthly Fee Reminder</h3>
-                            <p className="page-description" style={{ margin: '4px 0 0' }}>
-                              Automatically send a fee reminder to all parents at the start of each month during active semesters.
-                            </p>
-                          </div>
-                          <div className="setting-toggle-row" style={{ margin: 0, padding: 0, border: 'none' }}>
-                            <label className="toggle-switch">
-                              <input
-                                type="checkbox"
-                                checked={!!madrasahProfile?.auto_fee_reminder_enabled}
-                                disabled={savingSettings}
-                                onChange={async (e) => {
-                                  const enabled = e.target.checked;
-                                  if (enabled && !madrasahProfile?.auto_fee_reminder_message) {
-                                    const defaultMsg = `Assalaamu Alaikum. This is a reminder from {madrasah_name} that fees for this month are now due. Please ensure payment is made at your earliest convenience. JazakAllahu Khairan.`;
-                                    setSavingSettings(true);
-                                    try {
-                                      const res = await api.put('/admin/settings', {
-                                        auto_fee_reminder_enabled: true,
-                                        auto_fee_reminder_message: defaultMsg
-                                      });
-                                      setMadrasahProfile(prev => ({ ...prev, ...res.data }));
-                                      toast.success('Monthly fee reminder enabled');
-                                    } catch (err) { toast.error('Failed to update setting'); }
-                                    setSavingSettings(false);
-                                  } else {
-                                    setSavingSettings(true);
-                                    try {
-                                      const res = await api.put('/admin/settings', { auto_fee_reminder_enabled: enabled });
-                                      setMadrasahProfile(prev => ({ ...prev, ...res.data }));
-                                      toast.success(enabled ? 'Monthly fee reminder enabled' : 'Monthly fee reminder disabled');
-                                    } catch (err) { toast.error('Failed to update setting'); }
-                                    setSavingSettings(false);
-                                  }
-                                }}
-                              />
-                              <span className="toggle-slider"></span>
-                            </label>
-                          </div>
-                        </div>
-
-                        {madrasahProfile?.auto_fee_reminder_enabled && (
-                          <div style={{ maxWidth: '520px' }}>
-                            <div className="form-group" style={{ marginBottom: '12px' }}>
-                              <label className="form-label">Send on day of month</label>
-                              <select
-                                className="form-select"
-                                style={{ maxWidth: '120px' }}
-                                value={madrasahProfile?.auto_fee_reminder_day || 1}
-                                onChange={async (e) => {
-                                  const day = parseInt(e.target.value);
-                                  setSavingSettings(true);
-                                  try {
-                                    const res = await api.put('/admin/settings', { auto_fee_reminder_day: day });
-                                    setMadrasahProfile(prev => ({ ...prev, ...res.data }));
-                                  } catch (err) { toast.error('Failed to update'); }
-                                  setSavingSettings(false);
-                                }}
-                              >
-                                {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
-                                  <option key={d} value={d}>{d}{d === 1 ? 'st' : d === 2 ? 'nd' : d === 3 ? 'rd' : 'th'}</option>
-                                ))}
-                              </select>
-                            </div>
-
-                            <div className="form-group" style={{ marginBottom: '12px' }}>
-                              <label className="form-label">Message Template</label>
-                              <textarea
-                                className="form-textarea"
-                                rows={4}
-                                value={madrasahProfile?.auto_fee_reminder_message || ''}
-                                onChange={(e) => setMadrasahProfile(prev => ({ ...prev, auto_fee_reminder_message: e.target.value }))}
-                                maxLength={1600}
-                                placeholder="Type your reminder message..."
-                              />
-                              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
-                                  Variables: {'{madrasah_name}'} {'{student_name}'} {'{first_name}'}
-                                </span>
-                                <span style={{ fontSize: '0.75rem', color: (madrasahProfile?.auto_fee_reminder_message || '').length > 1400 ? '#dc2626' : 'var(--muted)' }}>
-                                  {(madrasahProfile?.auto_fee_reminder_message || '').length}/1600
-                                </span>
-                              </div>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                              <button
-                                className="btn btn-primary"
-                                disabled={savingSettings || !(madrasahProfile?.auto_fee_reminder_message || '').trim()}
-                                onClick={async () => {
-                                  setSavingSettings(true);
-                                  try {
-                                    const res = await api.put('/admin/settings', {
-                                      auto_fee_reminder_message: madrasahProfile.auto_fee_reminder_message
-                                    });
-                                    setMadrasahProfile(prev => ({ ...prev, ...res.data }));
-                                    toast.success('Reminder template saved');
-                                  } catch (err) { toast.error('Failed to save template'); }
-                                  setSavingSettings(false);
-                                }}
-                              >
-                                {savingSettings ? 'Saving...' : 'Save Template'}
-                              </button>
-                              {madrasahProfile?.auto_fee_reminder_last_sent && (
-                                <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-                                  Last sent: {new Date(madrasahProfile.auto_fee_reminder_last_sent).toLocaleDateString()}
-                                </span>
-                              )}
-                            </div>
-
-                            <div style={{ marginTop: '12px', padding: '10px 12px', background: 'var(--surface, #f9fafb)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--text-secondary, #6b7280)' }}>
-                              Reminders are sent once per month on the selected day to all parents with a phone number on file. Messages are grouped per phone number to avoid duplicates. Each SMS uses 1 credit per segment.
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* One-off Custom Message */}
                       <div className="card">
-                        <h3 style={{ marginBottom: '0.25rem' }}>Send One-off Message</h3>
+                        <h3 style={{ marginBottom: '0.25rem' }}>Send Custom Message</h3>
                         <p className="page-description" style={{ marginBottom: '1rem' }}>
                           Send an SMS to any phone number. Costs 1 credit per SMS segment.
                         </p>

@@ -2100,15 +2100,28 @@ function AdminDashboard() {
                 <>
                   <div className="insights-summary">
                     {/* Card 1: Students */}
-                    <div className="summary-card">
-                      <div className="summary-label">Students</div>
-                      <div className="summary-value">{analyticsData.totalStudents ?? 0}</div>
-                      <div className="summary-status">
-                        {(analyticsData.dropoutCount ?? 0) > 0
-                          ? `${(analyticsData.totalStudents ?? 0) - (analyticsData.dropoutCount ?? 0)} active · ${analyticsData.dropoutCount} dropped out`
-                          : 'All active'}
-                      </div>
-                    </div>
+                    {(() => {
+                      const total = analyticsData.totalStudents ?? 0;
+                      const dropouts = analyticsData.dropoutCount ?? 0;
+                      const active = total - dropouts;
+                      return (
+                        <div className="summary-card summary-card-students">
+                          <div className="summary-label">Students</div>
+                          <div className="summary-students-row">
+                            <div className="summary-students-stat">
+                              <span className="summary-students-num">{active}</span>
+                              <span className="summary-students-sub">Active</span>
+                            </div>
+                            <div className="summary-students-divider" />
+                            <div className="summary-students-stat">
+                              <span className={`summary-students-num${dropouts > 0 ? ' has-dropouts' : ''}`}>{dropouts}</span>
+                              <span className="summary-students-sub">Dropped out</span>
+                            </div>
+                          </div>
+                          <div className="summary-status">{total} total enrolled</div>
+                        </div>
+                      );
+                    })()}
                     {/* Card 3: Poor Behaviour (hidden if behaviour recording is off) */}
                     {analyticsData.behaviorEnabled && (
                     <>

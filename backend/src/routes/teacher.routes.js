@@ -638,7 +638,7 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
 
     // Get all students in the class to ensure attendance is marked for everyone
     const [classStudents] = await pool.query(
-      'SELECT id FROM students WHERE class_id = ? AND madrasah_id = ?',
+      'SELECT id FROM students WHERE class_id = ? AND madrasah_id = ? AND deleted_at IS NULL',
       [classId, madrasahId]
     );
 

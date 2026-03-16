@@ -139,9 +139,10 @@ router.get('/dashboard', authenticateSuperAdmin, async (req, res) => {
        GROUP BY pricing_plan`
     );
 
-    // MRR quick calculation — exclude demo madrasahs
+    // MRR quick calculation — exclude demo madrasahs (list-price estimate, does not reflect coupons)
     const [[{ mrr }]] = await pool.query(`
       SELECT COALESCE(SUM(CASE
+        WHEN pricing_plan = 'solo' AND subscription_status = 'active' THEN 5
         WHEN pricing_plan = 'standard' AND subscription_status = 'active' THEN 12
         WHEN pricing_plan = 'plus' AND subscription_status = 'active' THEN 29
         ELSE 0
@@ -756,15 +757,16 @@ router.get('/revenue', authenticateSuperAdmin, async (req, res) => {
       ORDER BY pricing_plan
     `);
 
-    // Calculate MRR (Monthly Recurring Revenue) — exclude demo madrasahs
+    // Calculate MRR (Monthly Recurring Revenue) — exclude demo madrasahs (list-price estimate, does not reflect coupons)
     const [[mrr]] = await pool.query(`
       SELECT
         COALESCE(SUM(CASE
+          WHEN pricing_plan = 'solo' AND subscription_status = 'active' THEN 5
           WHEN pricing_plan = 'standard' AND subscription_status = 'active' THEN 12
           WHEN pricing_plan = 'plus' AND subscription_status = 'active' THEN 29
           ELSE 0
         END), 0) as mrr,
-        COUNT(CASE WHEN subscription_status = 'active' AND pricing_plan IN ('standard', 'plus') THEN 1 END) as payingCustomers,
+        COUNT(CASE WHEN subscription_status = 'active' AND pricing_plan IN ('solo', 'standard', 'plus') THEN 1 END) as payingCustomers,
         COUNT(CASE WHEN pricing_plan = 'trial' OR subscription_status = 'trialing' THEN 1 END) as trialCount,
         COUNT(CASE WHEN subscription_status = 'canceled' THEN 1 END) as canceledCount,
         COUNT(CASE WHEN subscription_status = 'past_due' THEN 1 END) as pastDueCount

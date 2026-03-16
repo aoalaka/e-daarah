@@ -662,8 +662,8 @@ function SuperAdminDashboard() {
               <div className="stat-label">Total Users</div>
             </div>
             <div className="stat-card">
-              <div className="stat-value">${stats.mrr || 0}</div>
-              <div className="stat-label">MRR</div>
+              <div className="stat-value">${stats.mrr || 0} <span style={{ fontSize: '0.5em', fontWeight: 400, opacity: 0.6 }}>USD</span></div>
+              <div className="stat-label">Est. MRR</div>
             </div>
             <div className="stat-card">
               <div className="stat-value">{stats.activeThisWeek || 0}</div>
@@ -968,14 +968,14 @@ function SuperAdminDashboard() {
         {activeTab === 'revenue' && (
           <section className="table-section">
             <h2>Revenue & Growth</h2>
-            <p className="section-desc">Monthly recurring revenue, plan distribution, and growth trends.</p>
+            <p className="section-desc">Estimated MRR based on list prices (does not reflect coupons or annual discounts). Plan distribution and growth trends.</p>
 
             {revenue && (
               <>
                 <div className="revenue-cards">
                   <div className="revenue-card primary">
                     <div className="revenue-value">${revenue.mrr} <span style={{ fontSize: '0.5em', opacity: 0.7 }}>USD</span></div>
-                    <div className="revenue-label">Monthly Recurring Revenue</div>
+                    <div className="revenue-label">Est. MRR (list price)</div>
                   </div>
                   <div className="revenue-card">
                     <div className="revenue-value">{revenue.payingCustomers}</div>

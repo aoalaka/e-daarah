@@ -52,7 +52,7 @@ async function isValidSchoolDay(madrasahId, dateStr, classId = null) {
   }
   const session = sessions[0];
 
-  // 2. Check if date falls within a semester
+  // 2. Check if date falls within a semester (or if session has any active semester)
   const [semesters] = await pool.query(
     `SELECT id FROM semesters
      WHERE session_id = ? AND deleted_at IS NULL
@@ -60,7 +60,14 @@ async function isValidSchoolDay(madrasahId, dateStr, classId = null) {
     [session.id, dateStr, dateStr]
   );
   if (semesters.length === 0) {
-    return { valid: false, reason: 'Date is not within any semester' };
+    // Allow if there's at least one semester in the session (date may fall in a gap between semesters)
+    const [anySemesters] = await pool.query(
+      `SELECT id FROM semesters WHERE session_id = ? AND deleted_at IS NULL LIMIT 1`,
+      [session.id]
+    );
+    if (anySemesters.length === 0) {
+      return { valid: false, reason: 'No semesters found in this session. Please ask your admin to set up semesters.' };
+    }
   }
 
   // 3. Check if it's a holiday

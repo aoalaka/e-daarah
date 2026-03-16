@@ -2099,33 +2099,16 @@ function AdminDashboard() {
               ) : analyticsData ? (
                 <>
                   <div className="insights-summary">
-                    {/* Card 1: Students — Active vs Dropout */}
-                    {(() => {
-                      const total = analyticsData.totalStudents ?? 0;
-                      const dropouts = analyticsData.dropoutCount ?? 0;
-                      const active = total - dropouts;
-                      const activePercent = total > 0 ? Math.round((active / total) * 100) : 100;
-                      return (
-                        <div className="summary-card" style={{ minWidth: '220px' }}>
-                          <div className="summary-label">Students</div>
-                          <div className="summary-value">{total}</div>
-                          <div style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', color: 'var(--text-secondary, #6b7280)', margin: '6px 0 8px' }}>
-                            <span style={{ color: 'var(--primary, #2563eb)' }}>{active} active</span>
-                            <span style={{ color: dropouts > 0 ? '#dc2626' : 'var(--muted)' }}>{dropouts} dropout{dropouts !== 1 ? 's' : ''}</span>
-                          </div>
-                          {total > 0 && (
-                            <div style={{ height: '6px', borderRadius: '3px', background: dropouts > 0 ? '#fecaca' : '#e5e7eb', overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${activePercent}%`, background: 'var(--primary, #2563eb)', borderRadius: '3px', transition: 'width 0.3s' }} />
-                            </div>
-                          )}
-                          {total > 0 && dropouts > 0 && (
-                            <div className="summary-status" style={{ marginTop: '4px' }}>
-                              {((dropouts / total) * 100).toFixed(1)}% dropout rate
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
+                    {/* Card 1: Students */}
+                    <div className="summary-card">
+                      <div className="summary-label">Students</div>
+                      <div className="summary-value">{analyticsData.totalStudents ?? 0}</div>
+                      <div className="summary-status">
+                        {(analyticsData.dropoutCount ?? 0) > 0
+                          ? `${(analyticsData.totalStudents ?? 0) - (analyticsData.dropoutCount ?? 0)} active · ${analyticsData.dropoutCount} dropped out`
+                          : 'All active'}
+                      </div>
+                    </div>
                     {/* Card 3: Poor Behaviour (hidden if behaviour recording is off) */}
                     {analyticsData.behaviorEnabled && (
                     <>

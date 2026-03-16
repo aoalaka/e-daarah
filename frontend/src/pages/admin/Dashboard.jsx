@@ -2108,7 +2108,7 @@ function AdminDashboard() {
                       return (
                         <div className="summary-card" style={{ minWidth: '220px' }}>
                           <div className="summary-label">Students</div>
-                          <div className="summary-value">{active}</div>
+                          <div className="summary-value">{total}</div>
                           <div style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', color: 'var(--text-secondary, #6b7280)', margin: '6px 0 8px' }}>
                             <span style={{ color: 'var(--primary, #2563eb)' }}>{active} active</span>
                             <span style={{ color: dropouts > 0 ? '#dc2626' : 'var(--muted)' }}>{dropouts} dropout{dropouts !== 1 ? 's' : ''}</span>

@@ -2099,22 +2099,33 @@ function AdminDashboard() {
               ) : analyticsData ? (
                 <>
                   <div className="insights-summary">
-                    {/* Card 1: Total Students */}
-                    <div className="summary-card">
-                      <div className="summary-label">Total Students</div>
-                      <div className="summary-value">{analyticsData.totalStudents ?? '-'}</div>
-                      <div className="summary-status">Enrolled in school</div>
-                    </div>
-                    {/* Card 2: Dropouts */}
-                    <div className="summary-card">
-                      <div className="summary-label">Dropouts</div>
-                      <div className="summary-value">{analyticsData.dropoutCount ?? 0}</div>
-                      <div className="summary-status">
-                        {analyticsData.totalStudents > 0 && analyticsData.dropoutCount > 0
-                          ? `${((analyticsData.dropoutCount / (analyticsData.totalStudents + analyticsData.dropoutCount)) * 100).toFixed(1)}% of total`
-                          : 'No dropouts recorded'}
-                      </div>
-                    </div>
+                    {/* Card 1: Students — Active vs Dropout */}
+                    {(() => {
+                      const active = analyticsData.totalStudents ?? 0;
+                      const dropouts = analyticsData.dropoutCount ?? 0;
+                      const total = active + dropouts;
+                      const activePercent = total > 0 ? Math.round((active / total) * 100) : 100;
+                      return (
+                        <div className="summary-card" style={{ minWidth: '220px' }}>
+                          <div className="summary-label">Students</div>
+                          <div className="summary-value">{active}</div>
+                          <div style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', color: 'var(--text-secondary, #6b7280)', margin: '6px 0 8px' }}>
+                            <span style={{ color: 'var(--primary, #2563eb)' }}>{active} active</span>
+                            <span style={{ color: dropouts > 0 ? '#dc2626' : 'var(--muted)' }}>{dropouts} dropout{dropouts !== 1 ? 's' : ''}</span>
+                          </div>
+                          {total > 0 && (
+                            <div style={{ height: '6px', borderRadius: '3px', background: dropouts > 0 ? '#fecaca' : '#e5e7eb', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${activePercent}%`, background: 'var(--primary, #2563eb)', borderRadius: '3px', transition: 'width 0.3s' }} />
+                            </div>
+                          )}
+                          {total > 0 && dropouts > 0 && (
+                            <div className="summary-status" style={{ marginTop: '4px' }}>
+                              {((dropouts / total) * 100).toFixed(1)}% dropout rate
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                     {/* Card 3: Poor Behaviour (hidden if behaviour recording is off) */}
                     {analyticsData.behaviorEnabled && (
                     <>
@@ -4127,24 +4138,31 @@ function AdminDashboard() {
                             const val = e.target.value;
                             if (val === '__dropout__') {
                               e.target.value = row.class_id || '';
-                              if (!window.confirm(`Mark ${row.first_name} ${row.last_name} as dropped out? This will remove them from their class and record them as a dropout.`)) return;
-                              try {
-                                await api.post('/admin/promotion/promote', {
-                                  promotions: [{
-                                    student_id: row.id,
-                                    from_class_id: row.class_id || null,
-                                    to_class_id: null,
-                                    type: 'dropped_out',
-                                    notes: 'Marked as dropout from student list'
-                                  }]
-                                });
-                                setStudents(prev => prev.map(s =>
-                                  s.id === row.id ? { ...s, class_id: null, class_name: null } : s
-                                ));
-                                toast.success(`${row.first_name} ${row.last_name} marked as dropped out`);
-                              } catch (err) {
-                                toast.error('Failed to mark as dropout');
-                              }
+                              setConfirmModal({
+                                title: 'Mark as Dropout',
+                                message: `Mark ${row.first_name} ${row.last_name} as dropped out? They will be removed from their class and recorded as a dropout.`,
+                                danger: true,
+                                confirmLabel: 'Mark as Dropout',
+                                onConfirm: async () => {
+                                  try {
+                                    await api.post('/admin/promotion/promote', {
+                                      promotions: [{
+                                        student_id: row.id,
+                                        from_class_id: row.class_id || null,
+                                        to_class_id: null,
+                                        type: 'dropped_out',
+                                        notes: 'Marked as dropout from student list'
+                                      }]
+                                    });
+                                    setStudents(prev => prev.map(s =>
+                                      s.id === row.id ? { ...s, class_id: null, class_name: null } : s
+                                    ));
+                                    toast.success(`${row.first_name} ${row.last_name} marked as dropped out`);
+                                  } catch (err) {
+                                    toast.error('Failed to mark as dropout');
+                                  }
+                                }
+                              });
                               return;
                             }
                             const newClassId = val || null;
@@ -4264,24 +4282,31 @@ function AdminDashboard() {
                                     const val = e.target.value;
                                     if (val === '__dropout__') {
                                       e.target.value = s.class_id || '';
-                                      if (!window.confirm(`Mark ${s.first_name} ${s.last_name} as dropped out? This will remove them from their class and record them as a dropout.`)) return;
-                                      try {
-                                        await api.post('/admin/promotion/promote', {
-                                          promotions: [{
-                                            student_id: s.id,
-                                            from_class_id: s.class_id || null,
-                                            to_class_id: null,
-                                            type: 'dropped_out',
-                                            notes: 'Marked as dropout from student list'
-                                          }]
-                                        });
-                                        setStudents(prev => prev.map(st =>
-                                          st.id === s.id ? { ...st, class_id: null, class_name: null } : st
-                                        ));
-                                        toast.success(`${s.first_name} ${s.last_name} marked as dropped out`);
-                                      } catch (err) {
-                                        toast.error('Failed to mark as dropout');
-                                      }
+                                      setConfirmModal({
+                                        title: 'Mark as Dropout',
+                                        message: `Mark ${s.first_name} ${s.last_name} as dropped out? They will be removed from their class and recorded as a dropout.`,
+                                        danger: true,
+                                        confirmLabel: 'Mark as Dropout',
+                                        onConfirm: async () => {
+                                          try {
+                                            await api.post('/admin/promotion/promote', {
+                                              promotions: [{
+                                                student_id: s.id,
+                                                from_class_id: s.class_id || null,
+                                                to_class_id: null,
+                                                type: 'dropped_out',
+                                                notes: 'Marked as dropout from student list'
+                                              }]
+                                            });
+                                            setStudents(prev => prev.map(st =>
+                                              st.id === s.id ? { ...st, class_id: null, class_name: null } : st
+                                            ));
+                                            toast.success(`${s.first_name} ${s.last_name} marked as dropped out`);
+                                          } catch (err) {
+                                            toast.error('Failed to mark as dropout');
+                                          }
+                                        }
+                                      });
                                       return;
                                     }
                                     const newClassId = val || null;

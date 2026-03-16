@@ -1164,14 +1164,11 @@ function TeacherDashboard() {
       records,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     });
-    toast.promise(savePromise, {
-      loading: 'Saving attendance...',
-      success: 'Attendance saved successfully!',
-      error: 'Failed to save attendance'
-    });
     try {
+      toast.loading('Saving attendance...', { id: 'save-attendance' });
       await savePromise;
-      
+      toast.success('Attendance saved successfully!', { id: 'save-attendance' });
+
       // Move to next day and clear attendance records
       const nextDay = new Date(attendanceDate);
       nextDay.setDate(nextDay.getDate() + 1);
@@ -1180,7 +1177,9 @@ function TeacherDashboard() {
       setAttendanceRecords({}); // Clear records for blank form
       setMobileAttendancePhase(1);
     } catch (error) {
-      console.error('Failed to save attendance:', error);
+      const msg = error.response?.data?.error || 'Failed to save attendance';
+      toast.error(msg, { id: 'save-attendance' });
+      console.error('Failed to save attendance:', msg, error);
     } finally {
       setSaving(false);
     }

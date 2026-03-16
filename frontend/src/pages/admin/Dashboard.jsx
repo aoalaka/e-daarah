@@ -2101,9 +2101,9 @@ function AdminDashboard() {
                   <div className="insights-summary">
                     {/* Card 1: Students — Active vs Dropout */}
                     {(() => {
-                      const active = analyticsData.totalStudents ?? 0;
+                      const total = analyticsData.totalStudents ?? 0;
                       const dropouts = analyticsData.dropoutCount ?? 0;
-                      const total = active + dropouts;
+                      const active = total - dropouts;
                       const activePercent = total > 0 ? Math.round((active / total) * 100) : 100;
                       return (
                         <div className="summary-card" style={{ minWidth: '220px' }}>

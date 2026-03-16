@@ -651,8 +651,7 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
 
     // Validate that ALL students have attendance marked
     if (records.length !== classStudents.length) {
-      console.log(`[Attendance] Count mismatch: ${records.length} records sent, ${classStudents.length} students in class ${classId}`);
-      return res.status(400).json({ error: `Attendance must be marked for all students in the class (sent ${records.length}, expected ${classStudents.length})` });
+      return res.status(400).json({ error: 'Attendance must be marked for all students in the class' });
     }
 
     // Validate each record has present/absent status

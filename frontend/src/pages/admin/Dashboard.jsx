@@ -4124,7 +4124,30 @@ function AdminDashboard() {
                           value={row.class_id || ''}
                           onClick={(e) => e.stopPropagation()}
                           onChange={async (e) => {
-                            const newClassId = e.target.value || null;
+                            const val = e.target.value;
+                            if (val === '__dropout__') {
+                              e.target.value = row.class_id || '';
+                              if (!window.confirm(`Mark ${row.first_name} ${row.last_name} as dropped out? This will remove them from their class and record them as a dropout.`)) return;
+                              try {
+                                await api.post('/admin/promotion/promote', {
+                                  promotions: [{
+                                    student_id: row.id,
+                                    from_class_id: row.class_id || null,
+                                    to_class_id: null,
+                                    type: 'dropped_out',
+                                    notes: 'Marked as dropout from student list'
+                                  }]
+                                });
+                                setStudents(prev => prev.map(s =>
+                                  s.id === row.id ? { ...s, class_id: null, class_name: null } : s
+                                ));
+                                toast.success(`${row.first_name} ${row.last_name} marked as dropped out`);
+                              } catch (err) {
+                                toast.error('Failed to mark as dropout');
+                              }
+                              return;
+                            }
+                            const newClassId = val || null;
                             const newClassName = classes.find(c => String(c.id) === String(newClassId))?.name || null;
                             setStudents(prev => prev.map(s =>
                               s.id === row.id ? { ...s, class_id: newClassId ? Number(newClassId) : null, class_name: newClassName } : s
@@ -4143,6 +4166,8 @@ function AdminDashboard() {
                           {classes.map(cls => (
                             <option key={cls.id} value={cls.id}>{cls.name}</option>
                           ))}
+                          <option disabled>──────────</option>
+                          <option value="__dropout__">Dropout</option>
                         </select>
                       )
                     },
@@ -4236,7 +4261,30 @@ function AdminDashboard() {
                                   value={s.class_id || ''}
                                   onClick={(e) => e.stopPropagation()}
                                   onChange={async (e) => {
-                                    const newClassId = e.target.value || null;
+                                    const val = e.target.value;
+                                    if (val === '__dropout__') {
+                                      e.target.value = s.class_id || '';
+                                      if (!window.confirm(`Mark ${s.first_name} ${s.last_name} as dropped out? This will remove them from their class and record them as a dropout.`)) return;
+                                      try {
+                                        await api.post('/admin/promotion/promote', {
+                                          promotions: [{
+                                            student_id: s.id,
+                                            from_class_id: s.class_id || null,
+                                            to_class_id: null,
+                                            type: 'dropped_out',
+                                            notes: 'Marked as dropout from student list'
+                                          }]
+                                        });
+                                        setStudents(prev => prev.map(st =>
+                                          st.id === s.id ? { ...st, class_id: null, class_name: null } : st
+                                        ));
+                                        toast.success(`${s.first_name} ${s.last_name} marked as dropped out`);
+                                      } catch (err) {
+                                        toast.error('Failed to mark as dropout');
+                                      }
+                                      return;
+                                    }
+                                    const newClassId = val || null;
                                     const newClassName = classes.find(c => String(c.id) === String(newClassId))?.name || null;
                                     setStudents(prev => prev.map(st =>
                                       st.id === s.id ? { ...st, class_id: newClassId ? Number(newClassId) : null, class_name: newClassName } : st
@@ -4255,6 +4303,8 @@ function AdminDashboard() {
                                   {classes.map(cls => (
                                     <option key={cls.id} value={cls.id}>{cls.name}</option>
                                   ))}
+                                  <option disabled>──────────</option>
+                                  <option value="__dropout__">Dropout</option>
                                 </select>
                               </div>
                               {s.parent_guardian_name && (

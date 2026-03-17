@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
@@ -14,7 +12,8 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
@@ -28,35 +27,49 @@ services:
     restart: unless-stopped
     ports:
       - "5001:5000"
+    env_file:
+      - .env.local
     environment:
-      NODE_ENV: production
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: madrasah_user
-      DB_PASSWORD: madrasah_password
-      DB_NAME: madrasah_admin
-      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
-      JWT_EXPIRE: 7d
-      CORS_ORIGIN: http://localhost:3000
     depends_on:
       mysql:
         condition: service_healthy
     volumes:
       - ./backend:/app
       - /app/node_modules
+    command: npm run dev
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.local
+    image: node:20-alpine
     container_name: madrasah-frontend
     restart: unless-stopped
+    working_dir: /app
     ports:
-      - "3000:80"
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:5001
     depends_on:
       - backend
-    environment:
-      VITE_API_URL: http://localhost:5001/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npx vite --host 0.0.0.0"
+
+  stripe-cli:
+    image: stripe/stripe-cli:latest
+    container_name: madrasah-stripe
+    restart: unless-stopped
+    depends_on:
+      - backend
+    env_file:
+      - .env.local
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - "stripe listen --api-key $$STRIPE_SECRET_KEY --forward-to http://backend:5000/api/billing/webhook --skip-verify"
+    volumes:
+      - ~/.config/stripe:/root/.config/stripe
 
 volumes:
   mysql_data:

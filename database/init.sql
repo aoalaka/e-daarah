@@ -48,10 +48,23 @@ CREATE TABLE IF NOT EXISTS madrasahs (
     verification_notes TEXT,
     verified_at TIMESTAMP NULL,
     verified_by INT NULL,
+    -- Feature toggles
+    enable_quran_tracking BOOLEAN NOT NULL DEFAULT TRUE,
+    enable_fee_tracking BOOLEAN NOT NULL DEFAULT TRUE,
+    currency VARCHAR(3) NOT NULL DEFAULT 'USD',
+    fee_tracking_mode ENUM('manual', 'auto') NOT NULL DEFAULT 'manual',
+    fee_prorate_mid_period BOOLEAN NOT NULL DEFAULT FALSE,
     -- Grade toggles
-    enable_dressing_grade BOOLEAN NOT NULL DEFAULT TRUE,
-    enable_behavior_grade BOOLEAN NOT NULL DEFAULT TRUE,
-    enable_punctuality_grade BOOLEAN NOT NULL DEFAULT TRUE,
+    enable_dressing_grade BOOLEAN NOT NULL DEFAULT FALSE,
+    enable_behavior_grade BOOLEAN NOT NULL DEFAULT FALSE,
+    enable_punctuality_grade BOOLEAN NOT NULL DEFAULT FALSE,
+    -- Availability planner
+    availability_planner_aware TINYINT(1) NOT NULL DEFAULT 1,
+    -- Auto fee reminders
+    auto_fee_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    auto_fee_reminder_message TEXT NULL DEFAULT NULL,
+    auto_fee_reminder_day TINYINT NOT NULL DEFAULT 1 COMMENT 'Day of month to send (1-28)',
+    auto_fee_reminder_last_sent DATE NULL DEFAULT NULL,
     -- Suspension
     suspended_at TIMESTAMP NULL DEFAULT NULL,
     suspended_reason TEXT NULL DEFAULT NULL,
@@ -127,6 +140,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     is_active BOOLEAN DEFAULT FALSE,
+    default_school_days JSON DEFAULT NULL COMMENT 'Default school days for this session e.g. ["Saturday", "Sunday"]',
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -155,6 +169,46 @@ CREATE TABLE IF NOT EXISTS semesters (
     INDEX idx_semesters_deleted_at (deleted_at),
     INDEX idx_semesters_session_deleted (session_id, deleted_at),
     INDEX idx_semesters_active (is_active)
+);
+
+-- =====================================================
+-- Academic Holidays table
+-- =====================================================
+CREATE TABLE IF NOT EXISTS academic_holidays (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    madrasah_id INT NOT NULL,
+    session_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    description TEXT,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+    INDEX idx_holidays_madrasah (madrasah_id),
+    INDEX idx_holidays_session (session_id)
+);
+
+-- =====================================================
+-- Schedule Overrides table
+-- =====================================================
+CREATE TABLE IF NOT EXISTS schedule_overrides (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    madrasah_id INT NOT NULL,
+    session_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    school_days JSON DEFAULT NULL,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+    INDEX idx_overrides_madrasah (madrasah_id),
+    INDEX idx_overrides_session (session_id)
 );
 
 -- =====================================================
@@ -217,6 +271,9 @@ CREATE TABLE IF NOT EXISTS students (
     parent_guardian_phone_country_code VARCHAR(5) DEFAULT '+64',
     notes TEXT,
     parent_access_code VARCHAR(255),
+    expected_fee DECIMAL(10,2) NULL DEFAULT NULL,
+    fee_note VARCHAR(255) NULL DEFAULT NULL,
+    enrollment_date DATE NULL DEFAULT NULL,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -408,6 +465,7 @@ CREATE TABLE IF NOT EXISTS announcements (
     message TEXT NOT NULL,
     type ENUM('info', 'warning', 'success', 'update') DEFAULT 'info',
     target_plans JSON DEFAULT NULL,
+    target_madrasah_id INT NULL DEFAULT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_by INT,
     expires_at TIMESTAMP NULL DEFAULT NULL,
@@ -561,3 +619,269 @@ INSERT INTO class_teachers (class_id, user_id) VALUES
 -- Demo student
 INSERT INTO students (madrasah_id, first_name, last_name, student_id, gender, class_id, parent_guardian_name, parent_guardian_relationship, parent_guardian_phone, notes) VALUES
 (1, 'Ahmed', 'Ali', '000001', 'Male', 1, 'Fatima Ali', 'Mother', '123494995590', 'Good student');
+
+-- =====================================================
+-- Quran Progress tables (migration 014)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS quran_progress (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  madrasah_id INT NOT NULL,
+  student_id INT NOT NULL,
+  class_id INT NOT NULL,
+  semester_id INT NOT NULL,
+  user_id INT NOT NULL COMMENT 'Teacher who recorded',
+  date DATE NOT NULL,
+  type ENUM('memorization_new', 'memorization_revision', 'tilawah') NOT NULL,
+  surah_number INT NOT NULL COMMENT '1-114',
+  surah_name VARCHAR(50) NOT NULL,
+  juz INT DEFAULT NULL COMMENT '1-30',
+  ayah_from INT DEFAULT NULL,
+  ayah_to INT DEFAULT NULL,
+  grade ENUM('Excellent', 'Good', 'Fair', 'Needs Improvement') NOT NULL DEFAULT 'Good',
+  notes TEXT,
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_quran_madrasah (madrasah_id, deleted_at),
+  INDEX idx_quran_student (student_id, deleted_at),
+  INDEX idx_quran_class_date (class_id, date, deleted_at),
+  INDEX idx_quran_semester (semester_id, deleted_at),
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id),
+  FOREIGN KEY (student_id) REFERENCES students(id),
+  FOREIGN KEY (class_id) REFERENCES classes(id)
+);
+
+CREATE TABLE IF NOT EXISTS quran_student_position (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  madrasah_id INT NOT NULL,
+  student_id INT NOT NULL,
+  current_surah_number INT NOT NULL DEFAULT 1,
+  current_surah_name VARCHAR(50) NOT NULL DEFAULT 'Al-Fatiha',
+  current_juz INT NOT NULL DEFAULT 1,
+  current_ayah INT DEFAULT NULL,
+  total_surahs_completed INT NOT NULL DEFAULT 0,
+  total_juz_completed INT NOT NULL DEFAULT 0,
+  last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_student (madrasah_id, student_id),
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id),
+  FOREIGN KEY (student_id) REFERENCES students(id)
+);
+
+-- =====================================================
+-- Student Promotions table (migration 015)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS student_promotions (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  madrasah_id INT NOT NULL,
+  student_id INT NOT NULL,
+  from_class_id INT DEFAULT NULL,
+  to_class_id INT DEFAULT NULL COMMENT 'NULL means graduated/archived',
+  session_id INT DEFAULT NULL COMMENT 'Session during which promotion happened',
+  promotion_type ENUM('promoted', 'graduated', 'transferred', 'repeated', 'dropped_out') NOT NULL DEFAULT 'promoted',
+  notes TEXT,
+  promoted_by INT NOT NULL COMMENT 'User who performed the action',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_promo_madrasah (madrasah_id),
+  INDEX idx_promo_student (student_id),
+  INDEX idx_promo_session (session_id),
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id),
+  FOREIGN KEY (student_id) REFERENCES students(id)
+);
+
+-- =====================================================
+-- Fee Tracking tables (migrations 016, 017, 021)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS fee_templates (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  madrasah_id INT NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  frequency ENUM('session','semester','monthly','weekly','daily') NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_ft_madrasah (madrasah_id),
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id)
+);
+
+CREATE TABLE IF NOT EXISTS fee_template_items (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  fee_template_id INT NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
+  INDEX idx_fti_template (fee_template_id),
+  FOREIGN KEY (fee_template_id) REFERENCES fee_templates(id)
+);
+
+CREATE TABLE IF NOT EXISTS fee_assignments (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  madrasah_id INT NOT NULL,
+  fee_template_id INT NOT NULL,
+  class_id INT NULL DEFAULT NULL,
+  student_id INT NULL DEFAULT NULL,
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_fa_madrasah (madrasah_id),
+  INDEX idx_fa_template (fee_template_id),
+  INDEX idx_fa_class (class_id),
+  INDEX idx_fa_student (student_id),
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id),
+  FOREIGN KEY (fee_template_id) REFERENCES fee_templates(id),
+  FOREIGN KEY (class_id) REFERENCES classes(id),
+  FOREIGN KEY (student_id) REFERENCES students(id)
+);
+
+CREATE TABLE IF NOT EXISTS fee_payments (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  madrasah_id INT NOT NULL,
+  student_id INT NOT NULL,
+  fee_template_id INT NULL DEFAULT NULL,
+  amount_paid DECIMAL(10,2) NOT NULL,
+  payment_date DATE NOT NULL,
+  payment_method ENUM('cash','bank_transfer','online','other') NOT NULL DEFAULT 'cash',
+  reference_note VARCHAR(255) NULL DEFAULT NULL,
+  period_label VARCHAR(100) NULL DEFAULT NULL,
+  payment_label VARCHAR(100) NULL DEFAULT NULL,
+  recorded_by INT NOT NULL,
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_fp_madrasah (madrasah_id),
+  INDEX idx_fp_student (student_id),
+  INDEX idx_fp_template (fee_template_id),
+  INDEX idx_fp_date (payment_date),
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id),
+  FOREIGN KEY (student_id) REFERENCES students(id),
+  FOREIGN KEY (recorded_by) REFERENCES users(id)
+);
+
+-- =====================================================
+-- Parent Users table (migration 020)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS parent_users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id INT NOT NULL,
+  madrasah_id INT NOT NULL,
+  phone VARCHAR(20) NOT NULL,
+  phone_country_code VARCHAR(5) DEFAULT '+64',
+  access_code_hash VARCHAR(255) NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  last_login_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_parent_student (student_id),
+  INDEX idx_parent_madrasah (madrasah_id),
+  INDEX idx_parent_phone (phone, madrasah_id)
+);
+
+-- =====================================================
+-- SMS Credits tables (migration 024)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS sms_credits (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  madrasah_id INT NOT NULL,
+  balance INT NOT NULL DEFAULT 0,
+  total_purchased INT NOT NULL DEFAULT 0,
+  total_used INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_madrasah (madrasah_id),
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS sms_credit_purchases (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  madrasah_id INT NOT NULL,
+  credits INT NOT NULL,
+  amount_cents INT NOT NULL,
+  currency VARCHAR(3) NOT NULL DEFAULT 'usd',
+  stripe_payment_intent_id VARCHAR(255),
+  stripe_checkout_session_id VARCHAR(255),
+  status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',
+  purchased_by INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS sms_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  madrasah_id INT NOT NULL,
+  student_id INT NULL,
+  to_phone VARCHAR(20) NOT NULL,
+  message_body TEXT NOT NULL,
+  message_type ENUM('fee_reminder', 'custom', 'announcement') DEFAULT 'custom',
+  status ENUM('queued', 'sent', 'delivered', 'failed', 'undelivered') DEFAULT 'queued',
+  provider_message_id VARCHAR(50) NULL,
+  error_message VARCHAR(255) NULL,
+  credits_used INT NOT NULL DEFAULT 1,
+  sent_by INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+  INDEX idx_madrasah_type (madrasah_id, message_type),
+  INDEX idx_madrasah_created (madrasah_id, created_at DESC)
+);
+
+-- =====================================================
+-- Fee Schedules table (migration 027)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS fee_schedules (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  madrasah_id INT NOT NULL,
+  class_id INT NULL,
+  student_id INT NULL,
+  billing_cycle ENUM('weekly', 'monthly', 'per_semester', 'per_session') NOT NULL DEFAULT 'per_semester',
+  amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  description VARCHAR(255) NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  INDEX idx_fee_schedules_madrasah (madrasah_id),
+  INDEX idx_fee_schedules_class (class_id),
+  INDEX idx_fee_schedules_student (student_id)
+);
+
+-- =====================================================
+-- Mark all migrations as applied (init.sql includes full schema)
+-- =====================================================
+INSERT INTO migrations (name) VALUES
+('001_create_migrations_table'),
+('002_add_soft_deletes'),
+('003_add_stripe_columns'),
+('004_add_trial_reminder_column'),
+('005_add_login_security'),
+('006_add_performance_indexes'),
+('007_add_website_column'),
+('008_add_verification_columns'),
+('009_fix_verification_enum'),
+('010_add_enterprise_plan'),
+('010_add_grading_toggles'),
+('010_add_parent_access_code'),
+('011_add_enterprise_plan'),
+('011_add_punctuality_grade'),
+('012_add_suspended_columns'),
+('013_add_announcements_tickets'),
+('014_add_quran_progress'),
+('015_add_student_promotions'),
+('016_add_fee_tracking'),
+('017_add_currency'),
+('018_fix_quran_types_and_position'),
+('019_add_dropout_promotion_type'),
+('020_add_parent_users'),
+('021_simplify_fee_tracking'),
+('022_add_solo_plan'),
+('023_default_grading_off'),
+('024_add_sms_credits'),
+('025_rename_twilio_sid'),
+('026_announcement_target_madrasah'),
+('027_auto_fee_tracking'),
+('028_add_teacher_availability'),
+('029_add_availability_planner_aware'),
+('030_student_applications'),
+('031_auto_fee_reminders')
+ON DUPLICATE KEY UPDATE name = name;

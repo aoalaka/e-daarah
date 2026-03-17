@@ -1,0 +1,59 @@
+# Production-like local environment for testing before deploy
+# Usage: docker compose -f docker-compose.test.yml up --build
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: madrasah-mysql-prod
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: madrasah_admin
+      MYSQL_USER: madrasah_user
+      MYSQL_PASSWORD: madrasah_password
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: madrasah-backend-prod
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    env_file:
+      - .env.local
+    environment:
+      NODE_ENV: production
+      DB_HOST: mysql
+      DB_PORT: 3306
+      CORS_ORIGIN: http://localhost:3000
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.local
+      args:
+        VITE_API_URL: http://localhost:5001
+    container_name: madrasah-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data_prod:

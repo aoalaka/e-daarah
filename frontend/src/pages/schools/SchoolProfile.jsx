@@ -87,7 +87,7 @@ export default function SchoolProfile() {
       </header>
 
       <main className="schools-main">
-        <Link to="/schools" className="school-back-link">All Schools</Link>
+        <Link to="/schools" className="school-back-link">Featured Schools</Link>
 
         <div className="school-profile">
           <div className="school-profile-header">

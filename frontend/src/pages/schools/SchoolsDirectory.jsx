@@ -15,7 +15,6 @@ const TYPE_LABELS = {
 export default function SchoolsDirectory() {
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
 
   useEffect(() => {
     api.get('/public/schools')
@@ -24,17 +23,11 @@ export default function SchoolsDirectory() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = schools.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    (s.city && s.city.toLowerCase().includes(search.toLowerCase())) ||
-    (s.country && s.country.toLowerCase().includes(search.toLowerCase()))
-  );
-
   return (
     <div className="schools-page">
       <SEO
-        title="Madrasahs & Islamic Schools Directory"
-        description="Browse verified madrasahs and Islamic schools using e-Daarah for attendance tracking, exam recording, and student management."
+        title="Featured Madrasahs & Islamic Schools"
+        description="See madrasahs and Islamic schools using e-Daarah for attendance tracking, exam recording, and student management."
         canonicalPath="/schools"
       />
 
@@ -53,28 +46,19 @@ export default function SchoolsDirectory() {
 
       <main className="schools-main">
         <div className="schools-hero">
-          <h1>Madrasahs & Islamic Schools</h1>
-          <p>Verified institutions using e-Daarah to manage their students, attendance, and academic records.</p>
-        </div>
-
-        <div className="schools-search-bar">
-          <input
-            type="text"
-            placeholder="Search by name, city, or country..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <h1>Featured Madrasahs</h1>
+          <p>Madrasahs and Islamic schools using e-Daarah to manage their students, attendance, and academic records.</p>
         </div>
 
         {loading ? (
-          <div className="schools-loading">Loading schools...</div>
-        ) : filtered.length === 0 ? (
+          <div className="schools-loading">Loading...</div>
+        ) : schools.length === 0 ? (
           <div className="schools-empty">
-            {search ? 'No schools match your search.' : 'No verified schools listed yet.'}
+            Featured schools coming soon. Be among the first to join.
           </div>
         ) : (
           <div className="schools-grid">
-            {filtered.map(school => (
+            {schools.map(school => (
               <Link to={`/schools/${school.slug}`} key={school.slug} className="school-card">
                 <div className="school-card-icon">
                   {school.name.charAt(0).toUpperCase()}
@@ -100,7 +84,7 @@ export default function SchoolsDirectory() {
         )}
 
         <div className="schools-cta">
-          <h2>Want your madrasah listed here?</h2>
+          <h2>Want your madrasah featured here?</h2>
           <p>Register your institution, get verified, and join the growing community of madrasahs using e-Daarah.</p>
           <Link to="/register" className="schools-cta-btn">Register Your Madrasah</Link>
         </div>

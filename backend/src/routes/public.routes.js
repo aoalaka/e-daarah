@@ -24,6 +24,7 @@ router.get('/schools', async (req, res) => {
       WHERE m.is_active = TRUE
         AND m.verification_status = 'verified'
         AND m.pricing_plan != 'trial'
+        AND m.slug NOT LIKE '%-demo'
       ORDER BY m.name ASC
     `);
 
@@ -62,6 +63,7 @@ router.get('/schools/:slug', async (req, res) => {
         AND m.is_active = TRUE
         AND m.verification_status = 'verified'
         AND m.pricing_plan != 'trial'
+        AND m.slug NOT LIKE '%-demo'
     `, [slug]);
 
     if (madrasahs.length === 0) {
@@ -83,6 +85,7 @@ router.get('/schools-sitemap', async (req, res) => {
       WHERE is_active = TRUE
         AND verification_status = 'verified'
         AND pricing_plan != 'trial'
+        AND slug NOT LIKE '%-demo'
       ORDER BY name ASC
     `);
 

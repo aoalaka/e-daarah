@@ -5,5 +5,9 @@ Disallow: /*/teacher/
 Disallow: /*/parent
 Disallow: /*/login
 Disallow: /superadmin/
+Disallow: /*/solo/
+Disallow: /*/forgot-password
+Disallow: /*/reset-password
+Disallow: /*/verify-email
 
 Sitemap: https://www.e-daarah.com/sitemap.xml

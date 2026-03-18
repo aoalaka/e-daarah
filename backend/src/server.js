@@ -16,6 +16,7 @@ import superadminRoutes from './routes/superadmin.routes.js';
 import billingRoutes from './routes/billing.routes.js';
 import soloRoutes from './routes/solo.routes.js';
 import smsRoutes from './routes/sms.routes.js';
+import publicRoutes from './routes/public.routes.js';
 import { activityLogger } from './middleware/activityLog.middleware.js';
 import { startScheduler } from './services/scheduler.service.js';
 
@@ -146,6 +147,7 @@ app.use('/api/auth/madrasahs/search', searchLimiter);
 // Apply separate limiter for public read-only endpoints
 app.use('/api/auth/madrasah/', publicLimiter);
 app.use('/api/auth/student-application', publicLimiter);
+app.use('/api/public', publicLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -159,6 +161,7 @@ app.use('/api/superadmin', superadminRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/solo', activityLogger, soloRoutes);
 app.use('/api/sms', activityLogger, smsRoutes);
+app.use('/api/public', publicRoutes);
 
 // Health check (both paths for flexibility) - doesn't require DB
 app.get('/health', (req, res) => {

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
  * Lightweight SEO component — sets document title and meta description per page.
  * No external dependencies needed (no react-helmet).
  */
-export default function SEO({ title, description }) {
+export default function SEO({ title, description, canonicalPath }) {
   useEffect(() => {
     // Set page title
     if (title) {
@@ -37,6 +37,19 @@ export default function SEO({ title, description }) {
       }
     }
 
+    // Set canonical URL
+    const path = canonicalPath || window.location.pathname;
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) {
+      canonical.setAttribute('href', `https://www.e-daarah.com${path}`);
+    }
+
+    // Set OG URL
+    let ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) {
+      ogUrl.setAttribute('content', `https://www.e-daarah.com${path}`);
+    }
+
     // Set Twitter title and description
     if (title) {
       let twTitle = document.querySelector('meta[name="twitter:title"]');
@@ -50,7 +63,7 @@ export default function SEO({ title, description }) {
         twDesc.setAttribute('content', description);
       }
     }
-  }, [title, description]);
+  }, [title, description, canonicalPath]);
 
   return null;
 }

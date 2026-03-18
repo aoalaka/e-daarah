@@ -14,6 +14,10 @@ import Privacy from './pages/Privacy';
 import Help from './pages/Help';
 import Demo from './pages/Demo';
 import SignIn from './pages/SignIn';
+import BlogIndex from './pages/blog/BlogIndex';
+import BlogArticle from './pages/blog/BlogArticle';
+import SchoolsDirectory from './pages/schools/SchoolsDirectory';
+import SchoolProfile from './pages/schools/SchoolProfile';
 import NotFound from './pages/NotFound';
 
 // Check if we're on the admin subdomain
@@ -123,6 +127,10 @@ function App() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/help" element={<Help />} />
+          <Route path="/blog" element={<BlogIndex />} />
+          <Route path="/blog/:slug" element={<BlogArticle />} />
+          <Route path="/schools" element={<SchoolsDirectory />} />
+          <Route path="/schools/:slug" element={<SchoolProfile />} />
 
           {/* Super Admin routes (also accessible via /superadmin on main domain) */}
           <Route path="/superadmin/login" element={<SuperAdminLogin />} />

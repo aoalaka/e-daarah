@@ -8,12 +8,12 @@ USE madrasah_admin;
 -- =====================================================
 -- Second madrasah (active subscription)
 -- =====================================================
-INSERT INTO madrasahs (name, slug, email, phone, phone_country_code, street, city, region, country, pricing_plan, subscription_status, stripe_customer_id) VALUES
-('Al-Noor Islamic School', 'al-noor', 'admin@al-noor.com', '2123456789', '+1', '45 Elm Street', 'Auckland', 'Auckland', 'New Zealand', 'standard', 'active', 'cus_test_alnoor');
+INSERT INTO madrasahs (name, slug, email, phone, phone_country_code, street, city, region, country, institution_type, pricing_plan, subscription_status, stripe_customer_id, verification_status, verified_at) VALUES
+('Al-Noor Islamic School', 'al-noor', 'admin@al-noor.com', '2123456789', '+1', '45 Elm Street', 'Auckland', 'Auckland', 'New Zealand', 'mosque_based', 'standard', 'active', 'cus_test_alnoor', 'verified', NOW());
 
 -- Third madrasah (solo plan)
-INSERT INTO madrasahs (name, slug, email, phone, phone_country_code, street, city, region, country, pricing_plan, subscription_status, stripe_customer_id) VALUES
-('Baitul Ilm Academy', 'baitul-ilm', 'admin@baitul-ilm.com', '2129876543', '+1', '12 Oak Ave', 'Wellington', 'Wellington', 'New Zealand', 'solo', 'active', 'cus_test_baitul');
+INSERT INTO madrasahs (name, slug, email, phone, phone_country_code, street, city, region, country, institution_type, pricing_plan, subscription_status, stripe_customer_id, verification_status, verified_at) VALUES
+('Baitul Ilm Academy', 'baitul-ilm', 'admin@baitul-ilm.com', '2129876543', '+1', '12 Oak Ave', 'Wellington', 'Wellington', 'New Zealand', 'independent', 'solo', 'active', 'cus_test_baitul', 'verified', NOW());
 
 -- Fourth madrasah (trial, about to expire)
 INSERT INTO madrasahs (name, slug, email, pricing_plan, subscription_status, trial_ends_at) VALUES

@@ -53,7 +53,17 @@
       "offers": [
         {
           "@type": "Offer",
+          "name": "Solo",
+          "description": "For individual teachers managing their own classes",
+          "price": "5.00",
+          "priceCurrency": "USD",
+          "priceValidUntil": "2027-12-31",
+          "availability": "https://schema.org/InStock"
+        },
+        {
+          "@type": "Offer",
           "name": "Standard",
+          "description": "For small madrasahs and weekend schools",
           "price": "12.00",
           "priceCurrency": "USD",
           "priceValidUntil": "2027-12-31",
@@ -62,16 +72,27 @@
         {
           "@type": "Offer",
           "name": "Plus",
+          "description": "For larger institutions and daily madrasahs",
           "price": "29.00",
           "priceCurrency": "USD",
           "priceValidUntil": "2027-12-31",
+          "availability": "https://schema.org/InStock"
+        },
+        {
+          "@type": "AggregateOffer",
+          "name": "Enterprise",
+          "description": "For large networks and multi-campus organizations",
+          "lowPrice": "29.00",
+          "priceCurrency": "USD",
           "availability": "https://schema.org/InStock"
         }
       ],
       "featureList": [
         "Attendance tracking",
         "Exam recording",
+        "Quran memorization (Hifz) progress tracking",
         "Dressing, behavior & punctuality grading",
+        "SMS fee reminders to parents",
         "Parent portal",
         "Student rankings",
         "CSV/Excel exports",

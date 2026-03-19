@@ -404,6 +404,23 @@
   text-decoration: underline;
 }
 
+.hero-quran-link {
+  margin-top: 10px;
+  animation: fadeInUp 0.5s ease-out 0.32s both;
+}
+
+.hero-quran-link a {
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.hero-quran-link a:hover {
+  color: var(--black);
+}
+
 /* ── Hero Visual (animated attendance card) ── */
 .hero-visual {
   position: relative;
@@ -1271,6 +1288,76 @@
 
 .cta .btn.secondary:hover {
   border-color: #fff;
+}
+
+/* ── Qur'an CTA Section ── */
+.quran-cta-section {
+  text-align: center;
+  padding: 64px 20px;
+  background: var(--bg);
+  border-top: 1px solid var(--light);
+  border-bottom: 1px solid var(--light);
+}
+
+.quran-cta-section .section-label {
+  color: var(--success);
+}
+
+.quran-cta-section .section-heading {
+  font-size: 28px;
+}
+
+.quran-cta-section .section-desc {
+  max-width: 540px;
+  margin: 0 auto 24px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.quran-cta-features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.quran-cta-tag {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--white);
+  border: 1px solid var(--light);
+  color: var(--gray);
+}
+
+.quran-cta-section .btn {
+  font-size: 16px;
+  padding: 16px 36px;
+}
+
+/* ── Featured Schools Banner ── */
+.featured-schools-banner {
+  text-align: center;
+  padding: 20px;
+  background: var(--lighter);
+}
+
+.featured-schools-banner p {
+  font-size: 15px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.featured-schools-banner a {
+  color: var(--black);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.featured-schools-banner a:hover {
+  text-decoration: underline;
 }
 
 /* ── Footer ── */

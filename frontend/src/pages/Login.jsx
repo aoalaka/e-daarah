@@ -13,7 +13,13 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const isSoloOrFree = madrasah?.pricing_plan === 'solo' || madrasah?.pricing_plan === 'free';
   const [role, setRole] = useState('teacher');
+
+  // Auto-set role to admin for solo/free plans once madrasah data loads
+  useEffect(() => {
+    if (isSoloOrFree) setRole('admin');
+  }, [isSoloOrFree]);
   const [error, setError] = useState(location.state?.message || '');
   const [lockInfo, setLockInfo] = useState(null);
   const [attemptsRemaining, setAttemptsRemaining] = useState(null);
@@ -30,7 +36,7 @@ function Login() {
     try {
       await authService.login(madrasahSlug, email, password, role);
       const madrasahData = authService.getMadrasah();
-      if (role === 'admin' && madrasahData?.pricingPlan === 'solo') {
+      if (role === 'admin' && (madrasahData?.pricingPlan === 'solo' || madrasahData?.pricingPlan === 'free')) {
         navigate(`/${madrasahSlug}/solo`);
       } else {
         navigate(role === 'admin' ? `/${madrasahSlug}/admin` : `/${madrasahSlug}/teacher`);
@@ -60,22 +66,24 @@ function Login() {
           <p>Sign in to your account</p>
         </div>
 
-        <div className="role-toggle">
-          <button
-            type="button"
-            className={role === 'teacher' ? 'active' : ''}
-            onClick={() => setRole('teacher')}
-          >
-            Teacher
-          </button>
-          <button
-            type="button"
-            className={role === 'admin' ? 'active' : ''}
-            onClick={() => setRole('admin')}
-          >
-            Admin
-          </button>
-        </div>
+        {!isSoloOrFree && (
+          <div className="role-toggle">
+            <button
+              type="button"
+              className={role === 'teacher' ? 'active' : ''}
+              onClick={() => setRole('teacher')}
+            >
+              Teacher
+            </button>
+            <button
+              type="button"
+              className={role === 'admin' ? 'active' : ''}
+              onClick={() => setRole('admin')}
+            >
+              Admin
+            </button>
+          </div>
+        )}
 
         {madrasahSlug === 'demo' && (
           <div className="demo-hint">

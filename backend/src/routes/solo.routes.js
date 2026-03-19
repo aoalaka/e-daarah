@@ -5,7 +5,8 @@ import { validateStudent, normalizePhone } from '../utils/validation.js';
 import {
   requireActiveSubscription,
   enforceStudentLimit,
-  enforceClassLimit
+  enforceClassLimit,
+  requireNonFree
 } from '../middleware/plan-limits.middleware.js';
 
 const router = express.Router();
@@ -77,7 +78,7 @@ router.get('/sessions', async (req, res) => {
   }
 });
 
-router.post('/sessions', requireActiveSubscription, async (req, res) => {
+router.post('/sessions', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { name, start_date, end_date, is_active, default_school_days } = req.body;
@@ -96,7 +97,7 @@ router.post('/sessions', requireActiveSubscription, async (req, res) => {
   }
 });
 
-router.put('/sessions/:id', requireActiveSubscription, async (req, res) => {
+router.put('/sessions/:id', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
@@ -119,7 +120,7 @@ router.put('/sessions/:id', requireActiveSubscription, async (req, res) => {
   }
 });
 
-router.delete('/sessions/:id', requireActiveSubscription, async (req, res) => {
+router.delete('/sessions/:id', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     await pool.query('UPDATE sessions SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [req.params.id, req.madrasahId]);
     res.json({ message: 'Session deleted successfully' });
@@ -144,7 +145,7 @@ router.get('/semesters', async (req, res) => {
   }
 });
 
-router.post('/semesters', requireActiveSubscription, async (req, res) => {
+router.post('/semesters', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { session_id, name, start_date, end_date, is_active } = req.body;
@@ -190,7 +191,7 @@ router.get('/classes', async (req, res) => {
   }
 });
 
-router.post('/classes', requireActiveSubscription, enforceClassLimit, async (req, res) => {
+router.post('/classes', requireNonFree, requireActiveSubscription, enforceClassLimit, async (req, res) => {
   try {
     const { name, grade_level, school_days, description } = req.body;
     const [result] = await pool.query(
@@ -203,7 +204,7 @@ router.post('/classes', requireActiveSubscription, enforceClassLimit, async (req
   }
 });
 
-router.put('/classes/:id', requireActiveSubscription, async (req, res) => {
+router.put('/classes/:id', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, grade_level, school_days, description } = req.body;
@@ -221,7 +222,7 @@ router.put('/classes/:id', requireActiveSubscription, async (req, res) => {
   }
 });
 
-router.delete('/classes/:id', requireActiveSubscription, async (req, res) => {
+router.delete('/classes/:id', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { id } = req.params;
     const [check] = await pool.query('SELECT id FROM classes WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [id, req.madrasahId]);
@@ -294,7 +295,7 @@ router.post('/students', requireActiveSubscription, enforceStudentLimit, async (
   }
 });
 
-router.put('/students/bulk-fee', requireActiveSubscription, async (req, res) => {
+router.put('/students/bulk-fee', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { student_ids, expected_fee, fee_note } = req.body;
     if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) return res.status(400).json({ error: 'Select at least one student' });
@@ -311,7 +312,7 @@ router.put('/students/bulk-fee', requireActiveSubscription, async (req, res) => 
   }
 });
 
-router.put('/students/:id/fee', requireActiveSubscription, async (req, res) => {
+router.put('/students/:id/fee', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { id } = req.params;
     const { expected_fee, fee_note } = req.body;
@@ -390,7 +391,7 @@ router.delete('/students/:id', requireActiveSubscription, async (req, res) => {
 // ATTENDANCE
 // ============================================
 
-router.post('/attendance', requireActiveSubscription, async (req, res) => {
+router.post('/attendance', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { student_id, class_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes } = req.body;
@@ -452,6 +453,28 @@ router.get('/attendance/class/:classId', async (req, res) => {
 // ============================================
 // QUR'AN TRACKING
 // ============================================
+
+const JUZ_BOUNDARIES = [
+  null,
+  { surah: 1, ayah: 1 },    { surah: 2, ayah: 142 },  { surah: 2, ayah: 253 },
+  { surah: 3, ayah: 93 },   { surah: 4, ayah: 24 },   { surah: 4, ayah: 148 },
+  { surah: 5, ayah: 83 },   { surah: 6, ayah: 111 },  { surah: 7, ayah: 88 },
+  { surah: 8, ayah: 41 },   { surah: 9, ayah: 93 },   { surah: 11, ayah: 6 },
+  { surah: 12, ayah: 53 },  { surah: 15, ayah: 1 },   { surah: 17, ayah: 1 },
+  { surah: 18, ayah: 75 },  { surah: 21, ayah: 1 },   { surah: 23, ayah: 1 },
+  { surah: 25, ayah: 21 },  { surah: 27, ayah: 56 },  { surah: 29, ayah: 46 },
+  { surah: 33, ayah: 31 },  { surah: 36, ayah: 28 },  { surah: 39, ayah: 32 },
+  { surah: 41, ayah: 47 },  { surah: 46, ayah: 1 },   { surah: 51, ayah: 31 },
+  { surah: 58, ayah: 1 },   { surah: 67, ayah: 1 },   { surah: 78, ayah: 1 },
+];
+
+function getJuz(surahNumber, ayah) {
+  for (let j = 30; j >= 1; j--) {
+    const b = JUZ_BOUNDARIES[j];
+    if (surahNumber > b.surah || (surahNumber === b.surah && ayah >= b.ayah)) return j;
+  }
+  return 1;
+}
 
 const SURAHS = [
   {n:1,name:'Al-Fatiha',juz:1,ayahs:7},{n:2,name:'Al-Baqarah',juz:1,ayahs:286},{n:3,name:"Ali 'Imran",juz:3,ayahs:200},
@@ -589,9 +612,9 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const userId = req.user.id;
-    const { student_id, class_id, semester_id, date, type, surah_number, surah_name, juz, ayah_from, ayah_to, grade, passed, notes } = req.body;
+    const { student_id, class_id, semester_id, date, type, surah_number, surah_name, to_surah_number, to_surah_name, juz, ayah_from, ayah_to, grade, passed, notes } = req.body;
 
-    if (!student_id || !class_id || !semester_id || !date || !type || !surah_number || !surah_name) {
+    if (!student_id || !date || !type || !surah_number || !surah_name) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     if (!['hifz', 'tilawah', 'revision'].includes(type)) {
@@ -605,31 +628,48 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
     const ayahFromInt = parseInt(ayah_from);
     const ayahToInt = parseInt(ayah_to);
     if (isNaN(ayahFromInt) || isNaN(ayahToInt) || ayahFromInt < 1 || ayahToInt < 1) return res.status(400).json({ error: 'Ayah values must be positive numbers' });
-    if (ayahFromInt > surah.ayahs || ayahToInt > surah.ayahs) return res.status(400).json({ error: `${surah.name} has ${surah.ayahs} ayahs` });
-    if (ayahFromInt > ayahToInt) return res.status(400).json({ error: 'Ayah From cannot be greater than Ayah To' });
+    if (ayahFromInt > surah.ayahs) return res.status(400).json({ error: `${surah.name} has ${surah.ayahs} ayahs` });
+    if (to_surah_number) {
+      const toSurahData = SURAHS.find(s => s.n === parseInt(to_surah_number));
+      if (toSurahData && ayahToInt > toSurahData.ayahs) return res.status(400).json({ error: `${toSurahData.name} has ${toSurahData.ayahs} ayahs` });
+    } else {
+      if (ayahToInt > surah.ayahs) return res.status(400).json({ error: `${surah.name} has ${surah.ayahs} ayahs` });
+      if (ayahFromInt > ayahToInt) return res.status(400).json({ error: 'Ayah From cannot be greater than Ayah To' });
+    }
 
     const today = new Date(); today.setHours(23, 59, 59, 999);
     if (new Date(date) > today) return res.status(400).json({ error: 'Date cannot be in the future' });
 
-    // Solo user owns all classes — no class_teachers check needed
-    const [classCheck] = await pool.query('SELECT id FROM classes WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [class_id, madrasahId]);
-    if (classCheck.length === 0) return res.status(404).json({ error: 'Class not found' });
+    // Validate class if provided (free plan has no classes)
+    if (class_id) {
+      const [classCheck] = await pool.query('SELECT id FROM classes WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [class_id, madrasahId]);
+      if (classCheck.length === 0) return res.status(404).json({ error: 'Class not found' });
+    }
+
+    // Validate to_surah if cross-surah
+    if (to_surah_number) {
+      const toSurah = SURAHS.find(s => s.n === parseInt(to_surah_number));
+      if (!toSurah) return res.status(400).json({ error: 'Invalid to-surah number' });
+    }
 
     const [result] = await pool.query(
-      `INSERT INTO quran_progress (madrasah_id, student_id, class_id, semester_id, user_id, date, type, surah_number, surah_name, juz, ayah_from, ayah_to, grade, passed, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [madrasahId, student_id, class_id, semester_id, userId, date, type, surah_number, surah_name, juz || surah.juz, ayahFromInt, ayahToInt, grade || 'Good', passed !== undefined ? passed : true, notes || null]
+      `INSERT INTO quran_progress (madrasah_id, student_id, class_id, semester_id, user_id, date, type, surah_number, surah_name, to_surah_number, to_surah_name, juz, ayah_from, ayah_to, grade, passed, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [madrasahId, student_id, class_id, semester_id, userId, date, type, surah_number, surah_name, to_surah_number || null, to_surah_name || null, juz || getJuz(parseInt(surah_number), ayahFromInt), ayahFromInt, ayahToInt, grade || 'Good', passed !== undefined ? passed : true, notes || null]
     );
 
     // Update student position if passed
     if (passed !== false) {
-      const posJuz = juz || surah.juz;
+      // For cross-surah sessions, position advances to the to_surah
+      const posSurahNum = to_surah_number || surah_number;
+      const posSurahName = to_surah_name || surah_name;
+      const posJuz = getJuz(parseInt(posSurahNum), ayahToInt);
       if (type === 'hifz') {
-        await pool.query(`INSERT INTO quran_student_position (madrasah_id, student_id, current_surah_number, current_surah_name, current_juz, current_ayah) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE current_surah_number = VALUES(current_surah_number), current_surah_name = VALUES(current_surah_name), current_juz = VALUES(current_juz), current_ayah = VALUES(current_ayah), last_updated = CURRENT_TIMESTAMP`, [madrasahId, student_id, surah_number, surah_name, posJuz, ayahToInt]);
+        await pool.query(`INSERT INTO quran_student_position (madrasah_id, student_id, current_surah_number, current_surah_name, current_juz, current_ayah) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE current_surah_number = VALUES(current_surah_number), current_surah_name = VALUES(current_surah_name), current_juz = VALUES(current_juz), current_ayah = VALUES(current_ayah), last_updated = CURRENT_TIMESTAMP`, [madrasahId, student_id, posSurahNum, posSurahName, posJuz, ayahToInt]);
       } else if (type === 'tilawah') {
-        await pool.query(`INSERT INTO quran_student_position (madrasah_id, student_id, tilawah_surah_number, tilawah_surah_name, tilawah_juz, tilawah_ayah) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE tilawah_surah_number = VALUES(tilawah_surah_number), tilawah_surah_name = VALUES(tilawah_surah_name), tilawah_juz = VALUES(tilawah_juz), tilawah_ayah = VALUES(tilawah_ayah), last_updated = CURRENT_TIMESTAMP`, [madrasahId, student_id, surah_number, surah_name, posJuz, ayahToInt]);
+        await pool.query(`INSERT INTO quran_student_position (madrasah_id, student_id, tilawah_surah_number, tilawah_surah_name, tilawah_juz, tilawah_ayah) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE tilawah_surah_number = VALUES(tilawah_surah_number), tilawah_surah_name = VALUES(tilawah_surah_name), tilawah_juz = VALUES(tilawah_juz), tilawah_ayah = VALUES(tilawah_ayah), last_updated = CURRENT_TIMESTAMP`, [madrasahId, student_id, posSurahNum, posSurahName, posJuz, ayahToInt]);
       } else if (type === 'revision') {
-        await pool.query(`INSERT INTO quran_student_position (madrasah_id, student_id, revision_surah_number, revision_surah_name, revision_juz, revision_ayah) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE revision_surah_number = VALUES(revision_surah_number), revision_surah_name = VALUES(revision_surah_name), revision_juz = VALUES(revision_juz), revision_ayah = VALUES(revision_ayah), last_updated = CURRENT_TIMESTAMP`, [madrasahId, student_id, surah_number, surah_name, posJuz, ayahToInt]);
+        await pool.query(`INSERT INTO quran_student_position (madrasah_id, student_id, revision_surah_number, revision_surah_name, revision_juz, revision_ayah) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE revision_surah_number = VALUES(revision_surah_number), revision_surah_name = VALUES(revision_surah_name), revision_juz = VALUES(revision_juz), revision_ayah = VALUES(revision_ayah), last_updated = CURRENT_TIMESTAMP`, [madrasahId, student_id, posSurahNum, posSurahName, posJuz, ayahToInt]);
       }
     }
 
@@ -680,7 +720,7 @@ router.get('/classes/:classId/exam-performance', async (req, res) => {
   }
 });
 
-router.post('/classes/:classId/exam-performance/bulk', requireActiveSubscription, async (req, res) => {
+router.post('/classes/:classId/exam-performance/bulk', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
@@ -726,7 +766,7 @@ router.post('/classes/:classId/exam-performance/bulk', requireActiveSubscription
   }
 });
 
-router.put('/exam-performance/batch', requireActiveSubscription, async (req, res) => {
+router.put('/exam-performance/batch', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { record_ids, semester_id, subject, exam_date, max_score } = req.body;
@@ -754,7 +794,7 @@ router.put('/exam-performance/batch', requireActiveSubscription, async (req, res
   }
 });
 
-router.delete('/exam-performance/batch', requireActiveSubscription, async (req, res) => {
+router.delete('/exam-performance/batch', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { record_ids } = req.body;
     if (!record_ids || !Array.isArray(record_ids) || record_ids.length === 0) return res.status(400).json({ error: 'Record IDs are required' });
@@ -770,7 +810,7 @@ router.delete('/exam-performance/batch', requireActiveSubscription, async (req, 
   }
 });
 
-router.put('/exam-performance/:id', requireActiveSubscription, async (req, res) => {
+router.put('/exam-performance/:id', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { id } = req.params;
     const { score, is_absent, absence_reason, notes } = req.body;
@@ -797,7 +837,7 @@ router.put('/exam-performance/:id', requireActiveSubscription, async (req, res) 
   }
 });
 
-router.delete('/exam-performance/:id', requireActiveSubscription, async (req, res) => {
+router.delete('/exam-performance/:id', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { id } = req.params;
     const [record] = await pool.query('SELECT id FROM exam_performance WHERE id = ? AND user_id = ? AND madrasah_id = ?', [id, req.user.id, req.madrasahId]);
@@ -838,7 +878,7 @@ router.get('/fee-payments', async (req, res) => {
   }
 });
 
-router.post('/fee-payments', requireActiveSubscription, async (req, res) => {
+router.post('/fee-payments', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { student_id, amount_paid, payment_date, payment_method, reference_note, payment_label } = req.body;
     if (!student_id) return res.status(400).json({ error: 'Student is required' });
@@ -860,7 +900,7 @@ router.post('/fee-payments', requireActiveSubscription, async (req, res) => {
   }
 });
 
-router.delete('/fee-payments/:id', requireActiveSubscription, async (req, res) => {
+router.delete('/fee-payments/:id', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     await pool.query('UPDATE fee_payments SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [req.params.id, req.madrasahId]);
     res.json({ message: 'Payment voided successfully' });
@@ -923,7 +963,7 @@ router.get('/sessions/:sessionId/holidays', async (req, res) => {
   }
 });
 
-router.post('/sessions/:sessionId/holidays', requireActiveSubscription, async (req, res) => {
+router.post('/sessions/:sessionId/holidays', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { title, start_date, end_date, description } = req.body;
@@ -946,7 +986,7 @@ router.post('/sessions/:sessionId/holidays', requireActiveSubscription, async (r
   }
 });
 
-router.put('/holidays/:id', requireActiveSubscription, async (req, res) => {
+router.put('/holidays/:id', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, start_date, end_date, description } = req.body;
@@ -963,7 +1003,7 @@ router.put('/holidays/:id', requireActiveSubscription, async (req, res) => {
   }
 });
 
-router.delete('/holidays/:id', requireActiveSubscription, async (req, res) => {
+router.delete('/holidays/:id', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { id } = req.params;
     await pool.query('UPDATE academic_holidays SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ?', [id, req.madrasahId]);
@@ -990,7 +1030,7 @@ router.get('/sessions/:sessionId/schedule-overrides', async (req, res) => {
   }
 });
 
-router.post('/sessions/:sessionId/schedule-overrides', requireActiveSubscription, async (req, res) => {
+router.post('/sessions/:sessionId/schedule-overrides', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { title, start_date, end_date, school_days } = req.body;
@@ -1015,7 +1055,7 @@ router.post('/sessions/:sessionId/schedule-overrides', requireActiveSubscription
   }
 });
 
-router.put('/schedule-overrides/:id', requireActiveSubscription, async (req, res) => {
+router.put('/schedule-overrides/:id', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, start_date, end_date, school_days } = req.body;
@@ -1032,7 +1072,7 @@ router.put('/schedule-overrides/:id', requireActiveSubscription, async (req, res
   }
 });
 
-router.delete('/schedule-overrides/:id', requireActiveSubscription, async (req, res) => {
+router.delete('/schedule-overrides/:id', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { id } = req.params;
     await pool.query('UPDATE schedule_overrides SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ?', [id, req.madrasahId]);
@@ -1046,7 +1086,7 @@ router.delete('/schedule-overrides/:id', requireActiveSubscription, async (req, 
 // STUDENT CLASS PATCH
 // ============================================
 
-router.patch('/students/:id/class', requireActiveSubscription, async (req, res) => {
+router.patch('/students/:id/class', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { id } = req.params;
     const { class_id } = req.body;
@@ -1069,7 +1109,7 @@ router.patch('/students/:id/class', requireActiveSubscription, async (req, res) 
 // FEE MANAGEMENT (CLEAR & EDIT)
 // ============================================
 
-router.delete('/students/:id/fee', requireActiveSubscription, async (req, res) => {
+router.delete('/students/:id/fee', requireNonFree, requireActiveSubscription, async (req, res) => {
   try {
     const { id } = req.params;
     const [check] = await pool.query('SELECT id FROM students WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [id, req.madrasahId]);

@@ -14,7 +14,7 @@ function Pricing() {
       monthly: 5,
       annual: 50,
       features: [
-        'Up to 50 students',
+        'Up to 75 students',
         'Up to 5 classes',
         'Attendance recording',
         'Exam recording',
@@ -114,8 +114,8 @@ function Pricing() {
   return (
     <div className="pricing-page">
       <SEO
-        title="Pricing — School Management Plans from $5/mo"
-        description="Simple, transparent pricing for madrasah and school management. Solo plan from $5/mo, Standard from $12/mo, Plus from $29/mo. 14-day free trial, no credit card needed."
+        title="Pricing — Free Qur'an Tracker + School Plans from $5/mo"
+        description="Free Qur'an tracking for up to 75 students. Solo plan from $5/mo, Standard from $12/mo, Plus from $29/mo. 14-day free trial on paid plans, no credit card needed."
       />
       {/* Header */}
       <header className="pricing-header">
@@ -155,7 +155,67 @@ function Pricing() {
         </div>
 
         {/* Plans Grid */}
-        <div className="plans-grid four-cols">
+        <div className="plans-grid five-cols">
+          {/* Free Plan */}
+          <div className="plan-card">
+            <div className="plan-header">
+              <h2 className="plan-name">Free</h2>
+              <p className="plan-description">Qur'an tracking for hifdh circles and tilawah classes</p>
+            </div>
+            <div className="plan-price">
+              <span className="amount">$0</span>
+              <span className="period">forever</span>
+            </div>
+            <button
+              className="plan-btn"
+              onClick={() => navigate('/register?type=quran_focused')}
+            >
+              Get Started Free
+            </button>
+            <ul className="plan-features">
+              <li className="feature included">
+                <span className="check">✓</span>
+                Up to 75 students
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                Qur'an progress tracking
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                Hifdh, Tilawah &amp; Muraja'ah
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                Session history &amp; grades
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                Cloud backup
+              </li>
+              <li className="feature included">
+                <span className="check">✓</span>
+                No trial, no expiry
+              </li>
+              <li className="feature not-included">
+                <span className="x">×</span>
+                Classes &amp; attendance
+              </li>
+              <li className="feature not-included">
+                <span className="x">×</span>
+                Exams &amp; rankings
+              </li>
+              <li className="feature not-included">
+                <span className="x">×</span>
+                Fee tracking
+              </li>
+              <li className="feature not-included">
+                <span className="x">×</span>
+                SMS &amp; notifications
+              </li>
+            </ul>
+          </div>
+
           {/* Solo Plan */}
           <div className="plan-card">
             <div className="plan-header">

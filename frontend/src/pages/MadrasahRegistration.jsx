@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { authService } from '../services/auth.service';
 import SEO from '../components/SEO';
@@ -7,13 +7,14 @@ import './MadrasahRegistration.css';
 
 function MadrasahRegistration() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     madrasahName: '',
     slug: '',
-    institutionType: '',
+    institutionType: searchParams.get('type') || '',
     website: '',
     adminFirstName: '',
     adminLastName: '',
@@ -110,7 +111,11 @@ function MadrasahRegistration() {
       });
 
       toast.success('Madrasah registered successfully');
-      navigate(`/${response.madrasah.slug}/admin`);
+      if (response.madrasah.pricingPlan === 'free') {
+        navigate(`/${response.madrasah.slug}/solo`);
+      } else {
+        navigate(`/${response.madrasah.slug}/admin`);
+      }
     } catch (error) {
       toast.error(error.response?.data?.error || 'Registration failed');
     } finally {
@@ -179,12 +184,18 @@ function MadrasahRegistration() {
                   required
                 >
                   <option value="">Select institution type</option>
+                  <option value="quran_focused">Qur'an-Focused (Hifdh / Tilawah)</option>
                   <option value="mosque_based">Mosque-based Madrasah</option>
                   <option value="independent">Independent Islamic School</option>
                   <option value="school_affiliated">School-affiliated Program</option>
                   <option value="online">Online Madrasah</option>
                   <option value="other">Other</option>
                 </select>
+                {formData.institutionType === 'quran_focused' && (
+                  <p className="register-help" style={{ color: 'var(--success, #2d6a4f)', fontWeight: 500 }}>
+                    Free plan — up to 75 students, Qur'an tracking only. No trial, no expiry.
+                  </p>
+                )}
               </div>
 
               <div className="register-field full-width">

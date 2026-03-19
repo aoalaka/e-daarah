@@ -31,7 +31,7 @@ router.post('/register-madrasah', async (req, res) => {
     }
 
     // Validate institution type if provided
-    const validInstitutionTypes = ['mosque_based', 'independent', 'school_affiliated', 'online', 'other'];
+    const validInstitutionTypes = ['mosque_based', 'independent', 'school_affiliated', 'online', 'other', 'quran_focused'];
     if (institutionType && !validInstitutionTypes.includes(institutionType)) {
       return res.status(400).json({ error: 'Invalid institution type' });
     }
@@ -100,15 +100,18 @@ router.post('/register-madrasah', async (req, res) => {
     // Combine phone with country code (no space)
     const fullPhone = `${phoneCountryCode || '+64'}${phone}`;
     
-    // Calculate trial end date (14 days from now)
-    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    // Qur'an-focused madrasahs get free plan (no trial, no expiry)
+    const isQuranFocused = institutionType === 'quran_focused';
+    const trialEndsAt = isQuranFocused ? null : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    const pricingPlan = isQuranFocused ? 'free' : null;
+    const subscriptionStatus = isQuranFocused ? 'active' : 'trialing';
 
-    // Create madrasah with trial period
+    // Create madrasah
     let madrasahResult;
     try {
       [madrasahResult] = await pool.query(
-        'INSERT INTO madrasahs (name, slug, institution_type, website, phone, street, city, region, country, is_active, trial_ends_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)',
-        [madrasahName, slug, institutionType || null, website || null, fullPhone, street, city, region, country, trialEndsAt]
+        'INSERT INTO madrasahs (name, slug, institution_type, website, phone, street, city, region, country, is_active, trial_ends_at, pricing_plan, subscription_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?)',
+        [madrasahName, slug, institutionType || null, website || null, fullPhone, street, city, region, country, trialEndsAt, pricingPlan, subscriptionStatus]
       );
     } catch (dbError) {
       // If newer columns don't exist, try basic insert
@@ -169,7 +172,8 @@ router.post('/register-madrasah', async (req, res) => {
       madrasah: {
         id: madrasahId,
         name: madrasahName,
-        slug: slug
+        slug: slug,
+        pricingPlan: pricingPlan || 'trial'
       }
     });
   } catch (error) {
@@ -184,7 +188,7 @@ router.get('/madrasah/:slug', async (req, res) => {
     const { slug } = req.params;
 
     const [madrasahs] = await pool.query(
-      'SELECT id, name, slug, logo_url FROM madrasahs WHERE slug = ? AND is_active = TRUE AND deleted_at IS NULL',
+      'SELECT id, name, slug, logo_url, pricing_plan FROM madrasahs WHERE slug = ? AND is_active = TRUE AND deleted_at IS NULL',
       [slug]
     );
 
@@ -510,17 +514,20 @@ router.post('/register-teacher', async (req, res) => {
     const status = madrasah.subscription_status || 'trialing';
     const trialEndsAt = madrasah.trial_ends_at;
 
-    // Check if trial expired
-    if (status === 'trialing' && trialEndsAt && new Date(trialEndsAt) < new Date()) {
-      return res.status(403).json({
-        error: 'Trial expired',
-        code: 'TRIAL_EXPIRED',
-        message: 'This madrasah\'s trial has expired. Please contact the administrator.'
-      });
+    // Free plan is always active — skip trial/subscription checks
+    if (plan !== 'free') {
+      // Check if trial expired
+      if (status === 'trialing' && trialEndsAt && new Date(trialEndsAt) < new Date()) {
+        return res.status(403).json({
+          error: 'Trial expired',
+          code: 'TRIAL_EXPIRED',
+          message: 'This madrasah\'s trial has expired. Please contact the administrator.'
+        });
+      }
     }
 
     // Check if subscription is inactive
-    if (status === 'canceled' || status === 'expired') {
+    if (plan !== 'free' && (status === 'canceled' || status === 'expired')) {
       return res.status(403).json({
         error: 'Subscription inactive',
         code: 'SUBSCRIPTION_INACTIVE',

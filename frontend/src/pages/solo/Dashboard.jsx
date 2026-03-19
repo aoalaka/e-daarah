@@ -32,6 +32,7 @@ import 'react-phone-input-2/lib/style.css';
 import EmailVerificationBanner from '../../components/EmailVerificationBanner';
 import DemoBanner from '../../components/DemoBanner';
 import AnnouncementBanner from '../../components/AnnouncementBanner';
+import QuranSessionRecorder from '../../components/QuranSessionRecorder';
 import '../admin/Dashboard.css';
 
 function SoloDashboard() {
@@ -79,6 +80,8 @@ function SoloDashboard() {
   const profileDropdownRef = useRef(null);
   const [confirmModal, setConfirmModal] = useState(null);
   const [madrasahProfile, setMadrasahProfile] = useState(null);
+  const madrasahData = authService.getMadrasah();
+  const isFreePlan = madrasahData?.pricingPlan === 'free';
 
   // ─── Overview ────────────────────────────────────
   const [overviewData, setOverviewData] = useState(null);
@@ -1238,7 +1241,19 @@ function SoloDashboard() {
   // NAV CONFIG
   // ════════════════════════════════════════════════
 
-  const navGroups = [
+  const navGroups = isFreePlan ? [
+    { items: [{ id: 'overview', label: 'Overview' }] },
+    { label: 'Manage', items: [
+      { id: 'students', label: 'Students' },
+    ]},
+    { label: 'Teach', items: [
+      { id: 'quran', label: "Qur'an Tracker" },
+    ]},
+    { label: 'Help', items: [
+      { id: 'help', label: 'Help' },
+      { id: 'support', label: 'Support' },
+    ]},
+  ] : [
     { items: [{ id: 'overview', label: 'Overview' }] },
     { label: 'Manage', items: [
       { id: 'classes', label: 'Classes' },
@@ -1440,18 +1455,22 @@ function SoloDashboard() {
                     <div className="summary-card">
                       <div className="summary-label">Students</div>
                       <div className="summary-value">{overviewData.students}</div>
-                      <div className="summary-status">across {overviewData.classes} class{overviewData.classes !== 1 ? 'es' : ''}</div>
+                      <div className="summary-status">{isFreePlan ? `of 75 max` : `across ${overviewData.classes} class${overviewData.classes !== 1 ? 'es' : ''}`}</div>
                     </div>
-                    <div className="summary-card">
-                      <div className="summary-label">Classes</div>
-                      <div className="summary-value">{overviewData.classes}</div>
-                      <div className="summary-status">max 5 on Solo</div>
-                    </div>
-                    <div className="summary-card">
-                      <div className="summary-label">Present Today</div>
-                      <div className="summary-value">{overviewData.attendance?.present || 0}/{overviewData.attendance?.total || 0}</div>
-                      <div className="summary-status">{overviewData.attendance?.total > 0 ? `${Math.round((overviewData.attendance?.present || 0) / overviewData.attendance.total * 100)}% attendance` : 'No records yet'}</div>
-                    </div>
+                    {!isFreePlan && (
+                      <div className="summary-card">
+                        <div className="summary-label">Classes</div>
+                        <div className="summary-value">{overviewData.classes}</div>
+                        <div className="summary-status">max 5 on Solo</div>
+                      </div>
+                    )}
+                    {!isFreePlan && (
+                      <div className="summary-card">
+                        <div className="summary-label">Present Today</div>
+                        <div className="summary-value">{overviewData.attendance?.present || 0}/{overviewData.attendance?.total || 0}</div>
+                        <div className="summary-status">{overviewData.attendance?.total > 0 ? `${Math.round((overviewData.attendance?.present || 0) / overviewData.attendance.total * 100)}% attendance` : 'No records yet'}</div>
+                      </div>
+                    )}
                     {madrasahProfile?.enable_fee_tracking && overviewData.fees?.total_expected > 0 && (() => {
                       const paid = overviewData.fees?.total_paid || 0;
                       const expected = overviewData.fees?.total_expected || 0;
@@ -1471,7 +1490,7 @@ function SoloDashboard() {
                   </div>
 
                   {/* Today's Status */}
-                  {activeSemester && (
+                  {activeSemester && !isFreePlan && (
                     <div className="alert-panel" style={{ marginTop: 'var(--md)' }}>
                       <div className="alert-panel-title">Today's Status</div>
                       <div className="alert-panel-content">
@@ -1490,25 +1509,36 @@ function SoloDashboard() {
 
                   {/* Quick Actions */}
                   <div className="overview-actions" style={{ marginTop: 'var(--lg)' }}>
-                    <div className="overview-action-card" onClick={() => handleTabChange('attendance')}>
-                      <div className="overview-action-icon">
-                        <ClipboardDocumentCheckIcon width={20} height={20} />
+                    {!isFreePlan && (
+                      <div className="overview-action-card" onClick={() => handleTabChange('attendance')}>
+                        <div className="overview-action-icon">
+                          <ClipboardDocumentCheckIcon width={20} height={20} />
+                        </div>
+                        <div className="overview-action-label">Take Attendance</div>
                       </div>
-                      <div className="overview-action-label">Take Attendance</div>
-                    </div>
+                    )}
                     <div className="overview-action-card" onClick={() => handleTabChange('students')}>
                       <div className="overview-action-icon">
                         <UserPlusIcon width={20} height={20} />
                       </div>
                       <div className="overview-action-label">Add Student</div>
                     </div>
-                    <div className="overview-action-card" onClick={() => handleTabChange('exams')}>
-                      <div className="overview-action-icon">
-                        <DocumentTextIcon width={20} height={20} />
+                    {isFreePlan ? (
+                      <div className="overview-action-card" onClick={() => handleTabChange('quran')}>
+                        <div className="overview-action-icon">
+                          <BookOpenIcon width={20} height={20} />
+                        </div>
+                        <div className="overview-action-label">Qur'an Tracker</div>
                       </div>
-                      <div className="overview-action-label">Record Exam</div>
-                    </div>
-                    {madrasahProfile?.enable_fee_tracking && (
+                    ) : (
+                      <div className="overview-action-card" onClick={() => handleTabChange('exams')}>
+                        <div className="overview-action-icon">
+                          <DocumentTextIcon width={20} height={20} />
+                        </div>
+                        <div className="overview-action-label">Record Exam</div>
+                      </div>
+                    )}
+                    {!isFreePlan && madrasahProfile?.enable_fee_tracking && (
                       <div className="overview-action-card" onClick={() => handleTabChange('fees')}>
                         <div className="overview-action-icon">
                           <CurrencyDollarIcon width={20} height={20} />
@@ -1518,28 +1548,62 @@ function SoloDashboard() {
                     )}
                   </div>
 
-                  {/* Setup Checklist */}
-                  {(sessions.length === 0 || classes.length === 0 || students.length === 0) && (
-                    <div className="card" style={{ marginTop: 'var(--lg)' }}>
-                      <div className="card-header">Setup Checklist</div>
-                      <div className="card-body" style={{ display: 'grid', gap: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: sessions.length > 0 ? 'var(--accent)' : 'var(--lighter)', color: sessions.length > 0 ? 'white' : 'var(--muted)' }}>{sessions.length > 0 ? '✓' : '1'}</span>
-                          <span style={{ fontSize: '14px', textDecoration: sessions.length > 0 ? 'line-through' : 'none', color: sessions.length > 0 ? 'var(--muted)' : 'var(--text)' }}>Create an academic session</span>
-                          {sessions.length === 0 && <button className="btn btn-sm btn-secondary" onClick={() => handleTabChange('planner')}>Go</button>}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: classes.length > 0 ? 'var(--accent)' : 'var(--lighter)', color: classes.length > 0 ? 'white' : 'var(--muted)' }}>{classes.length > 0 ? '✓' : '2'}</span>
-                          <span style={{ fontSize: '14px', textDecoration: classes.length > 0 ? 'line-through' : 'none', color: classes.length > 0 ? 'var(--muted)' : 'var(--text)' }}>Create your first class</span>
-                          {classes.length === 0 && <button className="btn btn-sm btn-secondary" onClick={() => handleTabChange('classes')}>Go</button>}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: students.length > 0 ? 'var(--accent)' : 'var(--lighter)', color: students.length > 0 ? 'white' : 'var(--muted)' }}>{students.length > 0 ? '✓' : '3'}</span>
-                          <span style={{ fontSize: '14px', textDecoration: students.length > 0 ? 'line-through' : 'none', color: students.length > 0 ? 'var(--muted)' : 'var(--text)' }}>Add your first student</span>
-                          {students.length === 0 && <button className="btn btn-sm btn-secondary" onClick={() => handleTabChange('students')}>Go</button>}
-                        </div>
+                  {/* Marketing badges — free plan only */}
+                  {isFreePlan && (
+                    <div style={{ marginTop: 'var(--lg)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div className="card" style={{ padding: '14px 16px', background: 'var(--bg)', border: '1px solid var(--light)', cursor: 'pointer' }} onClick={() => window.open('/pricing', '_blank')}>
+                        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '2px' }}>Want to track attendance?</div>
+                        <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Upgrade to Solo from $3/mo to manage classes and attendance.</div>
+                      </div>
+                      <div className="card" style={{ padding: '14px 16px', background: 'var(--bg)', border: '1px solid var(--light)', cursor: 'pointer' }} onClick={() => window.open('/pricing', '_blank')}>
+                        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '2px' }}>Need exam recording and fee tracking?</div>
+                        <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Unlock the full platform — exams, fees, reports, parent portal and more.</div>
                       </div>
                     </div>
+                  )}
+
+                  {/* Setup Checklist */}
+                  {isFreePlan ? (
+                    students.length === 0 && (
+                      <div className="card" style={{ marginTop: 'var(--lg)' }}>
+                        <div className="card-header">Getting Started</div>
+                        <div className="card-body" style={{ display: 'grid', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: 'var(--lighter)', color: 'var(--muted)' }}>1</span>
+                            <span style={{ fontSize: '14px' }}>Add your first student</span>
+                            <button className="btn btn-sm btn-secondary" onClick={() => handleTabChange('students')}>Go</button>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: 'var(--lighter)', color: 'var(--muted)' }}>2</span>
+                            <span style={{ fontSize: '14px' }}>Record a Qur'an session</span>
+                            <button className="btn btn-sm btn-secondary" onClick={() => handleTabChange('quran')}>Go</button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    (sessions.length === 0 || classes.length === 0 || students.length === 0) && (
+                      <div className="card" style={{ marginTop: 'var(--lg)' }}>
+                        <div className="card-header">Setup Checklist</div>
+                        <div className="card-body" style={{ display: 'grid', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: sessions.length > 0 ? 'var(--accent)' : 'var(--lighter)', color: sessions.length > 0 ? 'white' : 'var(--muted)' }}>{sessions.length > 0 ? '✓' : '1'}</span>
+                            <span style={{ fontSize: '14px', textDecoration: sessions.length > 0 ? 'line-through' : 'none', color: sessions.length > 0 ? 'var(--muted)' : 'var(--text)' }}>Create an academic session</span>
+                            {sessions.length === 0 && <button className="btn btn-sm btn-secondary" onClick={() => handleTabChange('planner')}>Go</button>}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: classes.length > 0 ? 'var(--accent)' : 'var(--lighter)', color: classes.length > 0 ? 'white' : 'var(--muted)' }}>{classes.length > 0 ? '✓' : '2'}</span>
+                            <span style={{ fontSize: '14px', textDecoration: classes.length > 0 ? 'line-through' : 'none', color: classes.length > 0 ? 'var(--muted)' : 'var(--text)' }}>Create your first class</span>
+                            {classes.length === 0 && <button className="btn btn-sm btn-secondary" onClick={() => handleTabChange('classes')}>Go</button>}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', background: students.length > 0 ? 'var(--accent)' : 'var(--lighter)', color: students.length > 0 ? 'white' : 'var(--muted)' }}>{students.length > 0 ? '✓' : '3'}</span>
+                            <span style={{ fontSize: '14px', textDecoration: students.length > 0 ? 'line-through' : 'none', color: students.length > 0 ? 'var(--muted)' : 'var(--text)' }}>Add your first student</span>
+                            {students.length === 0 && <button className="btn btn-sm btn-secondary" onClick={() => handleTabChange('students')}>Go</button>}
+                          </div>
+                        </div>
+                      </div>
+                    )
                   )}
                 </>
               ) : (
@@ -3063,266 +3127,40 @@ function SoloDashboard() {
             <>
               <div className="page-header"><h2 className="page-title">Qur'an Progress</h2></div>
 
-              {/* Class Selector */}
-              <div className="card" style={{ marginBottom: 'var(--md)' }}>
-                <div className="card-body">
-                  <div className="form-group">
-                    <label className="form-label">Select Class</label>
-                    <select className="form-select" value={selectedClass?.id || ''} onChange={(e) => {
-                      const cls = classes.find(c => c.id === parseInt(e.target.value));
-                      setSelectedClass(cls || null);
-                      setQuranSelectedStudent(null);
-                    }}>
-                      <option value="">-- Select a class --</option>
-                      {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+              {/* Class Selector — hidden for free plan */}
+              {!isFreePlan && (
+                <div className="card" style={{ marginBottom: 'var(--md)' }}>
+                  <div className="card-body">
+                    <div className="form-group">
+                      <label className="form-label">Select Class</label>
+                      <select className="form-select" value={selectedClass?.id || ''} onChange={(e) => {
+                        const cls = classes.find(c => c.id === parseInt(e.target.value));
+                        setSelectedClass(cls || null);
+                      }}>
+                        <option value="">-- Select a class --</option>
+                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {!selectedClass ? (
+              {!isFreePlan && !selectedClass ? (
                 <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
                   <p className="empty">Select a class to record Qur'an progress</p>
                 </div>
               ) : (
-                <>
-                  {/* Sub-tabs */}
-                  <div className="report-tabs" style={{ marginBottom: 'var(--md)' }}>
-                    <nav className="report-tabs-nav">
-                      <button className={`report-tab-btn ${quranSubTab === 'record' ? 'active' : ''}`} onClick={() => setQuranSubTab('record')}>Record Session</button>
-                      <button className={`report-tab-btn ${quranSubTab === 'positions' ? 'active' : ''}`} onClick={() => { setQuranSubTab('positions'); fetchQuranPositions(); }}>Class Overview</button>
-                      <button className={`report-tab-btn ${quranSubTab === 'history' ? 'active' : ''}`} onClick={() => { setQuranSubTab('history'); fetchQuranRecords(); }}>History</button>
-                    </nav>
-                  </div>
-
-                  {/* Record Session Sub-tab */}
-                  {quranSubTab === 'record' && (
-                    <div style={{ display: 'grid', gap: 'var(--md)' }}>
-                      {/* Session type pills */}
-                      <div className="qp-type-pills">
-                        {[
-                          { value: 'tilawah', label: 'Tilawah', sub: 'Recitation' },
-                          { value: 'hifz', label: 'Hifdh', sub: 'Memorization' },
-                          { value: 'revision', label: 'Muraja\'ah', sub: 'Revision' }
-                        ].map(opt => (
-                          <button key={opt.value} type="button" className={`qp-type-pill${quranSessionType === opt.value ? ' active' : ''}`} onClick={() => setQuranSessionType(opt.value)}>
-                            {opt.label}<span className="qp-type-sub">{opt.sub}</span>
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Unified session card */}
-                      <div className="card">
-                        <div className="qp-section-label">
-                          Recording: {quranSessionType === 'tilawah' ? 'Tilawah (Recitation)' : quranSessionType === 'hifz' ? 'Hifdh (Memorization)' : 'Muraja\'ah (Revision)'}
-                        </div>
-                        <div className="form-grid form-grid-2">
-                          <div className="form-group">
-                            <label className="form-label">Student</label>
-                            <select className="form-select" value={quranSelectedStudent?.id || ''} onChange={e => handleSelectQuranStudent(e.target.value)}>
-                              <option value="">Select student…</option>
-                              {students.filter(s => s.class_id === selectedClass.id).map(s => (
-                                <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label">Date</label>
-                            <input type="date" className="form-input" value={quranDate} max={getLocalDate()} onChange={e => setQuranDate(e.target.value)} />
-                          </div>
-                        </div>
-
-                        {/* Position banner + form (shown when student selected) */}
-                        {quranSelectedStudent && quranStudentPosition && (
-                          <>
-                            {(() => {
-                              const pos = quranSessionType === 'hifz' ? quranStudentPosition.hifz
-                                : quranSessionType === 'tilawah' ? quranStudentPosition.tilawah
-                                : quranStudentPosition.revision;
-                              return pos ? (
-                                <div className="qp-position-banner">
-                                  <div>
-                                    <strong>{pos.surah_number}. {pos.surah_name}</strong>
-                                    {pos.ayah && <span className="qp-pos-detail"> — up to Ayah {pos.ayah}</span>}
-                                  </div>
-                                  <div className="qp-pos-juz">Juz {pos.juz}</div>
-                                </div>
-                              ) : (
-                                <div className="qp-position-banner qp-new-student">
-                                  Not started yet — this will be {quranSelectedStudent.first_name}'s first {quranSessionType === 'tilawah' ? 'tilawah' : quranSessionType === 'hifz' ? 'hifdh' : 'revision'} session.
-                                </div>
-                              );
-                            })()}
-
-                            <div className="form-grid form-grid-3">
-                              <div className="form-group">
-                                <label className="form-label">Surah</label>
-                                <select className="form-select" value={quranSurah} onChange={e => { setQuranSurah(e.target.value); setQuranAyahFrom(''); setQuranAyahTo(''); }}>
-                                  <option value="">Select Surah</option>
-                                  {surahs.map(s => <option key={s.n} value={s.n}>{s.n}. {s.name} (Juz {s.juz})</option>)}
-                                </select>
-                              </div>
-                              <div className="form-group">
-                                <label className="form-label">Ayah From *</label>
-                                <input type="number" className="form-input" min="1" max={quranSurah ? surahs.find(s => s.n === parseInt(quranSurah))?.ayahs : undefined} placeholder="e.g. 1" value={quranAyahFrom} onChange={e => setQuranAyahFrom(e.target.value)} />
-                              </div>
-                              <div className="form-group">
-                                <label className="form-label">Ayah To *</label>
-                                <input type="number" className="form-input" min="1" max={quranSurah ? surahs.find(s => s.n === parseInt(quranSurah))?.ayahs : undefined} placeholder={quranSurah ? `max ${surahs.find(s => s.n === parseInt(quranSurah))?.ayahs || ''}` : 'e.g. 10'} value={quranAyahTo} onChange={e => setQuranAyahTo(e.target.value)} />
-                              </div>
-                            </div>
-
-                            <div className="form-grid form-grid-3" style={{ marginTop: '12px' }}>
-                              <div className="form-group">
-                                <label className="form-label">Grade</label>
-                                <select className="form-select" value={quranGrade} onChange={e => setQuranGrade(e.target.value)}>
-                                  <option value="Excellent">Excellent</option>
-                                  <option value="Good">Good</option>
-                                  <option value="Fair">Fair</option>
-                                  <option value="Needs Improvement">Needs Improvement</option>
-                                </select>
-                              </div>
-                              <div className="form-group">
-                                <label className="form-label">Outcome</label>
-                                <div className="qp-outcome-toggle">
-                                  <button type="button" className={`qp-outcome-btn pass${quranPassed ? ' active' : ''}`} onClick={() => setQuranPassed(true)}>Pass</button>
-                                  <button type="button" className={`qp-outcome-btn repeat${!quranPassed ? ' active' : ''}`} onClick={() => setQuranPassed(false)}>Repeat</button>
-                                </div>
-                              </div>
-                              <div className="form-group">
-                                <label className="form-label">Notes</label>
-                                <input type="text" className="form-input" placeholder="Optional notes…" value={quranNotes} onChange={e => setQuranNotes(e.target.value)} />
-                              </div>
-                            </div>
-
-                            <div className={`qp-info-banner ${quranPassed ? 'pass' : 'fail'}`}>
-                              {quranPassed
-                                ? (quranSessionType === 'revision'
-                                    ? 'Student passed — revision recorded.'
-                                    : 'Student passed — their position will advance to the new ayah.')
-                                : 'Student did not pass — they need to repeat this assignment next time. Position stays the same.'
-                              }
-                            </div>
-
-                            <div className="form-actions" style={{ marginTop: 'var(--md)' }}>
-                              <button className="btn btn-primary" onClick={handleRecordQuran} disabled={quranSaving}>
-                                {quranSaving ? 'Saving…' : quranPassed ? 'Save & Advance' : 'Save as Repeat'}
-                              </button>
-                            </div>
-                          </>
-                        )}
-
-                        {/* Empty state — no student selected */}
-                        {!quranSelectedStudent && (
-                          <div style={{ textAlign: 'center', padding: 'var(--lg) 0' }}>
-                            <div className="empty-icon">
-                              <BookOpenIcon width={22} height={22} />
-                            </div>
-                            <p className="empty">Select a student to begin recording</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Student's recent history — filtered to selected type */}
-                      {quranSelectedStudent && quranStudentPosition && quranStudentHistory.filter(r => r.type === quranSessionType).length > 0 && (
-                        <div className="card">
-                          <h3>Recent {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifdh' : 'Revision'} Sessions</h3>
-                          <div className="table-wrap">
-                            <table className="table">
-                              <thead>
-                                <tr><th>Date</th><th>Surah</th><th>Ayahs</th><th>Grade</th><th>Result</th></tr>
-                              </thead>
-                              <tbody>
-                                {quranStudentHistory.filter(r => r.type === quranSessionType).map(r => (
-                                  <tr key={r.id}>
-                                    <td>{fmtDate(r.date)}</td>
-                                    <td>{r.surah_number}. {r.surah_name}</td>
-                                    <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : r.ayah_from ? `From ${r.ayah_from}` : '—'}</td>
-                                    <td>
-                                      <span className={`badge ${r.grade === 'Excellent' ? 'badge-success' : r.grade === 'Good' ? 'badge-info' : r.grade === 'Fair' ? 'badge-warning' : 'badge-danger'}`}>
-                                        {r.grade}
-                                      </span>
-                                    </td>
-                                    <td><span className={`qp-result ${r.passed ? 'pass' : 'fail'}`}>{r.passed ? 'Passed' : 'Repeat'}</span></td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Class Overview Sub-tab */}
-                  {quranSubTab === 'positions' && (
-                    <div className="card">
-                      <h3>Class Overview — Current Positions</h3>
-                      {quranPositions.length === 0 ? (
-                        <p className="empty">No students found in this class.</p>
-                      ) : (
-                        <div className="table-wrap">
-                          <table className="table">
-                            <thead>
-                              <tr><th>Student</th><th>Hifdh Position</th><th>Tilawah Position</th><th>Revision Position</th><th>Last Updated</th></tr>
-                            </thead>
-                            <tbody>
-                              {quranPositions.map(s => (
-                                <tr key={s.id}>
-                                  <td><strong>{s.first_name} {s.last_name}</strong></td>
-                                  <td>{s.current_surah_name ? <span>{s.current_surah_number}. {s.current_surah_name}{s.current_ayah ? ` (Ayah ${s.current_ayah})` : ''}</span> : <span className="text-muted">Not started</span>}</td>
-                                  <td>{s.tilawah_surah_name ? <span>{s.tilawah_surah_number}. {s.tilawah_surah_name}{s.tilawah_ayah ? ` (Ayah ${s.tilawah_ayah})` : ''}</span> : <span className="text-muted">Not started</span>}</td>
-                                  <td>{s.revision_surah_name ? <span>{s.revision_surah_number}. {s.revision_surah_name}{s.revision_ayah ? ` (Ayah ${s.revision_ayah})` : ''}</span> : <span className="text-muted">Not started</span>}</td>
-                                  <td>{s.last_updated ? fmtDate(s.last_updated) : '—'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* History Sub-tab */}
-                  {quranSubTab === 'history' && (
-                    <div className="card">
-                      <h3>Progress History</h3>
-                      {quranRecords.length === 0 ? (
-                        <p className="empty">No records found for this semester.</p>
-                      ) : (
-                        <div className="table-wrap">
-                          <table className="table">
-                            <thead>
-                              <tr><th>Date</th><th>Student</th><th>Type</th><th>Surah</th><th>Ayahs</th><th>Grade</th><th>Result</th><th></th></tr>
-                            </thead>
-                            <tbody>
-                              {quranRecords.map(r => (
-                                <tr key={r.id}>
-                                  <td>{fmtDate(r.date)}</td>
-                                  <td>{r.first_name} {r.last_name}</td>
-                                  <td>
-                                    <span className={`badge ${r.type === 'hifz' ? 'badge-success' : r.type === 'revision' ? 'badge-info' : 'badge-muted'}`}>
-                                      {r.type === 'hifz' ? 'Hifdh' : r.type === 'revision' ? 'Revision' : 'Tilawah'}
-                                    </span>
-                                  </td>
-                                  <td>{r.surah_number}. {r.surah_name}</td>
-                                  <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : r.ayah_from ? `From ${r.ayah_from}` : '—'}</td>
-                                  <td>
-                                    <span className={`badge ${r.grade === 'Excellent' ? 'badge-success' : r.grade === 'Good' ? 'badge-info' : r.grade === 'Fair' ? 'badge-warning' : 'badge-danger'}`}>
-                                      {r.grade}
-                                    </span>
-                                  </td>
-                                  <td><span className={`qp-result ${r.passed ? 'pass' : 'fail'}`}>{r.passed ? 'Pass' : 'Repeat'}</span></td>
-                                  <td><button className="btn btn-sm btn-danger" onClick={() => handleDeleteQuranRecord(r.id)}>✕</button></td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
+                <QuranSessionRecorder
+                  students={isFreePlan ? students : students.filter(s => s.class_id === selectedClass?.id)}
+                  api={api}
+                  selectedClass={isFreePlan ? null : selectedClass}
+                  activeSemester={activeSemester}
+                  isFreePlan={isFreePlan}
+                  onSessionSaved={() => {
+                    fetchQuranPositions();
+                    fetchQuranRecords();
+                  }}
+                />
               )}
             </>
           )}

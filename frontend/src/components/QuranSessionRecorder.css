@@ -1,0 +1,754 @@
+/* ── Qur'an Session Recorder ── */
+.qr-recorder {
+  padding: 0;
+}
+
+/* Sub-tabs */
+.qr-sub-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.qr-sub-tab {
+  flex: 1;
+  padding: 10px 8px;
+  background: var(--white);
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--gray);
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+}
+
+.qr-sub-tab:not(:last-child) {
+  border-right: 1px solid var(--light);
+}
+
+.qr-sub-tab.active {
+  background: var(--black);
+  color: var(--white);
+}
+
+/* ── Step progress indicator ── */
+.qr-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 20px;
+  padding: 0 16px;
+}
+
+.qr-step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--light);
+  background: var(--white);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qr-step-dot.active {
+  border-color: var(--black);
+  background: var(--black);
+  color: var(--white);
+}
+
+.qr-step-dot.done {
+  border-color: var(--success);
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.qr-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--light);
+  max-width: 60px;
+}
+
+.qr-step-line.done {
+  background: var(--success);
+}
+
+/* ── Step content ── */
+.qr-step-content {
+  animation: qr-fade-in 0.15s ease;
+}
+
+@keyframes qr-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.qr-step-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+/* Back button */
+.qr-back-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-bottom: 8px;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.qr-back-btn:hover {
+  color: var(--black);
+}
+
+/* ── Step 1: Session type cards ── */
+.qr-type-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qr-type-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 16px;
+  border: 2px solid var(--light);
+  border-radius: var(--radius);
+  background: var(--white);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 56px;
+  text-align: left;
+}
+
+.qr-type-card:hover {
+  border-color: var(--black);
+}
+
+.qr-type-card:active {
+  background: var(--bg);
+}
+
+.qr-type-card-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--black);
+}
+
+.qr-type-card-sub {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* ── Step 2: Student list ── */
+.qr-student-search {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 8px;
+}
+
+.qr-student-search:focus {
+  border-color: var(--black);
+}
+
+.qr-student-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qr-student-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  background: var(--white);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 52px;
+  text-align: left;
+  width: 100%;
+}
+
+.qr-student-row:hover {
+  border-color: var(--black);
+  background: var(--bg);
+}
+
+.qr-student-row:active {
+  background: var(--bg);
+}
+
+.qr-student-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--black);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.qr-student-row-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.qr-student-row-arrow {
+  font-size: 20px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+/* ── Step 3: Record header ── */
+.qr-record-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.qr-record-student {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qr-record-student-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* Position banner */
+.qr-position {
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--bg);
+  border: 1px solid var(--light);
+  margin-bottom: 12px;
+}
+
+.qr-position.new {
+  border-style: dashed;
+}
+
+.qr-pos-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.qr-pos-value {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.qr-pos-juz {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.qr-pos-new {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Form */
+.qr-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Fields */
+.qr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qr-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.qr-field input[type="text"],
+.qr-field input[type="number"],
+.qr-field input[type="date"] {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  font-size: 15px;
+  outline: none;
+  background: var(--white);
+  -webkit-appearance: none;
+  min-height: 44px;
+}
+
+.qr-field input:focus {
+  border-color: var(--black);
+}
+
+/* Range mode pills */
+.qr-range-modes {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.qr-range-mode {
+  flex: 1;
+  padding: 10px 8px;
+  background: var(--white);
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--gray);
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+  text-align: center;
+}
+
+.qr-range-mode:not(:last-child) {
+  border-right: 1px solid var(--light);
+}
+
+.qr-range-mode.active {
+  background: var(--black);
+  color: var(--white);
+}
+
+.qr-ayah-row {
+  display: flex;
+  gap: 10px;
+}
+
+.qr-ayah-row .qr-field {
+  flex: 1;
+}
+
+/* Surah trigger */
+.qr-surah-trigger {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  font-size: 15px;
+  background: var(--white);
+  cursor: pointer;
+  text-align: left;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--black);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.qr-surah-trigger:hover {
+  border-color: var(--muted);
+}
+
+.qr-surah-arrow {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Grade buttons */
+.qr-grade-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.qr-grade-btn {
+  padding: 10px 8px;
+  border: 2px solid var(--light);
+  border-radius: var(--radius);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--gray);
+  min-height: 44px;
+}
+
+.qr-grade-btn.excellent.active {
+  border-color: var(--success);
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.qr-grade-btn.good.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.qr-grade-btn.fair.active {
+  border-color: #d97706;
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.qr-grade-btn.needs.active {
+  border-color: var(--error);
+  background: var(--error-light);
+  color: var(--error);
+}
+
+/* Outcome toggle */
+.qr-outcome {
+  display: flex;
+  gap: 8px;
+}
+
+.qr-outcome-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: 2px solid var(--light);
+  background: var(--white);
+  color: var(--muted);
+  -webkit-tap-highlight-color: transparent;
+  text-align: center;
+  min-height: 44px;
+}
+
+.qr-outcome-btn.pass.active {
+  border-color: var(--success);
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.qr-outcome-btn.repeat.active {
+  border-color: var(--error);
+  background: var(--error-light);
+  color: var(--error);
+}
+
+/* Info banner */
+.qr-info {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+
+.qr-info.pass {
+  background: var(--success-light);
+  color: var(--success);
+  border: 1px solid rgba(45, 106, 79, 0.2);
+}
+
+.qr-info.repeat {
+  background: var(--error-light);
+  color: var(--error);
+  border: 1px solid rgba(193, 18, 31, 0.2);
+}
+
+/* Save button */
+.qr-save-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--black);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 48px;
+}
+
+.qr-save-btn:hover {
+  background: var(--dark);
+}
+
+.qr-save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Empty states */
+.qr-empty-state {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.qr-empty-text {
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 16px;
+}
+
+/* Recent history */
+.qr-recent {
+  margin-top: 16px;
+}
+
+.qr-recent h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.qr-recent-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--lighter, var(--light));
+}
+
+.qr-recent-item:last-child {
+  border-bottom: none;
+}
+
+.qr-recent-main {
+  min-width: 0;
+}
+
+.qr-recent-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.qr-recent-date {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.qr-recent-surah {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.qr-recent-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.qr-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.qr-badge.excellent,
+.qr-badge.pass,
+.qr-badge.hifz {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.qr-badge.good {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.qr-badge.fair {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.qr-badge.needs,
+.qr-badge.fail {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+.qr-badge.tilawah {
+  background: var(--bg);
+  color: var(--gray);
+}
+
+.qr-badge.revision {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+/* Overview */
+.qr-overview,
+.qr-history {
+  padding: 0;
+}
+
+.qr-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.qr-positions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qr-pos-card {
+  padding: 12px 14px;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+}
+
+.qr-pos-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.qr-pos-student {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.qr-pos-updated {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.qr-pos-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qr-pos-track {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.qr-pos-track-label {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.qr-pos-track-value {
+  font-weight: 500;
+}
+
+/* History list */
+.qr-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qr-history-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+}
+
+.qr-history-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.qr-history-top {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+
+.qr-history-student {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.qr-delete-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 18px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.qr-delete-btn:hover {
+  color: var(--error);
+}
+
+/* Desktop enhancements */
+@media (min-width: 640px) {
+  .qr-grade-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .qr-type-cards {
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .qr-type-card {
+    flex: 1;
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 16px;
+  }
+}

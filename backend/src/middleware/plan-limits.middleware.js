@@ -3,7 +3,8 @@ import pool from '../config/database.js';
 // Plan limits configuration
 const PLAN_LIMITS = {
   trial: { maxStudents: 500, maxTeachers: 50, maxClasses: Infinity },
-  solo: { maxStudents: 50, maxTeachers: 0, maxClasses: 5 },
+  free: { maxStudents: 75, maxTeachers: 0, maxClasses: 0 },
+  solo: { maxStudents: 75, maxTeachers: 0, maxClasses: 5 },
   standard: { maxStudents: 100, maxTeachers: 20, maxClasses: 10 },
   plus: { maxStudents: 500, maxTeachers: 50, maxClasses: Infinity },
   enterprise: { maxStudents: Infinity, maxTeachers: Infinity, maxClasses: Infinity }
@@ -81,7 +82,8 @@ const isTrialExpired = (trialEndsAt, status) => {
 /**
  * Check if subscription is active (includes active trial)
  */
-const isSubscriptionActive = (status, trialEndsAt) => {
+const isSubscriptionActive = (status, trialEndsAt, plan) => {
+  if (plan === 'free') return true; // Free plan never expires
   if (status === 'active') return true;
   if (status === 'trialing' && !isTrialExpired(trialEndsAt, status)) return true;
   return false;
@@ -104,7 +106,7 @@ export const requireActiveSubscription = async (req, res, next) => {
     }
 
     // Check if subscription is active
-    if (!isSubscriptionActive(usage.status, usage.trialEndsAt)) {
+    if (!isSubscriptionActive(usage.status, usage.trialEndsAt, usage.plan)) {
       // Trial expired or subscription canceled
       if (usage.status === 'trialing' && isTrialExpired(usage.trialEndsAt, usage.status)) {
         return res.status(403).json({
@@ -274,6 +276,34 @@ export const requirePlusPlan = (feature) => {
       res.status(500).json({ error: 'Failed to verify feature access' });
     }
   };
+};
+
+/**
+ * Middleware to block free plan users from non-Qur'an features
+ */
+export const requireNonFree = async (req, res, next) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const usage = req.subscriptionInfo || await getMadrasahUsage(madrasahId);
+
+    if (!usage) {
+      return res.status(404).json({ error: 'Madrasah not found' });
+    }
+
+    if (usage.plan === 'free') {
+      return res.status(403).json({
+        error: 'Upgrade required',
+        code: 'FREE_PLAN_RESTRICTED',
+        message: 'This feature is not available on the free plan. Upgrade to access classes, attendance, and more.',
+        currentPlan: 'free'
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('[Plan Limits] Error checking free plan restriction:', error);
+    res.status(500).json({ error: 'Failed to verify plan access' });
+  }
 };
 
 /**

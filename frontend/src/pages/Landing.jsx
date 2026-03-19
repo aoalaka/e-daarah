@@ -6,7 +6,6 @@ import './Landing.css';
 function Landing() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [openFaq, setOpenFaq] = useState(null);
   const revealRefs = useRef([]);
   const [scrolled, setScrolled] = useState(false);
   const [heroAnimKey, setHeroAnimKey] = useState(0);
@@ -52,15 +51,6 @@ function Landing() {
     else document.body.style.overflow = '';
     return () => { document.body.style.overflow = ''; };
   }, [menuOpen]);
-
-  const faqItems = [
-    { q: 'Do I need any technical skills?', a: 'No. If you can use WhatsApp, you can use e-Daarah. Setup takes about 10 minutes — add your classes, add students, and you\'re ready to take attendance.' },
-    { q: 'Can parents see their child\'s records?', a: 'Yes. Parents get their own login and can check attendance, conduct grades, exam results, and fee balance anytime — no need to call or message the teacher.' },
-    { q: 'What happens after the 14-day trial?', a: 'You choose a plan that fits your madrasah. If you decide not to continue, your data stays safe for 30 days in case you change your mind. No credit card is needed to start.' },
-    { q: 'Is my data secure?', a: 'Yes. All data is encrypted, stored on secure servers, and each madrasah\'s data is completely isolated. Only your team can access your records.' },
-    { q: 'Can I use this for a non-Islamic school?', a: 'Absolutely. While e-Daarah is designed with madrasahs in mind, any school — Islamic or otherwise — can use it for attendance, fees, exams, and parent communication.' },
-    { q: 'How many teachers can use it?', a: 'The Solo plan is for one person managing everything. Standard, Plus, and Enterprise plans support multiple admin and teacher logins with role-based access.' },
-  ];
 
   return (
     <div className="landing">
@@ -123,6 +113,11 @@ function Landing() {
               </button>
             </div>
             <p className="hero-signin">Already have an account? <Link to="/signin">Sign in</Link></p>
+            <p className="hero-quran-link">
+              <a href="#quran-free" onClick={(e) => { e.preventDefault(); document.getElementById('quran-free')?.scrollIntoView({ behavior: 'smooth' }); }}>
+                Teaching Qur'an only? Start free →
+              </a>
+            </p>
           </div>
 
           {/* Animated attendance card */}
@@ -282,6 +277,25 @@ function Landing() {
         </div>
       </section>
 
+      {/* Qur'an Tracker CTA */}
+      <section id="quran-free" className="quran-cta-section scroll-reveal" ref={addRevealRef}>
+        <div className="section-inner">
+          <p className="section-label">Free Forever</p>
+          <h2 className="section-heading">Teaching Qur'an? Track progress for free.</h2>
+          <p className="section-desc">
+            Hifdh circles, tilawah classes, revision groups — track up to 75 students with position tracking, session grading, and progress history. No trial, no expiry, no credit card.
+          </p>
+          <div className="quran-cta-features">
+            <span className="quran-cta-tag">Hifdh tracking</span>
+            <span className="quran-cta-tag">Tilawah tracking</span>
+            <span className="quran-cta-tag">Revision tracking</span>
+            <span className="quran-cta-tag">75 students</span>
+            <span className="quran-cta-tag">Cloud backup</span>
+          </div>
+          <button onClick={() => navigate('/register?type=quran_focused')} className="btn primary">Get Started Free</button>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="features scroll-reveal" ref={addRevealRef}>
         <div className="section-inner">
@@ -414,27 +428,6 @@ function Landing() {
       </section>
       */}
 
-      {/* FAQ */}
-      <section className="faq scroll-reveal" ref={addRevealRef}>
-        <div className="section-inner">
-          <p className="section-label">FAQ</p>
-          <h2 className="section-heading">Common questions</h2>
-          <div className="faq-list">
-            {faqItems.map((item, i) => (
-              <div key={i} className={`faq-item ${openFaq === i ? 'open' : ''}`}>
-                <button className="faq-question" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
-                  <span>{item.q}</span>
-                  <span className="faq-toggle">{openFaq === i ? '−' : '+'}</span>
-                </button>
-                <div className="faq-answer-wrap">
-                  <p className="faq-answer">{item.a}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Pricing */}
       <section id="pricing" className="pricing scroll-reveal" ref={addRevealRef}>
         <div className="section-inner">
@@ -445,7 +438,7 @@ function Landing() {
             <div className="price-card">
               <h3>Solo</h3>
               <div className="price"><span className="price-currency">USD</span> $5<span>/mo</span></div>
-              <p>Up to 50 students</p>
+              <p>Up to 75 students</p>
               <button onClick={() => navigate('/register')} className="btn secondary">Start Trial</button>
             </div>
             <div className="price-card">
@@ -471,6 +464,13 @@ function Landing() {
             <p><strong>SMS Add-on</strong> — Plus plan and above includes 25 free SMS credits. Send fee reminders and announcements to parents via SMS. Need more? Credit packs from $3. <Link to="/pricing">See details →</Link></p>
           </div>
           <p className="pricing-more"><Link to="/pricing">Compare all plans →</Link></p>
+        </div>
+      </section>
+
+      {/* Featured Schools */}
+      <section className="featured-schools-banner">
+        <div className="section-inner">
+          <p>See madrasahs already using e-Daarah → <Link to="/schools">Featured Schools</Link></p>
         </div>
       </section>
 

@@ -187,8 +187,19 @@
   grid-template-columns: repeat(4, 1fr);
 }
 
+.plans-grid.five-cols {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+@media (max-width: 1300px) {
+  .plans-grid.five-cols {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 1100px) {
-  .plans-grid.four-cols {
+  .plans-grid.four-cols,
+  .plans-grid.five-cols {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -202,7 +213,8 @@
 @media (max-width: 700px) {
   .plans-grid,
   .plans-grid.three-cols,
-  .plans-grid.four-cols {
+  .plans-grid.four-cols,
+  .plans-grid.five-cols {
     grid-template-columns: 1fr;
   }
 }

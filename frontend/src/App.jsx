@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { PrivateRoute } from './components/PrivateRoute';
@@ -45,6 +46,14 @@ import SuperAdminDashboard from './pages/superadmin/Dashboard';
 import MadrasahDetail from './pages/superadmin/MadrasahDetail';
 
 import './App.css';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 function MadrasahRoutes() {
   return (
@@ -99,6 +108,7 @@ function App() {
   if (isAdminSubdomain()) {
     return (
       <BrowserRouter>
+        <ScrollToTop />
         <PullToRefresh>
           <Toaster position="top-right" closeButton richColors />
           <Routes>
@@ -115,6 +125,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <PullToRefresh>
         <Toaster position="top-right" closeButton richColors />
         <Routes>

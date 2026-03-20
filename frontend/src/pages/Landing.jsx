@@ -163,7 +163,7 @@ function Landing() {
               <div className="ac-footer">
                 <div className="ac-stat">
                   <span className="ac-stat-label">Present</span>
-                  <span className="ac-stat-value"><span className="ac-stat-desktop">4 / 5</span><span className="ac-stat-mobile">3 / 3</span></span>
+                  <span className="ac-stat-value"><span className="ac-stat-desktop">4 / 5</span><span className="ac-stat-mobile">3 / 4</span></span>
                 </div>
                 <div className="ac-bar">
                   <div className="ac-bar-fill"></div>

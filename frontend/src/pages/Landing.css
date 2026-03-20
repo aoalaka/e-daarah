@@ -444,7 +444,7 @@
   font-weight: 600;
   padding: 8px 18px;
   border: 1.5px solid var(--accent);
-  border-radius: 24px;
+  border-radius: var(--radius);
   transition: background var(--transition-normal) ease,
               color var(--transition-normal) ease;
 }
@@ -1857,6 +1857,8 @@
     font-weight: 600;
     color: var(--accent);
     letter-spacing: -0.2px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .hero-actions {

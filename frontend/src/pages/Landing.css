@@ -1772,7 +1772,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 10vh;
+    padding-top: 7vh;
     width: 100%;
     flex: 1;
   }
@@ -1809,8 +1809,14 @@
     display: none;
   }
 
-  .hero-actions {
+  .hero-quran-link {
     order: 3;
+    margin-top: 0;
+    margin-bottom: 4px;
+  }
+
+  .hero-actions {
+    order: 4;
     flex-direction: column;
     gap: 10px;
     width: 100%;
@@ -1825,13 +1831,8 @@
   }
 
   .hero-signin {
-    order: 4;
-    font-size: 13px;
-    margin-top: 10px;
-  }
-
-  .hero-quran-link {
     order: 5;
+    font-size: 13px;
     margin-top: 8px;
   }
 

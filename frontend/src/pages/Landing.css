@@ -486,18 +486,29 @@
 /* ── Scroll Hint (mobile only) ── */
 .hero-scroll-hint {
   display: none;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  margin-top: 16px;
+  gap: 4px;
   color: var(--muted);
   cursor: pointer;
-  animation: bounceDown 2s ease-in-out infinite;
   -webkit-tap-highlight-color: transparent;
+  animation: fadeInUp 0.5s ease-out 1s both;
+}
+
+.hero-scroll-hint span {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.hero-scroll-hint svg {
+  animation: bounceDown 1.5s ease-in-out infinite;
 }
 
 @keyframes bounceDown {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(6px); }
+  50% { transform: translateY(5px); }
 }
 
 /* ── Hero Visual (animated attendance card) ── */
@@ -1760,17 +1771,18 @@
   }
 
   .hero {
-    padding: 20px 20px 32px;
+    padding: 20px 20px 24px;
     min-height: 100svh;
     display: flex;
-    align-items: center;
   }
 
   .hero-inner {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     width: 100%;
+    flex: 1;
   }
 
   /* Break hero-content apart so children can interleave with hero-visual */
@@ -1847,6 +1859,8 @@
   .hero-scroll-hint {
     display: flex;
     order: 6;
+    margin-top: auto;
+    padding-top: 16px;
   }
 
   /* Animated card sits between title and CTAs */

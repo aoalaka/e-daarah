@@ -142,8 +142,10 @@
   transition: background var(--transition-normal);
 }
 
-.mobile-menu-link:hover {
-  background: var(--bg);
+@media (hover: hover) and (pointer: fine) {
+  .mobile-menu-link:hover {
+    background: var(--bg);
+  }
 }
 
 /* Landing Page */
@@ -276,22 +278,23 @@
   transition: transform 0.25s ease;
 }
 
-.nav-link:not(.primary):hover::after {
-  transform: scaleX(1);
-}
+@media (hover: hover) and (pointer: fine) {
+  .nav-link:not(.primary):hover::after {
+    transform: scaleX(1);
+  }
 
-.nav-link:hover {
-  color: var(--black);
-  text-decoration: none;
+  .nav-link:hover {
+    color: var(--black);
+  }
+
+  .nav-link.primary:hover {
+    background: var(--dark);
+  }
 }
 
 .nav-link.primary {
   background: var(--black);
   color: #fff;
-}
-
-.nav-link.primary:hover {
-  background: var(--dark);
 }
 
 /* ── Buttons ── */
@@ -302,25 +305,38 @@
   min-height: 48px;
   padding: 14px 28px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -0.2px;
   border-radius: var(--radius);
   border: none;
   cursor: pointer;
   text-decoration: none;
-  transition: all var(--transition-normal);
+  transition: background var(--transition-normal) ease,
+              border-color var(--transition-normal) ease,
+              box-shadow var(--transition-normal) ease;
 }
 
 .btn.primary {
   background: var(--black);
   color: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
-.btn.primary:hover {
-  background: var(--dark);
+@media (hover: hover) and (pointer: fine) {
+  .btn.primary:hover {
+    background: var(--dark);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+
+  .btn.secondary:hover {
+    border-color: var(--dark);
+    background: var(--lighter);
+  }
 }
 
 .btn.primary:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
+  box-shadow: none;
 }
 
 .btn.secondary {
@@ -329,12 +345,9 @@
   border: 1px solid var(--light);
 }
 
-.btn.secondary:hover {
-  border-color: var(--dark);
-}
-
 .btn.secondary:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
+  background: var(--lighter);
 }
 
 /* ── Hero ── */
@@ -396,12 +409,15 @@
 
 .hero-signin a {
   color: var(--black);
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: none;
+  transition: color var(--transition-normal) ease;
 }
 
-.hero-signin a:hover {
-  text-decoration: underline;
+@media (hover: hover) and (pointer: fine) {
+  .hero-signin a:hover {
+    color: var(--accent);
+  }
 }
 
 .hero-quran-link {
@@ -420,13 +436,15 @@
   padding: 8px 18px;
   border: 1.5px solid var(--accent);
   border-radius: 24px;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--transition-normal) ease,
+              color var(--transition-normal) ease;
 }
 
-.hero-quran-link a:hover {
-  background: var(--accent);
-  color: var(--white);
-  text-decoration: none;
+@media (hover: hover) and (pointer: fine) {
+  .hero-quran-link a:hover {
+    background: var(--accent);
+    color: var(--white);
+  }
 }
 
 /* ── Hero Feature Chips (mobile only) ── */
@@ -901,8 +919,10 @@
   transition: border-color var(--transition-normal);
 }
 
-.feature-card:hover {
-  border-color: var(--dark);
+@media (hover: hover) and (pointer: fine) {
+  .feature-card:hover {
+    border-color: var(--dark);
+  }
 }
 
 .feature-card h3 {
@@ -992,8 +1012,10 @@
   text-decoration: underline;
 }
 
-.proof-cta a:hover {
-  color: var(--dark);
+@media (hover: hover) and (pointer: fine) {
+  .proof-cta a:hover {
+    color: var(--dark);
+  }
 }
 
 /* ── Who It's For ── */
@@ -1137,8 +1159,10 @@
   gap: 16px;
 }
 
-.faq-question:hover {
-  color: var(--dark);
+@media (hover: hover) and (pointer: fine) {
+  .faq-question:hover {
+    color: var(--dark);
+  }
 }
 
 .faq-toggle {
@@ -1201,8 +1225,10 @@
   transition: border-color var(--transition-normal);
 }
 
-.price-card:hover {
-  border-color: var(--dark);
+@media (hover: hover) and (pointer: fine) {
+  .price-card:hover {
+    border-color: var(--dark);
+  }
 }
 
 .price-card.featured {
@@ -1276,8 +1302,10 @@
   text-decoration: none;
 }
 
-.sms-addon-note a:hover {
-  text-decoration: underline;
+@media (hover: hover) and (pointer: fine) {
+  .sms-addon-note a:hover {
+    text-decoration: underline;
+  }
 }
 
 .pricing-more {
@@ -1291,8 +1319,10 @@
   font-weight: 500;
 }
 
-.pricing-more a:hover {
-  text-decoration: underline;
+@media (hover: hover) and (pointer: fine) {
+  .pricing-more a:hover {
+    text-decoration: underline;
+  }
 }
 
 /* ── CTA ── */
@@ -1328,18 +1358,20 @@
   color: var(--black);
 }
 
-.cta .btn.primary:hover {
-  background: var(--lighter);
+@media (hover: hover) and (pointer: fine) {
+  .cta .btn.primary:hover {
+    background: var(--lighter);
+  }
+
+  .cta .btn.secondary:hover {
+    border-color: #fff;
+  }
 }
 
 .cta .btn.secondary {
   background: transparent;
   color: #fff;
   border-color: rgba(255, 255, 255, 0.3);
-}
-
-.cta .btn.secondary:hover {
-  border-color: #fff;
 }
 
 /* ── Qur'an CTA Section ── */
@@ -1408,8 +1440,10 @@
   text-decoration: none;
 }
 
-.featured-schools-banner a:hover {
-  text-decoration: underline;
+@media (hover: hover) and (pointer: fine) {
+  .featured-schools-banner a:hover {
+    text-decoration: underline;
+  }
 }
 
 /* ── Footer ── */
@@ -1489,8 +1523,10 @@
   transition: color var(--transition-normal);
 }
 
-.footer-col a:hover {
-  color: var(--black);
+@media (hover: hover) and (pointer: fine) {
+  .footer-col a:hover {
+    color: var(--black);
+  }
 }
 
 .footer-bottom {

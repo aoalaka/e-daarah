@@ -451,8 +451,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .hero-quran-link a:hover {
-    background: var(--accent);
-    color: var(--white);
+    background: var(--accent-light);
   }
 }
 

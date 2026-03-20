@@ -1762,7 +1762,7 @@
 /* ── Mobile hero layout (all screens below desktop grid) ── */
 @media (max-width: 899px) {
   .hero {
-    padding: 20px 20px 24px;
+    padding: 12px 20px 20px;
     min-height: 100svh;
     display: flex;
   }
@@ -1772,7 +1772,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 7vh;
+    padding-top: 3vh;
     width: 100%;
     flex: 1;
   }
@@ -1809,31 +1809,30 @@
     display: none;
   }
 
+  /* Animated card — trimmed to 3 rows on mobile */
+  .hero-visual {
+    order: 2;
+    max-width: 360px;
+    margin: 16px auto 16px;
+  }
+
+  .hero-visual .ac-row.row-4,
+  .hero-visual .ac-row.row-5 {
+    display: none;
+  }
+
+  .hero-visual .ac-footer {
+    border-top: none;
+  }
+
+  .hero-visual .hero-badge {
+    display: none;
+  }
+
   .hero-quran-link {
     order: 3;
     margin-top: 0;
-    margin-bottom: 4px;
-  }
-
-  .hero-actions {
-    order: 4;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
-  }
-
-  .hero-actions .btn {
-    width: 100%;
-    font-size: 15px;
-    padding: 14px 20px;
-  }
-
-  .hero-signin {
-    order: 5;
-    font-size: 13px;
-    margin-top: 8px;
+    margin-bottom: 6px;
   }
 
   .hero-quran-link a {
@@ -1844,23 +1843,33 @@
     color: var(--muted);
   }
 
+  .hero-actions {
+    order: 4;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+    font-size: 15px;
+    padding: 13px 20px;
+  }
+
+  .hero-signin {
+    order: 5;
+    font-size: 13px;
+    margin-top: 10px;
+  }
+
   .hero-chips {
     display: none;
   }
 
   .hero-scroll-hint {
     display: flex;
-  }
-
-  /* Animated card sits between title and CTAs */
-  .hero-visual {
-    order: 2;
-    max-width: 400px;
-    margin: 20px auto 24px;
-  }
-
-  .hero-visual .hero-badge {
-    display: none;
   }
 }
 

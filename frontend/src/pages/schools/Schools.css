@@ -141,6 +141,11 @@
 .school-card:hover {
   border-color: #ccc;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  text-decoration: none;
+}
+
+.school-card:hover .school-card-info h3 {
+  text-decoration: underline;
 }
 
 .school-card-icon {

@@ -1729,4 +1729,22 @@
   .form-actions .btn {
     width: 100%;
   }
+
+  /* Modal → bottom sheet */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .delete-modal {
+    border-radius: 16px 16px 0 0;
+    max-width: 100%;
+    animation: saModalSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  }
+
+  @keyframes saModalSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
 }

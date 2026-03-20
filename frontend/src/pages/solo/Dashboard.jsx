@@ -33,6 +33,7 @@ import EmailVerificationBanner from '../../components/EmailVerificationBanner';
 import DemoBanner from '../../components/DemoBanner';
 import AnnouncementBanner from '../../components/AnnouncementBanner';
 import QuranSessionRecorder from '../../components/QuranSessionRecorder';
+import BottomTabBar from '../../components/BottomTabBar';
 import '../admin/Dashboard.css';
 
 function SoloDashboard() {
@@ -1273,6 +1274,12 @@ function SoloDashboard() {
       { id: 'support', label: 'Support' },
     ]},
   ];
+
+  // Primary tabs for mobile bottom bar
+  const bottomTabIds = isFreePlan
+    ? ['overview', 'students', 'quran']
+    : ['overview', 'students', 'attendance', ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? ['quran'] : ['exams'])];
+  const isBottomTab = bottomTabIds.includes(activeTab);
 
   const getNavIcon = (id) => {
     const iconProps = { width: 18, height: 18, style: { minWidth: '18px' } };
@@ -4435,6 +4442,26 @@ function SoloDashboard() {
           </div>
         </div>
       )}
+
+      {/* Mobile Bottom Tab Bar */}
+      <BottomTabBar
+        tabs={bottomTabIds.map(id => {
+          const iconProps = { width: 20, height: 20 };
+          const icons = {
+            overview: <HomeIcon {...iconProps} />,
+            students: <UserGroupIcon {...iconProps} />,
+            attendance: <ClipboardDocumentCheckIcon {...iconProps} />,
+            quran: <BookOpenIcon {...iconProps} />,
+            exams: <DocumentTextIcon {...iconProps} />,
+          };
+          const labels = { overview: 'Home', students: 'Students', attendance: 'Attend.', quran: "Qur'an", exams: 'Exams' };
+          return { id, label: labels[id] || id, icon: icons[id] };
+        })}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onMoreClick={() => setMobileMenuOpen(true)}
+        moreActive={!isBottomTab}
+      />
     </div>
   );
 }

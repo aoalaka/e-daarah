@@ -26,6 +26,8 @@ import {
   MagnifyingGlassIcon,
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
+import BottomTabBar from '../../components/BottomTabBar';
+import QuranSessionRecorder from '../../components/QuranSessionRecorder';
 import '../admin/Dashboard.css';
 
 function TeacherDashboard() {
@@ -183,6 +185,10 @@ function TeacherDashboard() {
       { id: 'help', label: 'Help' },
     ]},
   ];
+
+  // Primary tabs for mobile bottom bar
+  const bottomTabIds = ['overview', 'attendance', ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? ['quran'] : []), 'exams'];
+  const isBottomTab = bottomTabIds.includes(activeTab);
 
   // Close mobile menu when tab changes
   const handleTabChange = (tabId) => {
@@ -3589,313 +3595,17 @@ function TeacherDashboard() {
                   <p className="empty">Select a class from the sidebar to record Qur'an progress</p>
                 </div>
               ) : (
-                <>
-                  {/* Sub-tabs */}
-                  <div className="report-tabs" style={{ marginBottom: 'var(--md)' }}>
-                    <nav className="report-tabs-nav">
-                      <button className={`report-tab-btn ${quranSubTab === 'record' ? 'active' : ''}`} onClick={() => setQuranSubTab('record')}>Record Session</button>
-                      <button className={`report-tab-btn ${quranSubTab === 'positions' ? 'active' : ''}`} onClick={() => { setQuranSubTab('positions'); fetchQuranPositions(selectedClass?.id); }}>Class Overview</button>
-                      <button className={`report-tab-btn ${quranSubTab === 'history' ? 'active' : ''}`} onClick={() => { setQuranSubTab('history'); fetchQuranProgress(selectedClass?.id); }}>History</button>
-                    </nav>
-                  </div>
-
-                  {/* Record Session Sub-tab */}
-                  {quranSubTab === 'record' && (
-                    <div style={{ display: 'grid', gap: 'var(--md)' }}>
-                      {/* Session type pills */}
-                      <div className="qp-type-pills">
-                        {[
-                          { value: 'tilawah', label: 'Tilawah', sub: 'Recitation' },
-                          { value: 'hifz', label: 'Hifdh', sub: 'Memorization' },
-                          { value: 'revision', label: 'Muraja\'ah', sub: 'Revision' }
-                        ].map(opt => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            className={`qp-type-pill${quranSessionType === opt.value ? ' active' : ''}`}
-                            onClick={() => setQuranSessionType(opt.value)}
-                          >
-                            {opt.label}<span className="qp-type-sub">{opt.sub}</span>
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Unified session card */}
-                      <div className="card">
-                        <div className="qp-section-label">
-                          Recording: {quranSessionType === 'tilawah' ? 'Tilawah (Recitation)' : quranSessionType === 'hifz' ? 'Hifdh (Memorization)' : 'Muraja\'ah (Revision)'}
-                        </div>
-                        <div className="form-grid form-grid-2">
-                          <div className="form-group">
-                            <label className="form-label">Student</label>
-                            <select
-                              className="form-select"
-                              value={quranSelectedStudent?.id || ''}
-                              onChange={e => handleSelectQuranStudent(e.target.value)}
-                            >
-                              <option value="">Select student…</option>
-                              {students.map(s => (
-                                <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label">Date</label>
-                            <input type="date" className="form-input" value={quranDate} max={getLocalDate()} onChange={e => setQuranDate(e.target.value)} />
-                          </div>
-                        </div>
-
-                        {/* Position banner + form (shown when student selected) */}
-                        {quranSelectedStudent && quranStudentPosition && (
-                          <>
-                            {(() => {
-                              const pos = quranSessionType === 'hifz' ? quranStudentPosition.hifz
-                                : quranSessionType === 'tilawah' ? quranStudentPosition.tilawah
-                                : quranStudentPosition.revision;
-                              return pos ? (
-                                <div className="qp-position-banner">
-                                  <div>
-                                    <strong>{pos.surah_number}. {pos.surah_name}</strong>
-                                    {pos.ayah && <span className="qp-pos-detail"> — up to Ayah {pos.ayah}</span>}
-                                  </div>
-                                  <div className="qp-pos-juz">Juz {pos.juz}</div>
-                                </div>
-                              ) : (
-                                <div className="qp-position-banner qp-new-student">
-                                  Not started yet — this will be {quranSelectedStudent.first_name}'s first {quranSessionType === 'tilawah' ? 'tilawah' : quranSessionType === 'hifz' ? 'hifdh' : 'revision'} session.
-                                </div>
-                              );
-                            })()}
-
-                            <div className="form-grid form-grid-3">
-                              <div className="form-group">
-                                <label className="form-label">Surah</label>
-                                <select className="form-select" value={quranSurah} onChange={e => { setQuranSurah(e.target.value); setQuranAyahFrom(''); setQuranAyahTo(''); }}>
-                                  <option value="">Select Surah</option>
-                                  {surahs.map(s => (
-                                    <option key={s.n} value={s.n}>{s.n}. {s.name} (Juz {s.juz})</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="form-group">
-                                <label className="form-label">Ayah From *</label>
-                                <input type="number" className="form-input" min="1"
-                                  max={quranSurah ? surahs.find(s => s.n === parseInt(quranSurah))?.ayahs : undefined}
-                                  placeholder="e.g. 1" value={quranAyahFrom} onChange={e => setQuranAyahFrom(e.target.value)} />
-                              </div>
-                              <div className="form-group">
-                                <label className="form-label">Ayah To *</label>
-                                <input
-                                  type="number" className="form-input" min="1"
-                                  max={quranSurah ? surahs.find(s => s.n === parseInt(quranSurah))?.ayahs : undefined}
-                                  placeholder={quranSurah ? `max ${surahs.find(s => s.n === parseInt(quranSurah))?.ayahs || ''}` : 'e.g. 10'}
-                                  value={quranAyahTo} onChange={e => setQuranAyahTo(e.target.value)}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="form-grid form-grid-3" style={{ marginTop: '12px' }}>
-                              <div className="form-group">
-                                <label className="form-label">Grade</label>
-                                <select className="form-select" value={quranGrade} onChange={e => setQuranGrade(e.target.value)}>
-                                  <option value="Excellent">Excellent</option>
-                                  <option value="Good">Good</option>
-                                  <option value="Fair">Fair</option>
-                                  <option value="Needs Improvement">Needs Improvement</option>
-                                </select>
-                              </div>
-                              <div className="form-group">
-                                <label className="form-label">Outcome</label>
-                                <div className="qp-outcome-toggle">
-                                  <button type="button" className={`qp-outcome-btn pass${quranPassed ? ' active' : ''}`} onClick={() => setQuranPassed(true)}>Pass</button>
-                                  <button type="button" className={`qp-outcome-btn repeat${!quranPassed ? ' active' : ''}`} onClick={() => setQuranPassed(false)}>Repeat</button>
-                                </div>
-                              </div>
-                              <div className="form-group">
-                                <label className="form-label">Notes</label>
-                                <input type="text" className="form-input" placeholder="Optional notes…" value={quranNotes} onChange={e => setQuranNotes(e.target.value)} />
-                              </div>
-                            </div>
-
-                            <div className={`qp-info-banner ${quranPassed ? 'pass' : 'fail'}`}>
-                              {quranPassed
-                                ? (quranSessionType === 'revision'
-                                    ? 'Student passed — revision recorded.'
-                                    : 'Student passed — their position will advance to the new ayah.')
-                                : 'Student did not pass — they need to repeat this assignment next time. Position stays the same.'
-                              }
-                            </div>
-
-                            <div className="form-actions" style={{ marginTop: 'var(--md)' }}>
-                              <button className="btn btn-primary" onClick={handleSaveQuranProgress} disabled={quranSaving || isReadOnly()}>
-                                {quranSaving ? 'Saving…' : quranPassed ? 'Save & Advance' : 'Save as Repeat'}
-                              </button>
-                            </div>
-                          </>
-                        )}
-
-                        {/* Empty state — no student selected */}
-                        {!quranSelectedStudent && (
-                          <div style={{ textAlign: 'center', padding: 'var(--lg) 0' }}>
-                            <div className="empty-icon">
-                              <BookOpenIcon width={22} height={22} />
-                            </div>
-                            <p className="empty">Select a student to begin recording</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Student's recent history — filtered to selected type */}
-                      {quranSelectedStudent && quranStudentPosition && quranStudentHistory.filter(r => r.type === quranSessionType).length > 0 && (
-                        <div className="card">
-                          <h3>Recent {quranSessionType === 'tilawah' ? 'Tilawah' : quranSessionType === 'hifz' ? 'Hifdh' : 'Revision'} Sessions</h3>
-                          <div className="table-wrap">
-                            <table className="table">
-                              <thead>
-                                <tr>
-                                  <th>Date</th>
-                                  <th>Surah</th>
-                                  <th>Ayahs</th>
-                                  <th>Grade</th>
-                                  <th>Result</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {quranStudentHistory.filter(r => r.type === quranSessionType).map(r => (
-                                  <tr key={r.id}>
-                                    <td>{fmtDate(r.date)}</td>
-                                    <td>{r.surah_number}. {r.surah_name}</td>
-                                    <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : r.ayah_from ? `From ${r.ayah_from}` : '—'}</td>
-                                    <td>
-                                      <span className={`badge ${r.grade === 'Excellent' ? 'badge-success' : r.grade === 'Good' ? 'badge-info' : r.grade === 'Fair' ? 'badge-warning' : 'badge-danger'}`}>
-                                        {r.grade}
-                                      </span>
-                                    </td>
-                                    <td>
-                                      <span className={`qp-result ${r.passed ? 'pass' : 'fail'}`}>
-                                        {r.passed ? 'Passed' : 'Repeat'}
-                                      </span>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Class Overview Sub-tab */}
-                  {quranSubTab === 'positions' && (
-                    <div className="card">
-                      <h3>Class Overview — Current Positions</h3>
-                      {quranPositions.length === 0 ? (
-                        <p className="empty">No students found in this class.</p>
-                      ) : (
-                        <div className="table-wrap">
-                          <table className="table">
-                            <thead>
-                              <tr>
-                                <th>Student</th>
-                                <th>Hifdh Position</th>
-                                <th>Tilawah Position</th>
-                                <th>Revision Position</th>
-                                <th>Last Updated</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {quranPositions.map(s => (
-                                <tr key={s.id}>
-                                  <td><strong>{s.first_name} {s.last_name}</strong></td>
-                                  <td>
-                                    {s.current_surah_name ? (
-                                      <span>{s.current_surah_number}. {s.current_surah_name}{s.current_ayah ? ` (Ayah ${s.current_ayah})` : ''}</span>
-                                    ) : (
-                                      <span className="text-muted">Not started</span>
-                                    )}
-                                  </td>
-                                  <td>
-                                    {s.tilawah_surah_name ? (
-                                      <span>{s.tilawah_surah_number}. {s.tilawah_surah_name}{s.tilawah_ayah ? ` (Ayah ${s.tilawah_ayah})` : ''}</span>
-                                    ) : (
-                                      <span className="text-muted">Not started</span>
-                                    )}
-                                  </td>
-                                  <td>
-                                    {s.revision_surah_name ? (
-                                      <span>{s.revision_surah_number}. {s.revision_surah_name}{s.revision_ayah ? ` (Ayah ${s.revision_ayah})` : ''}</span>
-                                    ) : (
-                                      <span className="text-muted">Not started</span>
-                                    )}
-                                  </td>
-                                  <td>{s.last_updated ? fmtDate(s.last_updated) : '—'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* History Sub-tab */}
-                  {quranSubTab === 'history' && (
-                    <div className="card">
-                      <h3>Progress History</h3>
-                      {quranRecords.length === 0 ? (
-                        <p className="empty">No records found for this semester.</p>
-                      ) : (
-                        <div className="table-wrap">
-                          <table className="table">
-                            <thead>
-                              <tr>
-                                <th>Date</th>
-                                <th>Student</th>
-                                <th>Type</th>
-                                <th>Surah</th>
-                                <th>Ayahs</th>
-                                <th>Grade</th>
-                                <th>Result</th>
-                                <th></th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {quranRecords.map(r => (
-                                <tr key={r.id}>
-                                  <td>{fmtDate(r.date)}</td>
-                                  <td>{r.first_name} {r.last_name}</td>
-                                  <td>
-                                    <span className={`badge ${r.type === 'hifz' ? 'badge-success' : r.type === 'revision' ? 'badge-info' : 'badge-muted'}`}>
-                                      {r.type === 'hifz' ? 'Hifdh' : r.type === 'revision' ? 'Revision' : 'Tilawah'}
-                                    </span>
-                                  </td>
-                                  <td>{r.surah_number}. {r.surah_name}</td>
-                                  <td>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : r.ayah_from ? `From ${r.ayah_from}` : '—'}</td>
-                                  <td>
-                                    <span className={`badge ${r.grade === 'Excellent' ? 'badge-success' : r.grade === 'Good' ? 'badge-info' : r.grade === 'Fair' ? 'badge-warning' : 'badge-danger'}`}>
-                                      {r.grade}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    <span className={`qp-result ${r.passed ? 'pass' : 'fail'}`}>
-                                      {r.passed ? 'Pass' : 'Repeat'}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    {!isReadOnly() && (
-                                      <button className="btn btn-sm btn-danger" onClick={() => handleDeleteQuranRecord(r.id)}>✕</button>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
+                <QuranSessionRecorder
+                  students={students}
+                  api={api}
+                  selectedClass={selectedClass}
+                  activeSemester={activeSemester}
+                  routePrefix="/teacher"
+                  onSessionSaved={() => {
+                    fetchQuranPositions(selectedClass?.id);
+                    if (activeSemester) fetchQuranProgress(selectedClass?.id);
+                  }}
+                />
               )}
             </>
           )}
@@ -4556,6 +4266,25 @@ function TeacherDashboard() {
           </div>
         </div>
       )}
+
+      {/* Mobile Bottom Tab Bar */}
+      <BottomTabBar
+        tabs={bottomTabIds.map(id => {
+          const iconProps = { width: 20, height: 20 };
+          const icons = {
+            overview: <HomeIcon {...iconProps} />,
+            attendance: <ClipboardDocumentCheckIcon {...iconProps} />,
+            quran: <BookOpenIcon {...iconProps} />,
+            exams: <DocumentTextIcon {...iconProps} />,
+          };
+          const labels = { overview: 'Home', attendance: 'Attend.', quran: "Qur'an", exams: 'Exams' };
+          return { id, label: labels[id] || id, icon: icons[id] };
+        })}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onMoreClick={() => setMobileMenuOpen(true)}
+        moreActive={!isBottomTab}
+      />
     </div>
   );
 }

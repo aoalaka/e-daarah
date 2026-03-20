@@ -35,7 +35,8 @@ function QuranSessionRecorder({
   selectedClass,
   activeSemester,
   isFreePlan,
-  onSessionSaved
+  onSessionSaved,
+  routePrefix = '/solo'
 }) {
   // Flow step: 'type' -> 'student' -> 'record'
   const [step, setStep] = useState('type');
@@ -89,7 +90,7 @@ function QuranSessionRecorder({
 
   const fetchPosition = async (studentId) => {
     try {
-      const res = await api.get(`/solo/quran/student/${studentId}/position`);
+      const res = await api.get(`${routePrefix}/quran/student/${studentId}/position`);
       setPosition(res.data);
       fillFromPosition(res.data);
     } catch {
@@ -121,7 +122,7 @@ function QuranSessionRecorder({
 
   const fetchHistory = async (studentId) => {
     try {
-      const res = await api.get(`/solo/quran/student/${studentId}/history`);
+      const res = await api.get(`${routePrefix}/quran/student/${studentId}/history`);
       setRecentHistory(res.data || []);
     } catch {
       setRecentHistory([]);
@@ -135,13 +136,13 @@ function QuranSessionRecorder({
         const allPos = [];
         for (const s of students.slice(0, 50)) {
           try {
-            const res = await api.get(`/solo/quran/student/${s.id}/position`);
+            const res = await api.get(`${routePrefix}/quran/student/${s.id}/position`);
             allPos.push({ id: s.id, first_name: s.first_name, last_name: s.last_name, ...res.data });
           } catch { /* skip */ }
         }
         setAllPositions(allPos);
       } else {
-        const res = await api.get(`/solo/classes/${selectedClass.id}/quran-positions`);
+        const res = await api.get(`${routePrefix}/classes/${selectedClass.id}/quran-positions`);
         setAllPositions(res.data || []);
       }
     } catch {
@@ -297,7 +298,7 @@ function QuranSessionRecorder({
 
     setSaving(true);
     try {
-      await api.post('/solo/quran/record', payload);
+      await api.post(`${routePrefix}/quran/record`, payload);
       toast.success(passed ? 'Passed — position updated' : 'Repeat — recorded');
       fetchPosition(selectedStudent.id);
       fetchHistory(selectedStudent.id);
@@ -312,7 +313,7 @@ function QuranSessionRecorder({
 
   const handleDeleteRecord = async (id) => {
     try {
-      await api.delete(`/solo/quran-progress/${id}`);
+      await api.delete(`${routePrefix}/quran-progress/${id}`);
       toast.success('Record deleted');
       if (selectedStudent) fetchHistory(selectedStudent.id);
       fetchAllRecords();

@@ -118,6 +118,15 @@ function Landing() {
                 Teaching Qur'an only? Start free →
               </a>
             </p>
+
+            {/* Mobile-only feature chips */}
+            <div className="hero-chips">
+              <span className="hero-chip">Attendance</span>
+              <span className="hero-chip">Qur'an Tracking</span>
+              <span className="hero-chip">Fees</span>
+              <span className="hero-chip">Parent Portal</span>
+              <span className="hero-chip">Exam Records</span>
+            </div>
           </div>
 
           {/* Animated attendance card */}

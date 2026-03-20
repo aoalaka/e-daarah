@@ -105,8 +105,22 @@
 }
 
 @media (max-width: 480px) {
+  .session-timeout-overlay {
+    align-items: flex-end;
+  }
+
   .session-timeout-modal {
     padding: 24px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 100%;
+    animation: stSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  @keyframes stSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
   }
 
   .session-timeout-countdown {
@@ -120,5 +134,6 @@
   .session-timeout-btn-primary,
   .session-timeout-btn-secondary {
     width: 100%;
+    min-height: 48px;
   }
 }

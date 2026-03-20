@@ -43,6 +43,7 @@ import UsageIndicator from '../../components/UsageIndicator';
 import GuidedTour from '../../components/GuidedTour';
 import { handleApiError } from '../../utils/errorHandler';
 import { downloadCSV, studentColumns, attendanceColumns, getAttendanceColumns, examColumns, getDateSuffix } from '../../utils/csvExport';
+import BottomTabBar from '../../components/BottomTabBar';
 import './Dashboard.css';
 
 function AdminDashboard() {
@@ -330,6 +331,10 @@ function AdminDashboard() {
       { id: 'support', label: 'Support' },
     ]},
   ];
+
+  // Primary tabs for mobile bottom bar
+  const bottomTabIds = ['overview', 'students', 'classes', ...(madrasahProfile?.enable_fee_tracking ? ['fees'] : ['reports'])];
+  const isBottomTab = bottomTabIds.includes(activeTab);
 
   useEffect(() => {
     loadData();
@@ -9860,6 +9865,26 @@ function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Mobile Bottom Tab Bar */}
+      <BottomTabBar
+        tabs={bottomTabIds.map(id => {
+          const iconProps = { width: 20, height: 20 };
+          const icons = {
+            overview: <HomeIcon {...iconProps} />,
+            students: <UserGroupIcon {...iconProps} />,
+            classes: <BookOpenIcon {...iconProps} />,
+            fees: <CurrencyDollarIcon {...iconProps} />,
+            reports: <ChartBarIcon {...iconProps} />,
+          };
+          const labels = { overview: 'Home', students: 'Students', classes: 'Classes', fees: 'Fees', reports: 'Reports' };
+          return { id, label: labels[id] || id, icon: icons[id] };
+        })}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onMoreClick={() => setMobileMenuOpen(true)}
+        moreActive={!isBottomTab}
+      />
     </div>
   );
 }

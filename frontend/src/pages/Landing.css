@@ -405,20 +405,55 @@
 }
 
 .hero-quran-link {
-  margin-top: 10px;
+  margin-top: 14px;
   animation: fadeInUp 0.5s ease-out 0.32s both;
 }
 
 .hero-quran-link a {
-  font-size: 13px;
-  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--accent);
   text-decoration: none;
-  font-weight: 500;
-  letter-spacing: 0.2px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border: 1.5px solid var(--accent);
+  border-radius: 24px;
+  transition: background 0.15s, color 0.15s;
 }
 
 .hero-quran-link a:hover {
-  color: var(--black);
+  background: var(--accent);
+  color: var(--white);
+  text-decoration: none;
+}
+
+/* ── Hero Feature Chips (mobile only) ── */
+.hero-chips {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .hero-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 24px;
+    animation: fadeInUp 0.5s ease-out 0.4s both;
+  }
+
+  .hero-chip {
+    padding: 6px 14px;
+    background: var(--white);
+    border: 1px solid var(--light);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray);
+    letter-spacing: 0.2px;
+  }
 }
 
 /* ── Hero Visual (animated attendance card) ── */
@@ -1663,53 +1698,34 @@
   }
 
   .hero {
-    padding: 36px 16px 56px;
+    padding: 40px 20px 48px;
+    min-height: auto;
   }
 
   .hero-content {
-    margin-bottom: 40px;
+    margin-bottom: 0;
   }
 
   .hero-title {
-    font-size: 38px;
+    font-size: 36px;
     letter-spacing: -1px;
+    margin-bottom: 14px;
   }
 
   .hero-subtitle {
-    font-size: 16px;
+    font-size: 15px;
+    margin-bottom: 24px;
   }
 
+  .hero-actions {
+    gap: 10px;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  /* Hide the attendance card on mobile — keep it clean */
   .hero-visual {
-    max-width: 340px;
-  }
-
-  .fee-badge {
-    right: -8px;
-    top: -8px;
-  }
-
-  .parent-badge {
-    left: -8px;
-    bottom: 16px;
-  }
-
-  .quran-badge {
-    right: -8px;
-    bottom: -8px;
-  }
-
-  .badge-icon {
-    width: 28px;
-    height: 28px;
-    font-size: 13px;
-  }
-
-  .badge-label {
-    font-size: 10px;
-  }
-
-  .badge-value {
-    font-size: 13px;
+    display: none;
   }
 
   .section-heading {

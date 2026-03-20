@@ -95,8 +95,10 @@
   cursor: pointer;
 }
 
-.sortable-table tr.clickable:hover {
-  background: var(--lighter);
+@media (hover: hover) and (pointer: fine) {
+  .sortable-table tr.clickable:hover {
+    background: var(--lighter);
+  }
 }
 
 /* Pagination */
@@ -286,5 +288,94 @@
     min-width: 28px;
     height: 28px;
     font-size: 12px;
+  }
+
+  /* Card layout: table → stacked cards */
+  .table-wrap {
+    overflow-x: visible;
+  }
+
+  .sortable-table thead {
+    display: none;
+  }
+
+  .sortable-table,
+  .sortable-table tbody,
+  .sortable-table tr,
+  .sortable-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .sortable-table tr {
+    background: var(--white);
+    border: 1px solid var(--light);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+
+  .sortable-table tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .sortable-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border: none;
+    font-size: 14px;
+    min-height: 32px;
+  }
+
+  .sortable-table td:not(:last-child) {
+    border-bottom: 1px solid var(--lighter);
+  }
+
+  /* Label from data-label attribute */
+  .sortable-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+
+  /* Hide empty-label cells' label (action columns) */
+  .sortable-table td[data-label=""]::before {
+    display: none;
+  }
+
+  /* First cell (usually name) gets emphasis */
+  .sortable-table td:first-child {
+    font-weight: 600;
+    font-size: 15px;
+    padding-bottom: 8px;
+  }
+
+  /* Selection checkbox in card mode */
+  .sortable-table tr td:has(.table-checkbox) {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    border: none;
+    padding: 0;
+    width: auto;
+  }
+
+  .sortable-table tr {
+    position: relative;
+  }
+
+  .sortable-table tr.clickable {
+    cursor: pointer;
+  }
+
+  .sortable-table tr.clickable:active {
+    background: var(--lighter);
   }
 }

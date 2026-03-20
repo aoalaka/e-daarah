@@ -268,7 +268,7 @@ function SortableTable({
                     </td>
                   )}
                   {columns.map((column) => (
-                    <td key={column.key}>
+                    <td key={column.key} data-label={column.label}>
                       {column.render ? column.render(row) : row[column.key]}
                     </td>
                   ))}

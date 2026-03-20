@@ -1444,7 +1444,7 @@ function SoloDashboard() {
                 <h2 className="page-title">
                   {(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}{user?.firstName ? `, ${user.firstName}` : ''}
                 </h2>
-                <span className="overview-context">{activeSemester ? activeSemester.name : 'No active semester'}</span>
+                {!isFreePlan && <span className="overview-context">{activeSemester ? activeSemester.name : 'No active semester'}</span>}
               </div>
 
               {overviewLoading ? (

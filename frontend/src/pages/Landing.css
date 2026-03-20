@@ -254,7 +254,8 @@
   gap: 8px;
 }
 
-.nav-link {
+.nav-link,
+.nav-link:hover {
   padding: 10px 14px;
   font-size: 14px;
   color: var(--gray);

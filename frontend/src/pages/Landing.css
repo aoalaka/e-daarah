@@ -483,20 +483,31 @@
   }
 }
 
-/* ── Scroll Hint (mobile only) ── */
+/* ── Scroll Hint (mobile only, fixed to viewport bottom) ── */
 .hero-scroll-hint {
   display: none;
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   color: var(--muted);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  animation: fadeInUp 0.5s ease-out 1s both;
+  z-index: 50;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.hero-scroll-hint.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .hero-scroll-hint span {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -1837,9 +1848,6 @@
 
   .hero-scroll-hint {
     display: flex;
-    order: 6;
-    margin-top: auto;
-    padding-top: 16px;
   }
 
   /* Animated card sits between title and CTAs */

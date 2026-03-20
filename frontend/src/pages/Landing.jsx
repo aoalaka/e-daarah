@@ -199,13 +199,13 @@ function Landing() {
             </div>
           </div>
 
-          {/* Scroll hint — mobile only */}
-          <div className="hero-scroll-hint" onClick={() => { document.querySelector('.install-app')?.scrollIntoView({ behavior: 'smooth' }); }}>
-            <span>Explore</span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-          </div>
         </div>
       </section>
+
+      {/* Scroll hint — mobile only, fixed to bottom */}
+      <div className={`hero-scroll-hint ${scrolled ? 'hidden' : ''}`} onClick={() => { document.querySelector('.install-app')?.scrollIntoView({ behavior: 'smooth' }); }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+      </div>
 
       {/* Install as App */}
       <section className="install-app scroll-reveal" ref={addRevealRef}>

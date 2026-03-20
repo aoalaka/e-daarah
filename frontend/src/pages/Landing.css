@@ -673,6 +673,10 @@
   color: var(--black);
 }
 
+.ac-stat-mobile {
+  display: none;
+}
+
 .ac-bar {
   height: 6px;
   background: var(--lighter, #f0f0f0);
@@ -1819,6 +1823,19 @@
   .hero-visual .ac-row.row-4,
   .hero-visual .ac-row.row-5 {
     display: none;
+  }
+
+  .ac-stat-desktop {
+    display: none;
+  }
+
+  .ac-stat-mobile {
+    display: inline;
+  }
+
+  @keyframes fillBar {
+    from { width: 0%; }
+    to { width: 100%; }
   }
 
   .hero-visual .ac-footer {

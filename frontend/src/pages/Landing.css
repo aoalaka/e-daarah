@@ -1698,35 +1698,70 @@
   }
 
   .hero {
-    padding: 40px 20px 48px;
-    min-height: auto;
+    padding: 16px 20px 24px;
+    min-height: 100svh;
+    display: flex;
+    align-items: center;
+  }
+
+  .hero-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
   }
 
   .hero-content {
     margin-bottom: 0;
+    order: 2;
   }
 
   .hero-title {
-    font-size: 36px;
-    letter-spacing: -1px;
-    margin-bottom: 14px;
+    font-size: 28px;
+    letter-spacing: -0.8px;
+    margin-bottom: 8px;
   }
 
   .hero-subtitle {
-    font-size: 15px;
-    margin-bottom: 24px;
+    display: none;
   }
 
   .hero-actions {
     gap: 10px;
-    max-width: 320px;
+    max-width: 300px;
     margin: 0 auto;
   }
 
-  /* Scale down attendance card on mobile — keep the animation visible */
+  .hero-actions .btn {
+    font-size: 14px;
+    padding: 12px 20px;
+  }
+
+  .hero-signin {
+    font-size: 13px;
+    margin-top: 10px;
+  }
+
+  .hero-quran-link {
+    margin-top: 8px;
+  }
+
+  .hero-quran-link a {
+    font-size: 13px;
+    padding: 6px 14px;
+  }
+
+  .hero-chips {
+    margin-top: 16px;
+  }
+
+  /* Animated card centred, scaled to fit above CTAs */
   .hero-visual {
-    max-width: 280px;
-    margin: 24px auto 0;
+    order: 1;
+    max-width: 100%;
+    margin: 0 auto 20px;
+    transform: scale(0.82);
+    transform-origin: top center;
   }
 
   .hero-visual .hero-badge {

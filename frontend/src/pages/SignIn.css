@@ -274,3 +274,43 @@
 .signin-footer a:hover {
   color: var(--gray);
 }
+
+/* Mobile: compact layout to avoid scrolling */
+@media (max-width: 767px) {
+  .signin-page {
+    min-height: 100svh;
+    padding: 16px;
+  }
+
+  .signin-card {
+    padding: 24px 20px;
+  }
+
+  .signin-logo {
+    margin-bottom: 20px;
+  }
+
+  .signin-header {
+    margin-bottom: 16px;
+  }
+
+  .signin-header h1 {
+    font-size: 20px;
+  }
+
+  .signin-search {
+    margin-bottom: 16px;
+  }
+
+  .signin-divider {
+    margin-bottom: 14px;
+  }
+
+  .signin-alternatives {
+    gap: 10px;
+  }
+
+  .signin-footer {
+    margin-top: 16px;
+  }
+}

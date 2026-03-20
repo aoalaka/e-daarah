@@ -1894,6 +1894,20 @@ a:focus-visible,
   .main {
     padding: 16px;
     padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    overflow-x: hidden;
+  }
+
+  .card {
+    overflow: hidden;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea,
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    min-width: 0;
   }
 
   .page-title {

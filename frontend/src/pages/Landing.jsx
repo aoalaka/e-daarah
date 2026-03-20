@@ -100,7 +100,7 @@ function Landing() {
       <section className="hero">
         <div className="hero-inner">
           <div className="hero-content">
-            <h1 className="hero-title">Attendance<br />for madrasahs<span className="hero-title-dot">.</span></h1>
+            <h1 className="hero-title">Attendance <br />for madrasahs<span className="hero-title-dot">.</span></h1>
             <p className="hero-tagline">Fees, Qur'an progress, parent portal and more</p>
             <p className="hero-subtitle">
               Attendance, fees, Qur'an progress, and more — without paper registers.

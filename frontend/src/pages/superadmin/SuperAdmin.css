@@ -1743,6 +1743,16 @@
     padding-bottom: calc(28px + env(safe-area-inset-bottom));
   }
 
+  .delete-modal::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--light, #e5e5e5);
+    border-radius: 2px;
+    margin: 0 auto 12px;
+  }
+
   @keyframes saModalSlideUp {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }

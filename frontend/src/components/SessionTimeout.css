@@ -104,7 +104,7 @@
   color: #374151;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .session-timeout-overlay {
     align-items: flex-end;
   }
@@ -116,6 +116,16 @@
     width: 100%;
     max-width: 100%;
     animation: stSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .session-timeout-modal::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: #e5e5e5;
+    border-radius: 2px;
+    margin: 0 auto 12px;
   }
 
   @keyframes stSlideUp {

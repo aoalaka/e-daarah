@@ -109,6 +109,13 @@ input, select, textarea {
   font-size: inherit;
 }
 
+/* Prevent iOS Safari zoom on input focus */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

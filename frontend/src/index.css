@@ -128,6 +128,16 @@ input, select, textarea {
   .desktop-only { display: none !important; }
 }
 
+/* Tab content fade-in on switch */
+@keyframes tabFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tab-content {
+  animation: tabFadeIn 0.15s ease-out;
+}
+
 /* Mobile-native: prevent text selection on UI chrome */
 @media (max-width: 767px) {
   button, label, nav, .nav-item, .tab, .pill, .badge, .toggle {

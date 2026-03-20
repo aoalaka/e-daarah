@@ -583,7 +583,7 @@ function ParentReport() {
 
                 {/* Footer */}
                 <div className="report-footer">
-                  <div className="powered-by"><img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="footer-logo" /></div>
+                  <div className="powered-by"><img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="footer-logo" loading="lazy" /></div>
                 </div>
               </div>
             )}

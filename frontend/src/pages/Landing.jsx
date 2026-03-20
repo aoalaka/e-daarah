@@ -507,7 +507,7 @@ function Landing() {
         <div className="footer-inner">
           <div className="footer-brand">
             <div className="footer-logo">
-              <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="footer-logo-img" />
+              <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="footer-logo-img" loading="lazy" />
               <span className="footer-logo-text">e-Daarah</span>
             </div>
             <p className="footer-tagline">نظام إدارة المدارس الدينية</p>

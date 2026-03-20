@@ -110,7 +110,7 @@ function App() {
       <BrowserRouter>
         <ScrollToTop />
         <PullToRefresh>
-          <Toaster position="top-right" closeButton richColors />
+          <Toaster position={window.innerWidth <= 768 ? 'top-center' : 'top-right'} closeButton richColors />
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<SuperAdminLogin />} />
@@ -127,7 +127,7 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <PullToRefresh>
-        <Toaster position="top-right" closeButton richColors />
+        <Toaster position={window.innerWidth <= 768 ? 'top-center' : 'top-right'} closeButton richColors />
         <Routes>
           {/* Global public routes */}
           <Route path="/" element={<Landing />} />

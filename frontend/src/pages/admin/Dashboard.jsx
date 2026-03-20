@@ -7586,7 +7586,7 @@ function AdminDashboard() {
                   {/* Report Footer */}
                   <div className="report-card-footer">
                     <div className="powered-by">
-                      <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="footer-logo" />
+                      <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="footer-logo" loading="lazy" />
                     </div>
                   </div>
                 </div>

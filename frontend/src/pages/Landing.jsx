@@ -116,7 +116,7 @@ function Landing() {
             <p className="hero-signin">Already have an account? <Link to="/signin">Sign in</Link></p>
             <p className="hero-quran-link">
               <a href="#quran-free" onClick={(e) => { e.preventDefault(); document.getElementById('quran-free')?.scrollIntoView({ behavior: 'smooth' }); }}>
-                Just teaching Qur'an? Try e-Daarah Free
+                Qur'an teachers use e-Daarah free, forever
               </a>
             </p>
 

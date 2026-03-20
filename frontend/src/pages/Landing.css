@@ -1748,28 +1748,8 @@
   }
 }
 
-@media (max-width: 480px) {
-  .landing-header {
-    padding: 10px 12px;
-  }
-
-  .logo-img {
-    height: 26px;
-  }
-
-  .logo-text {
-    font-size: 20px;
-  }
-
-  .header-nav {
-    gap: 4px;
-  }
-
-  .nav-link {
-    padding: 8px 10px;
-    font-size: 13px;
-  }
-
+/* ── Mobile hero layout (all screens below desktop grid) ── */
+@media (max-width: 899px) {
   .hero {
     padding: 20px 20px 24px;
     min-height: 100svh;
@@ -1792,10 +1772,8 @@
 
   .hero-title {
     order: 1;
-    font-size: 28px;
     letter-spacing: -0.8px;
     margin-bottom: 4px;
-    white-space: nowrap;
   }
 
   .hero-title br {
@@ -1809,7 +1787,7 @@
   .hero-tagline {
     display: block;
     order: 1;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--muted);
     margin-bottom: 0;
     animation: fadeInUp 0.5s ease-out 0.08s both;
@@ -1821,9 +1799,10 @@
 
   .hero-actions {
     order: 3;
+    flex-direction: column;
     gap: 10px;
     width: 100%;
-    max-width: 360px;
+    max-width: 400px;
     margin: 0 auto;
   }
 
@@ -1866,14 +1845,49 @@
   /* Animated card sits between title and CTAs */
   .hero-visual {
     order: 2;
-    max-width: 100%;
+    max-width: 400px;
     margin: 20px auto 24px;
-    transform: scale(0.85);
-    transform-origin: center center;
   }
 
   .hero-visual .hero-badge {
     display: none;
+  }
+}
+
+/* ── Small screen tweaks ── */
+@media (max-width: 480px) {
+  .landing-header {
+    padding: 10px 12px;
+  }
+
+  .logo-img {
+    height: 26px;
+  }
+
+  .logo-text {
+    font-size: 20px;
+  }
+
+  .header-nav {
+    gap: 4px;
+  }
+
+  .nav-link {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+  }
+
+  .hero-tagline {
+    font-size: 13px;
+  }
+
+  .hero-visual {
+    transform: scale(0.85);
+    transform-origin: center center;
   }
 
   .section-heading {

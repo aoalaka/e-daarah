@@ -384,6 +384,15 @@
   animation: fadeInUp 0.5s ease-out both;
 }
 
+/* Short tagline — visible on mobile only, desktop uses .hero-subtitle */
+.hero-tagline {
+  display: none;
+}
+
+.hero-title-dot {
+  display: inline;
+}
+
 .hero-subtitle {
   font-size: 18px;
   color: var(--gray);
@@ -1773,7 +1782,25 @@
     order: 1;
     font-size: 28px;
     letter-spacing: -0.8px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+
+  .hero-title br {
+    display: none;
+  }
+
+  .hero-title-dot {
+    display: none;
+  }
+
+  .hero-tagline {
+    display: block;
+    order: 1;
+    font-size: 13px;
+    color: var(--muted);
     margin-bottom: 0;
+    animation: fadeInUp 0.5s ease-out 0.08s both;
   }
 
   .hero-subtitle {
@@ -1783,13 +1810,15 @@
   .hero-actions {
     order: 3;
     gap: 10px;
-    max-width: 300px;
+    width: 100%;
+    max-width: 360px;
     margin: 0 auto;
   }
 
   .hero-actions .btn {
-    font-size: 14px;
-    padding: 12px 20px;
+    width: 100%;
+    font-size: 15px;
+    padding: 14px 20px;
   }
 
   .hero-signin {

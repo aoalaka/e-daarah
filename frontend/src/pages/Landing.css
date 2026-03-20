@@ -1847,15 +1847,24 @@
   .hero-quran-link {
     order: 3;
     margin-top: 0;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
+    width: 100%;
+    max-width: 360px;
   }
 
   .hero-quran-link a {
-    font-size: 12px;
-    padding: 0;
-    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 13px;
+    padding: 10px 16px;
+    border: 1px solid var(--light);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--gray);
+    background: var(--white);
   }
 
   .hero-actions {

@@ -1723,8 +1723,13 @@
     margin: 0 auto;
   }
 
-  /* Hide the attendance card on mobile — keep it clean */
+  /* Scale down attendance card on mobile — keep the animation visible */
   .hero-visual {
+    max-width: 280px;
+    margin: 24px auto 0;
+  }
+
+  .hero-visual .hero-badge {
     display: none;
   }
 

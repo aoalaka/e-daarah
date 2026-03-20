@@ -1374,7 +1374,7 @@ function SoloDashboard() {
             </div>
             <div className="user-info">
               <div className="user-name">{user?.firstName} {user?.lastName}</div>
-              <div className="user-role">Solo Admin</div>
+              <div className="user-role">{isFreePlan ? 'Teacher' : 'Admin'}</div>
             </div>
             <ChevronUpIcon width={16} height={16} style={{ opacity: 0.5, transform: profileDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
           </div>
@@ -3400,8 +3400,8 @@ function SoloDashboard() {
                 </form>
               </div>
 
-              {/* Attendance Features */}
-              <div className="card" id="settings-attendance-features" style={{ marginTop: '20px' }}>
+              {/* Attendance Features — paid plans only */}
+              {!isFreePlan && <div className="card" id="settings-attendance-features" style={{ marginTop: '20px' }}>
                 <h3>Attendance Features</h3>
                 <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
                   Choose which grading fields appear when recording attendance.
@@ -3558,10 +3558,10 @@ function SoloDashboard() {
                     </button>
                   </div>
                 </div>
-              </div>
+              </div>}
 
-              {/* Currency Setting */}
-              <div className="card" style={{ marginTop: '20px' }}>
+              {/* Currency Setting — paid plans only */}
+              {!isFreePlan && <div className="card" style={{ marginTop: '20px' }}>
                 <h3>Currency</h3>
                 <p style={{ fontSize: '13px', color: 'var(--gray)', margin: '0 0 12px' }}>
                   Set the currency used for fee tracking and financial displays.
@@ -3658,7 +3658,7 @@ function SoloDashboard() {
                     <option value="TOP">TOP — Tongan Pa'anga (T$)</option>
                   </optgroup>
                 </select>
-              </div>
+              </div>}
 
               {/* Account Info */}
               <div className="card" id="settings-account" style={{ marginTop: '20px' }}>
@@ -3674,7 +3674,7 @@ function SoloDashboard() {
                   </div>
                   <div>
                     <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Role</label>
-                    <p style={{ margin: '4px 0 0 0', textTransform: 'capitalize' }}>Solo Admin</p>
+                    <p style={{ margin: '4px 0 0 0', textTransform: 'capitalize' }}>{isFreePlan ? 'Teacher' : 'Admin'}</p>
                   </div>
                 </div>
               </div>

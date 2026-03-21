@@ -122,18 +122,20 @@ export const processAutoFeeReminders = async () => {
   const todayDate = today.toISOString().split('T')[0];
 
   try {
+    // Check if timing column exists
+    let hasTimingCol = false;
+    try {
+      await pool.query('SELECT auto_fee_reminder_timing FROM madrasahs LIMIT 0');
+      hasTimingCol = true;
+    } catch {}
+
     // Find madrasahs with auto reminders enabled, not already sent this month
     // Supports two timing modes: day_of_month (specific day) and semester_start (first day of each semester)
-    const [madrasahs] = await pool.query(`
-      SELECT m.id, m.name, m.auto_fee_reminder_message, m.auto_fee_reminder_day,
-             COALESCE(m.auto_fee_reminder_timing, 'day_of_month') as auto_fee_reminder_timing
-      FROM madrasahs m
-      WHERE m.auto_fee_reminder_enabled = 1
-        AND m.auto_fee_reminder_message IS NOT NULL
-        AND m.deleted_at IS NULL
-        AND m.subscription_status IN ('active', 'trialing')
-        AND (m.auto_fee_reminder_last_sent IS NULL OR MONTH(m.auto_fee_reminder_last_sent) != MONTH(NOW()) OR YEAR(m.auto_fee_reminder_last_sent) != YEAR(NOW()))
-        AND (
+    const timingSelect = hasTimingCol
+      ? "COALESCE(m.auto_fee_reminder_timing, 'day_of_month') as auto_fee_reminder_timing"
+      : "'day_of_month' as auto_fee_reminder_timing";
+    const timingWhere = hasTimingCol
+      ? `AND (
           (COALESCE(m.auto_fee_reminder_timing, 'day_of_month') = 'day_of_month' AND m.auto_fee_reminder_day = ?)
           OR (m.auto_fee_reminder_timing = 'semester_start' AND EXISTS (
             SELECT 1 FROM semesters sem
@@ -141,8 +143,22 @@ export const processAutoFeeReminders = async () => {
             WHERE s.madrasah_id = m.id AND s.is_active = 1 AND s.deleted_at IS NULL
               AND sem.deleted_at IS NULL AND sem.start_date = ?
           ))
-        )
-    `, [todayDay, todayDate]);
+        )`
+      : 'AND m.auto_fee_reminder_day = ?';
+
+    const queryParams = hasTimingCol ? [todayDay, todayDate] : [todayDay];
+
+    const [madrasahs] = await pool.query(`
+      SELECT m.id, m.name, m.auto_fee_reminder_message, m.auto_fee_reminder_day,
+             ${timingSelect}
+      FROM madrasahs m
+      WHERE m.auto_fee_reminder_enabled = 1
+        AND m.auto_fee_reminder_message IS NOT NULL
+        AND m.deleted_at IS NULL
+        AND m.subscription_status IN ('active', 'trialing')
+        AND (m.auto_fee_reminder_last_sent IS NULL OR MONTH(m.auto_fee_reminder_last_sent) != MONTH(NOW()) OR YEAR(m.auto_fee_reminder_last_sent) != YEAR(NOW()))
+        ${timingWhere}
+    `, queryParams);
 
     if (madrasahs.length === 0) return;
 

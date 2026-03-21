@@ -51,7 +51,7 @@ function SuperAdminDashboard() {
   // Browser tab title
   useEffect(() => {
     const labels = { madrasahs: 'Madrasahs', engagement: 'Engagement', revenue: 'Revenue', coupons: 'Coupons', churn: 'Churn Risk', announcements: 'Announcements', 'email-broadcast': 'Email Broadcast', tickets: 'Support Tickets', review: 'Review Queue', security: 'Security' };
-    document.title = `${labels[activeTab] || 'Admin'} — e-Daarah`;
+    document.title = `${labels[activeTab] || 'Admin'} — E-Daarah`;
   }, [activeTab]);
 
   const [stats, setStats] = useState(null);
@@ -94,7 +94,7 @@ function SuperAdminDashboard() {
   const [grantForm, setGrantForm] = useState({ madrasah_id: '', credits: '', note: '' });
   const [grantLoading, setGrantLoading] = useState(false);
   // Test SMS state
-  const [testSmsForm, setTestSmsForm] = useState({ phone: '', message: 'Test SMS from e-Daarah' });
+  const [testSmsForm, setTestSmsForm] = useState({ phone: '', message: 'Test SMS from E-Daarah' });
   const [testSmsLoading, setTestSmsLoading] = useState(false);
   const [testSmsResult, setTestSmsResult] = useState(null);
   const [showCouponForm, setShowCouponForm] = useState(false);
@@ -389,19 +389,19 @@ function SuperAdminDashboard() {
 <table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center" style="padding:40px 20px;">
 <table role="presentation" style="width:100%;max-width:560px;border-collapse:collapse;">
 <tr><td align="center" style="padding-bottom:24px;">
-<img src="https://www.e-daarah.com/e-daarah-whitebg-logo.png" alt="e-Daarah" style="height:40px;width:auto;display:block;margin:0 auto;" />
-<span style="display:block;font-size:18px;font-weight:600;color:#1a1a1a;letter-spacing:-0.3px;margin-top:8px;">e-Daarah</span>
+<img src="https://www.e-daarah.com/e-daarah-whitebg-logo.png" alt="E-Daarah" style="height:40px;width:auto;display:block;margin:0 auto;" />
+<span style="display:block;font-size:18px;font-weight:600;color:#1a1a1a;letter-spacing:-0.3px;margin-top:8px;">E-Daarah</span>
 </td></tr>
 <tr><td style="background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
 <td style="padding:40px;text-align:justify;">
 <h1 style="margin:0 0 16px 0;font-size:24px;font-weight:600;color:#1a1a1a;text-align:left;">${subject}</h1>
 <div style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4a4a;text-align:justify;">${htmlMessage}</div>
 <table role="presentation" style="width:100%;border-collapse:collapse;"><tr><td align="center">
-<a href="https://www.e-daarah.com" style="display:inline-block;padding:14px 32px;background-color:#1a1a1a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;border-radius:6px;">Visit e-Daarah</a>
+<a href="https://www.e-daarah.com" style="display:inline-block;padding:14px 32px;background-color:#1a1a1a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;border-radius:6px;">Visit E-Daarah</a>
 </td></tr></table></td>
 </td></tr>
 <tr><td align="center" style="padding-top:24px;">
-<p style="margin:0;font-size:13px;color:#888;">&copy; ${new Date().getFullYear()} e-Daarah. All rights reserved.</p>
+<p style="margin:0;font-size:13px;color:#888;">&copy; ${new Date().getFullYear()} E-Daarah. All rights reserved.</p>
 <p style="margin:8px 0 0 0;font-size:12px;color:#aaa;">Madrasah Administration Made Simple</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
@@ -631,8 +631,8 @@ function SuperAdminDashboard() {
     <div className="superadmin">
       <header className="superadmin-header">
         <div className="header-left">
-          <img src="/e-daarah-blackbg-logo.png" alt="e-Daarah" className="header-logo-img" />
-          <span className="header-logo-text">e-Daarah</span>
+          <img src="/e-daarah-blackbg-logo.png" alt="E-Daarah" className="header-logo-img" />
+          <span className="header-logo-text">E-Daarah</span>
           <span className="platform-label">Platform</span>
         </div>
         <div className="header-right">
@@ -1639,7 +1639,7 @@ function SuperAdminDashboard() {
             <div className="section-header-row">
               <h2>Email Broadcast</h2>
             </div>
-            <p className="section-desc">Send marketing emails to potential clients using the e-Daarah email template.</p>
+            <p className="section-desc">Send marketing emails to potential clients using the E-Daarah email template.</p>
 
             {/* Saved Templates */}
             {emailTemplates.length > 0 && (
@@ -1696,7 +1696,7 @@ function SuperAdminDashboard() {
                 <textarea
                   value={emailBroadcastForm.message}
                   onChange={(e) => setEmailBroadcastForm({ ...emailBroadcastForm, message: e.target.value })}
-                  placeholder={"Assalamu Alaykum,\n\nWe built **e-Daarah** to help madrasahs like yours.\n\n## What you get\n\n- Track attendance in seconds\n- Record and share exam results\n- Give parents real-time access\n\nStart your free trial at [e-daarah.com](https://www.e-daarah.com)"}
+                  placeholder={"Assalamu Alaykum,\n\nWe built **E-Daarah** to help madrasahs like yours.\n\n## What you get\n\n- Track attendance in seconds\n- Record and share exam results\n- Give parents real-time access\n\nStart your free trial at [e-daarah.com](https://www.e-daarah.com)"}
                   rows={10}
                   required
                 />

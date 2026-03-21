@@ -33,8 +33,8 @@ export default function SchoolProfile() {
       <div className="schools-page">
         <header className="schools-header">
           <Link to="/" className="schools-logo">
-            <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="schools-logo-img" />
-            <span className="schools-logo-text">e-Daarah</span>
+            <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="schools-logo-img" />
+            <span className="schools-logo-text">E-Daarah</span>
           </Link>
         </header>
         <div className="schools-loading">Loading...</div>
@@ -48,8 +48,8 @@ export default function SchoolProfile() {
         <SEO title="School Not Found" description="This school profile could not be found." />
         <header className="schools-header">
           <Link to="/" className="schools-logo">
-            <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="schools-logo-img" />
-            <span className="schools-logo-text">e-Daarah</span>
+            <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="schools-logo-img" />
+            <span className="schools-logo-text">E-Daarah</span>
           </Link>
         </header>
         <main className="schools-main">
@@ -70,14 +70,14 @@ export default function SchoolProfile() {
     <div className="schools-page">
       <SEO
         title={`${school.name} — Madrasah Profile`}
-        description={`${school.name}${location ? ` in ${location}` : ''} — a verified madrasah using e-Daarah for student management, attendance tracking, and academic records.`}
+        description={`${school.name}${location ? ` in ${location}` : ''} — a verified madrasah using E-Daarah for student management, attendance tracking, and academic records.`}
         canonicalPath={`/schools/${slug}`}
       />
 
       <header className="schools-header">
         <Link to="/" className="schools-logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="schools-logo-img" />
-          <span className="schools-logo-text">e-Daarah</span>
+          <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="schools-logo-img" />
+          <span className="schools-logo-text">E-Daarah</span>
         </Link>
         <nav className="schools-nav">
           <Link to="/pricing">Pricing</Link>
@@ -140,7 +140,7 @@ export default function SchoolProfile() {
 
         <div className="schools-cta" style={{ marginTop: '3rem' }}>
           <h2>Run a madrasah or Islamic school?</h2>
-          <p>Join {school.name} and other institutions using e-Daarah to simplify their administration.</p>
+          <p>Join {school.name} and other institutions using E-Daarah to simplify their administration.</p>
           <Link to="/register" className="schools-cta-btn">Get Started Free</Link>
         </div>
       </main>

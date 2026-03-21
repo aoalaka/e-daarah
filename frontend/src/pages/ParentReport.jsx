@@ -13,7 +13,7 @@ import api from '../services/api';
 import './ParentReport.css';
 
 function ParentReport() {
-  useEffect(() => { document.title = 'Parent Report — e-Daarah'; }, []);
+  useEffect(() => { document.title = 'Parent Report — E-Daarah'; }, []);
   const fmtDate = (d) => {
     const date = new Date(d);
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -583,7 +583,7 @@ function ParentReport() {
 
                 {/* Footer */}
                 <div className="report-footer">
-                  <div className="powered-by"><img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="footer-logo" loading="lazy" /></div>
+                  <div className="powered-by"><img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="footer-logo" loading="lazy" /></div>
                 </div>
               </div>
             )}

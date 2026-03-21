@@ -6,7 +6,7 @@ Copy everything below this line and give it to a new AI agent session:
 
 ## Context
 
-You are continuing development on **e-Daarah** (https://e-daarah.com), a multi-tenant SaaS platform for managing Islamic schools (Madrasahs). The codebase is at `/Users/aalaka/Documents/bigIdeas/madrasah-admin`.
+You are continuing development on **E-Daarah** (https://e-daarah.com), a multi-tenant SaaS platform for managing Islamic schools (Madrasahs). The codebase is at `/Users/aalaka/Documents/bigIdeas/madrasah-admin`.
 
 ## Read These Files First
 

@@ -282,7 +282,7 @@ jobs:
           fi
 
           cat <<EOF | msmtp "${{ secrets.EMAIL_USERNAME }}"
-          Subject: [e-Daarah] Backup OK - ${{ env.DATE }}
+          Subject: [E-Daarah] Backup OK - ${{ env.DATE }}
           From: ${{ secrets.EMAIL_USERNAME }}
           To: ${{ secrets.EMAIL_USERNAME }}
 
@@ -299,14 +299,14 @@ jobs:
           ${SIZE_WARNING_MSG}
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-          — e-Daarah Backup Bot
+          — E-Daarah Backup Bot
           EOF
 
       - name: Send failure alert
         if: env.VERIFY_STATUS == 'failed'
         run: |
           cat <<EOF | msmtp "${{ secrets.EMAIL_USERNAME }}"
-          Subject: [e-Daarah] Backup FAILED - ${{ env.DATE }}
+          Subject: [E-Daarah] Backup FAILED - ${{ env.DATE }}
           From: ${{ secrets.EMAIL_USERNAME }}
           To: ${{ secrets.EMAIL_USERNAME }}
 
@@ -319,7 +319,7 @@ jobs:
           Issue:
           ${{ env.VERIFY_DIFF }}
 
-          — e-Daarah Backup Bot
+          — E-Daarah Backup Bot
           EOF
 
       - name: Fail workflow if verification failed

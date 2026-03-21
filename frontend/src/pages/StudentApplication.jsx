@@ -5,7 +5,7 @@ import api from '../services/api';
 import './TeacherRegistration.css';
 
 function StudentApplication() {
-  useEffect(() => { document.title = 'Student Enrollment — e-Daarah'; }, []);
+  useEffect(() => { document.title = 'Student Enrollment — E-Daarah'; }, []);
   const { madrasahSlug } = useParams();
   const { madrasah } = useMadrasah();
   const [formData, setFormData] = useState({

@@ -7,7 +7,7 @@ import { useMadrasah } from '../contexts/MadrasahContext';
 import './Login.css';
 
 function ParentLogin() {
-  useEffect(() => { document.title = 'Parent Login — e-Daarah'; }, []);
+  useEffect(() => { document.title = 'Parent Login — E-Daarah'; }, []);
   const { madrasahSlug } = useParams();
   const { madrasah } = useMadrasah();
   const [mode, setMode] = useState('login'); // 'login' or 'register'

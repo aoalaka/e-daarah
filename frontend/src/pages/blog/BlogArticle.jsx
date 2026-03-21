@@ -12,8 +12,8 @@ function BlogArticle() {
       <div className="blog-page">
         <header className="blog-header">
           <Link to="/" className="logo">
-            <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="logo-img" />
-            <span className="logo-text">e-Daarah</span>
+            <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="logo-img" />
+            <span className="logo-text">E-Daarah</span>
           </Link>
           <nav className="header-nav">
             <Link to="/pricing" className="nav-link">Pricing</Link>
@@ -43,8 +43,8 @@ function BlogArticle() {
 
       <header className="blog-header">
         <Link to="/" className="logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="logo-img" />
-          <span className="logo-text">e-Daarah</span>
+          <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="logo-img" />
+          <span className="logo-text">E-Daarah</span>
         </Link>
         <nav className="header-nav">
           <Link to="/pricing" className="nav-link">Pricing</Link>
@@ -81,7 +81,7 @@ function BlogArticle() {
           <div className="blog-cta">
             <h3>Ready to simplify your madrasah administration?</h3>
             <p>
-              Join hundreds of Islamic schools using e-Daarah to manage students,
+              Join hundreds of Islamic schools using E-Daarah to manage students,
               track progress, and communicate with parents.
             </p>
             <Link to="/register" className="blog-cta-button">
@@ -92,7 +92,7 @@ function BlogArticle() {
       </main>
 
       <footer className="blog-footer">
-        <p>&copy; {new Date().getFullYear()} e-Daarah. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} E-Daarah. All rights reserved.</p>
       </footer>
     </div>
   );

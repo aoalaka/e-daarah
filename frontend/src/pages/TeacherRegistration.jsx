@@ -5,7 +5,7 @@ import { useMadrasah } from '../contexts/MadrasahContext';
 import './TeacherRegistration.css';
 
 function TeacherRegistration() {
-  useEffect(() => { document.title = 'Teacher Registration — e-Daarah'; }, []);
+  useEffect(() => { document.title = 'Teacher Registration — E-Daarah'; }, []);
   const { madrasahSlug } = useParams();
   const { madrasah } = useMadrasah();
   const [formData, setFormData] = useState({

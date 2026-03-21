@@ -66,13 +66,13 @@ function SignIn() {
   return (
     <div className="signin-page">
       <SEO
-        title="Sign In — e-Daarah"
+        title="Sign In — E-Daarah"
         description="Sign in to your madrasah's admin portal. Find your school and access attendance, exams, and reports."
       />
       <div className="signin-card">
         <Link to="/" className="signin-logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="signin-logo-img" />
-          <span className="signin-logo-text">e-Daarah</span>
+          <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="signin-logo-img" />
+          <span className="signin-logo-text">E-Daarah</span>
         </Link>
 
         <div className="signin-header">

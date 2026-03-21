@@ -231,7 +231,7 @@ function SoloDashboard() {
       overview: 'Overview', planner: 'Planner', classes: 'Classes', students: 'Students',
       attendance: 'Attendance', exams: 'Exams', quran: "Qur'an", fees: 'Fees', settings: 'Settings', help: 'Help', support: 'Support'
     };
-    document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
+    document.title = `${labels[activeTab] || 'Dashboard'} — E-Daarah`;
   }, [activeTab]);
 
   // ─── Keyboard shortcut: "/" to focus search ─────
@@ -1344,8 +1344,8 @@ function SoloDashboard() {
       {/* Sidebar */}
       <aside className={`sidebar ${mobileMenuOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <img src="/e-daarah-blackbg-logo.png" alt="e-Daarah" className="sidebar-logo-img" />
-          <span className="sidebar-logo-text">e-Daarah</span>
+          <img src="/e-daarah-blackbg-logo.png" alt="E-Daarah" className="sidebar-logo-img" />
+          <span className="sidebar-logo-text">E-Daarah</span>
           <button className="sidebar-collapse-btn" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label="Toggle sidebar">
             {sidebarCollapsed ? <ChevronRightIcon width={16} height={16} /> : <ChevronLeftIcon width={16} height={16} />}
           </button>

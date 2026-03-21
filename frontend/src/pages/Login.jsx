@@ -6,7 +6,7 @@ import { getAccountLockInfo } from '../utils/errorHandler';
 import './Login.css';
 
 function Login() {
-  useEffect(() => { document.title = 'Sign In — e-Daarah'; }, []);
+  useEffect(() => { document.title = 'Sign In — E-Daarah'; }, []);
   const { madrasahSlug } = useParams();
   const { madrasah } = useMadrasah();
   const location = useLocation();

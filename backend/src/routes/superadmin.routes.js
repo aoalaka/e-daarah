@@ -1299,9 +1299,9 @@ router.post('/email-broadcast', authenticateSuperAdmin, async (req, res) => {
 
     // Validate and resolve from email
     const ALLOWED_FROM = {
-      'founder@e-daarah.com': 'e-Daarah <founder@e-daarah.com>',
-      'support@e-daarah.com': 'e-Daarah <support@e-daarah.com>',
-      'noreply@e-daarah.com': 'e-Daarah <noreply@e-daarah.com>',
+      'founder@e-daarah.com': 'E-Daarah <founder@e-daarah.com>',
+      'support@e-daarah.com': 'E-Daarah <support@e-daarah.com>',
+      'noreply@e-daarah.com': 'E-Daarah <noreply@e-daarah.com>',
     };
     const resolvedFrom = ALLOWED_FROM[fromEmail] || ALLOWED_FROM['noreply@e-daarah.com'];
 

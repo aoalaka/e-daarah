@@ -358,7 +358,7 @@ function AdminDashboard() {
   // Update browser tab title based on active tab
   useEffect(() => {
     const labels = { overview: 'Overview', classes: 'Classes', teachers: 'Teachers', students: 'Students', fees: 'Fees', planner: 'Planner', reports: 'Reports', sms: 'SMS', help: 'Help', support: 'Support', settings: 'Settings' };
-    document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
+    document.title = `${labels[activeTab] || 'Dashboard'} — E-Daarah`;
   }, [activeTab]);
 
   // Keyboard shortcut: "/" to focus search
@@ -1917,8 +1917,8 @@ function AdminDashboard() {
       {/* Sidebar - Dark Theme */}
       <aside className={`sidebar ${mobileMenuOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <img src="/e-daarah-blackbg-logo.png" alt="e-Daarah" className="sidebar-logo-img" />
-          <span className="sidebar-logo-text">e-Daarah</span>
+          <img src="/e-daarah-blackbg-logo.png" alt="E-Daarah" className="sidebar-logo-img" />
+          <span className="sidebar-logo-text">E-Daarah</span>
           <button 
             className="sidebar-collapse-btn"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -7680,7 +7680,7 @@ function AdminDashboard() {
                   {/* Report Footer */}
                   <div className="report-card-footer">
                     <div className="powered-by">
-                      <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="footer-logo" loading="lazy" />
+                      <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="footer-logo" loading="lazy" />
                     </div>
                   </div>
                 </div>

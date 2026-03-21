@@ -11,15 +11,15 @@ function BlogIndex() {
   return (
     <div className="blog-page">
       <SEO
-        title="Blog — e-Daarah"
+        title="Blog — E-Daarah"
         description="Practical guides and insights on madrasah management, Islamic school administration, Quran progress tracking, attendance, and more."
         canonicalPath="/blog"
       />
 
       <header className="blog-header">
         <Link to="/" className="logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="logo-img" />
-          <span className="logo-text">e-Daarah</span>
+          <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="logo-img" />
+          <span className="logo-text">E-Daarah</span>
         </Link>
         <nav className="header-nav">
           <Link to="/pricing" className="nav-link">Pricing</Link>
@@ -57,7 +57,7 @@ function BlogIndex() {
       </main>
 
       <footer className="blog-footer">
-        <p>&copy; {new Date().getFullYear()} e-Daarah. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} E-Daarah. All rights reserved.</p>
       </footer>
     </div>
   );

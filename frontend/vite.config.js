@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['e-daarah-blackbg-logo.png', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'e-Daarah — Madrasah Management',
-        short_name: 'e-Daarah',
+        name: 'E-Daarah — Madrasah Management',
+        short_name: 'E-Daarah',
         description: 'Simple admin system for madrasahs, Islamic schools, and weekend programs.',
         theme_color: '#1a1a1a',
         background_color: '#1a1a1a',

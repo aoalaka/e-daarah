@@ -28,14 +28,14 @@ export default function SchoolsDirectory() {
     <div className="schools-page">
       <SEO
         title="Featured Madrasahs & Islamic Schools"
-        description="See madrasahs and Islamic schools using e-Daarah for attendance tracking, exam recording, and student management."
+        description="See madrasahs and Islamic schools using E-Daarah for attendance tracking, exam recording, and student management."
         canonicalPath="/schools"
       />
 
       <header className="schools-header">
         <Link to="/" className="schools-logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="schools-logo-img" />
-          <span className="schools-logo-text">e-Daarah</span>
+          <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="schools-logo-img" />
+          <span className="schools-logo-text">E-Daarah</span>
         </Link>
         <nav className="schools-nav">
           <Link to="/pricing">Pricing</Link>
@@ -48,7 +48,7 @@ export default function SchoolsDirectory() {
       <main className="schools-main">
         <div className="schools-hero">
           <h1>Featured Madrasahs</h1>
-          <p>Madrasahs and Islamic schools using e-Daarah to manage their students, attendance, and academic records.</p>
+          <p>Madrasahs and Islamic schools using E-Daarah to manage their students, attendance, and academic records.</p>
         </div>
 
         {loading ? (
@@ -89,7 +89,7 @@ export default function SchoolsDirectory() {
 
         <div className="schools-cta">
           <h2>Want your madrasah featured here?</h2>
-          <p>Register your institution, get verified, and join the growing community of madrasahs using e-Daarah.</p>
+          <p>Register your institution, get verified, and join the growing community of madrasahs using E-Daarah.</p>
           <Link to="/register" className="schools-cta-btn">Register Your Madrasah</Link>
         </div>
       </main>

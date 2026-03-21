@@ -51,7 +51,7 @@ function TeacherDashboard() {
   // Browser tab title
   useEffect(() => {
     const labels = { overview: 'Overview', attendance: 'Attendance', exams: 'Exams', reports: 'Reports', quran: "Qur'an Progress", availability: 'Availability', help: 'Help', settings: 'Settings' };
-    document.title = `${labels[activeTab] || 'Dashboard'} — e-Daarah`;
+    document.title = `${labels[activeTab] || 'Dashboard'} — E-Daarah`;
   }, [activeTab]);
 
   // Keyboard shortcut: "/" to focus search
@@ -1540,8 +1540,8 @@ function TeacherDashboard() {
       {/* Sidebar - Dark Theme */}
       <aside className={`sidebar ${mobileMenuOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <img src="/e-daarah-blackbg-logo.png" alt="e-Daarah" className="sidebar-logo-img" />
-          <span className="sidebar-logo-text">e-Daarah</span>
+          <img src="/e-daarah-blackbg-logo.png" alt="E-Daarah" className="sidebar-logo-img" />
+          <span className="sidebar-logo-text">E-Daarah</span>
           <button 
             className="sidebar-collapse-btn"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}

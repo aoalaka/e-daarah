@@ -120,8 +120,8 @@ function Pricing() {
       {/* Header */}
       <header className="pricing-header">
         <Link to="/" className="logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="logo-img" />
-          <span className="logo-text">e-Daarah</span>
+          <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="logo-img" />
+          <span className="logo-text">E-Daarah</span>
         </Link>
         <nav className="header-nav">
           <Link to="/demo" className="nav-link">Demo</Link>
@@ -450,7 +450,7 @@ function Pricing() {
 
       {/* Footer */}
       <footer className="pricing-footer">
-        <p>&copy; {new Date().getFullYear()} e-Daarah. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} E-Daarah. All rights reserved.</p>
       </footer>
     </div>
   );

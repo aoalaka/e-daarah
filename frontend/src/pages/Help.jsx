@@ -251,15 +251,15 @@ function Help() {
   return (
     <div className="help-page">
       <SEO
-        title="Help & FAQ &#8212; e-Daarah"
-        description="Get help with e-Daarah. Frequently asked questions about attendance tracking, exam recording, parent access, fee tracking, and school management."
+        title="Help & FAQ &#8212; E-Daarah"
+        description="Get help with E-Daarah. Frequently asked questions about attendance tracking, exam recording, parent access, fee tracking, and school management."
       />
       <div className="help-container">
         <Link to="/" className="help-back">&larr; Back to Home</Link>
 
         <div className="help-header">
           <h1>Help Center</h1>
-          <p>Find answers to common questions about using e-Daarah</p>
+          <p>Find answers to common questions about using E-Daarah</p>
         </div>
 
         <div className="help-search">

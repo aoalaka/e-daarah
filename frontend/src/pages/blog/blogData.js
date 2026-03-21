@@ -18,7 +18,7 @@ const blogArticles = [
       },
       {
         heading: 'Start Small',
-        body: 'You don\'t need to digitise everything overnight. Start with attendance. Once that feels natural, add exams. Then fees. Then Qur\'an tracking. Each one saves you a little more time and gives you a little more clarity about how your madrasah is actually doing.\n\ne-Daarah was built specifically for this — madrasahs that want something simple, affordable, and actually designed for how Islamic schools work. No jargon. No features you\'ll never use. Just the basics, done well.'
+        body: 'You don\'t need to digitise everything overnight. Start with attendance. Once that feels natural, add exams. Then fees. Then Qur\'an tracking. Each one saves you a little more time and gives you a little more clarity about how your madrasah is actually doing.\n\nE-Daarah was built specifically for this — madrasahs that want something simple, affordable, and actually designed for how Islamic schools work. No jargon. No features you\'ll never use. Just the basics, done well.'
       }
     ]
   },
@@ -41,7 +41,7 @@ const blogArticles = [
       },
       {
         heading: 'It Takes 30 Seconds',
-        body: 'The biggest reason attendance tracking falls apart is that it takes too long. If it\'s a 5-minute process at the start of every class, teachers skip it when they\'re running late or have a lot to cover.\n\nWith a phone-based tool, marking a class of 25 students takes about 30 seconds. Tap, tap, tap — done. The data goes straight to a dashboard where you or the admin can see it. No paper to lose. No end-of-term scramble to compile numbers.\n\ne-Daarah lets teachers do exactly this. Mark attendance from your phone in under a minute. Parents can see their child\'s record. Admins can see trends across the whole school. Simple.'
+        body: 'The biggest reason attendance tracking falls apart is that it takes too long. If it\'s a 5-minute process at the start of every class, teachers skip it when they\'re running late or have a lot to cover.\n\nWith a phone-based tool, marking a class of 25 students takes about 30 seconds. Tap, tap, tap — done. The data goes straight to a dashboard where you or the admin can see it. No paper to lose. No end-of-term scramble to compile numbers.\n\nE-Daarah lets teachers do exactly this. Mark attendance from your phone in under a minute. Parents can see their child\'s record. Admins can see trends across the whole school. Simple.'
       }
     ]
   },
@@ -64,7 +64,7 @@ const blogArticles = [
       },
       {
         heading: 'A Simple Fix',
-        body: 'Digital Qur\'an tracking doesn\'t replace your judgement as a teacher. It just gives you a record. After each session, you log the surah, the ayah range, and whether it was new memorisation or revision. It takes a few taps.\n\nNext week, you open the app and immediately see where each student left off. No guessing. No pencil marks to decipher. Parents can see progress too — which means they can help with revision at home instead of asking you for updates.\n\ne-Daarah\'s Qur\'an tracker was built for exactly this. You select the student, pick the surah and ayah range, and save. That\'s it. Over time, you get a full picture of each student\'s journey through the Qur\'an — something that would be nearly impossible to maintain on paper.'
+        body: 'Digital Qur\'an tracking doesn\'t replace your judgement as a teacher. It just gives you a record. After each session, you log the surah, the ayah range, and whether it was new memorisation or revision. It takes a few taps.\n\nNext week, you open the app and immediately see where each student left off. No guessing. No pencil marks to decipher. Parents can see progress too — which means they can help with revision at home instead of asking you for updates.\n\nE-Daarah\'s Qur\'an tracker was built for exactly this. You select the student, pick the surah and ayah range, and save. That\'s it. Over time, you get a full picture of each student\'s journey through the Qur\'an — something that would be nearly impossible to maintain on paper.'
       }
     ]
   },
@@ -87,7 +87,7 @@ const blogArticles = [
       },
       {
         heading: 'Built for This',
-        body: 'Most school management software assumes a full-time school with salaried staff, computer labs, and a dedicated admin team. That\'s not you.\n\ne-Daarah was built for madrasahs like yours — small teams, limited budgets, phone-first. Teachers mark attendance and record progress from their phones. Parents get real-time access to their child\'s records. And the admin doesn\'t have to chase anyone for data at the end of the term because it\'s already there.'
+        body: 'Most school management software assumes a full-time school with salaried staff, computer labs, and a dedicated admin team. That\'s not you.\n\nE-Daarah was built for madrasahs like yours — small teams, limited budgets, phone-first. Teachers mark attendance and record progress from their phones. Parents get real-time access to their child\'s records. And the admin doesn\'t have to chase anyone for data at the end of the term because it\'s already there.'
       }
     ]
   },
@@ -110,7 +110,7 @@ const blogArticles = [
       },
       {
         heading: 'Keep It Human',
-        body: 'Automated tracking doesn\'t mean you stop being understanding. Families go through tough times. The difference is that now you know who needs a conversation and who just needs a nudge. A parent who\'s three months behind might need a payment plan. A parent who missed last month probably just forgot.\n\ne-Daarah handles fee tracking with SMS reminders built in. Set the expected fee per student, record payments as they come in, and let the system handle reminders. You focus on running the madrasah — not chasing money.'
+        body: 'Automated tracking doesn\'t mean you stop being understanding. Families go through tough times. The difference is that now you know who needs a conversation and who just needs a nudge. A parent who\'s three months behind might need a payment plan. A parent who missed last month probably just forgot.\n\nE-Daarah handles fee tracking with SMS reminders built in. Set the expected fee per student, record payments as they come in, and let the system handle reminders. You focus on running the madrasah — not chasing money.'
       }
     ]
   },
@@ -129,7 +129,7 @@ const blogArticles = [
       },
       {
         heading: 'What Real-Time Reports Look Like',
-        body: 'Imagine a parent opening a link on their phone and seeing:\n\n— Their child\'s attendance record for the whole term\n— Exam scores by subject\n— Conduct grades: dressing, behaviour, punctuality\n— Qur\'an progress: which surah, which ayah, how they\'re tracking\n\nNo phone call needed. No waiting for a term-end report card that arrives two weeks late. Just clear, up-to-date information available whenever they want it.\n\nThis isn\'t futuristic — it\'s what e-Daarah\'s parent portal does. Each parent gets a login. They see their child\'s records. That\'s it. Simple, private, and always current.'
+        body: 'Imagine a parent opening a link on their phone and seeing:\n\n— Their child\'s attendance record for the whole term\n— Exam scores by subject\n— Conduct grades: dressing, behaviour, punctuality\n— Qur\'an progress: which surah, which ayah, how they\'re tracking\n\nNo phone call needed. No waiting for a term-end report card that arrives two weeks late. Just clear, up-to-date information available whenever they want it.\n\nThis isn\'t futuristic — it\'s what E-Daarah\'s parent portal does. Each parent gets a login. They see their child\'s records. That\'s it. Simple, private, and always current.'
       },
       {
         heading: 'It Changes the Relationship',
@@ -156,7 +156,7 @@ const blogArticles = [
       },
       {
         heading: 'The Real Cost of Staying Manual',
-        body: 'Every hour an admin spends compiling reports from spreadsheets is an hour not spent improving the madrasah. Every time a parent doesn\'t get an update because the teacher forgot to send it, trust erodes a little.\n\nThe tools exist now. They\'re affordable — e-Daarah starts at $5/month. They work on phones. They take minutes to set up, not weeks. The question isn\'t whether your madrasah can afford to go digital. It\'s whether you can afford not to.'
+        body: 'Every hour an admin spends compiling reports from spreadsheets is an hour not spent improving the madrasah. Every time a parent doesn\'t get an update because the teacher forgot to send it, trust erodes a little.\n\nThe tools exist now. They\'re affordable — E-Daarah starts at $5/month. They work on phones. They take minutes to set up, not weeks. The question isn\'t whether your madrasah can afford to go digital. It\'s whether you can afford not to.'
       }
     ]
   }

@@ -7,9 +7,9 @@ import { Resend } from 'resend';
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Email configuration
-const FROM_EMAIL = process.env.EMAIL_FROM || 'e-Daarah <noreply@e-daarah.com>';
+const FROM_EMAIL = process.env.EMAIL_FROM || 'E-Daarah <noreply@e-daarah.com>';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-const APP_NAME = 'e-Daarah';
+const APP_NAME = 'E-Daarah';
 
 // Check if email is enabled
 const isEmailEnabled = () => {
@@ -478,7 +478,7 @@ export const buildBroadcastHtml = (subject, message) => {
         <tr>
           <td align="center">
             <a href="https://www.e-daarah.com" style="display: inline-block; padding: 14px 32px; background-color: #1a1a1a; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 500; border-radius: 6px;">
-              Visit e-Daarah
+              Visit E-Daarah
             </a>
           </td>
         </tr>

@@ -55,15 +55,15 @@ function Landing() {
   return (
     <div className="landing">
       <SEO
-        title="e-Daarah — Attendance & Admin for Madrasahs"
-        description="Stop losing track of who showed up. e-Daarah replaces paper registers with a simple system madrasah teachers actually use. Attendance, reports, and parent updates — all in one place."
+        title="E-Daarah — Attendance & Admin for Madrasahs"
+        description="Stop losing track of who showed up. E-Daarah replaces paper registers with a simple system madrasah teachers actually use. Attendance, reports, and parent updates — all in one place."
       />
 
       {/* Header */}
       <header className={`landing-header ${scrolled ? 'header-scrolled' : ''}`}>
         <Link to="/" className="logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="logo-img" />
-          <span className="logo-text">e-Daarah</span>
+          <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="logo-img" />
+          <span className="logo-text">E-Daarah</span>
         </Link>
         <nav className="header-nav desktop-nav">
           <Link to="/pricing" className="nav-link">Pricing</Link>
@@ -211,7 +211,7 @@ function Landing() {
       <section className="install-app scroll-reveal" ref={addRevealRef}>
         <div className="section-inner">
           <p className="section-label">Works Like a Mobile App</p>
-          <h2 className="section-heading">Add e-Daarah to your home screen</h2>
+          <h2 className="section-heading">Add E-Daarah to your home screen</h2>
           <p className="section-desc">No app store needed. Install it directly from your browser in seconds.</p>
           <div className="install-grid">
             <div className="install-card">
@@ -378,7 +378,7 @@ function Landing() {
           <h2 className="section-heading">What changes when you switch</h2>
           <div className="ba-grid">
             <div className="ba-col ba-before">
-              <h3>Without e-Daarah</h3>
+              <h3>Without E-Daarah</h3>
               <ul>
                 <li>Paper register gets lost or forgotten</li>
                 <li>No idea who's been missing for weeks</li>
@@ -389,7 +389,7 @@ function Landing() {
               </ul>
             </div>
             <div className="ba-col ba-after">
-              <h3>With e-Daarah</h3>
+              <h3>With E-Daarah</h3>
               <ul>
                 <li>Attendance saved in the cloud, always accessible</li>
                 <li>Spot low-attendance students at a glance</li>
@@ -486,7 +486,7 @@ function Landing() {
       {/* Featured Schools */}
       <section className="featured-schools-banner">
         <div className="section-inner">
-          <p>See madrasahs already using e-Daarah → <Link to="/schools">Featured Schools</Link></p>
+          <p>See madrasahs already using E-Daarah → <Link to="/schools">Featured Schools</Link></p>
         </div>
       </section>
 
@@ -507,8 +507,8 @@ function Landing() {
         <div className="footer-inner">
           <div className="footer-brand">
             <div className="footer-logo">
-              <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="footer-logo-img" loading="lazy" />
-              <span className="footer-logo-text">e-Daarah</span>
+              <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="footer-logo-img" loading="lazy" />
+              <span className="footer-logo-text">E-Daarah</span>
             </div>
             <p className="footer-tagline">نظام إدارة المدارس الدينية</p>
             <p className="footer-sub">Attendance and admin for madrasahs.</p>
@@ -539,7 +539,7 @@ function Landing() {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2026 e-Daarah. All rights reserved.</p>
+          <p>© 2026 E-Daarah. All rights reserved.</p>
         </div>
       </footer>
     </div>

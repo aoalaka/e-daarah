@@ -7,7 +7,7 @@ import './SuperAdmin.css';
 const isAdminSubdomain = () => window.location.hostname.startsWith('admin.');
 
 function SuperAdminLogin() {
-  useEffect(() => { document.title = 'Admin Login — e-Daarah'; }, []);
+  useEffect(() => { document.title = 'Admin Login — E-Daarah'; }, []);
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,8 +36,8 @@ function SuperAdminLogin() {
     <div className="superadmin-login">
       <div className="login-card">
         <div className="login-logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="login-logo-img" />
-          <span className="login-logo-text">e-Daarah</span>
+          <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="login-logo-img" />
+          <span className="login-logo-text">E-Daarah</span>
         </div>
         <h1>Platform Admin</h1>
         <p className="subtitle">Management Console</p>

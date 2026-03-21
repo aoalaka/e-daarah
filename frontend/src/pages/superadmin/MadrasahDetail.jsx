@@ -8,7 +8,7 @@ const isAdminSubdomain = () => window.location.hostname.startsWith('admin.');
 const getBasePath = () => isAdminSubdomain() ? '' : '/superadmin';
 
 function MadrasahDetail() {
-  useEffect(() => { document.title = 'Madrasah Detail — e-Daarah'; }, []);
+  useEffect(() => { document.title = 'Madrasah Detail — E-Daarah'; }, []);
   const { id } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);

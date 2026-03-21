@@ -5,7 +5,7 @@ import { useMadrasah } from '../contexts/MadrasahContext';
 import './Login.css';
 
 function ForgotPassword() {
-  useEffect(() => { document.title = 'Forgot Password — e-Daarah'; }, []);
+  useEffect(() => { document.title = 'Forgot Password — E-Daarah'; }, []);
   const { madrasahSlug } = useParams();
   const { madrasah } = useMadrasah();
   const [email, setEmail] = useState('');

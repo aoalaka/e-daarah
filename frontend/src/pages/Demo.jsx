@@ -79,13 +79,13 @@ function Demo() {
   return (
     <div className="demo-page">
       <SEO
-        title="Try the Demo — e-Daarah"
-        description="Explore e-Daarah with a fully-loaded demo. See attendance tracking, exam recording, and parent reports in action. No account needed."
+        title="Try the Demo — E-Daarah"
+        description="Explore E-Daarah with a fully-loaded demo. See attendance tracking, exam recording, and parent reports in action. No account needed."
       />
       <header className="demo-header">
         <Link to="/" className="logo">
-          <img src="/e-daarah-whitebg-logo.png" alt="e-Daarah" className="logo-img" />
-          <span className="logo-text">e-Daarah</span>
+          <img src="/e-daarah-whitebg-logo.png" alt="E-Daarah" className="logo-img" />
+          <span className="logo-text">E-Daarah</span>
         </Link>
         <nav className="header-nav">
           <Link to="/pricing" className="nav-link">Pricing</Link>
@@ -95,7 +95,7 @@ function Demo() {
       </header>
 
       <section className="demo-hero">
-        <h1>Try e-Daarah</h1>
+        <h1>Try E-Daarah</h1>
         <p>Explore a fully-loaded demo with real data. No account needed.</p>
       </section>
 
@@ -172,7 +172,7 @@ function Demo() {
       </section>
 
       <footer className="demo-footer">
-        <p>© 2026 e-Daarah</p>
+        <p>© 2026 E-Daarah</p>
       </footer>
     </div>
   );

@@ -6,8 +6,8 @@ function Terms() {
   return (
     <div className="legal-page">
       <SEO
-        title="Terms of Service — e-Daarah"
-        description="Terms of service for e-Daarah school management platform."
+        title="Terms of Service — E-Daarah"
+        description="Terms of service for E-Daarah school management platform."
       />
       <div className="legal-container">
         <Link to="/" className="legal-back">Back to Home</Link>
@@ -18,7 +18,7 @@ function Terms() {
         <section>
           <h2>1. Agreement to Terms</h2>
           <p>
-            By accessing or using e-Daarah ("the Service"), you agree to be bound by these Terms of Service.
+            By accessing or using E-Daarah ("the Service"), you agree to be bound by these Terms of Service.
             If you do not agree to these terms, please do not use the Service.
           </p>
         </section>
@@ -26,7 +26,7 @@ function Terms() {
         <section>
           <h2>2. Description of Service</h2>
           <p>
-            e-Daarah is a madrasah (Islamic school) management platform that provides tools for:
+            E-Daarah is a madrasah (Islamic school) management platform that provides tools for:
           </p>
           <ul>
             <li>Student enrollment and records management</li>
@@ -111,7 +111,7 @@ function Terms() {
         <section>
           <h2>9. Intellectual Property</h2>
           <p>
-            The Service, including its design, features, and content, is owned by e-Daarah.
+            The Service, including its design, features, and content, is owned by E-Daarah.
             Your data remains yours. By using the Service, you grant us a license to process
             your data solely to provide the Service.
           </p>
@@ -120,7 +120,7 @@ function Terms() {
         <section>
           <h2>10. Limitation of Liability</h2>
           <p>
-            To the maximum extent permitted by law, e-Daarah shall not be liable for any
+            To the maximum extent permitted by law, E-Daarah shall not be liable for any
             indirect, incidental, special, or consequential damages arising from your use
             of the Service. Our total liability shall not exceed the amount you paid for
             the Service in the 12 months preceding the claim.

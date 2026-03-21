@@ -10,6 +10,7 @@
   background: #fff;
   border-bottom: 1px solid #e5e5e5;
   padding: 12px 20px;
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
   display: flex;
   justify-content: space-between;
   align-items: center;

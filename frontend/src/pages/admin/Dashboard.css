@@ -1552,6 +1552,12 @@ a:focus-visible,
   align-items: center;
 }
 
+.subject-pagination-btns {
+  display: flex;
+  gap: var(--sm);
+  align-items: center;
+}
+
 .exam-metrics-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -3488,7 +3494,8 @@ a:focus-visible,
   color: var(--text-primary);
 }
 
-.ranking-card-student {
+.ranking-card-student,
+.ranking-card-info {
   flex: 1;
   min-width: 0;
 }
@@ -4335,12 +4342,60 @@ a:focus-visible,
     display: block !important;
   }
 
-  /* Fee report table → horizontal scroll with compact cells */
-  .fee-report-table th,
-  .fee-report-table td {
-    font-size: 12px;
-    padding: 8px 10px;
-    white-space: nowrap;
+  /* SMS: hide desktop tables, show mobile cards */
+  .sms-table-desktop {
+    display: none;
+  }
+
+  /* Fee report table → convert to stacked cards */
+  .fee-report-table {
+    display: block;
+  }
+  .fee-report-table thead {
+    display: none;
+  }
+  .fee-report-table tbody,
+  .fee-report-table tfoot {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .fee-report-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    padding: 12px;
+    border: 1px solid var(--light);
+    border-radius: var(--radius);
+    background: #fff;
+  }
+  .fee-report-table td,
+  .fee-report-table th {
+    padding: 2px 0;
+    font-size: 13px;
+    text-align: left !important;
+    white-space: normal;
+  }
+  .fee-report-table td:first-child {
+    grid-column: 1 / -1;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .fee-report-table td[data-label=""]::before {
+    display: none;
+  }
+  .fee-report-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .fee-report-table tfoot tr {
+    background: var(--bg);
+    border-color: var(--gray);
   }
 
   /* Insights widgets: single column on mobile */

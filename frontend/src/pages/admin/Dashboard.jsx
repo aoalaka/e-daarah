@@ -5517,12 +5517,12 @@ function AdminDashboard() {
                             <tbody>
                               {feeReport.classBreakdown.map((c, i) => (
                                 <tr key={i}>
-                                  <td>{c.class_name}</td>
-                                  <td style={{ textAlign: 'right' }}>{c.student_count}</td>
-                                  <td style={{ textAlign: 'right' }}>{formatCurrency(c.total_expected)}</td>
-                                  <td style={{ textAlign: 'right' }}>{formatCurrency(c.total_collected)}</td>
-                                  <td style={{ textAlign: 'right', color: c.outstanding > 0 ? '#dc2626' : undefined }}>{formatCurrency(c.outstanding)}</td>
-                                  <td style={{ textAlign: 'right' }}>
+                                  <td data-label="">{c.class_name}</td>
+                                  <td data-label="Students" style={{ textAlign: 'right' }}>{c.student_count}</td>
+                                  <td data-label="Expected" style={{ textAlign: 'right' }}>{formatCurrency(c.total_expected)}</td>
+                                  <td data-label="Collected" style={{ textAlign: 'right' }}>{formatCurrency(c.total_collected)}</td>
+                                  <td data-label="Outstanding" style={{ textAlign: 'right', color: c.outstanding > 0 ? '#dc2626' : undefined }}>{formatCurrency(c.outstanding)}</td>
+                                  <td data-label="Rate" style={{ textAlign: 'right' }}>
                                     <span style={{
                                       fontWeight: 600,
                                       color: c.collection_rate >= 80 ? '#16a34a' : c.collection_rate >= 50 ? '#ca8a04' : '#dc2626'
@@ -5533,12 +5533,12 @@ function AdminDashboard() {
                             </tbody>
                             <tfoot>
                               <tr style={{ fontWeight: 600 }}>
-                                <td>Total</td>
-                                <td style={{ textAlign: 'right' }}>{feeReport.statusCounts.total}</td>
-                                <td style={{ textAlign: 'right' }}>{formatCurrency(feeReport.overview.totalExpected)}</td>
-                                <td style={{ textAlign: 'right' }}>{formatCurrency(feeReport.overview.totalCollected)}</td>
-                                <td style={{ textAlign: 'right', color: feeReport.overview.totalOutstanding > 0 ? '#dc2626' : undefined }}>{formatCurrency(feeReport.overview.totalOutstanding)}</td>
-                                <td style={{ textAlign: 'right' }}>
+                                <td data-label="">Total</td>
+                                <td data-label="Students" style={{ textAlign: 'right' }}>{feeReport.statusCounts.total}</td>
+                                <td data-label="Expected" style={{ textAlign: 'right' }}>{formatCurrency(feeReport.overview.totalExpected)}</td>
+                                <td data-label="Collected" style={{ textAlign: 'right' }}>{formatCurrency(feeReport.overview.totalCollected)}</td>
+                                <td data-label="Outstanding" style={{ textAlign: 'right', color: feeReport.overview.totalOutstanding > 0 ? '#dc2626' : undefined }}>{formatCurrency(feeReport.overview.totalOutstanding)}</td>
+                                <td data-label="Rate" style={{ textAlign: 'right' }}>
                                   <span style={{
                                     color: feeReport.overview.collectionRate >= 80 ? '#16a34a' : feeReport.overview.collectionRate >= 50 ? '#ca8a04' : '#dc2626'
                                   }}>{feeReport.overview.collectionRate}%</span>
@@ -6187,22 +6187,23 @@ function AdminDashboard() {
                               <div style={{ color: 'var(--muted)', fontSize: '14px' }}>
                                 Showing subject {startIndex + 1} of {totalSubjects}
                               </div>
-                              <div style={{ display: 'flex', gap: 'var(--sm)' }}>
+                              <div className="subject-pagination-btns">
                                 <button
                                   onClick={() => setCurrentSubjectPage(prev => Math.max(1, prev - 1))}
                                   disabled={currentSubjectPage === 1}
                                   className="btn-sm"
                                   style={{ opacity: currentSubjectPage === 1 ? 0.5 : 1 }}
                                 >
-                                  ← Previous Subject
+                                  ← Previous
                                 </button>
-                                <div style={{ 
-                                  padding: '8px 16px', 
-                                  backgroundColor: 'var(--accent-light)', 
+                                <div style={{
+                                  padding: '8px 16px',
+                                  backgroundColor: 'var(--accent-light)',
                                   color: 'var(--accent)',
                                   borderRadius: 'var(--radius)',
                                   fontWeight: '600',
-                                  fontSize: '14px'
+                                  fontSize: '14px',
+                                  whiteSpace: 'nowrap'
                                 }}>
                                   {currentSubjectPage} / {totalPages}
                                 </div>
@@ -6212,7 +6213,7 @@ function AdminDashboard() {
                                   className="btn-sm"
                                   style={{ opacity: currentSubjectPage === totalPages ? 0.5 : 1 }}
                                 >
-                                  Next Subject →
+                                  Next →
                                 </button>
                               </div>
                             </div>
@@ -8238,7 +8239,7 @@ function AdminDashboard() {
                       {smsPurchases.filter(p => p.status === 'completed').length > 0 && (
                         <div className="card">
                           <h3 style={{ marginBottom: '1rem' }}>Purchase History</h3>
-                          <div className="table-responsive">
+                          <div className="table-responsive sms-table-desktop">
                             <table className="data-table">
                               <thead>
                                 <tr>
@@ -8263,6 +8264,21 @@ function AdminDashboard() {
                                 ))}
                               </tbody>
                             </table>
+                          </div>
+                          <div className="support-mobile-cards">
+                            {smsPurchases.filter(p => p.status === 'completed').map(p => (
+                              <div key={p.id} className="admin-mobile-card">
+                                <div className="admin-mobile-card-top">
+                                  <div>
+                                    <div className="admin-mobile-card-title">{fmtDate(p.created_at)}</div>
+                                    <div className="admin-mobile-card-sub">{p.credits} credits</div>
+                                  </div>
+                                  <span style={{ fontWeight: '600', fontSize: '0.875rem' }}>
+                                    {p.amount_cents === 0 ? 'Free' : `${(p.currency || '').toUpperCase() === 'NZD' ? 'NZ$' : '$'}${(p.amount_cents / 100).toFixed(2)}`}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -8506,7 +8522,7 @@ function AdminDashboard() {
                                       </div>
                                     )}
 
-                                    <div className="table-responsive" style={{ marginBottom: '0.5rem' }}>
+                                    <div className="table-responsive sms-table-desktop" style={{ marginBottom: '0.5rem' }}>
                                       <table className="data-table">
                                         <thead>
                                           <tr>
@@ -8672,7 +8688,7 @@ function AdminDashboard() {
                         </div>
                       ) : (
                         <>
-                          <div className="table-responsive">
+                          <div className="table-responsive sms-table-desktop">
                             <table className="data-table">
                               <thead>
                                 <tr>

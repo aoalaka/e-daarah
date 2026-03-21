@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS madrasahs (
     auto_fee_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     auto_fee_reminder_message TEXT NULL DEFAULT NULL,
     auto_fee_reminder_day TINYINT NOT NULL DEFAULT 1 COMMENT 'Day of month to send (1-28)',
+    auto_fee_reminder_timing ENUM('day_of_month', 'semester_start') NOT NULL DEFAULT 'day_of_month',
     auto_fee_reminder_last_sent DATE NULL DEFAULT NULL,
     -- Suspension
     suspended_at TIMESTAMP NULL DEFAULT NULL,

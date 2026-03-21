@@ -2114,7 +2114,11 @@ function AdminDashboard() {
                       const dropouts = analyticsData.dropoutCount ?? 0;
                       const active = total - dropouts;
                       return (
-                        <div className="summary-card summary-card-students">
+                        <>
+                        <div
+                          className={`summary-card summary-card-students ${dropouts > 0 ? 'clickable' : ''} ${expandedMetric === 'dropouts' ? 'active' : ''}`}
+                          onClick={() => dropouts > 0 && setExpandedMetric(expandedMetric === 'dropouts' ? null : 'dropouts')}
+                        >
                           <div className="summary-label">Students</div>
                           <div className="summary-students-row">
                             <div className="summary-students-stat">
@@ -2128,7 +2132,32 @@ function AdminDashboard() {
                             </div>
                           </div>
                           <div className="summary-status">{total} total enrolled</div>
+                          {dropouts > 0 && (
+                            <div className="summary-view-hint">{expandedMetric === 'dropouts' ? 'Hide' : 'View list'}</div>
+                          )}
                         </div>
+                        {expandedMetric === 'dropouts' && analyticsData.dropoutStudents?.length > 0 && (
+                          <div className="metric-student-list">
+                            <div className="metric-student-list-header">
+                              <h4>{analyticsData.dropoutStudents.length} student{analyticsData.dropoutStudents.length !== 1 ? 's' : ''} dropped out</h4>
+                              <button className="metric-student-list-close" onClick={() => setExpandedMetric(null)}>&times;</button>
+                            </div>
+                            <div className="metric-student-list-body">
+                              {analyticsData.dropoutStudents.map(s => (
+                                <div key={s.id} className="metric-student-row">
+                                  <div className="metric-student-info">
+                                    <span className="metric-student-name">{s.first_name} {s.last_name}</span>
+                                    {s.class_name && <span className="metric-student-class">was in {s.class_name}</span>}
+                                  </div>
+                                  <span className="metric-student-rate" style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>
+                                    {s.dropped_at ? new Date(s.dropped_at).toLocaleDateString() : ''}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        </>
                       );
                     })()}
                     {/* Card 3: Poor Behaviour (hidden if behaviour recording is off) */}
@@ -8338,7 +8367,36 @@ function AdminDashboard() {
                         {madrasahProfile?.auto_fee_reminder_enabled && (
                           <div style={{ marginTop: '16px', maxWidth: '520px' }}>
                             <div className="form-group" style={{ marginBottom: '12px' }}>
-                              <label className="form-label">Send on day of month</label>
+                              <label className="form-label">When to send</label>
+                              <select
+                                className="form-input"
+                                style={{ width: '220px' }}
+                                value={madrasahProfile?.auto_fee_reminder_timing || 'day_of_month'}
+                                onChange={async (e) => {
+                                  const timing = e.target.value;
+                                  setMadrasahProfile(prev => ({ ...prev, auto_fee_reminder_timing: timing }));
+                                  setSavingSettings(true);
+                                  try {
+                                    const res = await api.put('/admin/settings', { auto_fee_reminder_timing: timing });
+                                    setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                                    toast.success(timing === 'semester_start' ? 'Will send on semester start dates' : 'Will send on specific day of month');
+                                  } catch (err) { toast.error('Failed to update'); }
+                                  setSavingSettings(false);
+                                }}
+                              >
+                                <option value="day_of_month">Specific day of month</option>
+                                <option value="semester_start">Start of each semester</option>
+                              </select>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>
+                                {(madrasahProfile?.auto_fee_reminder_timing || 'day_of_month') === 'semester_start'
+                                  ? 'Reminder will be sent on the first day of each semester automatically.'
+                                  : 'Reminder will be sent on the chosen day every month.'}
+                              </span>
+                            </div>
+
+                            {(madrasahProfile?.auto_fee_reminder_timing || 'day_of_month') === 'day_of_month' && (
+                            <div className="form-group" style={{ marginBottom: '12px' }}>
+                              <label className="form-label">Day of month</label>
                               <input
                                 type="number"
                                 className="form-input"
@@ -8360,6 +8418,7 @@ function AdminDashboard() {
                                 }}
                               />
                             </div>
+                            )}
 
                             <div className="form-group" style={{ marginBottom: '12px' }}>
                               <label className="form-label">Message</label>

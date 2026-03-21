@@ -122,17 +122,27 @@ export const processAutoFeeReminders = async () => {
   const todayDate = today.toISOString().split('T')[0];
 
   try {
-    // Find madrasahs with auto reminders enabled, matching today's day, not already sent this month
+    // Find madrasahs with auto reminders enabled, not already sent this month
+    // Supports two timing modes: day_of_month (specific day) and semester_start (first day of each semester)
     const [madrasahs] = await pool.query(`
-      SELECT m.id, m.name, m.auto_fee_reminder_message, m.auto_fee_reminder_day
+      SELECT m.id, m.name, m.auto_fee_reminder_message, m.auto_fee_reminder_day,
+             COALESCE(m.auto_fee_reminder_timing, 'day_of_month') as auto_fee_reminder_timing
       FROM madrasahs m
       WHERE m.auto_fee_reminder_enabled = 1
-        AND m.auto_fee_reminder_day = ?
         AND m.auto_fee_reminder_message IS NOT NULL
         AND m.deleted_at IS NULL
         AND m.subscription_status IN ('active', 'trialing')
         AND (m.auto_fee_reminder_last_sent IS NULL OR MONTH(m.auto_fee_reminder_last_sent) != MONTH(NOW()) OR YEAR(m.auto_fee_reminder_last_sent) != YEAR(NOW()))
-    `, [todayDay]);
+        AND (
+          (COALESCE(m.auto_fee_reminder_timing, 'day_of_month') = 'day_of_month' AND m.auto_fee_reminder_day = ?)
+          OR (m.auto_fee_reminder_timing = 'semester_start' AND EXISTS (
+            SELECT 1 FROM semesters sem
+            JOIN sessions s ON s.id = sem.session_id
+            WHERE s.madrasah_id = m.id AND s.is_active = 1 AND s.deleted_at IS NULL
+              AND sem.deleted_at IS NULL AND sem.start_date = ?
+          ))
+        )
+    `, [todayDay, todayDate]);
 
     if (madrasahs.length === 0) return;
 
@@ -160,6 +170,19 @@ export const processAutoFeeReminders = async () => {
 
         if (activeSemesters.length === 0) {
           console.log(`[Scheduler] Skipping ${madrasah.name} — no active semester`);
+          continue;
+        }
+
+        // Skip if today is a holiday for this madrasah
+        const [holidays] = await pool.query(`
+          SELECT id FROM academic_holidays
+          WHERE madrasah_id = ? AND deleted_at IS NULL
+            AND start_date <= ? AND end_date >= ?
+          LIMIT 1
+        `, [madrasah.id, todayDate, todayDate]);
+
+        if (holidays.length > 0) {
+          console.log(`[Scheduler] Skipping ${madrasah.name} — today is a holiday`);
           continue;
         }
 

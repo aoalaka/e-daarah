@@ -2347,7 +2347,7 @@ router.get('/profile', async (req, res) => {
        pricing_plan, subscription_status, current_period_end, stripe_customer_id,
        enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency,
        fee_tracking_mode, fee_prorate_mid_period,
-       auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent
+       auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_timing, auto_fee_reminder_last_sent
        ${hasAvailabilityCol ? ', availability_planner_aware' : ''}
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
@@ -2451,6 +2451,10 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
       updates.push('auto_fee_reminder_day = ?');
       params.push(req.body.auto_fee_reminder_day);
     }
+    if (req.body.auto_fee_reminder_timing === 'day_of_month' || req.body.auto_fee_reminder_timing === 'semester_start') {
+      updates.push('auto_fee_reminder_timing = ?');
+      params.push(req.body.auto_fee_reminder_timing);
+    }
 
     if (typeof availability_planner_aware === 'boolean') {
       try {
@@ -2471,7 +2475,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
     );
 
     // Return updated settings
-    let settingsCols = 'enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent';
+    let settingsCols = 'enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_timing, auto_fee_reminder_last_sent';
     try {
       await pool.query('SELECT availability_planner_aware FROM madrasahs LIMIT 0');
       settingsCols += ', availability_planner_aware';
@@ -3412,13 +3416,26 @@ router.get('/analytics', async (req, res) => {
     );
     const totalStudents = totalStudentsResult[0]?.total || 0;
 
-    // 11c. Dropout count (students marked as dropped_out in promotion history)
-    // Not filtered by semester — dropouts are cumulative for the madrasah
-    const [dropoutResult] = await pool.query(
-      'SELECT COUNT(DISTINCT sp.student_id) as total FROM student_promotions sp WHERE sp.madrasah_id = ? AND sp.promotion_type = ?',
-      [madrasahId, 'dropped_out']
-    );
-    const dropoutCount = dropoutResult[0]?.total || 0;
+    // 11c. Dropout students (currently dropped out — have a dropout record but no later reassignment)
+    const [dropoutStudents] = await pool.query(`
+      SELECT s.id, s.first_name, s.last_name, c.name as class_name,
+             sp.created_at as dropped_at
+      FROM student_promotions sp
+      JOIN students s ON sp.student_id = s.id
+      LEFT JOIN classes c ON s.class_id = c.id
+      WHERE sp.madrasah_id = ? AND sp.promotion_type = 'dropped_out'
+        AND s.deleted_at IS NULL
+        AND s.class_id IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM student_promotions sp2
+          WHERE sp2.student_id = sp.student_id AND sp2.madrasah_id = sp.madrasah_id
+            AND sp2.promotion_type IN ('promoted', 'transferred', 'repeated')
+            AND sp2.created_at > sp.created_at
+        )
+      GROUP BY s.id
+      ORDER BY sp.created_at DESC
+    `, [madrasahId]);
+    const dropoutCount = dropoutStudents.length;
 
     // 11d. Poor behaviour count (students with 3+ "Poor" behaviour ratings)
     const [madrasahSettings] = await pool.query(
@@ -3778,6 +3795,7 @@ router.get('/analytics', async (req, res) => {
       },
       totalStudents,
       dropoutCount,
+      dropoutStudents,
       poorBehaviorStudents,
       behaviorEnabled
     });

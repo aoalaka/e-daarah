@@ -3433,7 +3433,7 @@ router.get('/analytics', async (req, res) => {
     // 11c. Dropout students (currently dropped out — have a dropout record but no later reassignment)
     const [dropoutStudents] = await pool.query(`
       SELECT s.id, s.first_name, s.last_name, c.name as class_name,
-             sp.created_at as dropped_at
+             MAX(sp.created_at) as dropped_at
       FROM student_promotions sp
       JOIN students s ON sp.student_id = s.id
       LEFT JOIN classes c ON s.class_id = c.id
@@ -3446,8 +3446,8 @@ router.get('/analytics', async (req, res) => {
             AND sp2.promotion_type IN ('promoted', 'transferred', 'repeated')
             AND sp2.created_at > sp.created_at
         )
-      GROUP BY s.id
-      ORDER BY sp.created_at DESC
+      GROUP BY s.id, s.first_name, s.last_name, c.name
+      ORDER BY dropped_at DESC
     `, [madrasahId]);
     const dropoutCount = dropoutStudents.length;
 

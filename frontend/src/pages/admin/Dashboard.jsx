@@ -5010,7 +5010,7 @@ function AdminDashboard() {
                               render: (row) => <span className={`badge ${row.is_active ? 'badge-success' : 'badge-warning'}`}>{row.is_active ? 'Active' : 'Inactive'}</span> },
                             { key: 'actions', label: '', sortable: false,
                               render: (row) => (
-                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                   <button className="btn btn-sm btn-secondary" disabled={isReadOnly()} onClick={() => {
                                     setEditingFeeSchedule(row);
                                     setFeeScheduleScope(row.student_id ? 'student' : row.class_id ? 'class' : 'all');
@@ -5245,7 +5245,7 @@ function AdminDashboard() {
                               render: (row) => <FeeProgressBar paid={row.total_paid} total={row.total_fee} /> },
                             { key: 'actions', label: '', sortable: false,
                               render: (row) => (
-                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                   <button className="btn btn-sm btn-primary" disabled={isReadOnly()} onClick={() => {
                                     setShowPaymentModal(row);
                                     setNewPayment({ amount_paid: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_note: '', payment_label: '', _labelCategory: '' });
@@ -6183,7 +6183,7 @@ function AdminDashboard() {
                         {/* Subject Pagination Controls */}
                         {totalPages > 1 && (
                           <div className="card" style={{ marginBottom: 'var(--md)' }}>
-                            <div className="subject-pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="subject-pagination">
                               <div style={{ color: 'var(--muted)', fontSize: '14px' }}>
                                 Showing subject {startIndex + 1} of {totalSubjects}
                               </div>
@@ -9312,7 +9312,7 @@ function AdminDashboard() {
                   {madrasahProfile.usage && (
                     <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
                       <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>Current Usage</h4>
-                      <div style={{ display: 'flex', gap: '24px' }}>
+                      <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
                         <div style={{ textAlign: 'center' }}>
                           <div style={{ fontSize: '24px', fontWeight: '600' }}>{madrasahProfile.usage.students}</div>
                           <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Students</div>

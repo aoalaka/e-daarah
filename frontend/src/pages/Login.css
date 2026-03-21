@@ -62,6 +62,9 @@
   font-weight: 600;
   color: var(--black);
   margin-bottom: var(--xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .login-header p {

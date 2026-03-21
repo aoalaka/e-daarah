@@ -1041,24 +1041,28 @@
   align-items: flex-start;
   padding: 16px;
   border-radius: 8px;
-  border-left: 4px solid #ddd;
+  border: 1px solid var(--light);
   background: #fafafa;
 }
 
 .announcement-item.info {
-  border-left-color: #1976d2;
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 
 .announcement-item.warning {
-  border-left-color: #f57c00;
+  background: #fff7ed;
+  border-color: #fed7aa;
 }
 
 .announcement-item.success {
-  border-left-color: #2e7d32;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
 }
 
 .announcement-item.update {
-  border-left-color: #7b1fa2;
+  background: #faf5ff;
+  border-color: #e9d5ff;
 }
 
 .announcement-item.inactive {

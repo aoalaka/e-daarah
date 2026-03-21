@@ -295,6 +295,10 @@
     overflow-x: visible;
   }
 
+  .sortable-table-container {
+    overflow: hidden;
+  }
+
   .sortable-table thead {
     display: none;
   }
@@ -327,6 +331,18 @@
     border: none;
     font-size: 14px;
     min-height: 32px;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  /* Value side of card cells: allow wrapping, prevent overflow */
+  .sortable-table td > *:last-child,
+  .sortable-table td > span,
+  .sortable-table td > strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    text-align: right;
   }
 
   .sortable-table td:not(:last-child) {

@@ -4256,6 +4256,71 @@ a:focus-visible,
   .exam-metrics-grid {
     grid-template-columns: repeat(3, 1fr) !important;
   }
+
+  /* Global: any .table-responsive gets horizontal scroll */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Overview: frequent absences → stacked cards */
+  .overview-table {
+    display: block;
+  }
+  .overview-table thead {
+    display: none;
+  }
+  .overview-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .overview-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f4f4f4;
+  }
+  .overview-table td {
+    padding: 0;
+    border: none;
+  }
+  .overview-table td:first-child {
+    font-weight: 600;
+    flex-basis: 100%;
+  }
+  .overview-table td:nth-child(2) {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .overview-table td:last-child {
+    font-size: 12px;
+    color: var(--error);
+    font-weight: 600;
+  }
+
+  /* Planner: sessions & holidays tables → stacked cards */
+  .planner-table-desktop {
+    display: none !important;
+  }
+  .planner-mobile-cards {
+    display: block !important;
+  }
+
+  /* Fee report table → horizontal scroll with compact cells */
+  .fee-report-table th,
+  .fee-report-table td {
+    font-size: 12px;
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+
+  /* Insights widgets: single column on mobile */
+  .insights-widgets {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* --- 480px breakpoint: small phones --- */

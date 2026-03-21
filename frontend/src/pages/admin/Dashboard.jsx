@@ -2704,7 +2704,8 @@ function AdminDashboard() {
                       {semesters.filter(sem => sem.session_id === plannerSelectedSession.id).length === 0 ? (
                         <div className="empty" style={{ padding: 'var(--md)' }}><p>No semesters yet for this session.</p></div>
                       ) : (
-                        <div className="table-wrap">
+                        <>
+                        <div className="table-wrap planner-table-desktop">
                           <table className="table">
                             <thead>
                               <tr>
@@ -2731,6 +2732,24 @@ function AdminDashboard() {
                             </tbody>
                           </table>
                         </div>
+                        <div className="planner-mobile-cards" style={{ display: 'none', padding: '8px 16px' }}>
+                          {semesters.filter(sem => sem.session_id === plannerSelectedSession.id).map(semester => (
+                            <div key={semester.id} className="admin-mobile-card" style={{ marginBottom: '8px', padding: '14px', border: '1px solid var(--light)', borderRadius: 'var(--radius)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <strong style={{ fontSize: '15px' }}>{semester.name}</strong>
+                                <span className={`badge ${semester.is_active ? 'badge-success' : 'badge-muted'}`}>{semester.is_active ? 'Active' : 'Inactive'}</span>
+                              </div>
+                              <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>
+                                {fmtDate(semester.start_date)} — {fmtDate(semester.end_date)}
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={() => handleEditSemester(semester)} className="btn-sm btn-edit">Edit</button>
+                                <button onClick={() => handleDeleteSemester(semester.id)} className="btn-sm btn-delete">Delete</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -2781,7 +2800,8 @@ function AdminDashboard() {
                       {plannerHolidays.length === 0 ? (
                         <div className="empty" style={{ padding: 'var(--md)' }}><p>No holidays added. Teachers can mark attendance on any school day.</p></div>
                       ) : (
-                        <div className="table-wrap">
+                        <>
+                        <div className="table-wrap planner-table-desktop">
                           <table className="table">
                             <thead>
                               <tr>
@@ -2808,6 +2828,22 @@ function AdminDashboard() {
                             </tbody>
                           </table>
                         </div>
+                        <div className="planner-mobile-cards" style={{ display: 'none', padding: '8px 16px' }}>
+                          {plannerHolidays.map(h => (
+                            <div key={h.id} className="admin-mobile-card" style={{ marginBottom: '8px', padding: '14px', border: '1px solid var(--light)', borderRadius: 'var(--radius)' }}>
+                              <strong style={{ fontSize: '15px', display: 'block', marginBottom: '4px' }}>{h.title}</strong>
+                              <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '4px' }}>
+                                {fmtDate(h.start_date)} — {fmtDate(h.end_date)}
+                              </div>
+                              {h.description && <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>{h.description}</div>}
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={() => handleEditHoliday(h)} className="btn-sm btn-edit">Edit</button>
+                                <button onClick={() => handleDeleteHoliday(h.id)} className="btn-sm btn-delete">Delete</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -2867,7 +2903,8 @@ function AdminDashboard() {
                       {plannerOverrides.length === 0 ? (
                         <div className="empty" style={{ padding: 'var(--md)' }}><p>No schedule overrides. The default school days apply throughout the session.</p></div>
                       ) : (
-                        <div className="table-wrap">
+                        <>
+                        <div className="table-wrap planner-table-desktop">
                           <table className="table">
                             <thead>
                               <tr>
@@ -2901,6 +2938,29 @@ function AdminDashboard() {
                             </tbody>
                           </table>
                         </div>
+                        <div className="planner-mobile-cards" style={{ display: 'none', padding: '8px 16px' }}>
+                          {plannerOverrides.map(o => {
+                            const days = o.school_days ? (typeof o.school_days === 'string' ? JSON.parse(o.school_days) : o.school_days) : [];
+                            return (
+                              <div key={o.id} className="admin-mobile-card" style={{ marginBottom: '8px', padding: '14px', border: '1px solid var(--light)', borderRadius: 'var(--radius)' }}>
+                                <strong style={{ fontSize: '15px', display: 'block', marginBottom: '4px' }}>{o.title}</strong>
+                                <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '6px' }}>
+                                  {fmtDate(o.start_date)} – {fmtDate(o.end_date)}
+                                </div>
+                                <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                                  {days.map(d => (
+                                    <span key={d} style={{ fontSize: '11px', padding: '1px 6px', borderRadius: '10px', background: 'rgba(37,99,235,0.08)', color: '#2563eb', fontWeight: '500' }}>{d.substring(0, 3)}</span>
+                                  ))}
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button onClick={() => handleEditOverride(o)} className="btn-sm btn-edit">Edit</button>
+                                  <button onClick={() => handleDeleteOverride(o.id)} className="btn-sm btn-delete">Delete</button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -7710,6 +7770,7 @@ function AdminDashboard() {
                             <div className="insight-widget">
                               <h4>Exams Recorded by Subject</h4>
                               {teacherDetailData.examsBySubject.length > 0 ? (
+                                <div className="table-wrap">
                                 <table className="table" style={{ fontSize: '13px' }}>
                                   <thead>
                                     <tr>
@@ -7728,6 +7789,7 @@ function AdminDashboard() {
                                     ))}
                                   </tbody>
                                 </table>
+                                </div>
                               ) : (
                                 <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No exam records</p>
                               )}
@@ -7737,6 +7799,7 @@ function AdminDashboard() {
                             <div className="insight-widget">
                               <h4>Average Student Scores</h4>
                               {teacherDetailData.avgScoresByClassSubject.length > 0 ? (
+                                <div className="table-wrap">
                                 <table className="table" style={{ fontSize: '13px' }}>
                                   <thead>
                                     <tr>
@@ -7755,6 +7818,7 @@ function AdminDashboard() {
                                     ))}
                                   </tbody>
                                 </table>
+                                </div>
                               ) : (
                                 <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>No exam scores available</p>
                               )}

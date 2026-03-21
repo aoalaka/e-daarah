@@ -34,6 +34,7 @@ import DemoBanner from '../../components/DemoBanner';
 import AnnouncementBanner from '../../components/AnnouncementBanner';
 import QuranSessionRecorder from '../../components/QuranSessionRecorder';
 import BottomTabBar from '../../components/BottomTabBar';
+import VerifiedBadge from '../../components/VerifiedBadge';
 import '../admin/Dashboard.css';
 
 function SoloDashboard() {
@@ -1424,7 +1425,10 @@ function SoloDashboard() {
             <button className={`menu-toggle ${mobileMenuOpen ? 'active' : ''}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu">
               <span className="menu-toggle-icon"><span></span><span></span><span></span></span>
             </button>
-            <span className="header-title">{madrasahProfile?.name || 'Dashboard'}</span>
+            <span className="header-title">
+              {madrasahProfile?.name || 'Dashboard'}
+              {madrasahProfile?.verification_status === 'verified' && <VerifiedBadge size={16} />}
+            </span>
           </div>
           <div className="header-actions"></div>
         </header>
@@ -3686,7 +3690,10 @@ function SoloDashboard() {
                   <div className="admin-profile-grid">
                     <div>
                       <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Name</label>
-                      <p style={{ margin: '4px 0 0 0', fontWeight: '500' }}>{madrasahProfile.name}</p>
+                      <p style={{ margin: '4px 0 0 0', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {madrasahProfile.name}
+                        {madrasahProfile.verification_status === 'verified' && <VerifiedBadge size={16} />}
+                      </p>
                     </div>
                     <div>
                       <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>URL Slug</label>

@@ -40,6 +40,7 @@ import DemoBanner from '../../components/DemoBanner';
 import TrialBanner from '../../components/TrialBanner';
 import AnnouncementBanner from '../../components/AnnouncementBanner';
 import UsageIndicator from '../../components/UsageIndicator';
+import VerifiedBadge from '../../components/VerifiedBadge';
 import GuidedTour from '../../components/GuidedTour';
 import { handleApiError } from '../../utils/errorHandler';
 import { downloadCSV, studentColumns, attendanceColumns, getAttendanceColumns, examColumns, getDateSuffix } from '../../utils/csvExport';
@@ -2010,7 +2011,10 @@ function AdminDashboard() {
                 <span></span>
               </span>
             </button>
-            <span className="header-title">{madrasahProfile?.name || 'Dashboard'}</span>
+            <span className="header-title">
+              {madrasahProfile?.name || 'Dashboard'}
+              {madrasahProfile?.verification_status === 'verified' && <VerifiedBadge size={16} />}
+            </span>
           </div>
           <div className="header-actions">
           </div>
@@ -9273,7 +9277,10 @@ function AdminDashboard() {
                   <div className="admin-profile-grid">
                     <div>
                       <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Name</label>
-                      <p style={{ margin: '4px 0 0 0', fontWeight: '500' }}>{madrasahProfile.name}</p>
+                      <p style={{ margin: '4px 0 0 0', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {madrasahProfile.name}
+                        {madrasahProfile.verification_status === 'verified' && <VerifiedBadge size={16} />}
+                      </p>
                     </div>
                     <div>
                       <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>URL Slug</label>

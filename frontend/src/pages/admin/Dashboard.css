@@ -404,6 +404,15 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Verified badge: inline with text, flex-shrink: 0 */
+.verified-badge {
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .header-breadcrumb {

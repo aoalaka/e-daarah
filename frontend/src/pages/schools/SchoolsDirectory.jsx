@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import SEO from '../../components/SEO';
 import api from '../../services/api';
+import VerifiedBadge from '../../components/VerifiedBadge';
 import './Schools.css';
 
 const TYPE_LABELS = {
@@ -64,7 +65,10 @@ export default function SchoolsDirectory() {
                   {school.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="school-card-info">
-                  <h3>{school.name}</h3>
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    {school.name}
+                    <VerifiedBadge size={16} />
+                  </h3>
                   {(school.city || school.country) && (
                     <p className="school-card-location">
                       {[school.city, school.region, school.country].filter(Boolean).join(', ')}

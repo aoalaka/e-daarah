@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import SEO from '../../components/SEO';
 import api from '../../services/api';
+import VerifiedBadge from '../../components/VerifiedBadge';
 import './Schools.css';
 
 const TYPE_LABELS = {
@@ -95,7 +96,10 @@ export default function SchoolProfile() {
               {school.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1>{school.name}</h1>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {school.name}
+                <VerifiedBadge size={20} />
+              </h1>
               {location && <p className="school-profile-location">{location}</p>}
               {school.institution_type && (
                 <span className="school-card-type">{TYPE_LABELS[school.institution_type] || school.institution_type}</span>

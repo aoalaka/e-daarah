@@ -136,6 +136,8 @@ export default function SchoolProfile() {
           {memberSince && (
             <p className="school-profile-since">Member since {memberSince}</p>
           )}
+
+          <Link to={`/${slug}/login`} className="school-signin-link">Sign in to {school.name} →</Link>
         </div>
 
         <div className="schools-cta" style={{ marginTop: '3rem' }}>

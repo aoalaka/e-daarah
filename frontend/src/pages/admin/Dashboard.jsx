@@ -4407,7 +4407,7 @@ function AdminDashboard() {
                           </div>
                           <div className="admin-mobile-card-actions">
                             {hasPlusAccess() && (
-                              <button onClick={() => handleRegenerateAccessCode(s)} className="btn btn-sm btn-secondary" title="Regenerate parent access code">
+                              <button onClick={() => handleResetParentPin(s)} className="btn btn-sm btn-secondary" title="Reset parent PIN">
                                 🔑
                               </button>
                             )}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { getPricingTier, TIER_PRICES } from '../../config/pricing-tiers';
 import {
   HomeIcon,
   CalendarIcon,
@@ -9512,7 +9513,7 @@ function AdminDashboard() {
                       >
                         <div style={{ fontWeight: '600', marginBottom: '4px' }}>Standard</div>
                         <div style={{ fontSize: '24px', fontWeight: '600' }}>
-                          {(madrasahProfile?.currency || 'USD') === 'NZD' ? 'NZ' : ''}${billingCycle === 'monthly' ? ((madrasahProfile?.currency || 'USD') === 'NZD' ? '21' : '12') : ((madrasahProfile?.currency || 'USD') === 'NZD' ? '209' : '120')}
+                          {(madrasahProfile?.currency || 'USD') === 'NZD' ? 'NZ' : ''}${billingCycle === 'monthly' ? ((madrasahProfile?.currency || 'USD') === 'NZD' ? '21' : TIER_PRICES[getPricingTier(madrasahProfile?.country)]?.standard?.monthly) : ((madrasahProfile?.currency || 'USD') === 'NZD' ? '209' : TIER_PRICES[getPricingTier(madrasahProfile?.country)]?.standard?.annual)}
                           <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
                             /{billingCycle === 'monthly' ? 'mo' : 'yr'}
                           </span>
@@ -9550,7 +9551,7 @@ function AdminDashboard() {
                         }}>Popular</span>
                         <div style={{ fontWeight: '600', marginBottom: '4px' }}>Plus</div>
                         <div style={{ fontSize: '24px', fontWeight: '600' }}>
-                          {(madrasahProfile?.currency || 'USD') === 'NZD' ? 'NZ' : ''}${billingCycle === 'monthly' ? ((madrasahProfile?.currency || 'USD') === 'NZD' ? '49' : '29') : ((madrasahProfile?.currency || 'USD') === 'NZD' ? '499' : '290')}
+                          {(madrasahProfile?.currency || 'USD') === 'NZD' ? 'NZ' : ''}${billingCycle === 'monthly' ? ((madrasahProfile?.currency || 'USD') === 'NZD' ? '49' : TIER_PRICES[getPricingTier(madrasahProfile?.country)]?.plus?.monthly) : ((madrasahProfile?.currency || 'USD') === 'NZD' ? '499' : TIER_PRICES[getPricingTier(madrasahProfile?.country)]?.plus?.annual)}
                           <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
                             /{billingCycle === 'monthly' ? 'mo' : 'yr'}
                           </span>

@@ -1,18 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import SEO from '../components/SEO';
+import { getPricingTier, TIER_PRICES } from '../config/pricing-tiers';
 import './Pricing.css';
 
 function Pricing() {
   const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState('monthly');
+  const [tier, setTier] = useState(1);
+
+  // Try to detect country from timezone
+  useEffect(() => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      // Map common timezones to countries for auto-detection
+      const tzCountryMap = {
+        'Africa/Lagos': 'Nigeria', 'Africa/Abuja': 'Nigeria',
+        'Asia/Karachi': 'Pakistan', 'Asia/Dhaka': 'Bangladesh',
+        'Africa/Cairo': 'Egypt', 'Africa/Nairobi': 'Kenya',
+        'Africa/Dar_es_Salaam': 'Tanzania', 'Asia/Kolkata': 'India',
+        'Asia/Calcutta': 'India', 'Africa/Accra': 'Ghana',
+        'Africa/Dakar': 'Senegal', 'Africa/Mogadishu': 'Somalia',
+        'Africa/Addis_Ababa': 'Ethiopia', 'Africa/Kampala': 'Uganda',
+        'Asia/Colombo': 'Sri Lanka', 'Asia/Kathmandu': 'Nepal',
+        'Asia/Kabul': 'Afghanistan', 'Asia/Aden': 'Yemen',
+        'Asia/Kuala_Lumpur': 'Malaysia', 'Asia/Istanbul': 'Turkey',
+        'Europe/Istanbul': 'Turkey', 'Africa/Johannesburg': 'South Africa',
+        'America/Sao_Paulo': 'Brazil', 'America/Mexico_City': 'Mexico',
+        'Asia/Jakarta': 'Indonesia', 'Africa/Casablanca': 'Morocco',
+        'Africa/Tunis': 'Tunisia', 'Africa/Algiers': 'Algeria',
+        'Asia/Bangkok': 'Thailand', 'Asia/Manila': 'Philippines',
+        'America/Bogota': 'Colombia', 'America/Buenos_Aires': 'Argentina',
+        'America/Santiago': 'Chile', 'America/Lima': 'Peru',
+        'Asia/Amman': 'Jordan', 'Asia/Beirut': 'Lebanon',
+        'Asia/Baghdad': 'Iraq', 'Asia/Phnom_Penh': 'Cambodia',
+      };
+      const country = tzCountryMap[tz];
+      if (country) setTier(getPricingTier(country));
+    } catch {}
+  }, []);
+
+  const tierPrices = TIER_PRICES[tier];
 
   const plans = {
     solo: {
       name: 'Solo',
       description: 'For individual teachers managing their own classes',
-      monthly: 5,
-      annual: 50,
+      monthly: tierPrices.solo.monthly,
+      annual: tierPrices.solo.annual,
       features: [
         'Up to 75 students',
         'Up to 5 classes',
@@ -39,8 +74,8 @@ function Pricing() {
     standard: {
       name: 'Standard',
       description: 'For small madrasahs and weekend schools',
-      monthly: 12,
-      annual: 120,
+      monthly: tierPrices.standard.monthly,
+      annual: tierPrices.standard.annual,
       features: [
         'Up to 100 students',
         'Up to 20 teachers',
@@ -71,8 +106,8 @@ function Pricing() {
     plus: {
       name: 'Plus',
       description: 'For larger institutions and daily schools',
-      monthly: 29,
-      annual: 290,
+      monthly: tierPrices.plus.monthly,
+      annual: tierPrices.plus.annual,
       features: [
         'Up to 500 students',
         'Up to 50 teachers',
@@ -134,7 +169,7 @@ function Pricing() {
         <h1 className="pricing-title">Simple Pricing for School Management</h1>
         <p className="pricing-subtitle">
           Start with a 14-day free trial. No credit card required.<br />
-          <span className="pricing-note">All prices in USD</span>
+          <span className="pricing-note">All prices in USD{tier > 1 ? ' — regional pricing applied' : ''}</span>
         </p>
 
         {/* Billing Toggle */}

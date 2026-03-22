@@ -2,6 +2,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import pool from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
+import { getPricingTier, getTierLookupKeySuffix } from '../config/pricing-tiers.js';
 
 const router = express.Router();
 
@@ -9,21 +10,20 @@ const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Price lookup keys (configured in Stripe dashboard)
-const PRICE_LOOKUP_KEYS = {
-  solo_monthly: 'solo_monthly',
-  solo_annual: 'solo_annual',
-  standard_monthly: 'standard_monthly',
-  standard_annual: 'standard_annual',
-  plus_monthly: 'plus_monthly',
-  plus_annual: 'plus_annual',
-  // NZD variants
-  solo_monthly_nzd: 'solo_monthly_nzd',
-  solo_annual_nzd: 'solo_annual_nzd',
-  standard_monthly_nzd: 'standard_monthly_nzd',
-  standard_annual_nzd: 'standard_annual_nzd',
-  plus_monthly_nzd: 'plus_monthly_nzd',
-  plus_annual_nzd: 'plus_annual_nzd'
-};
+// Tier 1 (default), Tier 2 (_t2 suffix), Tier 3 (_t3 suffix)
+const BASE_PRICE_KEYS = [
+  'solo_monthly', 'solo_annual',
+  'standard_monthly', 'standard_annual',
+  'plus_monthly', 'plus_annual'
+];
+
+const PRICE_LOOKUP_KEYS = {};
+for (const key of BASE_PRICE_KEYS) {
+  PRICE_LOOKUP_KEYS[key] = key;
+  PRICE_LOOKUP_KEYS[`${key}_t2`] = `${key}_t2`;
+  PRICE_LOOKUP_KEYS[`${key}_t3`] = `${key}_t3`;
+  PRICE_LOOKUP_KEYS[`${key}_nzd`] = `${key}_nzd`;
+}
 
 // Plan limits for reference (enforced in plan-limits middleware)
 const PLAN_LIMITS = {
@@ -106,7 +106,7 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
 
     // Get madrasah details
     const [madrasahs] = await pool.query(
-      'SELECT id, name, email, stripe_customer_id, currency FROM madrasahs WHERE id = ? AND deleted_at IS NULL',
+      'SELECT id, name, email, stripe_customer_id, currency, country FROM madrasahs WHERE id = ? AND deleted_at IS NULL',
       [madrasahId]
     );
 
@@ -117,8 +117,19 @@ router.post('/create-checkout', authenticateToken, requireRole('admin'), async (
     const madrasah = madrasahs[0];
     const isNZD = (madrasah.currency || 'USD').toUpperCase() === 'NZD';
 
-    // If madrasah currency is NZD, use NZD price variant
-    const effectivePriceKey = isNZD && !priceKey.endsWith('_nzd') ? `${priceKey}_nzd` : priceKey;
+    // Determine regional pricing tier from madrasah country
+    const tier = getPricingTier(madrasah.country);
+    const tierSuffix = getTierLookupKeySuffix(tier);
+
+    // Build effective price key: base key + tier suffix (or NZD suffix for NZ currency)
+    let effectivePriceKey;
+    if (isNZD && !priceKey.endsWith('_nzd')) {
+      effectivePriceKey = `${priceKey}_nzd`;
+    } else {
+      // Strip any existing tier suffix from the incoming key, then add the correct one
+      const baseKey = priceKey.replace(/_(t2|t3|nzd)$/, '');
+      effectivePriceKey = `${baseKey}${tierSuffix}`;
+    }
 
     if (!PRICE_LOOKUP_KEYS[effectivePriceKey]) {
       return res.status(400).json({ error: 'Invalid price key for your currency' });
@@ -554,6 +565,24 @@ router.get('/prices', async (req, res) => {
   } catch (error) {
     console.error('Error fetching prices:', error);
     res.status(500).json({ error: 'Failed to fetch prices' });
+  }
+});
+
+/**
+ * GET /api/billing/pricing-tier
+ * Get the pricing tier for the current madrasah (authenticated)
+ */
+router.get('/pricing-tier', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const [madrasahs] = await pool.query(
+      'SELECT country FROM madrasahs WHERE id = ? AND deleted_at IS NULL',
+      [req.madrasahId]
+    );
+    if (madrasahs.length === 0) return res.status(404).json({ error: 'Not found' });
+    const tier = getPricingTier(madrasahs[0].country);
+    res.json({ tier, country: madrasahs[0].country });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get pricing tier' });
   }
 });
 

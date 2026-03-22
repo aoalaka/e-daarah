@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { getPricingTier, TIER_PRICES } from '../../config/pricing-tiers';
 import {
   HomeIcon,
   CalendarIcon,
@@ -3838,7 +3839,7 @@ function SoloDashboard() {
                       background: 'var(--lighter)'
                     }}>
                       <div style={{ fontSize: '24px', fontWeight: '600' }}>
-                        {(madrasahProfile?.currency || 'USD') === 'NZD' ? 'NZ' : ''}${billingCycle === 'monthly' ? ((madrasahProfile?.currency || 'USD') === 'NZD' ? '9' : '5') : ((madrasahProfile?.currency || 'USD') === 'NZD' ? '89' : '50')}
+                        {(madrasahProfile?.currency || 'USD') === 'NZD' ? 'NZ' : ''}${billingCycle === 'monthly' ? ((madrasahProfile?.currency || 'USD') === 'NZD' ? '9' : TIER_PRICES[getPricingTier(madrasahProfile?.country)]?.solo?.monthly) : ((madrasahProfile?.currency || 'USD') === 'NZD' ? '89' : TIER_PRICES[getPricingTier(madrasahProfile?.country)]?.solo?.annual)}
                         <span style={{ fontSize: '14px', fontWeight: '400', color: 'var(--muted)' }}>
                           /{billingCycle === 'monthly' ? 'mo' : 'yr'}
                         </span>

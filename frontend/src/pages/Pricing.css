@@ -84,6 +84,7 @@
 @media (max-width: 480px) {
   .pricing-header {
     padding: 10px 12px;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
   }
 
   .pricing-header .logo-img {

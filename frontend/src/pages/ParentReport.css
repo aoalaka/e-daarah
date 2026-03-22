@@ -782,6 +782,7 @@
 @media (max-width: 640px) {
   .parent-header {
     padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
   }
 
   .parent-header h1 {

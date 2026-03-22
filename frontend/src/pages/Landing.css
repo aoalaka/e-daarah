@@ -1581,6 +1581,7 @@
 @media (min-width: 640px) {
   .landing-header {
     padding: 16px 40px;
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
   }
 
   .hero {
@@ -1897,6 +1898,7 @@
 @media (max-width: 480px) {
   .landing-header {
     padding: 10px 12px;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
   }
 
   .logo-img {

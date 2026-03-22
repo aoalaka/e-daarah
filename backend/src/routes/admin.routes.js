@@ -884,7 +884,7 @@ router.put('/students/:id/fee', requireActiveSubscription, async (req, res) => {
 
     await pool.query(
       'UPDATE students SET expected_fee = ?, fee_note = ? WHERE id = ? AND madrasah_id = ?',
-      [expected_fee != null ? parseFloat(expected_fee) : null, fee_note || null, id, madrasahId]
+      [expected_fee != null && expected_fee !== '' ? parseFloat(expected_fee) || 0 : null, fee_note || null, id, madrasahId]
     );
     res.json({ message: 'Fee updated' });
   } catch (error) {
@@ -945,7 +945,7 @@ router.put('/students/:id', requireActiveSubscription, async (req, res) => {
        parent_guardian_name, parent_guardian_relationship,
        normalizePhone(parent_guardian_phone, parent_guardian_phone_country_code),
        parent_guardian_phone_country_code, notes,
-       expected_fee != null ? parseFloat(expected_fee) : null, fee_note || null, id, madrasahId]
+       expected_fee != null && expected_fee !== '' ? parseFloat(expected_fee) || 0 : null, fee_note || null, id, madrasahId]
     );
     res.json({ message: 'Student updated successfully' });
   } catch (error) {

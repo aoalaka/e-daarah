@@ -3754,7 +3754,7 @@ function TeacherDashboard() {
                       width: '100%',
                       margin: '0 auto',
                       borderRadius: '16px 16px 0 0',
-                      paddingBottom: 'env(safe-area-inset-bottom, 16px)',
+                      paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 4px' }}>

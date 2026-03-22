@@ -3,6 +3,7 @@
   min-height: 100vh;
   background: #fff;
   color: #1a1a1a;
+  overflow-x: hidden;
 }
 
 /* Header */
@@ -383,7 +384,15 @@
   }
 
   .schools-nav {
-    gap: 1rem;
+    gap: 0.5rem;
+  }
+
+  .schools-nav a {
+    font-size: 0.8rem;
+  }
+
+  .schools-logo-text {
+    font-size: 0.95rem;
   }
 
   .schools-hero h1 {

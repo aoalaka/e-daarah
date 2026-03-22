@@ -4,6 +4,7 @@
   min-height: 100vh;
   background: #fff;
   color: var(--black);
+  overflow-x: hidden;
 }
 
 /* Header (matches Landing) */

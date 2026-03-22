@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import SEO from '../components/SEO';
+import { getPricingTier, TIER_PRICES } from '../config/pricing-tiers';
 import './Landing.css';
 
 function Landing() {
@@ -9,6 +10,38 @@ function Landing() {
   const revealRefs = useRef([]);
   const [scrolled, setScrolled] = useState(false);
   const [heroAnimKey, setHeroAnimKey] = useState(0);
+  const [tier, setTier] = useState(1);
+
+  useEffect(() => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      const tzCountryMap = {
+        'Africa/Lagos': 'Nigeria', 'Africa/Abuja': 'Nigeria',
+        'Asia/Karachi': 'Pakistan', 'Asia/Dhaka': 'Bangladesh',
+        'Africa/Cairo': 'Egypt', 'Africa/Nairobi': 'Kenya',
+        'Africa/Dar_es_Salaam': 'Tanzania', 'Asia/Kolkata': 'India',
+        'Asia/Calcutta': 'India', 'Africa/Accra': 'Ghana',
+        'Africa/Dakar': 'Senegal', 'Africa/Mogadishu': 'Somalia',
+        'Africa/Addis_Ababa': 'Ethiopia', 'Africa/Kampala': 'Uganda',
+        'Asia/Colombo': 'Sri Lanka', 'Asia/Kathmandu': 'Nepal',
+        'Asia/Kabul': 'Afghanistan', 'Asia/Aden': 'Yemen',
+        'Asia/Kuala_Lumpur': 'Malaysia', 'Asia/Istanbul': 'Turkey',
+        'Europe/Istanbul': 'Turkey', 'Africa/Johannesburg': 'South Africa',
+        'America/Sao_Paulo': 'Brazil', 'America/Mexico_City': 'Mexico',
+        'Asia/Jakarta': 'Indonesia', 'Africa/Casablanca': 'Morocco',
+        'Africa/Tunis': 'Tunisia', 'Africa/Algiers': 'Algeria',
+        'Asia/Bangkok': 'Thailand', 'Asia/Manila': 'Philippines',
+        'America/Bogota': 'Colombia', 'America/Buenos_Aires': 'Argentina',
+        'America/Santiago': 'Chile', 'America/Lima': 'Peru',
+        'Asia/Amman': 'Jordan', 'Asia/Beirut': 'Lebanon',
+        'Asia/Baghdad': 'Iraq', 'Asia/Phnom_Penh': 'Cambodia',
+      };
+      const country = tzCountryMap[tz];
+      if (country) setTier(getPricingTier(country));
+    } catch {}
+  }, []);
+
+  const tierPrices = TIER_PRICES[tier];
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -453,19 +486,19 @@ function Landing() {
           <div className="pricing-grid">
             <div className="price-card">
               <h3>Solo</h3>
-              <div className="price"><span className="price-currency">USD</span> $5<span>/mo</span></div>
+              <div className="price"><span className="price-currency">USD</span> ${tierPrices.solo.monthly}<span>/mo</span></div>
               <p>Up to 75 students</p>
               <button onClick={() => navigate('/register')} className="btn secondary">Start Trial</button>
             </div>
             <div className="price-card">
               <h3>Standard</h3>
-              <div className="price"><span className="price-currency">USD</span> $12<span>/mo</span></div>
+              <div className="price"><span className="price-currency">USD</span> ${tierPrices.standard.monthly}<span>/mo</span></div>
               <p>Up to 100 students</p>
               <button onClick={() => navigate('/register')} className="btn secondary">Start Trial</button>
             </div>
             <div className="price-card featured">
               <h3>Plus</h3>
-              <div className="price"><span className="price-currency">USD</span> $29<span>/mo</span></div>
+              <div className="price"><span className="price-currency">USD</span> ${tierPrices.plus.monthly}<span>/mo</span></div>
               <p>Up to 500 students</p>
               <button onClick={() => navigate('/register')} className="btn primary">Start Trial</button>
             </div>

@@ -1191,14 +1191,19 @@ const ensureBroadcastTables = async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
-  // Add status column if table was created before it existed
+  // Legacy migrations — use IF NOT EXISTS / safe checks to avoid noisy errors
   try {
-    await pool.query(`ALTER TABLE email_broadcasts ADD COLUMN status VARCHAR(50) DEFAULT 'sent'`);
-  } catch { /* column already exists */ }
-  // Make target column nullable (was NOT NULL in original schema, no longer used in INSERT)
+    const [cols] = await pool.query(`SHOW COLUMNS FROM email_broadcasts LIKE 'status'`);
+    if (cols.length === 0) {
+      await pool.query(`ALTER TABLE email_broadcasts ADD COLUMN status VARCHAR(50) DEFAULT 'sent'`);
+    }
+  } catch { /* ignore */ }
   try {
-    await pool.query(`ALTER TABLE email_broadcasts MODIFY COLUMN target VARCHAR(50) DEFAULT NULL`);
-  } catch { /* column doesn't exist or already modified */ }
+    const [cols] = await pool.query(`SHOW COLUMNS FROM email_broadcasts LIKE 'target'`);
+    if (cols.length > 0) {
+      await pool.query(`ALTER TABLE email_broadcasts MODIFY COLUMN target VARCHAR(50) DEFAULT NULL`);
+    }
+  } catch { /* ignore */ }
   await pool.query(`
     CREATE TABLE IF NOT EXISTS email_templates (
       id INT AUTO_INCREMENT PRIMARY KEY,

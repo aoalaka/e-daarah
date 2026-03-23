@@ -415,7 +415,7 @@ export const sendTrialExpiringEmail = async (email, firstName, madrasahName, day
 
 /**
  * Convert simple markdown to HTML for broadcast emails.
- * Supports: **bold**, *italic*, - bullet lists, ## headings, [links](url)
+ * Supports: **bold**, *italic*, - bullet lists, # ## ### headings, --- hr, [links](url), `code`
  */
 const markdownToHtml = (text) => {
   const lines = text.split('\n');
@@ -436,9 +436,27 @@ const markdownToHtml = (text) => {
     // Close list if we were in one
     if (inList) { result.push('</ul>'); inList = false; }
 
-    // Heading (# or ##)
-    if (/^#{1,2}\s+/.test(trimmed)) {
-      result.push(`<h2 style="margin: 20px 0 8px 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^#{1,2}\s+/, ''))}</h2>`);
+    // Horizontal rule (---, ***, ___)
+    if (/^[-*_]{3,}$/.test(trimmed)) {
+      result.push('<hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">');
+      continue;
+    }
+
+    // Heading ### (must check before ## and #)
+    if (/^###\s+/.test(trimmed)) {
+      result.push(`<h3 style="margin: 18px 0 6px 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^###\s+/, ''))}</h3>`);
+      continue;
+    }
+
+    // Heading ##
+    if (/^##\s+/.test(trimmed)) {
+      result.push(`<h2 style="margin: 20px 0 8px 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^##\s+/, ''))}</h2>`);
+      continue;
+    }
+
+    // Heading #
+    if (/^#\s+/.test(trimmed)) {
+      result.push(`<h1 style="margin: 22px 0 10px 0; font-size: 20px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^#\s+/, ''))}</h1>`);
       continue;
     }
 
@@ -455,6 +473,7 @@ const markdownToHtml = (text) => {
 
 const formatInline = (text) => {
   return text
+    .replace(/`(.+?)`/g, '<code style="background: #f3f3f3; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: monospace;">$1</code>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" style="color: #1a1a1a; text-decoration: underline;">$1</a>');

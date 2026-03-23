@@ -1930,7 +1930,6 @@ a:focus-visible,
   }
 
   .card {
-    overflow: hidden;
     max-width: 100%;
     padding: 16px;
   }
@@ -1952,11 +1951,7 @@ a:focus-visible,
   }
 
   .form-grid,
-  .card-body {
-    max-width: 100%;
-    overflow: hidden;
-  }
-
+  .card-body,
   .form-group {
     max-width: 100%;
   }

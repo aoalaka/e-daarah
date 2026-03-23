@@ -578,12 +578,18 @@ function TeacherDashboard() {
   };
 
   const fetchSchoolDayInfo = async (classId = null) => {
+    const cacheKey = `school-day-info-${classId || 'default'}`;
     try {
       const params = classId ? `?classId=${classId}` : '';
       const response = await api.get(`/teacher/school-day-info${params}`);
       setSchoolDayInfo(response.data);
+      cacheData(cacheKey, response.data);
     } catch (error) {
       console.error('Failed to fetch school day info:', error);
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) setSchoolDayInfo(cached);
+      }
     }
   };
 
@@ -1083,6 +1089,12 @@ function TeacherDashboard() {
     if (isReadOnly()) { toast.error('Account is in read-only mode. Contact your administrator.'); return; }
     if (!selectedClass || !selectedSemester || students.length === 0) {
       toast.error('Please select a class and ensure there are students');
+      return;
+    }
+
+    // Block submission on non-school days
+    if (attendanceDateWarning) {
+      toast.error(attendanceDateWarning);
       return;
     }
 

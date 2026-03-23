@@ -112,7 +112,7 @@ function MadrasahRoutes() {
 function App() {
   const isMobile = window.innerWidth <= 768;
   const splashShown = sessionStorage.getItem('splash_shown');
-  const [showSplash, setShowSplash] = useState(isMobile && !splashShown);
+  const [showSplash, setShowSplash] = useState(isMobile && isStandalonePWA() && !splashShown);
 
   const handleSplashComplete = useCallback(() => {
     sessionStorage.setItem('splash_shown', '1');

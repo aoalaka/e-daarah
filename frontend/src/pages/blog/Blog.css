@@ -272,6 +272,13 @@
   line-height: 1.5;
 }
 
+.blog-cta-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
 .blog-cta-button {
   display: inline-block;
   padding: 12px 28px;
@@ -282,6 +289,16 @@
   font-size: 15px;
   font-weight: 500;
   transition: background 0.2s;
+}
+
+.blog-cta-link {
+  font-size: 14px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.blog-cta-link:hover {
+  text-decoration: underline;
 }
 
 .blog-cta-button:hover {

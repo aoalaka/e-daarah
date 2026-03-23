@@ -82,12 +82,16 @@ function BlogArticle() {
           <div className="blog-cta">
             <h3>Ready to simplify your madrasah administration?</h3>
             <p>
-              Join hundreds of Islamic schools using E-Daarah to manage students,
-              track progress, and communicate with parents.
+              Qur'an tracking is free — no credit card, no expiry. Paid plans start from $2/month.
             </p>
-            <Link to="/register" className="blog-cta-button">
-              Get Started Free
-            </Link>
+            <div className="blog-cta-links">
+              <Link to="/register" className="blog-cta-button">
+                Start Free
+              </Link>
+              <Link to="/pricing" className="blog-cta-link">
+                View paid plans
+              </Link>
+            </div>
           </div>
 
           {relatedArticles.length > 0 && (

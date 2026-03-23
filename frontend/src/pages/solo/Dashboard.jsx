@@ -364,13 +364,22 @@ function SoloDashboard() {
       // Cache for offline use
       if (studentsRes.data?.length) cacheData('solo-students', studentsRes.data);
       if (classesRes.data?.length) cacheData('solo-classes', classesRes.data);
+      if (sessionsRes.data?.length) cacheData('solo-sessions', sessionsRes.data);
+      if (semestersRes.data?.length) cacheData('solo-semesters', semestersRes.data);
+      if (profileRes.data) cacheData('solo-profile', profileRes.data);
     } catch (error) {
       console.error('Failed to load data:', error);
       // Try loading from offline cache
       const cachedStudents = await getCachedData('solo-students');
       const cachedClasses = await getCachedData('solo-classes');
+      const cachedSessions = await getCachedData('solo-sessions');
+      const cachedSemesters = await getCachedData('solo-semesters');
+      const cachedProfile = await getCachedData('solo-profile');
       if (cachedStudents) setStudents(cachedStudents.data);
       if (cachedClasses) setClasses(cachedClasses.data);
+      if (cachedSessions) setSessions(cachedSessions.data);
+      if (cachedSemesters) setSemesters(cachedSemesters.data);
+      if (cachedProfile) setMadrasahProfile(cachedProfile.data);
     } finally {
       setLoading(false);
       initialLoadDone.current = true;
@@ -382,8 +391,13 @@ function SoloDashboard() {
     try {
       const res = await api.get('/solo/dashboard');
       setOverviewData(res.data);
+      cacheData('solo-overview', res.data);
     } catch (error) {
       console.error('Failed to fetch overview:', error);
+      if (!error.response) {
+        const cached = await getCachedData('solo-overview');
+        if (cached) setOverviewData(cached.data);
+      }
     } finally {
       setOverviewLoading(false);
       overviewLoadedOnce.current = true;
@@ -394,7 +408,13 @@ function SoloDashboard() {
     try {
       const res = await api.get('/solo/quran/surahs');
       setSurahs(res.data);
-    } catch (e) { /* ignore */ }
+      cacheData('solo-surahs', res.data);
+    } catch (e) {
+      if (!e.response) {
+        const cached = await getCachedData('solo-surahs');
+        if (cached) setSurahs(cached.data);
+      }
+    }
   };
 
   const fetchAttendanceStudents = async () => {
@@ -541,7 +561,14 @@ function SoloDashboard() {
       if (feeClassFilter) url += `?class_id=${feeClassFilter}`;
       const res = await api.get(url);
       setFeeSummary(res.data || []);
-    } catch (e) { console.error('Failed to fetch fee summary:', e); }
+      cacheData(`solo-fee-summary-${feeClassFilter || 'all'}`, res.data || []);
+    } catch (e) {
+      console.error('Failed to fetch fee summary:', e);
+      if (!e.response) {
+        const cached = await getCachedData(`solo-fee-summary-${feeClassFilter || 'all'}`);
+        if (cached) setFeeSummary(cached.data);
+      }
+    }
     finally { setFeeLoading(false); }
   };
 
@@ -551,7 +578,14 @@ function SoloDashboard() {
       if (feeClassFilter) url += `?class_id=${feeClassFilter}`;
       const res = await api.get(url);
       setFeePayments(res.data || []);
-    } catch (e) { console.error('Failed to fetch fee payments:', e); }
+      cacheData(`solo-fee-payments-${feeClassFilter || 'all'}`, res.data || []);
+    } catch (e) {
+      console.error('Failed to fetch fee payments:', e);
+      if (!e.response) {
+        const cached = await getCachedData(`solo-fee-payments-${feeClassFilter || 'all'}`);
+        if (cached) setFeePayments(cached.data);
+      }
+    }
   };
 
 

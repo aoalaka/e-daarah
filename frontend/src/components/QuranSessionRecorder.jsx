@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { SURAHS, getJuz, getJuzRange } from '../data/surahs';
+import { addToSyncQueue, cacheData, getCachedData } from '../utils/offlineStore';
 import SurahPickerModal from './SurahPickerModal';
 import './QuranSessionRecorder.css';
 
@@ -89,11 +90,17 @@ function QuranSessionRecorder({
   }, [selectedStudent, sessionType]);
 
   const fetchPosition = async (studentId) => {
+    const cacheKey = `quran-pos-${studentId}`;
     try {
       const res = await api.get(`${routePrefix}/quran/student/${studentId}/position`);
       setPosition(res.data);
       fillFromPosition(res.data);
-    } catch {
+      cacheData(cacheKey, res.data);
+    } catch (error) {
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) { setPosition(cached.data); fillFromPosition(cached.data); return; }
+      }
       setPosition(null);
       resetFormFields();
     }
@@ -121,16 +128,23 @@ function QuranSessionRecorder({
   };
 
   const fetchHistory = async (studentId) => {
+    const cacheKey = `quran-history-${studentId}`;
     try {
       const res = await api.get(`${routePrefix}/quran/student/${studentId}/history`);
       setRecentHistory(res.data || []);
-    } catch {
+      cacheData(cacheKey, res.data || []);
+    } catch (error) {
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) { setRecentHistory(cached.data); return; }
+      }
       setRecentHistory([]);
     }
   };
 
   const fetchAllPositions = async () => {
     if (!selectedClass && !isFreePlan) return;
+    const cacheKey = isFreePlan ? 'quran-positions-free' : `quran-positions-class-${selectedClass.id}`;
     try {
       if (isFreePlan) {
         const allPos = [];
@@ -141,17 +155,24 @@ function QuranSessionRecorder({
           } catch { /* skip */ }
         }
         setAllPositions(allPos);
+        cacheData(cacheKey, allPos);
       } else {
         const res = await api.get(`${routePrefix}/classes/${selectedClass.id}/quran-positions`);
         setAllPositions(res.data || []);
+        cacheData(cacheKey, res.data || []);
       }
-    } catch {
+    } catch (error) {
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) { setAllPositions(cached.data); return; }
+      }
       setAllPositions([]);
     }
   };
 
   const fetchAllRecords = async () => {
     if (!selectedClass && !isFreePlan) return;
+    const cacheKey = `quran-records-class-${selectedClass?.id}`;
     try {
       if (isFreePlan) {
         setAllRecords([]);
@@ -161,8 +182,13 @@ function QuranSessionRecorder({
         if (semId) url += `?semester_id=${semId}`;
         const res = await api.get(url);
         setAllRecords(res.data || []);
+        cacheData(cacheKey, res.data || []);
       }
-    } catch {
+    } catch (error) {
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) { setAllRecords(cached.data); return; }
+      }
       setAllRecords([]);
     }
   };
@@ -305,7 +331,20 @@ function QuranSessionRecorder({
       setNotes('');
       if (onSessionSaved) onSessionSaved();
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to record progress');
+      if (!error.response) {
+        await addToSyncQueue(
+          'quran-record',
+          `${routePrefix}/quran/record`,
+          'post',
+          payload,
+          { studentName: `${selectedStudent.first_name} ${selectedStudent.last_name}`, type: sessionType, date }
+        );
+        toast.success('Saved offline — will sync when connected');
+        setNotes('');
+        if (onSessionSaved) onSessionSaved();
+      } else {
+        toast.error(error.response?.data?.error || 'Failed to record progress');
+      }
     } finally {
       setSaving(false);
     }

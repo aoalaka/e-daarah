@@ -46,6 +46,8 @@ import GuidedTour from '../../components/GuidedTour';
 import { handleApiError } from '../../utils/errorHandler';
 import { downloadCSV, studentColumns, attendanceColumns, getAttendanceColumns, examColumns, getDateSuffix } from '../../utils/csvExport';
 import BottomTabBar from '../../components/BottomTabBar';
+import { cacheData, getCachedData } from '../../utils/offlineStore';
+import OfflineBanner from '../../components/OfflineBanner';
 import './Dashboard.css';
 
 function AdminDashboard() {
@@ -531,12 +533,12 @@ function AdminDashboard() {
     if (!initialLoadDone.current) setLoading(true);
     try {
       const [sessionsRes, semestersRes, classesRes, teachersRes, studentsRes, profileRes] = await Promise.all([
-        api.get('/admin/sessions').catch(() => ({ data: [] })),
-        api.get('/admin/semesters').catch(() => ({ data: [] })),
-        api.get('/classes').catch(() => ({ data: [] })),
-        api.get('/admin/teachers').catch(() => ({ data: [] })),
-        api.get('/admin/students').catch(() => ({ data: [] })),
-        api.get('/admin/profile').catch(() => ({ data: null }))
+        api.get('/admin/sessions'),
+        api.get('/admin/semesters'),
+        api.get('/classes'),
+        api.get('/admin/teachers'),
+        api.get('/admin/students'),
+        api.get('/admin/profile')
       ]);
       const sessionsData = sessionsRes.data || [];
       const semestersData = semestersRes.data || [];
@@ -547,6 +549,13 @@ function AdminDashboard() {
       setTeachers(teachersRes.data || []);
       setStudents(studentsRes.data || []);
       setMadrasahProfile(profileRes.data);
+
+      cacheData('admin-sessions', sessionsData);
+      cacheData('admin-semesters', semestersData);
+      cacheData('admin-classes', classesRes.data || []);
+      cacheData('admin-teachers', teachersRes.data || []);
+      cacheData('admin-students', studentsRes.data || []);
+      if (profileRes.data) cacheData('admin-profile', profileRes.data);
 
       // Set default filters to active session and semester
       const activeSession = sessionsData.find(s => s.is_active);
@@ -562,6 +571,22 @@ function AdminDashboard() {
       }
     } catch (error) {
       console.error('Failed to load data:', error);
+      if (!error.response) {
+        const [cSessions, cSemesters, cClasses, cTeachers, cStudents, cProfile] = await Promise.all([
+          getCachedData('admin-sessions'),
+          getCachedData('admin-semesters'),
+          getCachedData('admin-classes'),
+          getCachedData('admin-teachers'),
+          getCachedData('admin-students'),
+          getCachedData('admin-profile')
+        ]);
+        if (cSessions) setSessions(cSessions.data);
+        if (cSemesters) setSemesters(cSemesters.data);
+        if (cClasses) setClasses(cClasses.data);
+        if (cTeachers) setTeachers(cTeachers.data);
+        if (cStudents) setStudents(cStudents.data);
+        if (cProfile) setMadrasahProfile(cProfile.data);
+      }
     } finally {
       setLoading(false);
       initialLoadDone.current = true;
@@ -579,6 +604,7 @@ function AdminDashboard() {
   };
 
   const loadFeeSummary = async () => {
+    const cacheKey = `admin-fee-summary-${feeClassFilter || 'all'}-${feeSemesterFilter || 'all'}`;
     try {
       const urlParams = new URLSearchParams();
       if (feeClassFilter) urlParams.set('class_id', feeClassFilter);
@@ -588,10 +614,18 @@ function AdminDashboard() {
       const qs = urlParams.toString();
       const res = await api.get(`/admin/fee-summary${qs ? '?' + qs : ''}`);
       setFeeSummary(res.data || []);
-    } catch (error) { console.error('Failed to load fee summary:', error); }
+      cacheData(cacheKey, res.data || []);
+    } catch (error) {
+      console.error('Failed to load fee summary:', error);
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) setFeeSummary(cached.data);
+      }
+    }
   };
 
   const loadFeePayments = async () => {
+    const cacheKey = `admin-fee-payments-${feeClassFilter || 'all'}-${feeSemesterFilter || 'all'}`;
     try {
       const urlParams = new URLSearchParams();
       if (feeClassFilter) urlParams.set('class_id', feeClassFilter);
@@ -601,7 +635,14 @@ function AdminDashboard() {
       const qs = urlParams.toString();
       const res = await api.get(`/admin/fee-payments${qs ? '?' + qs : ''}`);
       setFeePayments(res.data || []);
-    } catch (error) { console.error('Failed to load fee payments:', error); }
+      cacheData(cacheKey, res.data || []);
+    } catch (error) {
+      console.error('Failed to load fee payments:', error);
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) setFeePayments(cached.data);
+      }
+    }
   };
 
   const loadFeeData = async () => {
@@ -616,13 +657,22 @@ function AdminDashboard() {
   };
 
   const loadFeeSchedules = async () => {
+    const cacheKey = 'admin-fee-schedules';
     try {
       const res = await api.get('/admin/fee-schedules');
       setFeeSchedules(res.data || []);
-    } catch (error) { console.error('Failed to load fee schedules:', error); }
+      cacheData(cacheKey, res.data || []);
+    } catch (error) {
+      console.error('Failed to load fee schedules:', error);
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) setFeeSchedules(cached.data);
+      }
+    }
   };
 
   const loadAutoFeeSummary = async () => {
+    const cacheKey = `admin-auto-fee-${feeClassFilter || 'all'}-${feeSemesterFilter || 'all'}`;
     try {
       const urlParams = new URLSearchParams();
       if (feeClassFilter) urlParams.set('class_id', feeClassFilter);
@@ -632,21 +682,36 @@ function AdminDashboard() {
       const qs = urlParams.toString();
       const res = await api.get(`/admin/fee-auto-calculate${qs ? '?' + qs : ''}`);
       setAutoFeeSummary(res.data || []);
-    } catch (error) { console.error('Failed to load auto fee summary:', error); }
+      cacheData(cacheKey, res.data || []);
+    } catch (error) {
+      console.error('Failed to load auto fee summary:', error);
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) setAutoFeeSummary(cached.data);
+      }
+    }
   };
 
   const loadFeeReport = async (periodOverride, semIdOverride, sessIdOverride) => {
     setFeeReportLoading(true);
+    const p = periodOverride ?? feeReportPeriod;
+    const semId = semIdOverride ?? feeReportSemesterId;
+    const sessId = sessIdOverride ?? feeReportSessionId;
+    const cacheKey = `admin-fee-report-${p}-${semId || 'none'}-${sessId || 'none'}`;
     try {
-      const p = periodOverride ?? feeReportPeriod;
       const params = new URLSearchParams({ period: p });
-      const semId = semIdOverride ?? feeReportSemesterId;
-      const sessId = sessIdOverride ?? feeReportSessionId;
       if (p === 'semester' && semId) params.set('semester_id', semId);
       if (p === 'session' && sessId) params.set('session_id', sessId);
       const res = await api.get(`/admin/fee-report?${params}`);
       setFeeReport(res.data);
-    } catch (error) { console.error('Failed to load fee report:', error); }
+      cacheData(cacheKey, res.data);
+    } catch (error) {
+      console.error('Failed to load fee report:', error);
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) setFeeReport(cached.data);
+      }
+    }
     setFeeReportLoading(false);
   };
 
@@ -2040,6 +2105,9 @@ function AdminDashboard() {
 
         {/* Platform Announcements */}
         <AnnouncementBanner />
+
+        {/* Offline Banner */}
+        <OfflineBanner />
 
         {/* Read-Only Warning Banner */}
         {isReadOnly() && (

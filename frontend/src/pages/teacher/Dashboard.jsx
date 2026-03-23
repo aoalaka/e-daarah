@@ -536,7 +536,9 @@ function TeacherDashboard() {
       
       setSessions(sessionsData);
       setSemesters(semestersData);
-      
+      cacheData('teacher-sessions', sessionsData);
+      cacheData('teacher-semesters', semestersData);
+
       // Auto-select active semester
       const activeSemester = semestersData.find(s => {
         const isActive = s.is_active === 1 || s.is_active === true || s.is_active === '1';
@@ -563,6 +565,25 @@ function TeacherDashboard() {
       }
     } catch (error) {
       console.error('Failed to fetch sessions/semesters:', error);
+      if (!error.response) {
+        const [cachedSessions, cachedSemesters] = await Promise.all([
+          getCachedData('teacher-sessions'),
+          getCachedData('teacher-semesters')
+        ]);
+        if (cachedSessions) setSessions(cachedSessions.data);
+        if (cachedSemesters) {
+          setSemesters(cachedSemesters.data);
+          const activeSemester = cachedSemesters.data.find(s => {
+            return s.is_active === 1 || s.is_active === true || s.is_active === '1';
+          });
+          if (activeSemester) {
+            setSelectedSemester(activeSemester);
+          } else if (cachedSemesters.data.length > 0) {
+            setSelectedSemester(cachedSemesters.data[0]);
+          }
+        }
+      }
+      if (!error.response) return;
       toast.error('Failed to load semesters');
     }
   };
@@ -572,8 +593,16 @@ function TeacherDashboard() {
       const response = await api.get('/teacher/active-session-semester');
       setActiveSession(response.data.session);
       setActiveSemester(response.data.semester);
+      cacheData('teacher-active-session-semester', response.data);
     } catch (error) {
       console.error('Failed to fetch active session/semester:', error);
+      if (!error.response) {
+        const cached = await getCachedData('teacher-active-session-semester');
+        if (cached) {
+          setActiveSession(cached.data.session);
+          setActiveSemester(cached.data.semester);
+        }
+      }
     }
   };
 
@@ -640,8 +669,13 @@ function TeacherDashboard() {
     try {
       const response = await api.get('/teacher/madrasah-info');
       setMadrasahProfile(response.data);
+      cacheData('teacher-madrasah-info', response.data);
     } catch (error) {
       console.error('Failed to fetch madrasah info:', error);
+      if (!error.response) {
+        const cached = await getCachedData('teacher-madrasah-info');
+        if (cached) setMadrasahProfile(cached.data);
+      }
     }
   };
 
@@ -649,8 +683,13 @@ function TeacherDashboard() {
     try {
       const response = await api.get('/teacher/quran/surahs');
       setSurahs(response.data);
+      cacheData('teacher-surahs', response.data);
     } catch (error) {
       console.error('Failed to fetch surahs:', error);
+      if (!error.response) {
+        const cached = await getCachedData('teacher-surahs');
+        if (cached) setSurahs(cached.data);
+      }
     }
   };
 
@@ -810,7 +849,45 @@ function TeacherDashboard() {
       setQuranPassed(true);
       setQuranNotes('');
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to save');
+      if (!error.response) {
+        const payload = {
+          student_id: quranSelectedStudent.id,
+          class_id: selectedClass.id,
+          semester_id: activeSemester.id,
+          date: quranDate,
+          type: quranSessionType,
+          surah_number: surah.n,
+          surah_name: surah.name,
+          juz: surah.juz,
+          ayah_from: ayahFrom,
+          ayah_to: ayahTo,
+          grade: quranGrade,
+          passed: quranPassed,
+          notes: quranNotes || null
+        };
+        addToSyncQueue('quran-record', '/teacher/quran/record', 'post', payload, { studentName: quranSelectedStudent.name, type: quranSessionType, date: quranDate });
+        toast.success('Saved offline — will sync when connected');
+        // Reset form same as success path
+        if (quranPassed && ayahTo >= surah.ayahs) {
+          const nextSurah = surahs.find(s => s.n === surah.n + 1);
+          if (nextSurah) {
+            setQuranSurah(String(nextSurah.n));
+            setQuranAyahFrom('1');
+            setQuranAyahTo('');
+          } else {
+            setQuranAyahFrom('');
+            setQuranAyahTo('');
+          }
+        } else {
+          setQuranAyahFrom(quranPassed ? String(ayahTo + 1) : String(ayahFrom));
+          setQuranAyahTo('');
+        }
+        setQuranGrade('Good');
+        setQuranPassed(true);
+        setQuranNotes('');
+      } else {
+        toast.error(error.response?.data?.error || 'Failed to save');
+      }
     } finally {
       setQuranSaving(false);
     }
@@ -855,8 +932,13 @@ function TeacherDashboard() {
     try {
       const response = await api.get('/teacher/my-classes');
       setClasses(response.data);
+      cacheData('teacher-classes', response.data);
     } catch (error) {
       console.error('Failed to fetch classes:', error);
+      if (!error.response) {
+        const cached = await getCachedData('teacher-classes');
+        if (cached) setClasses(cached.data);
+      }
     }
   };
 
@@ -865,19 +947,32 @@ function TeacherDashboard() {
     try {
       const response = await api.get(`/teacher/overview?date=${getLocalDate()}`);
       setOverviewData(response.data);
+      cacheData('teacher-overview', response.data);
     } catch (error) {
       console.error('Failed to fetch overview:', error);
+      if (!error.response) {
+        const cached = await getCachedData('teacher-overview');
+        if (cached) setOverviewData(cached.data);
+      }
     } finally {
       setOverviewLoading(false);
     }
   };
 
   const fetchTeacherFeeSummary = async () => {
+    const cacheKey = `teacher-fee-summary-${teacherFeeClassFilter || 'all'}`;
     try {
       const params = teacherFeeClassFilter ? `?class_id=${teacherFeeClassFilter}` : '';
       const res = await api.get(`/teacher/fee-summary${params}`);
       setTeacherFeeSummary(res.data || []);
-    } catch (error) { console.error('Failed to fetch teacher fee summary:', error); }
+      cacheData(cacheKey, res.data || []);
+    } catch (error) {
+      console.error('Failed to fetch teacher fee summary:', error);
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) setTeacherFeeSummary(cached.data);
+      }
+    }
   };
 
   const fetchAllStudents = async () => {

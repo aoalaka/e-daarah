@@ -28,6 +28,8 @@ import {
 } from '@heroicons/react/24/outline';
 import BottomTabBar from '../../components/BottomTabBar';
 import QuranSessionRecorder from '../../components/QuranSessionRecorder';
+import { addToSyncQueue, cacheData, getCachedData } from '../../utils/offlineStore';
+import OfflineBanner from '../../components/OfflineBanner';
 import '../admin/Dashboard.css';
 
 function TeacherDashboard() {
@@ -893,17 +895,29 @@ function TeacherDashboard() {
 
   const fetchStudents = async () => {
     if (!selectedClass) return;
+    const cacheKey = `students-class-${selectedClass.id}`;
     try {
       console.log('Fetching students for class:', selectedClass.id);
       const response = await api.get(`/teacher/classes/${selectedClass.id}/students`);
       console.log('Students fetched:', response.data);
       setStudents(response.data);
-      
+      // Cache for offline use
+      cacheData(cacheKey, response.data);
+
       if (response.data.length === 0) {
         toast.error('No students found in this class');
       }
     } catch (error) {
       console.error('Failed to fetch students:', error);
+      // Try serving from offline cache
+      if (!error.response) {
+        const cached = await getCachedData(cacheKey);
+        if (cached) {
+          setStudents(cached.data);
+          toast.info('Showing cached student list (offline)');
+          return;
+        }
+      }
       toast.error('Failed to load students');
       setStudents([]);
     }
@@ -1164,15 +1178,17 @@ function TeacherDashboard() {
       punctuality_grade: attendanceRecords[student.id]?.punctuality_grade || '',
       notes: attendanceRecords[student.id]?.notes || ''
     }));
-    const savePromise = api.post(`/teacher/classes/${selectedClass.id}/attendance/bulk`, {
+    const requestUrl = `/teacher/classes/${selectedClass.id}/attendance/bulk`;
+    const requestData = {
       semester_id: selectedSemester.id,
       date: attendanceDate,
       records,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    });
+    };
+
     try {
       toast.loading('Saving attendance...', { id: 'save-attendance' });
-      await savePromise;
+      await api.post(requestUrl, requestData);
       toast.success('Attendance saved successfully!', { id: 'save-attendance' });
 
       // Move to next day and clear attendance records
@@ -1183,9 +1199,28 @@ function TeacherDashboard() {
       setAttendanceRecords({}); // Clear records for blank form
       setMobileAttendancePhase(1);
     } catch (error) {
-      const msg = error.response?.data?.error || 'Failed to save attendance';
-      toast.error(msg, { id: 'save-attendance' });
-      console.error('Failed to save attendance:', msg, error);
+      // If offline or network error, queue for later sync
+      if (!error.response) {
+        await addToSyncQueue(
+          'attendance-bulk',
+          requestUrl,
+          'post',
+          requestData,
+          { className: selectedClass.name, date: attendanceDate, studentCount: records.length }
+        );
+        toast.success('Saved offline — will sync when connected', { id: 'save-attendance' });
+
+        const nextDay = new Date(attendanceDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextDayStr = getLocalDate(nextDay);
+        setAttendanceDate(nextDayStr);
+        setAttendanceRecords({});
+        setMobileAttendancePhase(1);
+      } else {
+        const msg = error.response?.data?.error || 'Failed to save attendance';
+        toast.error(msg, { id: 'save-attendance' });
+        console.error('Failed to save attendance:', msg, error);
+      }
     } finally {
       setSaving(false);
     }
@@ -1655,6 +1690,8 @@ function TeacherDashboard() {
             Your account is in read-only mode. Contact your administrator.
           </div>
         )}
+
+        <OfflineBanner />
 
         {/* Main Content */}
         <main className="main tab-content" key={activeTab}>

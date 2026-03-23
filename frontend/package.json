@@ -13,6 +13,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "axios": "^1.13.4",
+    "idb": "^8.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-phone-input-2": "^2.15.1",

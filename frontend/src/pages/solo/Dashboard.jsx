@@ -36,6 +36,8 @@ import AnnouncementBanner from '../../components/AnnouncementBanner';
 import QuranSessionRecorder from '../../components/QuranSessionRecorder';
 import BottomTabBar from '../../components/BottomTabBar';
 import VerifiedBadge from '../../components/VerifiedBadge';
+import { addToSyncQueue, cacheData, getCachedData } from '../../utils/offlineStore';
+import OfflineBanner from '../../components/OfflineBanner';
 import '../admin/Dashboard.css';
 
 function SoloDashboard() {
@@ -359,8 +361,16 @@ function SoloDashboard() {
       setClasses(classesRes.data || []);
       setStudents(studentsRes.data || []);
       setMadrasahProfile(profileRes.data);
+      // Cache for offline use
+      if (studentsRes.data?.length) cacheData('solo-students', studentsRes.data);
+      if (classesRes.data?.length) cacheData('solo-classes', classesRes.data);
     } catch (error) {
       console.error('Failed to load data:', error);
+      // Try loading from offline cache
+      const cachedStudents = await getCachedData('solo-students');
+      const cachedClasses = await getCachedData('solo-classes');
+      if (cachedStudents) setStudents(cachedStudents.data);
+      if (cachedClasses) setClasses(cachedClasses.data);
     } finally {
       setLoading(false);
       initialLoadDone.current = true;
@@ -781,10 +791,11 @@ function SoloDashboard() {
     }
     setSaving(true);
     const savePromise = (async () => {
+      let queuedOffline = false;
       for (const student of attendanceStudents) {
         const record = attendanceRecords[student.id];
         if (record) {
-          await api.post('/solo/attendance', {
+          const requestData = {
             student_id: student.id,
             class_id: selectedClass.id,
             semester_id: activeSemester.id,
@@ -794,13 +805,33 @@ function SoloDashboard() {
             behavior_grade: record.behavior_grade || null,
             punctuality_grade: record.punctuality_grade || null,
             notes: record.notes || null
-          });
+          };
+          try {
+            await api.post('/solo/attendance', requestData);
+          } catch (error) {
+            if (!error.response) {
+              // Network error — queue for offline sync
+              await addToSyncQueue(
+                'attendance-solo',
+                '/solo/attendance',
+                'post',
+                requestData,
+                { className: selectedClass.name, date: attendanceDate, studentName: `${student.first_name} ${student.last_name}` }
+              );
+              queuedOffline = true;
+            } else {
+              throw error;
+            }
+          }
         }
+      }
+      if (queuedOffline) {
+        toast.success('Saved offline — will sync when connected', { id: 'save-attendance' });
       }
     })();
     toast.promise(savePromise, {
       loading: 'Saving attendance...',
-      success: 'Attendance saved',
+      success: (v) => v === undefined ? 'Attendance saved' : v,
       error: 'Failed to save attendance'
     });
     try { await savePromise; } catch {} finally { setSaving(false); }
@@ -1438,6 +1469,7 @@ function SoloDashboard() {
         <EmailVerificationBanner />
         <DemoBanner />
         <AnnouncementBanner />
+        <OfflineBanner />
 
         {/* Main Content */}
         <main className="main tab-content" key={activeTab}>

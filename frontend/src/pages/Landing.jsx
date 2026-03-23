@@ -400,6 +400,10 @@ function Landing() {
               <h3>SMS Notifications</h3>
               <p>Send fee reminders and announcements to parents via SMS — manually or on autopilot with monthly auto-reminders. Buy credit packs as needed.</p>
             </div>
+            <div className="feature-card">
+              <h3>Works Offline</h3>
+              <p>Internet dropped mid-class? Keep marking attendance. Everything saves locally and syncs automatically when you're back online.</p>
+            </div>
           </div>
         </div>
       </section>

@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import SplashScreen from './components/SplashScreen';
 import { PrivateRoute } from './components/PrivateRoute';
 import { MadrasahProvider } from './contexts/MadrasahContext';
 import SessionTimeout from './components/SessionTimeout';
@@ -104,6 +105,15 @@ function MadrasahRoutes() {
 }
 
 function App() {
+  const isMobile = window.innerWidth <= 768;
+  const splashShown = sessionStorage.getItem('splash_shown');
+  const [showSplash, setShowSplash] = useState(isMobile && !splashShown);
+
+  const handleSplashComplete = useCallback(() => {
+    sessionStorage.setItem('splash_shown', '1');
+    setShowSplash(false);
+  }, []);
+
   // If on admin subdomain, only show super admin routes
   if (isAdminSubdomain()) {
     return (
@@ -124,11 +134,13 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <PullToRefresh>
-        <Toaster position={window.innerWidth <= 768 ? 'bottom-center' : 'top-right'} closeButton richColors duration={3000} />
-        <Routes>
+    <>
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      <BrowserRouter>
+        <ScrollToTop />
+        <PullToRefresh>
+          <Toaster position={window.innerWidth <= 768 ? 'bottom-center' : 'top-right'} closeButton richColors duration={3000} />
+          <Routes>
           {/* Global public routes */}
           <Route path="/" element={<Landing />} />
           <Route path="/pricing" element={<Pricing />} />
@@ -153,9 +165,10 @@ function App() {
 
           {/* 404 Page */}
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </PullToRefresh>
-    </BrowserRouter>
+          </Routes>
+        </PullToRefresh>
+      </BrowserRouter>
+    </>
   );
 }
 

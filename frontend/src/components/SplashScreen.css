@@ -1,0 +1,65 @@
+/* Splash screen — mobile only */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-exit {
+  animation: splashFadeOut 0.4s ease-out forwards;
+}
+
+.splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.splash-content-up {
+  transform: translateY(-8px);
+}
+
+.splash-logo {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  opacity: 0;
+  transform: scale(0.8);
+  animation: splashLogoIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.splash-tagline {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #999;
+  letter-spacing: 0.3px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.splash-tagline-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes splashLogoIn {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splashFadeOut {
+  to {
+    opacity: 0;
+    pointer-events: none;
+  }
+}

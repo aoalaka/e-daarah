@@ -28,6 +28,11 @@ const isAdminSubdomain = () => {
   return hostname.startsWith('admin.');
 };
 
+// Check if running as installed PWA (standalone mode)
+const isStandalonePWA = () =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true;
+
 // Madrasah-scoped pages
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
@@ -142,7 +147,7 @@ function App() {
           <Toaster position={window.innerWidth <= 768 ? 'bottom-center' : 'top-right'} closeButton richColors duration={3000} />
           <Routes>
           {/* Global public routes */}
-          <Route path="/" element={<Landing />} />
+          <Route path="/" element={isStandalonePWA() ? <Navigate to="/signin" replace /> : <Landing />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/register" element={<MadrasahRegistration />} />
           <Route path="/demo" element={<Demo />} />

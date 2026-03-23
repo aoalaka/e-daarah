@@ -17,32 +17,49 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  gap: 6px;
+  transition: transform 0.6s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .splash-content-up {
-  transform: translateY(-8px);
+  transform: translateY(-12px);
 }
 
 .splash-logo {
-  width: 88px;
-  height: 88px;
+  width: 100px;
+  height: 100px;
   object-fit: contain;
   opacity: 0;
-  transform: scale(0.8);
+  transform: scale(0.85);
   animation: splashLogoIn 0.5s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.splash-name {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: -0.5px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.splash-name-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .splash-tagline {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
-  color: #999;
-  letter-spacing: 0.3px;
+  color: #2d6a4f;
+  letter-spacing: 0.2px;
   opacity: 0;
   transform: translateY(6px);
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  margin-top: 2px;
 }
 
 .splash-tagline-visible {

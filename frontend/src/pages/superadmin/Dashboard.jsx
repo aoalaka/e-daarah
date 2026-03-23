@@ -360,6 +360,7 @@ function SuperAdminDashboard() {
   // Simple markdown to HTML (mirrors backend markdownToHtml)
   const markdownToHtml = (text) => {
     const formatInline = (t) => t
+      .replace(/`(.+?)`/g, '<code style="background: #f3f3f3; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: monospace;">$1</code>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" style="color: #1a1a1a; text-decoration: underline;">$1</a>');
@@ -374,7 +375,10 @@ function SuperAdminDashboard() {
         continue;
       }
       if (inList) { result.push('</ul>'); inList = false; }
-      if (/^#{1,2}\s+/.test(trimmed)) { result.push(`<h2 style="margin: 20px 0 8px 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^#{1,2}\s+/, ''))}</h2>`); continue; }
+      if (/^[-*_]{3,}$/.test(trimmed)) { result.push('<hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">'); continue; }
+      if (/^###\s+/.test(trimmed)) { result.push(`<h3 style="margin: 18px 0 6px 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^###\s+/, ''))}</h3>`); continue; }
+      if (/^##\s+/.test(trimmed)) { result.push(`<h2 style="margin: 20px 0 8px 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^##\s+/, ''))}</h2>`); continue; }
+      if (/^#\s+/.test(trimmed)) { result.push(`<h1 style="margin: 22px 0 10px 0; font-size: 20px; font-weight: 600; color: #1a1a1a;">${formatInline(trimmed.replace(/^#\s+/, ''))}</h1>`); continue; }
       if (!trimmed) { result.push('<br>'); continue; }
       result.push(`${formatInline(trimmed)}<br>`);
     }

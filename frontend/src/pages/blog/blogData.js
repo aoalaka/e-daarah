@@ -1,5 +1,27 @@
 const blogArticles = [
   {
+    slug: 'what-happens-when-your-best-teacher-leaves',
+    title: 'What Happens When Your Best Teacher Leaves?',
+    description:
+      'Your best Qur\'an teacher knows every student\'s position by heart. If he leaves tomorrow, what goes with him?',
+    date: '2026-03-24',
+    readTime: '2 min read',
+    category: 'Opinion',
+    sections: [
+      {
+        body: 'Think about your best teacher. The one who shows up every week, knows every student by name, remembers exactly where Khalid stopped in Al-Baqarah last Tuesday and which ayah Aisha needs to repeat.\n\nNow imagine he tells you he\'s moving. Or he gets busy. Or he just stops coming — it happens, especially with volunteers.\n\nWhat do you actually lose?'
+      },
+      {
+        heading: 'Everything that was in his head',
+        body: 'Not just his teaching. His memory. Three years of knowing which students are progressing, which ones are struggling, where each one left off in their hifdh. The new teacher walks in and starts from zero. Asks the students where they are — some remember, some guess, some shrug.\n\nThe same thing happens with the admin who "just knows" which families have paid. Or the volunteer who kept the only reliable attendance record in a notebook that went home with her every Friday.\n\nWhen that person leaves, the madrasah doesn\'t just lose a volunteer. It loses its memory.'
+      },
+      {
+        heading: 'This isn\'t about one person being careless',
+        body: 'It\'s about a system that depends on individuals remembering everything. And people are good at that — until they\'re not there anymore.\n\nA student\'s Qur\'an progress shouldn\'t exist only in one teacher\'s head. An attendance record shouldn\'t disappear because someone changed cities. A fee ledger shouldn\'t be one lost notebook away from gone.\n\nThe question isn\'t whether your current people are reliable. They probably are. The question is: if any one of them left tomorrow, would the next person be able to pick up where they left off?\n\nIf the answer is no, then what you have isn\'t a system. It\'s a person. And people move on.'
+      }
+    ]
+  },
+  {
     slug: 'why-i-built-e-daarah',
     title: 'We Had No Way to Track if Students Were Actually Showing Up',
     description:

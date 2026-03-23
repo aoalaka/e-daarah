@@ -176,14 +176,9 @@ body {
     display: none !important;
   }
 
-  /* Close button */
+  /* Hide close button on mobile — toasts auto-dismiss */
   [data-sonner-toast] [data-close-button] {
-    position: static !important;
-    width: 24px !important;
-    height: 24px !important;
-    border-radius: 50% !important;
-    flex-shrink: 0 !important;
-    margin-left: auto !important;
+    display: none !important;
   }
 
   /* Lift bottom toasts above bottom tab bar (64px) + safe area */

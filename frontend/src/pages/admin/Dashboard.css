@@ -1952,10 +1952,13 @@ a:focus-visible,
   }
 
   .form-grid,
-  .form-group,
   .card-body {
     max-width: 100%;
     overflow: hidden;
+  }
+
+  .form-group {
+    max-width: 100%;
   }
 
   .page-title {

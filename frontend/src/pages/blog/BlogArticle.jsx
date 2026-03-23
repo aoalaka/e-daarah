@@ -6,6 +6,7 @@ import './Blog.css';
 function BlogArticle() {
   const { slug } = useParams();
   const article = blogArticles.find((a) => a.slug === slug);
+  const relatedArticles = blogArticles.filter((a) => a.slug !== slug).slice(0, 3);
 
   if (!article) {
     return (
@@ -88,6 +89,20 @@ function BlogArticle() {
               Get Started Free
             </Link>
           </div>
+
+          {relatedArticles.length > 0 && (
+            <div className="blog-related">
+              <h3>Related articles</h3>
+              <div className="blog-related-list">
+                {relatedArticles.map((a) => (
+                  <Link to={`/blog/${a.slug}`} key={a.slug} className="blog-related-item">
+                    <p className="blog-related-title">{a.title}</p>
+                    <p className="blog-related-desc">{a.description}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </article>
       </main>
 

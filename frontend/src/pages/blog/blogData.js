@@ -1,162 +1,171 @@
 const blogArticles = [
   {
-    slug: 'madrasah-management-software',
-    title: 'Your Madrasah Deserves Better Than a Paper Register',
+    slug: 'why-i-built-e-daarah',
+    title: 'We Had No Way to Track if Students Were Actually Showing Up',
     description:
-      'Most madrasahs still run on paper and WhatsApp. Here\'s why a simple app can save you hours every week — without changing how you teach.',
-    date: '2026-02-10',
-    readTime: '2 min read',
-    category: 'Management',
+      'I taught at two madrasahs in New Zealand. At both, attendance was a sheet of paper that got lost by end of term. I built E-Daarah because I got tired of it.',
+    date: '2026-03-20',
+    readTime: '3 min read',
+    category: 'Story',
     sections: [
       {
-        heading: 'Let\'s Be Honest',
-        body: 'Most madrasahs don\'t use software. Not because they don\'t want to — but because nobody has built something that actually fits how a madrasah works.\n\nSo teachers keep using paper registers. Admins track fees in notebooks. Parents get updates through WhatsApp groups that are 90% noise. And at the end of the term, someone spends a weekend trying to piece together attendance records and exam results from scattered notes.'
+        body: 'I taught at two different madrasahs — one in Palmerston North, one in Tauranga. Both were run by good people who cared about the students. And at both, the system for tracking anything was the same: sheets of paper.\n\nThe admin would hand out attendance sheets at the start of each term. We\'d mark them during class. Sometimes. Other times I\'d forget. Or I\'d mark them at the end of class from memory, which is basically guessing. Some teachers were consistent. Some weren\'t. The admin had no way of knowing who was actually doing it and who wasn\'t.'
       },
       {
-        heading: 'It Doesn\'t Have to Be This Way',
-        body: 'Imagine opening your phone before class, tapping a few names, and attendance is done. Imagine a parent checking their child\'s report — attendance, exams, conduct, Qur\'an progress — without calling you. Imagine knowing exactly which students haven\'t paid fees this month without flipping through a ledger.\n\nThat\'s what a madrasah management app does. Not a complicated enterprise system designed for universities. A simple tool that works on your phone and takes five minutes to learn.'
+        heading: 'End of term was the worst part',
+        body: 'When it came time to put together student records — attendance, conduct, punctuality — we\'d scramble. Sheets would be missing. Someone\'s handwriting was unreadable. A whole month of records from one class just wasn\'t there because the teacher forgot or lost the paper.\n\nWe couldn\'t reproduce a student\'s record. Not properly. If someone asked "how many times did this student attend this term?" the honest answer was often "we\'re not sure."\n\nConduct grades? Same problem. Punctuality? Nobody was tracking it in any real way. We knew the students who were always late, but we had nothing written down.'
       },
       {
-        heading: 'Start Small',
-        body: 'You don\'t need to digitise everything overnight. Start with attendance. Once that feels natural, add exams. Then fees. Then Qur\'an tracking. Each one saves you a little more time and gives you a little more clarity about how your madrasah is actually doing.\n\nE-Daarah was built specifically for this — madrasahs that want something simple, affordable, and actually designed for how Islamic schools work. No jargon. No features you\'ll never use. Just the basics, done well.'
+        heading: 'This is 2026',
+        body: 'I kept thinking — we\'re all walking around with phones in our pockets. Why is attendance still a piece of paper that gets shoved in a folder and lost?\n\nSo I started building something. Not a big enterprise system. Just a simple app where a teacher opens their phone, taps a few names, and attendance is recorded. Where the admin can actually see which classes have been marked and which haven\'t. Where at the end of the term, the data is just there — no scrambling, no missing sheets.\n\nThat\'s how E-Daarah started. It\'s still simple. It runs on your phone. And it solves the problem I lived with for years: madrasahs that care about their students but can\'t keep track of the basics because the tools don\'t exist.'
       }
     ]
   },
   {
-    slug: 'islamic-school-attendance-tracking',
-    title: 'That Student Who Stopped Showing Up — Would You Have Noticed?',
+    slug: 'why-quran-tracking-is-free',
+    title: 'Why We Made Qur\'an Tracking Free',
     description:
-      'Attendance tracking isn\'t about roll calls. It\'s about catching the student who\'s quietly disappearing before it\'s too late.',
-    date: '2026-02-24',
+      'We could have charged for it. Here\'s why we didn\'t.',
+    date: '2026-03-15',
     readTime: '2 min read',
-    category: 'Attendance',
+    category: 'Product',
     sections: [
       {
-        heading: 'The Slow Disappearance',
-        body: 'It usually doesn\'t happen all at once. A student misses one Saturday. Then two in a row. Then they come back for a week, then disappear again. By the time anyone notices the pattern, the family has already decided to pull them out.\n\nThis happens in madrasahs everywhere. Not because teachers don\'t care — they do, deeply — but because when you\'re managing 20 or 30 students with a paper register, it\'s almost impossible to spot a slow decline. You\'re too busy teaching to flip back through weeks of handwritten entries looking for patterns.'
+        body: 'When we were deciding what to include in E-Daarah\'s free plan, Qur\'an tracking was the obvious choice.\n\nNot because it\'s a small feature. It\'s actually one of the most complex parts of the app — tracking hifdh, tilawah, and muraja\'ah separately for each student, remembering positions across sessions, showing progress over time. It took real effort to build.'
       },
       {
-        heading: 'What Consistent Tracking Actually Gives You',
-        body: 'When attendance is recorded digitally and consistently, the patterns become obvious. You can see at a glance that Yusuf has attended 3 out of the last 8 sessions. You don\'t have to remember it — the data tells you.\n\nThat\'s your cue to reach out. A quick message to the parents. A conversation after class. Often, there\'s something going on — a schedule conflict, a transport issue, a child who\'s feeling left out. These are fixable problems. But only if you catch them early.'
+        heading: 'The reason is simple',
+        body: 'Qur\'an education is the one thing every madrasah has in common. Whether you\'re a weekend school in London with 15 students, a daily hifdh program in Lahore with 200, or a single teacher running classes from a mosque in Lagos — you\'re teaching Qur\'an.\n\nAnd almost everyone is tracking it the same way: pencil marks in a mushaf, a notebook, or just memory. It\'s the part of madrasah management that has the least tooling and the most need.\n\nCharging for it would mean the teachers who need it most — the ones running small, volunteer-driven programs with no budget — couldn\'t use it. That didn\'t sit right with us.'
       },
       {
-        heading: 'It Takes 30 Seconds',
-        body: 'The biggest reason attendance tracking falls apart is that it takes too long. If it\'s a 5-minute process at the start of every class, teachers skip it when they\'re running late or have a lot to cover.\n\nWith a phone-based tool, marking a class of 25 students takes about 30 seconds. Tap, tap, tap — done. The data goes straight to a dashboard where you or the admin can see it. No paper to lose. No end-of-term scramble to compile numbers.\n\nE-Daarah lets teachers do exactly this. Mark attendance from your phone in under a minute. Parents can see their child\'s record. Admins can see trends across the whole school. Simple.'
+        heading: 'What free gets you',
+        body: 'With E-Daarah\'s free plan, you can track up to 75 students. For each one, you can record hifdh, tilawah, and revision sessions — the surah, ayah range, grade, and whether they passed or need to repeat. The app remembers where they left off so you don\'t have to.\n\nNo trial period. No expiry. No credit card.\n\nIf your madrasah grows and you want attendance tracking, parent reports, SMS reminders, and fee management — those are on our paid plans, starting from $2/month depending on your region. But the Qur\'an tracking is yours to keep.'
       }
     ]
   },
   {
-    slug: 'quran-hifz-progress-tracking',
-    title: 'Where Did Amina Stop Last Week? The Qur\'an Tracking Problem',
+    slug: 'why-we-charge-two-dollars',
+    title: 'We Charge $2/Month in Some Countries. Here\'s Why.',
     description:
-      'Every hifz teacher knows the struggle — remembering where each student stopped, tracking revision, keeping parents updated. There\'s a better way.',
-    date: '2026-03-03',
-    readTime: '2 min read',
-    category: 'Qur\'an',
-    sections: [
-      {
-        heading: 'The Pencil Mark in the Mushaf',
-        body: 'If you\'ve ever taught hifz, you know the routine. A student finishes reciting, and you mark their stopping point — a small pencil line in their copy of the Qur\'an, or a note scribbled on a board, or a line in your notebook. Sometimes you remember. Sometimes you don\'t.\n\nNow multiply that by 15 students. Each one at a different ayah, in a different surah, some doing new memorisation, some doing revision. You\'re holding all of this in your head, plus a few scraps of paper. It works — until it doesn\'t.'
-      },
-      {
-        heading: 'What Gets Lost',
-        body: 'When tracking is informal, a few things slip through. You forget that Ibrahim was struggling with the last few ayaat of Al-Mulk and move him forward too quickly. You can\'t remember if Fatima did her revision this week or last week. A parent asks how their child is progressing and you give a vague answer because you don\'t have the details in front of you.\n\nNone of this means you\'re a bad teacher. It means you\'re human, doing something incredibly demanding with no proper tools to help you.'
-      },
-      {
-        heading: 'A Simple Fix',
-        body: 'Digital Qur\'an tracking doesn\'t replace your judgement as a teacher. It just gives you a record. After each session, you log the surah, the ayah range, and whether it was new memorisation or revision. It takes a few taps.\n\nNext week, you open the app and immediately see where each student left off. No guessing. No pencil marks to decipher. Parents can see progress too — which means they can help with revision at home instead of asking you for updates.\n\nE-Daarah\'s Qur\'an tracker was built for exactly this. You select the student, pick the surah and ayah range, and save. That\'s it. Over time, you get a full picture of each student\'s journey through the Qur\'an — something that would be nearly impossible to maintain on paper.'
-      }
-    ]
-  },
-  {
-    slug: 'weekend-islamic-school-management',
-    title: 'Running a Weekend Madrasah on 3 Hours a Week Is Hard. Here\'s What Helps.',
-    description:
-      'Weekend madrasahs have limited time and often rely on volunteers. A few simple systems can make the difference between chaos and calm.',
+      'A madrasah in Lagos and a madrasah in London don\'t have the same budget. Our pricing reflects that.',
     date: '2026-03-10',
     readTime: '2 min read',
-    category: 'Operations',
+    category: 'Pricing',
     sections: [
       {
-        heading: 'You Have 3 Hours. Use Them Well.',
-        body: 'Weekend madrasahs don\'t have the luxury of time. You get maybe 2–3 hours on a Saturday or Sunday, and that\'s it for the week. If 15 minutes goes to a chaotic check-in and another 10 to sorting out which students are in which class, you\'ve just lost a quarter of your teaching time.\n\nAdd volunteer teachers who may or may not show up, parents who arrive late, and students who were here last month but haven\'t come in three weeks — and you\'ve got a management challenge that most apps aren\'t designed for.'
+        body: 'When we launched E-Daarah, our plans were priced in US dollars. $5 for Solo, $12 for Standard, $29 for Plus. Fair pricing for New Zealand, Australia, the US, the UK.\n\nBut then we started getting interest from Nigeria, Pakistan, Bangladesh, India, Indonesia. And $12/month for a weekend madrasah run by volunteers in Kano? That\'s not reasonable. That\'s more than some teachers there earn in a day.'
       },
       {
-        heading: 'Small Systems, Big Difference',
-        body: 'You don\'t need a complex management platform. You need a few things to just work:\n\n— Attendance that takes 30 seconds, not 5 minutes\n— A record of what each student has covered, so a substitute teacher isn\'t lost\n— A way to tell parents what happened in class without typing 20 individual messages\n— Fee tracking that doesn\'t live in someone\'s head\n\nThese aren\'t luxuries. They\'re the basics. And when they\'re handled, you can actually focus on teaching — which is why you started this in the first place.'
+        heading: 'Same app, different price',
+        body: 'So we built regional pricing. The app is identical everywhere — same features, same support, same updates. But the price adjusts based on where you are.\n\nIn tier 2 countries, the Standard plan is $4/month instead of $12. In tier 3 countries — parts of Africa, South Asia, Southeast Asia — it\'s $2/month.\n\nWe detect your region automatically. No coupon codes, no applying for a discount. You just see the price that makes sense for your economy.'
       },
       {
-        heading: 'Built for This',
-        body: 'Most school management software assumes a full-time school with salaried staff, computer labs, and a dedicated admin team. That\'s not you.\n\nE-Daarah was built for madrasahs like yours — small teams, limited budgets, phone-first. Teachers mark attendance and record progress from their phones. Parents get real-time access to their child\'s records. And the admin doesn\'t have to chase anyone for data at the end of the term because it\'s already there.'
+        heading: 'Why not just make it free?',
+        body: 'We thought about it. But free products don\'t survive. Servers cost money. SMS messages cost money. Development costs money. If E-Daarah is going to be around in 5 years — which is what madrasahs need, a tool they can rely on — it needs to sustain itself.\n\n$2/month keeps the lights on while keeping the door open for schools that would otherwise be priced out. It\'s not charity. It\'s just common sense.'
       }
     ]
   },
   {
-    slug: 'madrasah-fee-management',
-    title: 'The Awkward Conversation About Fees (And How to Avoid It)',
+    slug: 'whatsapp-is-not-school-management',
+    title: 'The WhatsApp Group Is Not a School Management System',
     description:
-      'Chasing parents for unpaid fees is uncomfortable. Automated tracking and SMS reminders take the awkwardness out of it.',
-    date: '2026-01-20',
+      'Your madrasah WhatsApp group has 47 unread messages. None of them tell you if Ahmad attended last week.',
+    date: '2026-03-05',
     readTime: '2 min read',
-    category: 'Finance',
+    category: 'Opinion',
     sections: [
       {
-        heading: 'Nobody Likes Chasing Money',
-        body: 'Let\'s be real — asking parents for overdue fees is one of the most uncomfortable parts of running a madrasah. You see the family every week. Their child is in your class. And now you have to bring up the fact that they haven\'t paid in two months.\n\nSo what happens? You put it off. You mention it casually and hope they remember. You lose track of who owes what because it\'s all in a notebook somewhere. Meanwhile, the madrasah\'s bills don\'t wait.'
+        body: 'Every madrasah I know has a WhatsApp group. Usually more than one. There\'s one for the teachers. One for parents. Sometimes one per class. Sometimes one "admin only" group that somehow has 30 people in it.\n\nAnd they all do the same thing: general announcements, reminders about class times, the occasional photo from an event, and a lot of "JazakAllahu khairan" messages.\n\nWhat they don\'t do is tell you anything useful about how the madrasah is actually running.'
       },
       {
-        heading: 'Let the System Do the Uncomfortable Part',
-        body: 'When fee tracking is digital, a few things change. First, everyone knows where they stand. The parent can see their balance. There\'s no ambiguity about what\'s been paid and what hasn\'t.\n\nSecond, reminders can be automated. An SMS goes out a few days before the due date: "Fee reminder: $X due on [date]." It\'s not personal. It\'s not confrontational. It\'s just a system doing its job. Most parents appreciate the reminder — life is busy, and they genuinely forget.\n\nThird, you can see the full picture. How many students are up to date? How many are overdue? What\'s the total outstanding? These answers should take seconds, not an afternoon with a calculator.'
+        heading: 'What you can\'t do in a group chat',
+        body: 'You can\'t see which students attended this week and which didn\'t. You can\'t check if a student\'s attendance has been dropping over the last month. You can\'t look up where a student is in their Qur\'an memorisation. You can\'t see who has paid fees and who hasn\'t.\n\nYou can scroll through 200 messages looking for that one time someone mentioned it. But that\'s not a system. That\'s archaeology.\n\nThe problem isn\'t WhatsApp itself. It\'s good for what it is — quick communication. The problem is when it becomes the only tool, and people start treating it like a database.'
       },
       {
-        heading: 'Keep It Human',
-        body: 'Automated tracking doesn\'t mean you stop being understanding. Families go through tough times. The difference is that now you know who needs a conversation and who just needs a nudge. A parent who\'s three months behind might need a payment plan. A parent who missed last month probably just forgot.\n\nE-Daarah handles fee tracking with SMS reminders built in. Set the expected fee per student, record payments as they come in, and let the system handle reminders. You focus on running the madrasah — not chasing money.'
+        heading: 'Use WhatsApp for chat. Use a system for data.',
+        body: 'Keep your WhatsApp groups. They\'re fine for announcements and coordination. But the data that matters — attendance, progress, conduct, fees — needs to live somewhere structured. Somewhere you can search it, filter it, and pull up a student\'s full record in seconds.\n\nThat\'s what apps like E-Daarah are for. Not to replace your WhatsApp group. To replace the parts of your WhatsApp group that were never supposed to be WhatsApp\'s job.'
       }
     ]
   },
   {
-    slug: 'parent-communication-islamic-schools',
-    title: 'Parents Want to Know How Their Child Is Doing. Are You Telling Them?',
+    slug: 'school-software-not-built-for-madrasahs',
+    title: 'Most School Software Isn\'t Built for Madrasahs. We\'re Changing That.',
     description:
-      'Most madrasah parents hear from the school only when something goes wrong. Real-time reports change that — and build trust.',
-    date: '2026-01-06',
+      'School management software exists. But try finding one that tracks hifdh progress or knows what a semester means in a weekend madrasah.',
+    date: '2026-02-25',
     readTime: '2 min read',
-    category: 'Communication',
+    category: 'Product',
     sections: [
       {
-        heading: 'The WhatsApp Group Isn\'t Enough',
-        body: 'Most madrasahs communicate with parents through a WhatsApp group. It works for announcements — "No class this Saturday" or "Bring your books next week." But it doesn\'t tell a parent how their specific child is doing.\n\nIs my son attending regularly? How did my daughter do in her last exam? Is he keeping up with his Qur\'an memorisation? These are the questions parents actually want answered. And a group chat can\'t answer them.'
+        body: 'There are hundreds of school management apps out there. ClassDojo, Alma, Gradelink, you name it. They work well for what they\'re designed for: full-time secular schools with standard grade levels, standardised curricula, and full-time admin staff.\n\nNow try using one to track a student\'s hifdh progress through Surah Al-Baqarah. Or to manage a madrasah that only runs on Saturdays. Or to send fee reminders in a country where $12/month is half a teacher\'s salary.\n\nYou can\'t. Because they weren\'t built for this.'
       },
       {
-        heading: 'What Real-Time Reports Look Like',
-        body: 'Imagine a parent opening a link on their phone and seeing:\n\n— Their child\'s attendance record for the whole term\n— Exam scores by subject\n— Conduct grades: dressing, behaviour, punctuality\n— Qur\'an progress: which surah, which ayah, how they\'re tracking\n\nNo phone call needed. No waiting for a term-end report card that arrives two weeks late. Just clear, up-to-date information available whenever they want it.\n\nThis isn\'t futuristic — it\'s what E-Daarah\'s parent portal does. Each parent gets a login. They see their child\'s records. That\'s it. Simple, private, and always current.'
+        heading: 'What makes madrasahs different',
+        body: 'Madrasahs have specific needs that generic school software ignores:\n\n— Qur\'an tracking is a core feature, not an afterthought. Teachers need to log hifdh, tilawah, and revision by surah and ayah, track where each student left off, and show progress over time.\n— Many madrasahs run part-time — weekends, evenings, a few hours a week. The software needs to understand that a "term" might mean 20 Saturdays, not 180 school days.\n— Conduct grading includes things like dressing and punctuality, not just academic behaviour.\n— Budgets are tiny. Most madrasahs are community-funded or charity-run. Enterprise pricing is out of the question.\n— Teachers use phones, not laptops. The app needs to work on a phone or it won\'t get used.'
       },
       {
-        heading: 'It Changes the Relationship',
-        body: 'When parents feel informed, they trust the school more. They\'re more likely to help with revision at home. They\'re more likely to address attendance issues before they become a habit. They\'re more likely to pay fees on time because they can see the value their child is getting.\n\nAnd teachers benefit too. Instead of fielding individual messages asking "How is my child doing?", the answer is already there. The parent has seen the data. Now the conversation can be about what to do next, not what happened last month.'
+        heading: 'Built from the inside',
+        body: 'E-Daarah was built by someone who taught in madrasahs. Not by a software company that surveyed some schools and added an "Islamic school" checkbox to their product.\n\nThat\'s why Qur\'an tracking is a first-class feature. That\'s why the free plan exists. That\'s why the whole thing works on a phone. And that\'s why it costs $2/month in countries where $12 would be absurd.\n\nMadrasahs deserve tools that were actually designed for them.'
       }
     ]
   },
   {
-    slug: 'digital-madrasah-administration',
-    title: 'You\'re Still Using Excel? Here\'s What You\'re Missing.',
+    slug: 'what-i-wish-my-admin-had',
+    title: 'What I Wish My Madrasah Admin Had When I Was Teaching',
     description:
-      'Excel is better than paper — but it\'s still not built for running a madrasah. Here\'s what changes when you switch to something purpose-built.',
-    date: '2026-02-03',
+      'I was one of those teachers who forgot to mark attendance. Here\'s what would have made the difference.',
+    date: '2026-02-15',
     readTime: '2 min read',
-    category: 'Digital',
+    category: 'Teaching',
     sections: [
       {
-        heading: 'Excel Is a Step Up. But Only a Step.',
-        body: 'If your madrasah has moved from paper registers to Excel spreadsheets, that\'s genuinely progress. You can search, sort, and share data. You have backups. You can do basic calculations.\n\nBut Excel wasn\'t built for this. You still have to manually type every attendance entry. You can\'t send a parent a link to their child\'s report. You can\'t automate fee reminders. And when three different teachers are editing three different spreadsheets, you end up with version conflicts and missing data.'
+        body: 'I\'ll be honest — I wasn\'t always great at marking attendance. I\'d get to class, start teaching, and by the end I\'d fill in the sheet from memory. Or I\'d forget entirely. The paper would sit in my bag for a week and then I\'d mark three sessions at once, guessing who was there.\n\nI wasn\'t being careless. I just had 25 students in front of me, limited time, and a piece of paper that didn\'t feel urgent. Teaching felt urgent. The paper could wait. Except it couldn\'t, because by the time someone needed that data, it was gone.'
       },
       {
-        heading: 'What Purpose-Built Looks Like',
-        body: 'A tool designed for madrasahs handles the things Excel can\'t:\n\n— Teachers mark attendance on their phones in seconds, not by typing into a spreadsheet later\n— Exam scores are entered once and automatically appear in student reports\n— Conduct grades — dressing, behaviour, punctuality — are tracked per student per term\n— Qur\'an progress is logged by surah and ayah, with a clear history\n— Fee payments are recorded and parents get automatic SMS reminders\n— Parents have their own login and can see their child\'s full record anytime\n\nAll of this flows into one system. No copying between files. No version conflicts. No "which spreadsheet has the latest data?"'
+        heading: 'What the admin couldn\'t see',
+        body: 'Our admin was doing their best. But they had no visibility into what was happening in each class. They didn\'t know which teachers were marking attendance consistently and which weren\'t. They couldn\'t tell if a student\'s attendance was dropping without manually checking stacks of paper — which nobody had time to do.\n\nAt the end of the term, they\'d ask for records and get a mix of complete sheets, half-filled sheets, and blank apologies. Putting together a student report was guesswork.'
       },
       {
-        heading: 'The Real Cost of Staying Manual',
-        body: 'Every hour an admin spends compiling reports from spreadsheets is an hour not spent improving the madrasah. Every time a parent doesn\'t get an update because the teacher forgot to send it, trust erodes a little.\n\nThe tools exist now. They\'re affordable — E-Daarah starts at $5/month. They work on phones. They take minutes to set up, not weeks. The question isn\'t whether your madrasah can afford to go digital. It\'s whether you can afford not to.'
+        heading: 'What would have helped',
+        body: 'If my admin had a dashboard that showed, in real time, which classes had been marked today and which hadn\'t — that alone would have changed things. A gentle nudge. "You haven\'t marked attendance for Junior Boys today." That\'s it.\n\nAnd for me as a teacher, if marking attendance was three taps on my phone instead of finding a pen and filling in a grid — I would have done it every single time. Not because I suddenly became more disciplined, but because the barrier dropped from five minutes to ten seconds.\n\nThat\'s the thing about systems. Good ones don\'t rely on people being perfect. They make the right behaviour the easy behaviour. That\'s what I tried to build with E-Daarah.'
+      }
+    ]
+  },
+  {
+    slug: 'how-to-digitise-your-madrasah',
+    title: 'How to Digitise Your Madrasah — A Practical Guide',
+    description:
+      'You don\'t need a big budget or an IT team. Here\'s how to move your madrasah from paper and WhatsApp to something that actually works.',
+    date: '2026-02-05',
+    readTime: '4 min read',
+    category: 'Guide',
+    sections: [
+      {
+        body: 'Most madrasahs run on three things: paper, WhatsApp, and memory. And honestly, it works — for a while. Until a teacher loses an attendance sheet. Until you can\'t remember who paid fees last month. Until a parent asks how their child is doing and nobody has a clear answer.\n\nDigitising doesn\'t mean buying expensive software or hiring an IT person. It means replacing the parts of your system that keep failing with something more reliable. Here\'s how to do it, step by step, without overcomplicating things.'
+      },
+      {
+        heading: 'Start with attendance',
+        body: 'Attendance is the easiest win because you\'re already doing it — just unreliably. The goal is to move from a sheet of paper that gets lost to something a teacher can do on their phone in 10 seconds.\n\nYou have options. Google Forms works if you set up a form per class. A shared Google Sheet can work too. Some madrasahs use ClassDojo or even just a WhatsApp message to a dedicated group ("Marked — 18 present, 3 absent").\n\nThese all work better than paper. But they share a problem: the admin still has no real-time view of what\'s happening. You find out a teacher didn\'t mark attendance three weeks later when you check the spreadsheet. By then the data is gone.\n\nWhat you really want is something that shows the admin, today, which classes have been marked and which haven\'t. That kind of visibility changes teacher behaviour without anyone having to nag.'
+      },
+      {
+        heading: 'Qur\'an tracking is where generic tools break down',
+        body: 'You can track attendance in a spreadsheet. You can track fees in a spreadsheet. But try tracking a student\'s hifdh progress through Surah Al-Baqarah in Google Sheets and you\'ll see the problem.\n\nQur\'an progress isn\'t a single number. It\'s a position — surah, ayah, whether they passed or need to repeat, whether this was hifdh or tilawah or revision. It changes every session. And the next session needs to pick up exactly where the last one left off.\n\nSome teachers use pencil marks in the student\'s mushaf. Some use a personal notebook. Some just remember. All of these break when the teacher is absent, when a new teacher takes over, or when a parent asks for a progress update.\n\nThere isn\'t really a generic tool that handles this well. It\'s too specific. You need something that was built for Qur\'an education specifically — something that knows what a surah is, what juz means, and how hifdh tracking actually works in practice.'
+      },
+      {
+        heading: 'Fees: the spreadsheet works until it doesn\'t',
+        body: 'For a madrasah with 20 students, a shared spreadsheet for fee tracking is fine. Log who paid, how much, when. Simple.\n\nBut as you grow, two things happen. First, you lose track. The spreadsheet gets messy, someone forgets to update it, and suddenly you\'re not sure if a family paid in February or not. Second, you still have to chase payments manually — sending WhatsApp messages, pulling parents aside, having the awkward conversation.\n\nWhat helps is a system where the parent can see their own balance, and where reminders go out automatically. Not because you\'re being aggressive about money — but because most parents genuinely just forget, and a simple SMS before the due date solves it.'
+      },
+      {
+        heading: 'Parent communication: beyond the WhatsApp group',
+        body: 'WhatsApp is great for announcements. "No class this Saturday." "Exam schedule attached." That\'s fine.\n\nBut WhatsApp can\'t give a parent a clear picture of their child\'s attendance over the term. It can\'t show them where their child is in Qur\'an memorisation. It can\'t tell them their fee balance. For that, you need something structured — a parent portal or a report that pulls from actual data.\n\nParents who feel informed stay engaged. Parents who have to chase the teacher for updates eventually stop asking.'
+      },
+      {
+        heading: 'The real problem with stitching tools together',
+        body: 'You can technically digitise a madrasah with Google Sheets for attendance, a notebook app for Qur\'an tracking, a spreadsheet for fees, and WhatsApp for everything else. Some madrasahs do exactly this.\n\nBut nothing talks to each other. You can\'t pull up a student\'s full record — attendance, Qur\'an progress, fees, conduct — in one place. End of term, you\'re still opening four different apps and copy-pasting into a report.\n\nThe more tools you stitch together, the more likely one of them breaks — someone stops updating the spreadsheet, the Google Form link changes, a teacher uses the wrong WhatsApp group. The system only works when every person follows every step perfectly. And in a volunteer-run madrasah, that doesn\'t happen.'
+      },
+      {
+        heading: 'Or use something built for this',
+        body: 'This is why we built E-Daarah. Not because spreadsheets are bad — they\'re just not designed for this. E-Daarah puts attendance, Qur\'an tracking, fees, conduct, and parent reports in one app that works on a phone.\n\nQur\'an tracking is free — up to 75 students, no credit card, no expiry. If you want attendance, fees, SMS reminders, and parent reports, paid plans start from $2/month depending on your region.\n\nYou don\'t have to switch everything at once. Start with Qur\'an tracking or attendance. Use it for a term. Add more when you\'re ready. The point isn\'t to go digital overnight — it\'s to stop losing data that matters.'
       }
     ]
   }

@@ -145,6 +145,11 @@
 .blog-card:hover {
   border-color: var(--muted);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  text-decoration: none;
+}
+
+.blog-card:hover .blog-card-title {
+  text-decoration: underline;
 }
 
 .blog-card-category {
@@ -281,6 +286,60 @@
 
 .blog-cta-button:hover {
   background: var(--dark);
+}
+
+/* Related Articles */
+.blog-related {
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid var(--light);
+}
+
+.blog-related h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--black);
+  margin: 0 0 20px 0;
+}
+
+.blog-related-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.blog-related-item {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  padding: 16px;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  transition: border-color 0.2s;
+}
+
+.blog-related-item:hover {
+  border-color: var(--muted);
+  text-decoration: none;
+}
+
+.blog-related-item:hover .blog-related-title {
+  text-decoration: underline;
+}
+
+.blog-related-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--black);
+  margin: 0 0 4px 0;
+  line-height: 1.4;
+}
+
+.blog-related-desc {
+  font-size: 13px;
+  color: var(--gray);
+  margin: 0;
+  line-height: 1.4;
 }
 
 /* Not Found */

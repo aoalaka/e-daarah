@@ -502,6 +502,14 @@ export const buildBroadcastHtml = (subject, message) => {
           </td>
         </tr>
       </table>
+      <table role="presentation" style="width: 100%; border-collapse: collapse; margin-top: 32px; border-top: 1px solid #eee; padding-top: 24px;">
+        <tr><td style="padding-top: 24px;">
+          <p style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.5px;">From our blog</p>
+          <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.5;"><a href="https://www.e-daarah.com/blog/what-happens-when-your-best-teacher-leaves" style="color: #2d6a4f; text-decoration: none;">What Happens When Your Best Teacher Leaves?</a></p>
+          <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.5;"><a href="https://www.e-daarah.com/blog/why-quran-tracking-is-free" style="color: #2d6a4f; text-decoration: none;">Why We Made Qur'an Tracking Free</a></p>
+          <p style="margin: 0 0 8px 0; font-size: 14px; line-height: 1.5;"><a href="https://www.e-daarah.com/blog/how-to-digitise-your-madrasah" style="color: #2d6a4f; text-decoration: none;">How to Digitise Your Madrasah — A Practical Guide</a></p>
+        </td></tr>
+      </table>
     </td>
   `;
 

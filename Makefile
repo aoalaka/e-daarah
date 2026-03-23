@@ -1,4 +1,4 @@
-.PHONY: dev test stop logs db-reset migrate seed-extra deploy stripe
+.PHONY: dev test stop logs db-reset migrate seed-extra deploy stripe test-unit test-api
 
 # ============================================
 # Local Development (hot reload)
@@ -72,6 +72,16 @@ seed-extra: ## Load additional seed data (after migrations)
 
 stripe: ## Show Stripe CLI webhook forwarding status
 	docker compose logs stripe-cli | tail -20
+
+# ============================================
+# Tests
+# ============================================
+
+test-unit: ## Run backend unit tests (no DB needed)
+	cd backend && npm run test:unit
+
+test-api: ## Run backend API tests (requires `make dev` running)
+	cd backend && npm run test:api
 
 # ============================================
 # Deploy

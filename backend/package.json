@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test:unit": "node --experimental-vm-modules node_modules/.bin/jest --testPathPatterns=tests/unit",
+    "test:api": "node --experimental-vm-modules node_modules/.bin/jest --testPathPatterns=tests/api",
     "migrate": "node migrations/run-migrations.js",
     "migrate:status": "node migrations/run-migrations.js --status"
   },
@@ -19,7 +21,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "twilio": "^5.5.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
@@ -33,10 +34,13 @@
     "mysql2": "^3.6.5",
     "resend": "^6.9.1",
     "stripe": "^20.3.0",
+    "twilio": "^5.5.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@jest/globals": "^30.3.0",
     "jest": "^30.0.0-alpha.6",
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "supertest": "^7.2.2"
   }
 }

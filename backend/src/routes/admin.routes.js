@@ -732,7 +732,19 @@ router.get('/students', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const [students] = await pool.query(
-      `SELECT s.*, c.name as class_name
+      `SELECT s.*, c.name as class_name,
+       EXISTS (
+         SELECT 1 FROM student_promotions sp
+         WHERE sp.student_id = s.id AND sp.madrasah_id = s.madrasah_id
+           AND sp.promotion_type = 'dropped_out'
+           AND s.class_id IS NULL
+           AND NOT EXISTS (
+             SELECT 1 FROM student_promotions sp2
+             WHERE sp2.student_id = sp.student_id AND sp2.madrasah_id = sp.madrasah_id
+               AND sp2.promotion_type IN ('promoted', 'transferred', 'repeated')
+               AND sp2.created_at > sp.created_at
+           )
+       ) as is_dropout
        FROM students s
        LEFT JOIN classes c ON s.class_id = c.id
        WHERE s.madrasah_id = ? AND s.deleted_at IS NULL

@@ -4294,8 +4294,8 @@ function AdminDashboard() {
                       sortable: true,
                       render: (row) => (
                         <select
-                          className="inline-class-select"
-                          value={row.class_id || ''}
+                          className={`inline-class-select${row.is_dropout ? ' is-dropout' : ''}`}
+                          value={row.is_dropout ? '__dropout__' : (row.class_id || '')}
                           onClick={(e) => e.stopPropagation()}
                           onChange={async (e) => {
                             const val = e.target.value;
@@ -4318,7 +4318,7 @@ function AdminDashboard() {
                                       }]
                                     });
                                     setStudents(prev => prev.map(s =>
-                                      s.id === row.id ? { ...s, class_id: null, class_name: null } : s
+                                      s.id === row.id ? { ...s, class_id: null, class_name: null, is_dropout: 1 } : s
                                     ));
                                     toast.success(`${row.first_name} ${row.last_name} marked as dropped out`);
                                   } catch (err) {
@@ -4331,13 +4331,13 @@ function AdminDashboard() {
                             const newClassId = val || null;
                             const newClassName = classes.find(c => String(c.id) === String(newClassId))?.name || null;
                             setStudents(prev => prev.map(s =>
-                              s.id === row.id ? { ...s, class_id: newClassId ? Number(newClassId) : null, class_name: newClassName } : s
+                              s.id === row.id ? { ...s, class_id: newClassId ? Number(newClassId) : null, class_name: newClassName, is_dropout: 0 } : s
                             ));
                             try {
                               await api.patch(`/admin/students/${row.id}/class`, { class_id: newClassId });
                             } catch (err) {
                               setStudents(prev => prev.map(s =>
-                                s.id === row.id ? { ...s, class_id: row.class_id, class_name: row.class_name } : s
+                                s.id === row.id ? { ...s, class_id: row.class_id, class_name: row.class_name, is_dropout: row.is_dropout } : s
                               ));
                               toast.error('Failed to update class');
                             }
@@ -4438,8 +4438,8 @@ function AdminDashboard() {
                               <div className="admin-mobile-card-sub">
                                 {s.student_id} · {s.gender || '-'} ·{' '}
                                 <select
-                                  className="inline-class-select"
-                                  value={s.class_id || ''}
+                                  className={`inline-class-select${s.is_dropout ? ' is-dropout' : ''}`}
+                                  value={s.is_dropout ? '__dropout__' : (s.class_id || '')}
                                   onClick={(e) => e.stopPropagation()}
                                   onChange={async (e) => {
                                     const val = e.target.value;
@@ -4462,7 +4462,7 @@ function AdminDashboard() {
                                               }]
                                             });
                                             setStudents(prev => prev.map(st =>
-                                              st.id === s.id ? { ...st, class_id: null, class_name: null } : st
+                                              st.id === s.id ? { ...st, class_id: null, class_name: null, is_dropout: 1 } : st
                                             ));
                                             toast.success(`${s.first_name} ${s.last_name} marked as dropped out`);
                                           } catch (err) {
@@ -4475,13 +4475,13 @@ function AdminDashboard() {
                                     const newClassId = val || null;
                                     const newClassName = classes.find(c => String(c.id) === String(newClassId))?.name || null;
                                     setStudents(prev => prev.map(st =>
-                                      st.id === s.id ? { ...st, class_id: newClassId ? Number(newClassId) : null, class_name: newClassName } : st
+                                      st.id === s.id ? { ...st, class_id: newClassId ? Number(newClassId) : null, class_name: newClassName, is_dropout: 0 } : st
                                     ));
                                     try {
                                       await api.patch(`/admin/students/${s.id}/class`, { class_id: newClassId });
                                     } catch (err) {
                                       setStudents(prev => prev.map(st =>
-                                        st.id === s.id ? { ...st, class_id: s.class_id, class_name: s.class_name } : st
+                                        st.id === s.id ? { ...st, class_id: s.class_id, class_name: s.class_name, is_dropout: s.is_dropout } : st
                                       ));
                                       toast.error('Failed to update class');
                                     }

@@ -619,6 +619,12 @@
   border-color: var(--dark);
 }
 
+.inline-class-select.is-dropout {
+  color: var(--error);
+  border-color: var(--error-light);
+  background: var(--error-light);
+}
+
 /* ============================================
    BUTTONS
    ============================================ */

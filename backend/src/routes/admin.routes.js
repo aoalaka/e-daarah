@@ -4282,11 +4282,11 @@ router.get('/teacher-availability/upcoming', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const today = new Date();
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
+    const upcoming = new Date(today);
+    upcoming.setDate(upcoming.getDate() + 14);
 
     const startDate = today.toISOString().split('T')[0];
-    const endDate = nextWeek.toISOString().split('T')[0];
+    const endDate = upcoming.toISOString().split('T')[0];
 
     const [rows] = await pool.query(
       `SELECT ta.teacher_id, ta.date, ta.status, ta.reason,

@@ -2303,7 +2303,7 @@ function AdminDashboard() {
                       <span>Teacher Availability</span>
                       {upcomingUnavailable.length > 0 ? (
                         <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>
-                          {upcomingUnavailable.length} unavailable this week
+                          {upcomingUnavailable.length} unavailable upcoming
                         </span>
                       ) : (
                         <span style={{ fontSize: '12px', color: '#22c55e', fontWeight: 600 }}>

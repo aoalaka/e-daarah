@@ -4300,7 +4300,6 @@ function AdminDashboard() {
                           onChange={async (e) => {
                             const val = e.target.value;
                             if (val === '__dropout__') {
-                              e.target.value = row.class_id || '';
                               setConfirmModal({
                                 title: 'Mark as Dropout',
                                 message: `Mark ${row.first_name} ${row.last_name} as dropped out? They will be removed from their class and recorded as a dropout.`,
@@ -4320,6 +4319,7 @@ function AdminDashboard() {
                                     setStudents(prev => prev.map(s =>
                                       s.id === row.id ? { ...s, class_id: null, class_name: null, is_dropout: 1 } : s
                                     ));
+                                    fetchAnalytics();
                                     toast.success(`${row.first_name} ${row.last_name} marked as dropped out`);
                                   } catch (err) {
                                     toast.error('Failed to mark as dropout');
@@ -4444,7 +4444,6 @@ function AdminDashboard() {
                                   onChange={async (e) => {
                                     const val = e.target.value;
                                     if (val === '__dropout__') {
-                                      e.target.value = s.class_id || '';
                                       setConfirmModal({
                                         title: 'Mark as Dropout',
                                         message: `Mark ${s.first_name} ${s.last_name} as dropped out? They will be removed from their class and recorded as a dropout.`,
@@ -4464,6 +4463,7 @@ function AdminDashboard() {
                                             setStudents(prev => prev.map(st =>
                                               st.id === s.id ? { ...st, class_id: null, class_name: null, is_dropout: 1 } : st
                                             ));
+                                            fetchAnalytics();
                                             toast.success(`${s.first_name} ${s.last_name} marked as dropped out`);
                                           } catch (err) {
                                             toast.error('Failed to mark as dropout');

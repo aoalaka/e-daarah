@@ -1226,6 +1226,9 @@
   flex-direction: column;
   gap: 12px;
   margin-bottom: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .ticket-message {

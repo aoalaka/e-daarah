@@ -1,4 +1,4 @@
-import { useState, useEffect, Component } from 'react';
+import { useState, useEffect, useRef, Component } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '../../services/api';
@@ -97,6 +97,9 @@ function SuperAdminDashboard() {
   const [testSmsForm, setTestSmsForm] = useState({ phone: '', message: 'Test SMS from E-Daarah' });
   const [testSmsLoading, setTestSmsLoading] = useState(false);
   const [testSmsResult, setTestSmsResult] = useState(null);
+  const [verifyingId, setVerifyingId] = useState(null);
+  const [replyLoading, setReplyLoading] = useState(false);
+  const ticketMessagesRef = useRef(null);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [newCoupon, setNewCoupon] = useState({
     code: '', discount_type: 'percent', discount_value: '',
@@ -501,13 +504,20 @@ function SuperAdminDashboard() {
 
   const handleReplyTicket = async () => {
     if (!ticketReply.trim()) return;
+    setReplyLoading(true);
     try {
       await api.post(`/superadmin/tickets/${selectedTicket.id}/reply`, { message: ticketReply }, getAuthHeader());
       setTicketReply('');
       await handleViewTicket(selectedTicket.id);
       await fetchTickets();
+      setTimeout(() => {
+        ticketMessagesRef.current?.scrollTo({ top: ticketMessagesRef.current.scrollHeight, behavior: 'smooth' });
+      }, 50);
     } catch (error) {
-      alert('Failed to send reply');
+      console.error('Reply error:', error);
+      alert(error.response?.data?.error || 'Failed to send reply');
+    } finally {
+      setReplyLoading(false);
     }
   };
 
@@ -551,13 +561,16 @@ function SuperAdminDashboard() {
   const handleVerify = async (id, status) => {
     const notes = status === 'flagged' ? prompt('Reason for flagging:') : null;
     if (status === 'flagged' && notes === null) return; // User cancelled the prompt
+    setVerifyingId(id);
     try {
       await api.patch(`/superadmin/madrasahs/${id}/verify`, { status, notes }, getAuthHeader());
       await fetchRecentRegistrations();
       await fetchDashboard();
     } catch (error) {
       console.error('Verify error:', error);
-      alert(error.response?.data?.error || 'Failed to update verification status');
+      alert(error.response?.data?.error || `Failed to ${status === 'verified' ? 'approve' : 'flag'} this madrasah`);
+    } finally {
+      setVerifyingId(null);
     }
   };
 
@@ -1874,7 +1887,7 @@ function SuperAdminDashboard() {
                   </div>
                 </div>
 
-                <div className="ticket-messages">
+                <div className="ticket-messages" ref={ticketMessagesRef}>
                   {ticketMessages.map((msg) => (
                     <div key={msg.id} className={`ticket-message ${msg.sender_type}`}>
                       <div className="message-header">
@@ -1893,10 +1906,11 @@ function SuperAdminDashboard() {
                       onChange={(e) => setTicketReply(e.target.value)}
                       placeholder="Type your reply..."
                       rows={3}
+                      disabled={replyLoading}
                     />
                     <div className="ticket-reply-actions">
-                      <button className="btn primary" onClick={handleReplyTicket} disabled={!ticketReply.trim()}>
-                        Send Reply
+                      <button className="btn primary" onClick={handleReplyTicket} disabled={!ticketReply.trim() || replyLoading}>
+                        {replyLoading ? 'Sending…' : 'Send Reply'}
                       </button>
                       {selectedTicket.status !== 'resolved' && (
                         <button className="btn secondary" onClick={() => handleCloseTicket(selectedTicket.id)}>
@@ -2013,14 +2027,16 @@ function SuperAdminDashboard() {
                           <button
                             onClick={() => handleVerify(r.id, 'verified')}
                             className="btn-small success"
+                            disabled={verifyingId === r.id}
                           >
-                            Approve
+                            {verifyingId === r.id ? 'Approving…' : 'Approve'}
                           </button>
                         )}
                         {r.verification_status !== 'flagged' && (
                           <button
                             onClick={() => handleVerify(r.id, 'flagged')}
                             className="btn-small warning"
+                            disabled={verifyingId === r.id}
                           >
                             Flag
                           </button>

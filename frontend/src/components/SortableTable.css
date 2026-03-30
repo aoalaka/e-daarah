@@ -254,7 +254,7 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .sortable-table .sort-icon {
     font-size: 10px;
     margin-left: 4px;

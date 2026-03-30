@@ -619,6 +619,11 @@
   border-color: var(--dark);
 }
 
+/* Print header — hidden on screen, shown only in print */
+.students-print-header {
+  display: none;
+}
+
 .inline-class-select.is-dropout {
   color: var(--error);
   border-color: var(--error-light);
@@ -1792,7 +1797,7 @@ a:focus-visible,
 /* ============================================
    RESPONSIVE - Mobile
    ============================================ */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .dashboard {
     max-width: 100vw;
     overflow-x: hidden;
@@ -3284,8 +3289,8 @@ a:focus-visible,
 /* Print styles for report card */
 @media print {
   @page {
-    size: A4;
-    margin: 8mm 12mm;
+    size: A4 landscape;
+    margin: 6mm 8mm;
   }
 
   * {
@@ -3310,8 +3315,32 @@ a:focus-visible,
   .btn,
   .no-print,
   .section-header,
-  .card.no-print {
+  .card.no-print,
+  .btb,
+  .demo-banner,
+  .trial-banner,
+  .verification-banner,
+  .announcement-banner,
+  .offline-banner,
+  .table-search,
+  .table-selection-bar,
+  .table-pagination,
+  .table-checkbox,
+  th:has(.table-checkbox),
+  td:has(.table-checkbox),
+  .sort-icon,
+  .search-results-count {
     display: none !important;
+  }
+
+  .main-wrapper {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .main {
+    padding: 0 !important;
   }
 
   /* Show print header */
@@ -3475,6 +3504,71 @@ a:focus-visible,
   .footer-logo {
     height: 25px !important;
     width: auto !important;
+  }
+
+  /* Student list print styles */
+  .students-print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #333;
+  }
+
+  .students-print-header h2 {
+    font-size: 18px;
+    margin: 0 0 4px 0;
+  }
+
+  .students-print-header p {
+    font-size: 12px;
+    color: #666;
+    margin: 0;
+  }
+
+  .students-desktop {
+    display: block !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .students-mobile-cards {
+    display: none !important;
+  }
+
+  .inline-class-select {
+    -webkit-appearance: none;
+    appearance: none;
+    border: none !important;
+    background: none !important;
+    padding: 0 !important;
+    font-size: 9px !important;
+    color: #000 !important;
+  }
+
+  .sortable-table th:last-child,
+  .sortable-table td:last-child {
+    display: none !important;
+  }
+
+  .sortable-table {
+    font-size: 9px;
+    width: 100%;
+    table-layout: auto;
+    word-break: break-word;
+  }
+
+  .sortable-table th,
+  .sortable-table td {
+    padding: 3px 4px !important;
+    border: 1px solid #ddd;
+    white-space: nowrap;
+  }
+
+  .sortable-table th {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
 }
 
@@ -4226,7 +4320,7 @@ a:focus-visible,
 }
 
 /* --- 768px breakpoint: tablets & phones --- */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
 
   /* Hide admin desktop tables, show mobile cards */
   .admin-table-desktop,

@@ -504,8 +504,8 @@ function SuperAdminDashboard() {
     try {
       await api.post(`/superadmin/tickets/${selectedTicket.id}/reply`, { message: ticketReply }, getAuthHeader());
       setTicketReply('');
-      handleViewTicket(selectedTicket.id);
-      fetchTickets();
+      await handleViewTicket(selectedTicket.id);
+      await fetchTickets();
     } catch (error) {
       alert('Failed to send reply');
     }
@@ -550,12 +550,14 @@ function SuperAdminDashboard() {
 
   const handleVerify = async (id, status) => {
     const notes = status === 'flagged' ? prompt('Reason for flagging:') : null;
+    if (status === 'flagged' && notes === null) return; // User cancelled the prompt
     try {
       await api.patch(`/superadmin/madrasahs/${id}/verify`, { status, notes }, getAuthHeader());
-      fetchRecentRegistrations();
-      fetchDashboard();
+      await fetchRecentRegistrations();
+      await fetchDashboard();
     } catch (error) {
-      alert('Failed to update verification status');
+      console.error('Verify error:', error);
+      alert(error.response?.data?.error || 'Failed to update verification status');
     }
   };
 

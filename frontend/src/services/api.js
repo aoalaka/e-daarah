@@ -87,6 +87,15 @@ api.interceptors.response.use(
     // For 401 (unauthorized/session expired), redirect to login
     // Don't redirect on 403 - it may be a permission issue that doesn't require logout
     if (error.response?.status === 401) {
+      // Super admin routes: clear super admin token, redirect to super admin login
+      const isSuperAdminRoute = requestUrl?.includes('/superadmin');
+      if (isSuperAdminRoute) {
+        localStorage.removeItem('superAdminToken');
+        const isAdminSubdomain = window.location.hostname.startsWith('admin.');
+        window.location.href = isAdminSubdomain ? '/login' : '/superadmin/login';
+        return Promise.reject(error);
+      }
+
       const isParentRoute = window.location.pathname.includes('/parent');
 
       // Parent portal: only clear parent tokens, redirect to parent login

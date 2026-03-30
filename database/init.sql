@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS madrasahs (
     enable_punctuality_grade BOOLEAN NOT NULL DEFAULT FALSE,
     -- Availability planner
     availability_planner_aware TINYINT(1) NOT NULL DEFAULT 1,
+    -- Scheduling mode
+    scheduling_mode ENUM('academic', 'cohort') NOT NULL DEFAULT 'academic',
     -- Auto fee reminders
     auto_fee_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     auto_fee_reminder_message TEXT NULL DEFAULT NULL,
@@ -173,12 +175,52 @@ CREATE TABLE IF NOT EXISTS semesters (
 );
 
 -- =====================================================
+-- Cohorts table (like sessions but multiple can be active)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS cohorts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    madrasah_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    is_active BOOLEAN DEFAULT FALSE,
+    default_school_days JSON DEFAULT NULL COMMENT 'Default school days for this cohort e.g. ["Saturday", "Sunday"]',
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+    INDEX idx_cohorts_madrasah (madrasah_id),
+    INDEX idx_cohorts_active (madrasah_id, is_active),
+    INDEX idx_cohorts_deleted (madrasah_id, deleted_at)
+);
+
+-- =====================================================
+-- Cohort Periods table (like semesters, within a cohort)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS cohort_periods (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    cohort_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    is_active BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (cohort_id) REFERENCES cohorts(id) ON DELETE CASCADE,
+    INDEX idx_cohort_periods_cohort (cohort_id),
+    INDEX idx_cohort_periods_deleted (cohort_id, deleted_at),
+    INDEX idx_cohort_periods_active (is_active)
+);
+
+-- =====================================================
 -- Academic Holidays table
 -- =====================================================
 CREATE TABLE IF NOT EXISTS academic_holidays (
     id INT AUTO_INCREMENT PRIMARY KEY,
     madrasah_id INT NOT NULL,
     session_id INT NOT NULL,
+    cohort_id INT NULL DEFAULT NULL,
     title VARCHAR(255) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -188,8 +230,10 @@ CREATE TABLE IF NOT EXISTS academic_holidays (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+    CONSTRAINT fk_holidays_cohort FOREIGN KEY (cohort_id) REFERENCES cohorts(id) ON DELETE CASCADE,
     INDEX idx_holidays_madrasah (madrasah_id),
-    INDEX idx_holidays_session (session_id)
+    INDEX idx_holidays_session (session_id),
+    INDEX idx_holidays_cohort (cohort_id)
 );
 
 -- =====================================================
@@ -199,6 +243,7 @@ CREATE TABLE IF NOT EXISTS schedule_overrides (
     id INT AUTO_INCREMENT PRIMARY KEY,
     madrasah_id INT NOT NULL,
     session_id INT NOT NULL,
+    cohort_id INT NULL DEFAULT NULL,
     title VARCHAR(255) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -208,8 +253,10 @@ CREATE TABLE IF NOT EXISTS schedule_overrides (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+    CONSTRAINT fk_overrides_cohort FOREIGN KEY (cohort_id) REFERENCES cohorts(id) ON DELETE CASCADE,
     INDEX idx_overrides_madrasah (madrasah_id),
-    INDEX idx_overrides_session (session_id)
+    INDEX idx_overrides_session (session_id),
+    INDEX idx_overrides_cohort (cohort_id)
 );
 
 -- =====================================================
@@ -218,6 +265,7 @@ CREATE TABLE IF NOT EXISTS schedule_overrides (
 CREATE TABLE IF NOT EXISTS classes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     madrasah_id INT NOT NULL,
+    cohort_id INT NULL DEFAULT NULL,
     name VARCHAR(100) NOT NULL,
     grade_level VARCHAR(50),
     school_days JSON COMMENT 'Array of school days, e.g. ["Monday", "Wednesday"]',
@@ -226,7 +274,9 @@ CREATE TABLE IF NOT EXISTS classes (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+    CONSTRAINT fk_classes_cohort FOREIGN KEY (cohort_id) REFERENCES cohorts(id) ON DELETE SET NULL,
     INDEX idx_madrasah (madrasah_id),
+    INDEX idx_classes_cohort (cohort_id),
     INDEX idx_classes_deleted_at (deleted_at),
     INDEX idx_classes_madrasah_deleted (madrasah_id, deleted_at)
 );
@@ -297,7 +347,8 @@ CREATE TABLE IF NOT EXISTS attendance (
     madrasah_id INT NOT NULL,
     student_id INT NOT NULL,
     class_id INT NOT NULL,
-    semester_id INT NOT NULL,
+    semester_id INT NULL DEFAULT NULL,
+    cohort_period_id INT NULL DEFAULT NULL,
     user_id INT NOT NULL,
     date DATE NOT NULL,
     present BOOLEAN DEFAULT FALSE,
@@ -313,12 +364,15 @@ CREATE TABLE IF NOT EXISTS attendance (
     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
     FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
     FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+    CONSTRAINT fk_attendance_cohort_period FOREIGN KEY (cohort_period_id) REFERENCES cohort_periods(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY unique_attendance (student_id, class_id, semester_id, date),
+    UNIQUE KEY unique_attendance_cohort (student_id, class_id, cohort_period_id, date),
     INDEX idx_madrasah (madrasah_id),
     INDEX idx_student (student_id),
     INDEX idx_class (class_id),
     INDEX idx_semester (semester_id),
+    INDEX idx_attendance_cohort_period (cohort_period_id),
     INDEX idx_date (date),
     INDEX idx_attendance_deleted_at (deleted_at),
     INDEX idx_attendance_class_date (class_id, date, madrasah_id),
@@ -335,7 +389,8 @@ CREATE TABLE IF NOT EXISTS exam_performance (
     id INT AUTO_INCREMENT PRIMARY KEY,
     madrasah_id INT NOT NULL,
     student_id INT NOT NULL,
-    semester_id INT NOT NULL,
+    semester_id INT NULL DEFAULT NULL,
+    cohort_period_id INT NULL DEFAULT NULL,
     user_id INT NOT NULL,
     subject VARCHAR(100) NOT NULL,
     score DECIMAL(5,2),
@@ -350,10 +405,12 @@ CREATE TABLE IF NOT EXISTS exam_performance (
     FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
     FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
     FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+    CONSTRAINT fk_exam_cohort_period FOREIGN KEY (cohort_period_id) REFERENCES cohort_periods(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_madrasah (madrasah_id),
     INDEX idx_student (student_id),
     INDEX idx_semester (semester_id),
+    INDEX idx_exam_cohort_period (cohort_period_id),
     INDEX idx_exam_performance_deleted_at (deleted_at),
     INDEX idx_exam_student_madrasah (student_id, madrasah_id),
     INDEX idx_exam_semester (semester_id, madrasah_id)
@@ -630,6 +687,7 @@ CREATE TABLE IF NOT EXISTS quran_progress (
   student_id INT NOT NULL,
   class_id INT DEFAULT NULL,
   semester_id INT DEFAULT NULL,
+  cohort_period_id INT DEFAULT NULL,
   user_id INT NOT NULL COMMENT 'Teacher who recorded',
   date DATE NOT NULL,
   type ENUM('hifz', 'tilawah', 'revision') NOT NULL,
@@ -650,9 +708,11 @@ CREATE TABLE IF NOT EXISTS quran_progress (
   INDEX idx_quran_student (student_id, deleted_at),
   INDEX idx_quran_class_date (class_id, date, deleted_at),
   INDEX idx_quran_semester (semester_id, deleted_at),
+  INDEX idx_quran_cohort_period (cohort_period_id),
   FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id),
   FOREIGN KEY (student_id) REFERENCES students(id),
-  FOREIGN KEY (class_id) REFERENCES classes(id)
+  FOREIGN KEY (class_id) REFERENCES classes(id),
+  CONSTRAINT fk_quran_cohort_period FOREIGN KEY (cohort_period_id) REFERENCES cohort_periods(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS quran_student_position (

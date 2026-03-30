@@ -9,9 +9,36 @@ const router = express.Router();
 router.use(authenticateToken, requireRole('teacher'));
 
 // Get active session and semester (scoped to madrasah)
+// In cohort mode: returns scheduling_mode + active cohorts + active periods
 router.get('/active-session-semester', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
+
+    // Check scheduling mode
+    const [[madrasah]] = await pool.query(
+      'SELECT COALESCE(scheduling_mode, \'academic\') as scheduling_mode FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+    const mode = madrasah?.scheduling_mode || 'academic';
+
+    if (mode === 'cohort') {
+      const [cohorts] = await pool.query(
+        'SELECT * FROM cohorts WHERE madrasah_id = ? AND is_active = TRUE AND deleted_at IS NULL ORDER BY start_date ASC',
+        [madrasahId]
+      );
+      const cohortIds = cohorts.map(c => c.id);
+      let periods = [];
+      if (cohortIds.length > 0) {
+        [periods] = await pool.query(
+          `SELECT cp.*, c.name as cohort_name FROM cohort_periods cp
+           JOIN cohorts c ON cp.cohort_id = c.id
+           WHERE cp.cohort_id IN (?) AND cp.is_active = TRUE AND cp.deleted_at IS NULL`,
+          [cohortIds]
+        );
+      }
+      return res.json({ scheduling_mode: 'cohort', cohorts, periods, session: null, semester: null });
+    }
+
     const [sessions] = await pool.query(
       'SELECT * FROM sessions WHERE madrasah_id = ? AND is_active = TRUE AND deleted_at IS NULL LIMIT 1',
       [madrasahId]
@@ -25,6 +52,7 @@ router.get('/active-session-semester', async (req, res) => {
     );
 
     res.json({
+      scheduling_mode: 'academic',
       session: sessions[0] || null,
       semester: semesters[0] || null
     });
@@ -34,12 +62,77 @@ router.get('/active-session-semester', async (req, res) => {
 });
 
 // Helper: check if a date is a valid school day
-// Priority: schedule override > class-level school days > session default
+// In academic mode: priority = schedule override > class school days > session default
+// In cohort mode: uses the class's cohort date range, school days, holidays, overrides
 async function isValidSchoolDay(madrasahId, dateStr, classId = null) {
   const date = new Date(dateStr + 'T00:00:00Z');
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const dayOfWeek = dayNames[date.getUTCDay()];
 
+  // Check scheduling mode
+  const [[madrasah]] = await pool.query(
+    'SELECT COALESCE(scheduling_mode, \'academic\') as scheduling_mode FROM madrasahs WHERE id = ?',
+    [madrasahId]
+  );
+  const mode = madrasah?.scheduling_mode || 'academic';
+
+  if (mode === 'cohort' && classId) {
+    // Cohort mode: find the cohort this class belongs to
+    const [[cls]] = await pool.query(
+      'SELECT cohort_id, school_days FROM classes WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [classId, madrasahId]
+    );
+    if (!cls || !cls.cohort_id) {
+      return { valid: false, reason: 'This class is not assigned to a cohort' };
+    }
+
+    const [[cohort]] = await pool.query(
+      'SELECT * FROM cohorts WHERE id = ? AND deleted_at IS NULL AND start_date <= ? AND end_date >= ?',
+      [cls.cohort_id, dateStr, dateStr]
+    );
+    if (!cohort) {
+      return { valid: false, reason: 'Date is not within this cohort\'s date range' };
+    }
+
+    // Check cohort holiday
+    const [holidays] = await pool.query(
+      'SELECT name FROM academic_holidays WHERE cohort_id = ? AND date = ?',
+      [cls.cohort_id, dateStr]
+    );
+    if (holidays.length > 0) {
+      return { valid: false, reason: `Holiday: ${holidays[0].name}` };
+    }
+
+    // Check cohort schedule override
+    const [overrides] = await pool.query(
+      'SELECT is_school_day FROM schedule_overrides WHERE cohort_id = ? AND date = ?',
+      [cls.cohort_id, dateStr]
+    );
+    if (overrides.length > 0) {
+      return overrides[0].is_school_day
+        ? { valid: true }
+        : { valid: false, reason: 'Not a school day (schedule override)' };
+    }
+
+    // Use class school days, then cohort default school days
+    let schoolDays = null;
+    if (cls.school_days) {
+      const classDays = typeof cls.school_days === 'string' ? JSON.parse(cls.school_days) : cls.school_days;
+      if (Array.isArray(classDays) && classDays.length > 0) schoolDays = classDays;
+    }
+    if (!schoolDays && cohort.default_school_days) {
+      const cohortDays = typeof cohort.default_school_days === 'string' ? JSON.parse(cohort.default_school_days) : cohort.default_school_days;
+      if (Array.isArray(cohortDays) && cohortDays.length > 0) schoolDays = cohortDays;
+    }
+
+    if (!schoolDays || schoolDays.length === 0) return { valid: true };
+    if (!schoolDays.includes(dayOfWeek)) {
+      return { valid: false, reason: `${dayOfWeek} is not a school day` };
+    }
+    return { valid: true };
+  }
+
+  // Academic mode (original logic)
   // 1. Find the active session that contains this date
   const [sessions] = await pool.query(
     `SELECT id, default_school_days FROM sessions
@@ -91,10 +184,9 @@ async function isValidSchoolDay(madrasahId, dateStr, classId = null) {
 
   let schoolDays;
   if (overrides.length > 0) {
-    // Use override school days
     schoolDays = typeof overrides[0].school_days === 'string' ? JSON.parse(overrides[0].school_days) : overrides[0].school_days;
   } else if (classId) {
-    // 5. Check class-level school days (if class has its own schedule)
+    // 5. Check class-level school days
     const [classRows] = await pool.query(
       'SELECT school_days FROM classes WHERE id = ? AND madrasah_id = ?',
       [classId, madrasahId]
@@ -105,21 +197,17 @@ async function isValidSchoolDay(madrasahId, dateStr, classId = null) {
         schoolDays = classDays;
       }
     }
-    // Fall back to session default if class has no school days set
     if (!schoolDays) {
       schoolDays = session.default_school_days ? (typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days) : null;
     }
   } else {
-    // Use session default school days
     schoolDays = session.default_school_days ? (typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days) : null;
   }
 
-  // 6. If no school days configured, allow any day (backward compat)
   if (!schoolDays || !Array.isArray(schoolDays) || schoolDays.length === 0) {
     return { valid: true };
   }
 
-  // 7. Check if day of week is in the school days list
   if (!schoolDays.includes(dayOfWeek)) {
     return { valid: false, reason: `${dayOfWeek} is not a school day` };
   }
@@ -142,23 +230,74 @@ router.get('/validate-attendance-date', async (req, res) => {
   }
 });
 
-// GET school day info for the active session (for the teacher date picker)
+// GET school day info for the active session/cohort (for the teacher date picker)
 router.get('/school-day-info', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
+    const { classId } = req.query;
 
-    // Get active session
+    // Check scheduling mode
+    const [[madrasah]] = await pool.query(
+      'SELECT COALESCE(scheduling_mode, \'academic\') as scheduling_mode FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+    const mode = madrasah?.scheduling_mode || 'academic';
+
+    if (mode === 'cohort' && classId) {
+      const [[cls]] = await pool.query(
+        'SELECT cohort_id, school_days FROM classes WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+        [classId, madrasahId]
+      );
+      if (!cls || !cls.cohort_id) {
+        return res.json({ schoolDays: [], holidays: [], overrides: [], scheduling_mode: 'cohort' });
+      }
+
+      const [[cohort]] = await pool.query(
+        'SELECT * FROM cohorts WHERE id = ? AND deleted_at IS NULL',
+        [cls.cohort_id]
+      );
+      if (!cohort) return res.json({ schoolDays: [], holidays: [], overrides: [], scheduling_mode: 'cohort' });
+
+      // School days: class overrides cohort default
+      let schoolDays = [];
+      if (cls.school_days) {
+        const classDays = typeof cls.school_days === 'string' ? JSON.parse(cls.school_days) : cls.school_days;
+        if (Array.isArray(classDays) && classDays.length > 0) schoolDays = classDays;
+      }
+      if (schoolDays.length === 0 && cohort.default_school_days) {
+        const cohortDays = typeof cohort.default_school_days === 'string' ? JSON.parse(cohort.default_school_days) : cohort.default_school_days;
+        if (Array.isArray(cohortDays)) schoolDays = cohortDays;
+      }
+
+      const [holidays] = await pool.query(
+        'SELECT id, name as title, date as start_date, date as end_date FROM academic_holidays WHERE cohort_id = ? ORDER BY date',
+        [cls.cohort_id]
+      );
+      const [overrides] = await pool.query(
+        'SELECT id, date as start_date, date as end_date, is_school_day, reason FROM schedule_overrides WHERE cohort_id = ? ORDER BY date',
+        [cls.cohort_id]
+      );
+
+      return res.json({
+        scheduling_mode: 'cohort',
+        schoolDays,
+        holidays,
+        overrides,
+        sessionStart: cohort.start_date,
+        sessionEnd: cohort.end_date
+      });
+    }
+
+    // Academic mode
     const [sessions] = await pool.query(
       'SELECT id, default_school_days, start_date, end_date FROM sessions WHERE madrasah_id = ? AND is_active = TRUE AND deleted_at IS NULL LIMIT 1',
       [madrasahId]
     );
-    if (sessions.length === 0) return res.json({ schoolDays: [], holidays: [], overrides: [] });
+    if (sessions.length === 0) return res.json({ scheduling_mode: 'academic', schoolDays: [], holidays: [], overrides: [] });
 
     const session = sessions[0];
     let schoolDays = session.default_school_days ? (typeof session.default_school_days === 'string' ? JSON.parse(session.default_school_days) : session.default_school_days) : [];
 
-    // If classId provided, check for class-level school days (override session default)
-    const { classId } = req.query;
     if (classId) {
       const [classRows] = await pool.query(
         'SELECT school_days FROM classes WHERE id = ? AND madrasah_id = ?',
@@ -172,19 +311,16 @@ router.get('/school-day-info', async (req, res) => {
       }
     }
 
-    // Get holidays for active session
     const [holidays] = await pool.query(
       'SELECT id, title, start_date, end_date FROM academic_holidays WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL ORDER BY start_date',
       [madrasahId, session.id]
     );
-
-    // Get schedule overrides for active session
     const [overrides] = await pool.query(
       'SELECT id, title, start_date, end_date, school_days FROM schedule_overrides WHERE madrasah_id = ? AND session_id = ? AND deleted_at IS NULL ORDER BY start_date',
       [madrasahId, session.id]
     );
 
-    res.json({ schoolDays, holidays, overrides, sessionStart: session.start_date, sessionEnd: session.end_date });
+    res.json({ scheduling_mode: 'academic', schoolDays, holidays, overrides, sessionStart: session.start_date, sessionEnd: session.end_date });
   } catch (error) {
     console.error('Get school day info error:', error);
     res.status(500).json({ error: 'Failed to fetch school day info' });
@@ -516,13 +652,25 @@ router.get('/classes/:classId/attendance/:date', async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const [attendance] = await pool.query(
-      `SELECT a.*, s.first_name, s.last_name, s.student_id
-       FROM attendance a
-       INNER JOIN students s ON a.student_id = s.id
-       WHERE a.class_id = ? AND a.date = ? AND a.semester_id = ? AND a.madrasah_id = ?`,
-      [classId, date, semester_id, madrasahId]
-    );
+    const { cohort_period_id } = req.query;
+    let attendance;
+    if (cohort_period_id) {
+      [attendance] = await pool.query(
+        `SELECT a.*, s.first_name, s.last_name, s.student_id
+         FROM attendance a
+         INNER JOIN students s ON a.student_id = s.id
+         WHERE a.class_id = ? AND a.date = ? AND a.cohort_period_id = ? AND a.madrasah_id = ?`,
+        [classId, date, cohort_period_id, madrasahId]
+      );
+    } else {
+      [attendance] = await pool.query(
+        `SELECT a.*, s.first_name, s.last_name, s.student_id
+         FROM attendance a
+         INNER JOIN students s ON a.student_id = s.id
+         WHERE a.class_id = ? AND a.date = ? AND a.semester_id = ? AND a.madrasah_id = ?`,
+        [classId, date, semester_id, madrasahId]
+      );
+    }
 
     res.json(attendance);
   } catch (error) {
@@ -535,7 +683,7 @@ router.post('/classes/:classId/attendance', requireActiveSubscription, async (re
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { student_id, semester_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes, timezone } = req.body;
+    const { student_id, semester_id, cohort_period_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes, timezone } = req.body;
 
     // Validate date is not in the future using client's timezone
     const clientTimezone = timezone || 'UTC';
@@ -597,8 +745,8 @@ router.post('/classes/:classId/attendance', requireActiveSubscription, async (re
 
     // Insert or update attendance
     await pool.query(
-      `INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, user_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, cohort_period_id, user_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
          present = VALUES(present),
          dressing_grade = VALUES(dressing_grade),
@@ -606,7 +754,7 @@ router.post('/classes/:classId/attendance', requireActiveSubscription, async (re
          punctuality_grade = VALUES(punctuality_grade),
          notes = VALUES(notes),
          updated_at = CURRENT_TIMESTAMP`,
-      [madrasahId, student_id, classId, semester_id, req.user.id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes]
+      [madrasahId, student_id, classId, semester_id ?? null, cohort_period_id ?? null, req.user.id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes]
     );
 
     res.json({ message: 'Attendance recorded successfully' });
@@ -621,7 +769,7 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { semester_id, date, records, timezone } = req.body;
+    const { semester_id, cohort_period_id, date, records, timezone } = req.body;
 
     // Validate date is not in the future using client's timezone
     const clientTimezone = timezone || 'UTC';
@@ -718,8 +866,8 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
     // Insert/update all records
     for (const record of records) {
       await pool.query(
-        `INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, user_id, date, present, absence_reason, dressing_grade, behavior_grade, punctuality_grade, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, cohort_period_id, user_id, date, present, absence_reason, dressing_grade, behavior_grade, punctuality_grade, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
            present = VALUES(present),
            absence_reason = VALUES(absence_reason),
@@ -732,7 +880,8 @@ router.post('/classes/:classId/attendance/bulk', requireActiveSubscription, asyn
           madrasahId,
           record.student_id,
           classId,
-          semester_id,
+          semester_id ?? null,
+          cohort_period_id ?? null,
           req.user.id,
           date,
           record.present,
@@ -885,7 +1034,7 @@ router.post('/classes/:classId/exam-performance/bulk', requireActiveSubscription
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { session_id, semester_id, subject, exam_date, max_score, students } = req.body;
+    const { session_id, semester_id, cohort_period_id, subject, exam_date, max_score, students } = req.body;
 
     // Verify access
     const [access] = await pool.query(
@@ -899,8 +1048,8 @@ router.post('/classes/:classId/exam-performance/bulk', requireActiveSubscription
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    // Validate required fields
-    if (!session_id || !semester_id || !subject || !exam_date || !max_score || !students || !Array.isArray(students)) {
+    // Validate required fields — either semester_id (academic) or cohort_period_id (cohort) must be present
+    if ((!semester_id && !cohort_period_id) || !subject || !exam_date || !max_score || !students || !Array.isArray(students)) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -959,12 +1108,13 @@ router.post('/classes/:classId/exam-performance/bulk', requireActiveSubscription
 
       await pool.query(
         `INSERT INTO exam_performance
-         (madrasah_id, student_id, semester_id, user_id, subject, exam_date, max_score, score, is_absent, absence_reason, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (madrasah_id, student_id, semester_id, cohort_period_id, user_id, subject, exam_date, max_score, score, is_absent, absence_reason, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           madrasahId,
           student_id,
-          semester_id,
+          semester_id ?? null,
+          cohort_period_id ?? null,
           req.user.id,
           subject,
           exam_date,

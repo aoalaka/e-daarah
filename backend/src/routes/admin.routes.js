@@ -479,7 +479,7 @@ router.put('/classes/:id', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
-    const { name, grade_level, school_days, description } = req.body;
+    const { name, grade_level, school_days, description, cohort_id } = req.body;
 
     // Verify class belongs to this madrasah
     const [check] = await pool.query(
@@ -490,11 +490,22 @@ router.put('/classes/:id', requireActiveSubscription, async (req, res) => {
       return res.status(404).json({ error: 'Class not found' });
     }
 
+    // Validate cohort_id belongs to this madrasah if provided
+    if (cohort_id != null) {
+      const [cohortCheck] = await pool.query(
+        'SELECT id FROM cohorts WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+        [cohort_id, madrasahId]
+      );
+      if (cohortCheck.length === 0) {
+        return res.status(400).json({ error: 'Cohort not found' });
+      }
+    }
+
     await pool.query(
-      'UPDATE classes SET name = ?, grade_level = ?, school_days = ?, description = ? WHERE id = ? AND madrasah_id = ?',
-      [name, grade_level, JSON.stringify(school_days), description, id, madrasahId]
+      'UPDATE classes SET name = ?, grade_level = ?, school_days = ?, description = ?, cohort_id = ? WHERE id = ? AND madrasah_id = ?',
+      [name, grade_level, JSON.stringify(school_days), description, cohort_id ?? null, id, madrasahId]
     );
-    res.json({ id: parseInt(id), name, grade_level, school_days, description });
+    res.json({ id: parseInt(id), name, grade_level, school_days, description, cohort_id: cohort_id ?? null });
   } catch (error) {
     console.error('Failed to update class:', error);
     res.status(500).json({ error: 'Failed to update class' });
@@ -2368,6 +2379,7 @@ router.get('/profile', async (req, res) => {
        auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent
        ${hasTimingCol ? ', auto_fee_reminder_timing' : ''}
        ${hasAvailabilityCol ? ', availability_planner_aware' : ''}
+       , COALESCE(scheduling_mode, 'academic') as scheduling_mode
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -2486,6 +2498,11 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
       } catch {}
     }
 
+    if (typeof req.body.scheduling_mode === 'string' && ['academic', 'cohort'].includes(req.body.scheduling_mode)) {
+      updates.push('scheduling_mode = ?');
+      params.push(req.body.scheduling_mode);
+    }
+
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No valid settings provided' });
     }
@@ -2497,7 +2514,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
     );
 
     // Return updated settings
-    let settingsCols = 'enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent';
+    let settingsCols = 'enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent, COALESCE(scheduling_mode, \'academic\') as scheduling_mode';
     try {
       await pool.query('SELECT auto_fee_reminder_timing FROM madrasahs LIMIT 0');
       settingsCols += ', auto_fee_reminder_timing';
@@ -4439,6 +4456,295 @@ router.delete('/student-applications/:id', async (req, res) => {
   } catch (error) {
     console.error('Failed to delete application:', error);
     res.status(500).json({ error: 'Failed to delete application' });
+  }
+});
+
+// ============================================
+// COHORT SCHEDULING
+// ============================================
+
+// List cohorts
+router.get('/cohorts', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [cohorts] = await pool.query(
+      `SELECT c.*, COUNT(cl.id) as class_count
+       FROM cohorts c
+       LEFT JOIN classes cl ON cl.cohort_id = c.id AND cl.deleted_at IS NULL
+       WHERE c.madrasah_id = ? AND c.deleted_at IS NULL
+       GROUP BY c.id
+       ORDER BY c.start_date DESC`,
+      [madrasahId]
+    );
+    res.json(cohorts);
+  } catch (error) {
+    console.error('Failed to fetch cohorts:', error);
+    res.status(500).json({ error: 'Failed to fetch cohorts' });
+  }
+});
+
+// Get single cohort with periods
+router.get('/cohorts/:id', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [[cohort]] = await pool.query(
+      'SELECT * FROM cohorts WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [req.params.id, madrasahId]
+    );
+    if (!cohort) return res.status(404).json({ error: 'Cohort not found' });
+
+    const [periods] = await pool.query(
+      'SELECT * FROM cohort_periods WHERE cohort_id = ? AND deleted_at IS NULL ORDER BY start_date ASC',
+      [req.params.id]
+    );
+    const [classes] = await pool.query(
+      'SELECT id, name, grade_level FROM classes WHERE cohort_id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [req.params.id, madrasahId]
+    );
+    res.json({ ...cohort, periods, classes });
+  } catch (error) {
+    console.error('Failed to fetch cohort:', error);
+    res.status(500).json({ error: 'Failed to fetch cohort' });
+  }
+});
+
+// Create cohort
+router.post('/cohorts', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { name, start_date, end_date, is_active, default_school_days } = req.body;
+    if (!name || !start_date || !end_date) {
+      return res.status(400).json({ error: 'name, start_date and end_date are required' });
+    }
+    const [result] = await pool.query(
+      'INSERT INTO cohorts (madrasah_id, name, start_date, end_date, is_active, default_school_days) VALUES (?, ?, ?, ?, ?, ?)',
+      [madrasahId, name, start_date, end_date, is_active || false, default_school_days ? JSON.stringify(default_school_days) : null]
+    );
+    res.status(201).json({ id: result.insertId, madrasah_id: madrasahId, name, start_date, end_date, is_active: is_active || false, default_school_days });
+  } catch (error) {
+    console.error('Failed to create cohort:', error);
+    res.status(500).json({ error: 'Failed to create cohort' });
+  }
+});
+
+// Update cohort
+router.put('/cohorts/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    const { name, start_date, end_date, is_active, default_school_days } = req.body;
+
+    const [check] = await pool.query(
+      'SELECT id FROM cohorts WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [id, madrasahId]
+    );
+    if (check.length === 0) return res.status(404).json({ error: 'Cohort not found' });
+
+    await pool.query(
+      'UPDATE cohorts SET name = ?, start_date = ?, end_date = ?, is_active = ?, default_school_days = ? WHERE id = ? AND madrasah_id = ?',
+      [name, start_date, end_date, is_active, default_school_days ? JSON.stringify(default_school_days) : null, id, madrasahId]
+    );
+    res.json({ id: parseInt(id), name, start_date, end_date, is_active, default_school_days });
+  } catch (error) {
+    console.error('Failed to update cohort:', error);
+    res.status(500).json({ error: 'Failed to update cohort' });
+  }
+});
+
+// Delete cohort (soft delete)
+router.delete('/cohorts/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    await pool.query(
+      'UPDATE cohorts SET deleted_at = NOW() WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [req.params.id, madrasahId]
+    );
+    // Unassign classes from this cohort
+    await pool.query('UPDATE classes SET cohort_id = NULL WHERE cohort_id = ? AND madrasah_id = ?', [req.params.id, madrasahId]);
+    res.json({ message: 'Cohort deleted' });
+  } catch (error) {
+    console.error('Failed to delete cohort:', error);
+    res.status(500).json({ error: 'Failed to delete cohort' });
+  }
+});
+
+// List periods for a cohort
+router.get('/cohorts/:cohortId/periods', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    // Verify cohort belongs to this madrasah
+    const [[cohort]] = await pool.query(
+      'SELECT id FROM cohorts WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [req.params.cohortId, madrasahId]
+    );
+    if (!cohort) return res.status(404).json({ error: 'Cohort not found' });
+
+    const [periods] = await pool.query(
+      'SELECT * FROM cohort_periods WHERE cohort_id = ? AND deleted_at IS NULL ORDER BY start_date ASC',
+      [req.params.cohortId]
+    );
+    res.json(periods);
+  } catch (error) {
+    console.error('Failed to fetch cohort periods:', error);
+    res.status(500).json({ error: 'Failed to fetch cohort periods' });
+  }
+});
+
+// Create period for a cohort
+router.post('/cohorts/:cohortId/periods', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { name, start_date, end_date, is_active } = req.body;
+    if (!name || !start_date || !end_date) {
+      return res.status(400).json({ error: 'name, start_date and end_date are required' });
+    }
+    const [[cohort]] = await pool.query(
+      'SELECT id FROM cohorts WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [req.params.cohortId, madrasahId]
+    );
+    if (!cohort) return res.status(404).json({ error: 'Cohort not found' });
+
+    const [result] = await pool.query(
+      'INSERT INTO cohort_periods (cohort_id, name, start_date, end_date, is_active) VALUES (?, ?, ?, ?, ?)',
+      [req.params.cohortId, name, start_date, end_date, is_active || false]
+    );
+    res.status(201).json({ id: result.insertId, cohort_id: parseInt(req.params.cohortId), name, start_date, end_date, is_active: is_active || false });
+  } catch (error) {
+    console.error('Failed to create cohort period:', error);
+    res.status(500).json({ error: 'Failed to create cohort period' });
+  }
+});
+
+// Update cohort period
+router.put('/cohort-periods/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { id } = req.params;
+    const { name, start_date, end_date, is_active } = req.body;
+
+    // Verify period belongs to a cohort in this madrasah
+    const [[period]] = await pool.query(
+      `SELECT cp.id FROM cohort_periods cp
+       JOIN cohorts c ON cp.cohort_id = c.id
+       WHERE cp.id = ? AND c.madrasah_id = ? AND cp.deleted_at IS NULL`,
+      [id, madrasahId]
+    );
+    if (!period) return res.status(404).json({ error: 'Period not found' });
+
+    await pool.query(
+      'UPDATE cohort_periods SET name = ?, start_date = ?, end_date = ?, is_active = ? WHERE id = ?',
+      [name, start_date, end_date, is_active, id]
+    );
+    res.json({ id: parseInt(id), name, start_date, end_date, is_active });
+  } catch (error) {
+    console.error('Failed to update cohort period:', error);
+    res.status(500).json({ error: 'Failed to update cohort period' });
+  }
+});
+
+// Delete cohort period
+router.delete('/cohort-periods/:id', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [[period]] = await pool.query(
+      `SELECT cp.id FROM cohort_periods cp
+       JOIN cohorts c ON cp.cohort_id = c.id
+       WHERE cp.id = ? AND c.madrasah_id = ? AND cp.deleted_at IS NULL`,
+      [req.params.id, madrasahId]
+    );
+    if (!period) return res.status(404).json({ error: 'Period not found' });
+
+    await pool.query('UPDATE cohort_periods SET deleted_at = NOW() WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Period deleted' });
+  } catch (error) {
+    console.error('Failed to delete cohort period:', error);
+    res.status(500).json({ error: 'Failed to delete cohort period' });
+  }
+});
+
+// List holidays for a cohort
+router.get('/cohorts/:cohortId/holidays', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [[cohort]] = await pool.query(
+      'SELECT id FROM cohorts WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [req.params.cohortId, madrasahId]
+    );
+    if (!cohort) return res.status(404).json({ error: 'Cohort not found' });
+
+    const [holidays] = await pool.query(
+      'SELECT * FROM academic_holidays WHERE cohort_id = ? ORDER BY date ASC',
+      [req.params.cohortId]
+    );
+    res.json(holidays);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch cohort holidays' });
+  }
+});
+
+// Create holiday for a cohort
+router.post('/cohorts/:cohortId/holidays', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { name, date } = req.body;
+    if (!name || !date) return res.status(400).json({ error: 'name and date are required' });
+
+    const [[cohort]] = await pool.query(
+      'SELECT id FROM cohorts WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [req.params.cohortId, madrasahId]
+    );
+    if (!cohort) return res.status(404).json({ error: 'Cohort not found' });
+
+    const [result] = await pool.query(
+      'INSERT INTO academic_holidays (madrasah_id, session_id, cohort_id, name, date) VALUES (?, NULL, ?, ?, ?)',
+      [madrasahId, req.params.cohortId, name, date]
+    );
+    res.status(201).json({ id: result.insertId, cohort_id: parseInt(req.params.cohortId), name, date });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create cohort holiday' });
+  }
+});
+
+// List schedule overrides for a cohort
+router.get('/cohorts/:cohortId/schedule-overrides', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [[cohort]] = await pool.query(
+      'SELECT id FROM cohorts WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [req.params.cohortId, madrasahId]
+    );
+    if (!cohort) return res.status(404).json({ error: 'Cohort not found' });
+
+    const [overrides] = await pool.query(
+      'SELECT * FROM schedule_overrides WHERE cohort_id = ? ORDER BY date ASC',
+      [req.params.cohortId]
+    );
+    res.json(overrides);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch cohort schedule overrides' });
+  }
+});
+
+// Create schedule override for a cohort
+router.post('/cohorts/:cohortId/schedule-overrides', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { date, is_school_day, reason } = req.body;
+    if (!date || is_school_day === undefined) return res.status(400).json({ error: 'date and is_school_day are required' });
+
+    const [[cohort]] = await pool.query(
+      'SELECT id FROM cohorts WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
+      [req.params.cohortId, madrasahId]
+    );
+    if (!cohort) return res.status(404).json({ error: 'Cohort not found' });
+
+    const [result] = await pool.query(
+      'INSERT INTO schedule_overrides (madrasah_id, session_id, cohort_id, date, is_school_day, reason) VALUES (?, NULL, ?, ?, ?, ?)',
+      [madrasahId, req.params.cohortId, date, is_school_day, reason || null]
+    );
+    res.status(201).json({ id: result.insertId, cohort_id: parseInt(req.params.cohortId), date, is_school_day, reason });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create cohort schedule override' });
   }
 });
 

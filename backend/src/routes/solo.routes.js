@@ -395,19 +395,25 @@ router.post('/attendance', requireNonFree, requireActiveSubscription, async (req
   try {
     const madrasahId = req.madrasahId;
     const { student_id, class_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes } = req.body;
-    let { semester_id } = req.body;
+    let { semester_id, cohort_period_id } = req.body;
 
-    // If no semester_id provided, find the active semester
-    if (!semester_id) {
-      const [activeSem] = await pool.query(
-        `SELECT s.id FROM semesters s
-         JOIN sessions sess ON s.session_id = sess.id
-         WHERE sess.madrasah_id = ? AND s.is_active = 1 AND s.deleted_at IS NULL AND sess.deleted_at IS NULL
-         LIMIT 1`,
+    // In academic mode: resolve active semester if not provided
+    if (!cohort_period_id && !semester_id) {
+      const [[madrasah]] = await pool.query(
+        'SELECT COALESCE(scheduling_mode, \'academic\') as scheduling_mode FROM madrasahs WHERE id = ?',
         [madrasahId]
       );
-      if (activeSem.length === 0) return res.status(400).json({ error: 'No active semester. Please activate a semester in the Planner.' });
-      semester_id = activeSem[0].id;
+      if (madrasah?.scheduling_mode !== 'cohort') {
+        const [activeSem] = await pool.query(
+          `SELECT s.id FROM semesters s
+           JOIN sessions sess ON s.session_id = sess.id
+           WHERE sess.madrasah_id = ? AND s.is_active = 1 AND s.deleted_at IS NULL AND sess.deleted_at IS NULL
+           LIMIT 1`,
+          [madrasahId]
+        );
+        if (activeSem.length === 0) return res.status(400).json({ error: 'No active semester. Please activate a semester in the Planner.' });
+        semester_id = activeSem[0].id;
+      }
     }
 
     const [students] = await pool.query('SELECT id FROM students WHERE id = ? AND madrasah_id = ?', [student_id, madrasahId]);
@@ -417,9 +423,9 @@ router.post('/attendance', requireNonFree, requireActiveSubscription, async (req
     if (classes.length === 0) return res.status(403).json({ error: 'Class not found in your madrasah' });
 
     const [result] = await pool.query(
-      `INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, user_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [madrasahId, student_id, class_id, semester_id, req.user.id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes]
+      `INSERT INTO attendance (madrasah_id, student_id, class_id, semester_id, cohort_period_id, user_id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [madrasahId, student_id, class_id, semester_id ?? null, cohort_period_id ?? null, req.user.id, date, present, dressing_grade, behavior_grade, punctuality_grade, notes]
     );
     res.status(201).json({ id: result.insertId, message: 'Attendance recorded' });
   } catch (error) {
@@ -724,9 +730,9 @@ router.post('/classes/:classId/exam-performance/bulk', requireNonFree, requireAc
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { session_id, semester_id, subject, exam_date, max_score, students } = req.body;
+    const { session_id, semester_id, cohort_period_id, subject, exam_date, max_score, students } = req.body;
 
-    if (!session_id || !semester_id || !subject || !exam_date || !max_score || !students || !Array.isArray(students)) {
+    if ((!semester_id && !cohort_period_id) || !subject || !exam_date || !max_score || !students || !Array.isArray(students)) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -752,9 +758,9 @@ router.post('/classes/:classId/exam-performance/bulk', requireNonFree, requireAc
 
     for (const student of students) {
       await pool.query(
-        `INSERT INTO exam_performance (madrasah_id, student_id, semester_id, user_id, subject, exam_date, max_score, score, is_absent, absence_reason, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [madrasahId, student.student_id, semester_id, req.user.id, subject, exam_date, max_score,
+        `INSERT INTO exam_performance (madrasah_id, student_id, semester_id, cohort_period_id, user_id, subject, exam_date, max_score, score, is_absent, absence_reason, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [madrasahId, student.student_id, semester_id ?? null, cohort_period_id ?? null, req.user.id, subject, exam_date, max_score,
          student.is_absent ? null : (student.score || 0), student.is_absent || false,
          student.is_absent ? student.absence_reason : null, student.notes || null]
       );

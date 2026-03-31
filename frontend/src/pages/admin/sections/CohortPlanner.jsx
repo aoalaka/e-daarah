@@ -27,9 +27,11 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
   const [showHolidayForm, setShowHolidayForm] = useState(false);
   const [holidayForm, setHolidayForm] = useState({ title: '', start_date: '', end_date: '', description: '' });
 
-  // Override form
-  const [showOverrideForm, setShowOverrideForm] = useState(false);
-  const [overrideForm, setOverrideForm] = useState({ start_date: '', end_date: '', is_school_day: true, reason: '' });
+  // Override forms — separate for cancelled and extra sessions
+  const [showCancelForm, setShowCancelForm] = useState(false);
+  const [cancelForm, setCancelForm] = useState({ start_date: '', end_date: '', reason: '' });
+  const [showExtraForm, setShowExtraForm] = useState(false);
+  const [extraForm, setExtraForm] = useState({ start_date: '', end_date: '', reason: '' });
 
   useEffect(() => { fetchCohorts(); }, []);
 
@@ -179,22 +181,34 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
   };
 
   // ── Override CRUD ─────────────────────────────────────────────
-  const handleOverrideSubmit = async (e) => {
+  const handleCancelSubmit = async (e) => {
     e.preventDefault();
     if (isReadOnly()) { toast.error('Account is in read-only mode.'); return; }
     try {
-      await api.post(`/admin/cohorts/${selectedCohort.id}/schedule-overrides`, overrideForm);
-      toast.success('Override added');
-      setShowOverrideForm(false);
-      setOverrideForm({ start_date: '', end_date: '', is_school_day: true, reason: '' });
+      await api.post(`/admin/cohorts/${selectedCohort.id}/schedule-overrides`, { ...cancelForm, is_school_day: false });
+      toast.success('Cancelled session added');
+      setShowCancelForm(false);
+      setCancelForm({ start_date: '', end_date: '', reason: '' });
       fetchCohortDetail(selectedCohort.id);
-    } catch (err) { toast.error(err.response?.data?.error || 'Failed to add override'); }
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed to add cancellation'); }
+  };
+
+  const handleExtraSubmit = async (e) => {
+    e.preventDefault();
+    if (isReadOnly()) { toast.error('Account is in read-only mode.'); return; }
+    try {
+      await api.post(`/admin/cohorts/${selectedCohort.id}/schedule-overrides`, { ...extraForm, is_school_day: true });
+      toast.success('Extra session added');
+      setShowExtraForm(false);
+      setExtraForm({ start_date: '', end_date: '', reason: '' });
+      fetchCohortDetail(selectedCohort.id);
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed to add extra session'); }
   };
 
   const handleDeleteOverride = (override) => {
     setConfirmModal({
       title: 'Remove Override',
-      message: `Remove the schedule override for ${fmtDate(override.start_date)}${override.end_date && override.end_date !== override.start_date ? ` – ${fmtDate(override.end_date)}` : ''}?`,
+      message: `Remove this ${override.is_school_day ? 'extra session' : 'cancellation'} for ${fmtDate(override.start_date)}${override.end_date && override.end_date !== override.start_date ? ` – ${fmtDate(override.end_date)}` : ''}?`,
       confirmLabel: 'Remove',
       onConfirm: async () => {
         try {
@@ -364,7 +378,7 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
           { key: 'periods', label: 'Periods' },
           { key: 'classes', label: 'Classes' },
           { key: 'holidays', label: 'Holidays' },
-          { key: 'overrides', label: 'Schedule Overrides' }
+          { key: 'overrides', label: 'Sessions' }
         ].map(({ key, label }) => (
           <button key={key} onClick={() => setDetailSection(key)}
             style={{ padding: '10px 16px', background: 'none', border: 'none', borderBottom: detailSection === key ? '2px solid var(--primary)' : '2px solid transparent', cursor: 'pointer', fontWeight: detailSection === key ? '600' : '400', color: detailSection === key ? 'var(--primary)' : 'var(--muted)', fontSize: '14px' }}>
@@ -566,78 +580,124 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
         </div>
       )}
 
-      {/* ── Schedule Overrides ── */}
-      {detailSection === 'overrides' && (
-        <div className="card" style={{ marginBottom: 'var(--md)' }}>
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>Schedule Overrides</span>
-            {!showOverrideForm && (
-              <button onClick={() => { setOverrideForm({ start_date: '', end_date: '', is_school_day: true, reason: '' }); setShowOverrideForm(true); }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
-            )}
-          </div>
-
-          {!showOverrideForm && (
-            <div className="card-body" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
-              <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>Override specific dates — mark a normally-off day as a school day, or cancel a normally-on day.</p>
-            </div>
-          )}
-
-          {showOverrideForm && (
-            <div className="card-body" style={{ borderBottom: '1px solid var(--border)' }}>
-              <form onSubmit={handleOverrideSubmit}>
-                <div className="form-grid form-grid-3">
-                  <div className="form-group">
-                    <label className="form-label">Start Date</label>
-                    <input type="date" className="form-input" value={overrideForm.start_date} onChange={e => setOverrideForm(p => ({ ...p, start_date: e.target.value }))} required />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">End Date</label>
-                    <input type="date" className="form-input" value={overrideForm.end_date} min={overrideForm.start_date} onChange={e => setOverrideForm(p => ({ ...p, end_date: e.target.value }))} required />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Override Type</label>
-                    <select className="form-input" value={overrideForm.is_school_day ? 'school' : 'off'} onChange={e => setOverrideForm(p => ({ ...p, is_school_day: e.target.value === 'school' }))}>
-                      <option value="school">School day (attendance can be taken)</option>
-                      <option value="off">Not a school day (block attendance)</option>
-                    </select>
-                  </div>
+      {/* ── Sessions (Cancelled + Extra) ── */}
+      {detailSection === 'overrides' && (() => {
+        const cancelled = (cohortDetail?.overrides || []).filter(o => !o.is_school_day);
+        const extra = (cohortDetail?.overrides || []).filter(o => o.is_school_day);
+        const overrideRow = (o) => (
+          <tr key={o.id}>
+            <td>{fmtDate(o.start_date)}</td>
+            <td>{o.end_date && o.end_date !== o.start_date ? fmtDate(o.end_date) : '—'}</td>
+            <td style={{ color: 'var(--muted)', fontSize: '13px' }}>{o.reason || '—'}</td>
+            <td><button onClick={() => handleDeleteOverride(o)} className="btn-sm btn-delete">Remove</button></td>
+          </tr>
+        );
+        return (
+          <>
+            {/* Cancelled Sessions */}
+            <div className="card" style={{ marginBottom: 'var(--md)' }}>
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span>Cancelled Sessions</span>
+                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--muted)', fontWeight: 'normal' }}>Normal cohort days that won't run — attendance is blocked</p>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Reason (optional)</label>
-                  <input type="text" className="form-input" value={overrideForm.reason} onChange={e => setOverrideForm(p => ({ ...p, reason: e.target.value }))} placeholder="e.g., Makeup class, Exam week" />
-                </div>
-                <div className="form-actions">
-                  <button type="button" onClick={() => setShowOverrideForm(false)} className="btn btn-secondary">Cancel</button>
-                  <button type="submit" className="btn btn-primary">Add Override</button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          <div className="card-body" style={{ padding: 0 }}>
-            {!cohortDetail?.overrides?.length ? (
-              <div className="empty" style={{ padding: 'var(--md)' }}><p>No overrides for this cohort.</p></div>
-            ) : (
-              <div className="table-wrap">
-                <table className="table">
-                  <thead><tr><th>Start Date</th><th>End Date</th><th>Type</th><th>Reason</th><th>Actions</th></tr></thead>
-                  <tbody>
-                    {cohortDetail.overrides.map(o => (
-                      <tr key={o.id}>
-                        <td>{fmtDate(o.start_date)}</td>
-                        <td>{o.end_date && o.end_date !== o.start_date ? fmtDate(o.end_date) : '—'}</td>
-                        <td><span className={`badge ${o.is_school_day ? 'badge-success' : 'badge-muted'}`}>{o.is_school_day ? 'School day' : 'Not a school day'}</span></td>
-                        <td style={{ color: 'var(--muted)', fontSize: '13px' }}>{o.reason || '—'}</td>
-                        <td><button onClick={() => handleDeleteOverride(o)} className="btn-sm btn-delete">Remove</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {!showCancelForm && (
+                  <button onClick={() => { setCancelForm({ start_date: '', end_date: '', reason: '' }); setShowCancelForm(true); }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-      )}
+
+              {showCancelForm && (
+                <div className="card-body" style={{ borderBottom: '1px solid var(--border)' }}>
+                  <form onSubmit={handleCancelSubmit}>
+                    <div className="form-grid form-grid-3">
+                      <div className="form-group">
+                        <label className="form-label">Start Date</label>
+                        <input type="date" className="form-input" value={cancelForm.start_date} onChange={e => setCancelForm(p => ({ ...p, start_date: e.target.value }))} required />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">End Date</label>
+                        <input type="date" className="form-input" value={cancelForm.end_date} min={cancelForm.start_date} onChange={e => setCancelForm(p => ({ ...p, end_date: e.target.value }))} required />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Reason (optional)</label>
+                        <input type="text" className="form-input" value={cancelForm.reason} onChange={e => setCancelForm(p => ({ ...p, reason: e.target.value }))} placeholder="e.g., Public holiday, Teacher sick" />
+                      </div>
+                    </div>
+                    <div className="form-actions">
+                      <button type="button" onClick={() => setShowCancelForm(false)} className="btn btn-secondary">Cancel</button>
+                      <button type="submit" className="btn btn-primary">Add Cancellation</button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              <div className="card-body" style={{ padding: 0 }}>
+                {!cancelled.length ? (
+                  <div className="empty" style={{ padding: 'var(--md)' }}><p>No cancelled sessions.</p></div>
+                ) : (
+                  <div className="table-wrap">
+                    <table className="table">
+                      <thead><tr><th>Start Date</th><th>End Date</th><th>Reason</th><th>Actions</th></tr></thead>
+                      <tbody>{cancelled.map(overrideRow)}</tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Extra Sessions */}
+            <div className="card" style={{ marginBottom: 'var(--md)' }}>
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span>Extra Sessions</span>
+                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--muted)', fontWeight: 'normal' }}>Additional days not in the normal schedule — attendance is open</p>
+                </div>
+                {!showExtraForm && (
+                  <button onClick={() => { setExtraForm({ start_date: '', end_date: '', reason: '' }); setShowExtraForm(true); }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+                )}
+              </div>
+
+              {showExtraForm && (
+                <div className="card-body" style={{ borderBottom: '1px solid var(--border)' }}>
+                  <form onSubmit={handleExtraSubmit}>
+                    <div className="form-grid form-grid-3">
+                      <div className="form-group">
+                        <label className="form-label">Start Date</label>
+                        <input type="date" className="form-input" value={extraForm.start_date} onChange={e => setExtraForm(p => ({ ...p, start_date: e.target.value }))} required />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">End Date</label>
+                        <input type="date" className="form-input" value={extraForm.end_date} min={extraForm.start_date} onChange={e => setExtraForm(p => ({ ...p, end_date: e.target.value }))} required />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Reason (optional)</label>
+                        <input type="text" className="form-input" value={extraForm.reason} onChange={e => setExtraForm(p => ({ ...p, reason: e.target.value }))} placeholder="e.g., Makeup class, Exam prep" />
+                      </div>
+                    </div>
+                    <div className="form-actions">
+                      <button type="button" onClick={() => setShowExtraForm(false)} className="btn btn-secondary">Cancel</button>
+                      <button type="submit" className="btn btn-primary">Add Extra Session</button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              <div className="card-body" style={{ padding: 0 }}>
+                {!extra.length ? (
+                  <div className="empty" style={{ padding: 'var(--md)' }}><p>No extra sessions.</p></div>
+                ) : (
+                  <div className="table-wrap">
+                    <table className="table">
+                      <thead><tr><th>Start Date</th><th>End Date</th><th>Reason</th><th>Actions</th></tr></thead>
+                      <tbody>{extra.map(overrideRow)}</tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </>
   );
 }

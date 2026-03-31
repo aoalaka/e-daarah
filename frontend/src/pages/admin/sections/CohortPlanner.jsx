@@ -1,33 +1,17 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { CalendarIcon } from '@heroicons/react/24/outline';
 import api from '../../../services/api';
 import '../Dashboard.css';
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-function DayPicker({ value, onChange }) {
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-      {DAYS.map(day => (
-        <button
-          key={day}
-          type="button"
-          className={`btn btn-small ${value.includes(day) ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => onChange(value.includes(day) ? value.filter(d => d !== day) : [...value, day])}
-        >
-          {day.slice(0, 3)}
-        </button>
-      ))}
-    </div>
-  );
-}
+const ALL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
+  const [subTab, setSubTab] = useState('list'); // 'list' | 'detail'
   const [cohorts, setCohorts] = useState([]);
   const [selectedCohort, setSelectedCohort] = useState(null);
-  const [cohortDetail, setCohortDetail] = useState(null); // { ...cohort, periods, classes }
-  const [loading, setLoading] = useState(false);
-  const [detailTab, setDetailTab] = useState('periods');
+  const [cohortDetail, setCohortDetail] = useState(null);
+  const [detailSection, setDetailSection] = useState('periods'); // 'periods' | 'classes' | 'holidays' | 'overrides'
 
   // Cohort form
   const [showCohortForm, setShowCohortForm] = useState(false);
@@ -47,9 +31,7 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
   const [showOverrideForm, setShowOverrideForm] = useState(false);
   const [overrideForm, setOverrideForm] = useState({ date: '', is_school_day: true, reason: '' });
 
-  useEffect(() => {
-    fetchCohorts();
-  }, []);
+  useEffect(() => { fetchCohorts(); }, []);
 
   const fetchCohorts = async () => {
     try {
@@ -61,23 +43,25 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
   };
 
   const fetchCohortDetail = async (id) => {
-    setLoading(true);
     try {
       const res = await api.get(`/admin/cohorts/${id}`);
       setCohortDetail(res.data);
     } catch {
       toast.error('Failed to load cohort details');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleSelectCohort = (cohort) => {
+  const openCohort = (cohort) => {
     setSelectedCohort(cohort);
     fetchCohortDetail(cohort.id);
-    setDetailTab('periods');
+    setDetailSection('periods');
+    setSubTab('detail');
+    setShowPeriodForm(false);
+    setShowHolidayForm(false);
+    setShowOverrideForm(false);
   };
 
+  // ── Cohort CRUD ──────────────────────────────────────────────
   const handleCohortSubmit = async (e) => {
     e.preventDefault();
     if (isReadOnly()) { toast.error('Account is in read-only mode.'); return; }
@@ -94,47 +78,37 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
       setCohortForm({ name: '', start_date: '', end_date: '', is_active: false, default_school_days: [] });
       await fetchCohorts();
       if (selectedCohort) fetchCohortDetail(selectedCohort.id);
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to save cohort');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to save cohort');
     }
   };
 
-  const handleEditCohort = (cohort) => {
-    setEditingCohort(cohort);
+  const startEditCohort = (cohort) => {
     const days = cohort.default_school_days
       ? (typeof cohort.default_school_days === 'string' ? JSON.parse(cohort.default_school_days) : cohort.default_school_days)
       : [];
-    setCohortForm({
-      name: cohort.name,
-      start_date: cohort.start_date.split('T')[0],
-      end_date: cohort.end_date.split('T')[0],
-      is_active: cohort.is_active,
-      default_school_days: days
-    });
+    setEditingCohort(cohort);
+    setCohortForm({ name: cohort.name, start_date: cohort.start_date.split('T')[0], end_date: cohort.end_date.split('T')[0], is_active: !!cohort.is_active, default_school_days: days });
     setShowCohortForm(true);
   };
 
   const handleDeleteCohort = (cohort) => {
     setConfirmModal({
       title: 'Delete Cohort',
-      message: `Delete "${cohort.name}"? Classes assigned to this cohort will be unassigned. This cannot be undone.`,
+      message: `Delete "${cohort.name}"? Classes assigned to this cohort will be unassigned. Existing attendance and exam records are kept.`,
       confirmLabel: 'Delete',
       onConfirm: async () => {
         try {
           await api.delete(`/admin/cohorts/${cohort.id}`);
           toast.success('Cohort deleted');
           setCohorts(prev => prev.filter(c => c.id !== cohort.id));
-          if (selectedCohort?.id === cohort.id) {
-            setSelectedCohort(null);
-            setCohortDetail(null);
-          }
-        } catch {
-          toast.error('Failed to delete cohort');
-        }
+          if (selectedCohort?.id === cohort.id) { setSubTab('list'); setSelectedCohort(null); setCohortDetail(null); }
+        } catch { toast.error('Failed to delete cohort'); }
       }
     });
   };
 
+  // ── Period CRUD ───────────────────────────────────────────────
   const handlePeriodSubmit = async (e) => {
     e.preventDefault();
     if (isReadOnly()) { toast.error('Account is in read-only mode.'); return; }
@@ -150,28 +124,33 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
       setEditingPeriod(null);
       setPeriodForm({ name: '', start_date: '', end_date: '', is_active: false });
       fetchCohortDetail(selectedCohort.id);
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to save period');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to save period');
     }
+  };
+
+  const startEditPeriod = (period) => {
+    setEditingPeriod(period);
+    setPeriodForm({ name: period.name, start_date: period.start_date.split('T')[0], end_date: period.end_date.split('T')[0], is_active: !!period.is_active });
+    setShowPeriodForm(true);
   };
 
   const handleDeletePeriod = (period) => {
     setConfirmModal({
       title: 'Delete Period',
-      message: `Delete "${period.name}"? Attendance and exam records linked to this period will be removed.`,
+      message: `Delete "${period.name}"? Attendance and exam records linked to this period will also be removed.`,
       confirmLabel: 'Delete',
       onConfirm: async () => {
         try {
           await api.delete(`/admin/cohort-periods/${period.id}`);
           toast.success('Period deleted');
           fetchCohortDetail(selectedCohort.id);
-        } catch {
-          toast.error('Failed to delete period');
-        }
+        } catch { toast.error('Failed to delete period'); }
       }
     });
   };
 
+  // ── Holiday CRUD ──────────────────────────────────────────────
   const handleHolidaySubmit = async (e) => {
     e.preventDefault();
     if (isReadOnly()) { toast.error('Account is in read-only mode.'); return; }
@@ -181,371 +160,471 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
       setShowHolidayForm(false);
       setHolidayForm({ name: '', date: '' });
       fetchCohortDetail(selectedCohort.id);
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to add holiday');
-    }
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed to add holiday'); }
   };
 
   const handleDeleteHoliday = (holiday) => {
     setConfirmModal({
-      title: 'Delete Holiday',
+      title: 'Remove Holiday',
       message: `Remove "${holiday.name || holiday.title}" from this cohort?`,
-      confirmLabel: 'Delete',
+      confirmLabel: 'Remove',
       onConfirm: async () => {
         try {
           await api.delete(`/admin/holidays/${holiday.id}`);
-          toast.success('Holiday deleted');
+          toast.success('Holiday removed');
           fetchCohortDetail(selectedCohort.id);
-        } catch {
-          toast.error('Failed to delete holiday');
-        }
+        } catch { toast.error('Failed to remove holiday'); }
       }
     });
   };
 
+  // ── Override CRUD ─────────────────────────────────────────────
   const handleOverrideSubmit = async (e) => {
     e.preventDefault();
     if (isReadOnly()) { toast.error('Account is in read-only mode.'); return; }
     try {
       await api.post(`/admin/cohorts/${selectedCohort.id}/schedule-overrides`, overrideForm);
-      toast.success('Schedule override added');
+      toast.success('Override added');
       setShowOverrideForm(false);
       setOverrideForm({ date: '', is_school_day: true, reason: '' });
       fetchCohortDetail(selectedCohort.id);
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to add override');
-    }
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed to add override'); }
   };
 
   const handleDeleteOverride = (override) => {
     setConfirmModal({
-      title: 'Delete Override',
-      message: `Remove this schedule override for ${fmtDate(override.date)}?`,
-      confirmLabel: 'Delete',
+      title: 'Remove Override',
+      message: `Remove the schedule override for ${fmtDate(override.date || override.start_date)}?`,
+      confirmLabel: 'Remove',
       onConfirm: async () => {
         try {
           await api.delete(`/admin/schedule-overrides/${override.id}`);
-          toast.success('Override deleted');
+          toast.success('Override removed');
           fetchCohortDetail(selectedCohort.id);
-        } catch {
-          toast.error('Failed to delete override');
-        }
+        } catch { toast.error('Failed to remove override'); }
       }
     });
   };
 
-  const handleAssignClass = async (classId, assign) => {
+  // ── Class assignment ──────────────────────────────────────────
+  const handleAssignClass = async (cls, assign) => {
     if (isReadOnly()) { toast.error('Account is in read-only mode.'); return; }
-    const cls = classes.find(c => c.id === classId);
-    if (!cls) return;
     try {
-      await api.put(`/admin/classes/${classId}`, {
-        name: cls.name,
-        grade_level: cls.grade_level,
-        school_days: cls.school_days,
-        description: cls.description,
+      await api.put(`/admin/classes/${cls.id}`, {
+        name: cls.name, grade_level: cls.grade_level,
+        school_days: cls.school_days, description: cls.description,
         cohort_id: assign ? selectedCohort.id : null
       });
-      toast.success(assign ? `${cls.name} assigned to this cohort` : `${cls.name} unassigned`);
+      toast.success(assign ? `${cls.name} assigned` : `${cls.name} unassigned`);
       fetchCohortDetail(selectedCohort.id);
-    } catch {
-      toast.error('Failed to update class assignment');
-    }
+    } catch { toast.error('Failed to update class assignment'); }
   };
 
   const assignedClassIds = cohortDetail?.classes?.map(c => c.id) || [];
 
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: selectedCohort ? '280px 1fr' : '1fr', gap: '20px', alignItems: 'start' }}>
-      {/* Cohort list panel */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h3 style={{ margin: 0 }}>Cohorts</h3>
-          <button className="btn btn-primary btn-small" onClick={() => { setEditingCohort(null); setCohortForm({ name: '', start_date: '', end_date: '', is_active: false, default_school_days: [] }); setShowCohortForm(true); }}>
-            + New
+  // ── Day pill helper ───────────────────────────────────────────
+  const DayPills = ({ value, onChange }) => (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+      {ALL_DAYS.map(day => (
+        <button key={day} type="button"
+          onClick={() => onChange(value.includes(day) ? value.filter(d => d !== day) : [...value, day])}
+          style={{ padding: '6px 14px', borderRadius: '20px', border: `2px solid ${value.includes(day) ? '#2563eb' : '#d1d5db'}`, background: value.includes(day) ? '#2563eb' : 'transparent', color: value.includes(day) ? '#fff' : '#374151', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
+          {day.substring(0, 3)}
+        </button>
+      ))}
+    </div>
+  );
+
+  // ═══════════════════════════════════════════════════════════
+  // LIST VIEW — cohorts list
+  // ═══════════════════════════════════════════════════════════
+  if (subTab === 'list') {
+    return (
+      <>
+        <div className="page-header">
+          <button onClick={() => { setEditingCohort(null); setCohortForm({ name: '', start_date: '', end_date: '', is_active: false, default_school_days: [] }); setShowCohortForm(!showCohortForm); }} className="btn btn-primary" disabled={isReadOnly()}>
+            + New Cohort
           </button>
         </div>
 
         {showCohortForm && (
-          <form onSubmit={handleCohortSubmit} className="card" style={{ marginBottom: '12px', padding: '16px' }}>
-            <h4 style={{ margin: '0 0 12px' }}>{editingCohort ? 'Edit Cohort' : 'New Cohort'}</h4>
-            <div className="form-group">
-              <label>Name</label>
-              <input required value={cohortForm.name} onChange={e => setCohortForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Beginners Cohort 2025" />
+          <div className="card" style={{ marginBottom: 'var(--md)' }}>
+            <div className="card-header">{editingCohort ? 'Edit Cohort' : 'Create New Cohort'}</div>
+            <div className="card-body">
+              <form onSubmit={handleCohortSubmit}>
+                <div className="form-grid form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">Cohort Name</label>
+                    <input type="text" className="form-input" value={cohortForm.name} onChange={e => setCohortForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g., Beginners Cohort 2025" required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Start Date</label>
+                    <input type="date" className="form-input" value={cohortForm.start_date} onChange={e => setCohortForm(p => ({ ...p, start_date: e.target.value }))} required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">End Date</label>
+                    <input type="date" className="form-input" value={cohortForm.end_date} onChange={e => setCohortForm(p => ({ ...p, end_date: e.target.value }))} required />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">School Days</label>
+                  <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '8px' }}>Select which days this cohort meets (can be overridden per class)</p>
+                  <DayPills value={cohortForm.default_school_days} onChange={days => setCohortForm(p => ({ ...p, default_school_days: days }))} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label checkbox-label">
+                    <input type="checkbox" checked={cohortForm.is_active} onChange={e => setCohortForm(p => ({ ...p, is_active: e.target.checked }))} />
+                    <span>Set as active (teachers can record attendance)</span>
+                  </label>
+                </div>
+                <div className="form-actions">
+                  <button type="button" onClick={() => { setShowCohortForm(false); setEditingCohort(null); setCohortForm({ name: '', start_date: '', end_date: '', is_active: false, default_school_days: [] }); }} className="btn btn-secondary">Cancel</button>
+                  <button type="submit" className="btn btn-primary">{editingCohort ? 'Update Cohort' : 'Create Cohort'}</button>
+                </div>
+              </form>
             </div>
-            <div className="form-group">
-              <label>Start Date</label>
-              <input type="date" required value={cohortForm.start_date} onChange={e => setCohortForm(p => ({ ...p, start_date: e.target.value }))} />
-            </div>
-            <div className="form-group">
-              <label>End Date</label>
-              <input type="date" required value={cohortForm.end_date} onChange={e => setCohortForm(p => ({ ...p, end_date: e.target.value }))} />
-            </div>
-            <div className="form-group">
-              <label>Default School Days</label>
-              <DayPicker value={cohortForm.default_school_days} onChange={days => setCohortForm(p => ({ ...p, default_school_days: days }))} />
-            </div>
-            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
-              <input type="checkbox" id="cohort-active" checked={cohortForm.is_active} onChange={e => setCohortForm(p => ({ ...p, is_active: e.target.checked }))} />
-              <label htmlFor="cohort-active" style={{ margin: 0 }}>Active (teachers can record attendance)</label>
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button type="submit" className="btn btn-primary btn-small">Save</button>
-              <button type="button" className="btn btn-secondary btn-small" onClick={() => { setShowCohortForm(false); setEditingCohort(null); }}>Cancel</button>
-            </div>
-          </form>
+          </div>
         )}
 
         {cohorts.length === 0 ? (
-          <p className="empty-state" style={{ fontSize: '13px' }}>No cohorts yet. Create one to get started.</p>
+          <div className="card">
+            <div className="empty">
+              <div className="empty-icon"><CalendarIcon /></div>
+              <p>No cohorts yet. Create one to get started.</p>
+              <button className="empty-action" onClick={() => setShowCohortForm(true)}>+ Create Cohort</button>
+            </div>
+          </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {cohorts.map(cohort => (
-              <div
-                key={cohort.id}
-                className={`card ${selectedCohort?.id === cohort.id ? 'selected' : ''}`}
-                style={{ padding: '12px 14px', cursor: 'pointer', borderLeft: cohort.is_active ? '3px solid var(--primary)' : '3px solid transparent' }}
-                onClick={() => handleSelectCohort(cohort)}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '14px' }}>{cohort.name}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
-                      {fmtDate(cohort.start_date)} — {fmtDate(cohort.end_date)}
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {cohorts.map(cohort => {
+              const days = cohort.default_school_days ? (typeof cohort.default_school_days === 'string' ? JSON.parse(cohort.default_school_days) : cohort.default_school_days) : [];
+              return (
+                <div key={cohort.id} className="card" style={{ padding: 'var(--md)', cursor: 'pointer' }} onClick={() => openCohort(cohort)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <h3 style={{ margin: 0, fontSize: '16px' }}>{cohort.name}</h3>
+                        <span className={`badge ${cohort.is_active ? 'badge-success' : 'badge-muted'}`}>{cohort.is_active ? 'Active' : 'Inactive'}</span>
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
+                        {fmtDate(cohort.start_date)} – {fmtDate(cohort.end_date)}
+                      </div>
+                      {days.length > 0 && (
+                        <div style={{ display: 'flex', gap: '4px', marginTop: '8px', flexWrap: 'wrap' }}>
+                          {days.map(day => (
+                            <span key={day} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', background: 'rgba(37,99,235,0.08)', color: '#2563eb', fontWeight: '500' }}>{day.substring(0, 3)}</span>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '6px' }}>
+                        {cohort.class_count || 0} class{cohort.class_count !== 1 ? 'es' : ''}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                      {cohort.is_active && <span className="status active" style={{ fontSize: '11px' }}>Active</span>}
-                      {cohort.class_count > 0 && <span style={{ color: 'var(--muted)', marginLeft: '6px' }}>{cohort.class_count} class{cohort.class_count !== 1 ? 'es' : ''}</span>}
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <button onClick={e => { e.stopPropagation(); startEditCohort(cohort); }} className="btn-sm btn-edit">Edit</button>
+                      <button onClick={e => { e.stopPropagation(); handleDeleteCohort(cohort); }} className="btn-sm btn-delete">Delete</button>
+                      <button onClick={() => openCohort(cohort)} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontSize: '13px', color: '#2563eb', fontWeight: '500' }}>
+                        View →
+                      </button>
                     </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
-                    <button className="btn-icon" title="Edit" onClick={() => handleEditCohort(cohort)}>✏️</button>
-                    <button className="btn-icon" title="Delete" onClick={() => handleDeleteCohort(cohort)}>🗑</button>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
+      </>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // DETAIL VIEW — selected cohort
+  // ═══════════════════════════════════════════════════════════
+  const cohortDays = cohortDetail?.default_school_days
+    ? (typeof cohortDetail.default_school_days === 'string' ? JSON.parse(cohortDetail.default_school_days) : cohortDetail.default_school_days)
+    : [];
+
+  return (
+    <>
+      {/* Header */}
+      <div className="page-header">
+        <button onClick={() => { setSubTab('list'); setSelectedCohort(null); setCohortDetail(null); }} className="btn btn-secondary" style={{ marginRight: '8px' }}>← Back</button>
+        <div style={{ flex: 1 }}>
+          <h2 className="page-title" style={{ margin: 0 }}>{selectedCohort?.name}</h2>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--muted)' }}>
+            {fmtDate(selectedCohort?.start_date)} – {fmtDate(selectedCohort?.end_date)}
+            {cohortDays.length > 0 ? ` · School days: ${cohortDays.map(d => d.substring(0, 3)).join(', ')}` : ''}
+          </p>
+        </div>
       </div>
 
-      {/* Cohort detail panel */}
-      {selectedCohort && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h3 style={{ margin: 0 }}>{selectedCohort.name}</h3>
-            <button className="btn-small" onClick={() => { setSelectedCohort(null); setCohortDetail(null); }}>← Back</button>
+      {/* Section nav tabs */}
+      <div style={{ display: 'flex', gap: '0', marginBottom: 'var(--md)', borderBottom: '1px solid var(--border)' }}>
+        {[
+          { key: 'periods', label: 'Periods' },
+          { key: 'classes', label: 'Classes' },
+          { key: 'holidays', label: 'Holidays' },
+          { key: 'overrides', label: 'Schedule Overrides' }
+        ].map(({ key, label }) => (
+          <button key={key} onClick={() => setDetailSection(key)}
+            style={{ padding: '10px 16px', background: 'none', border: 'none', borderBottom: detailSection === key ? '2px solid var(--primary)' : '2px solid transparent', cursor: 'pointer', fontWeight: detailSection === key ? '600' : '400', color: detailSection === key ? 'var(--primary)' : 'var(--muted)', fontSize: '14px' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Periods ── */}
+      {detailSection === 'periods' && (
+        <div className="card" style={{ marginBottom: 'var(--md)' }}>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Periods</span>
+            {!showPeriodForm && (
+              <button onClick={() => { setEditingPeriod(null); setPeriodForm({ name: '', start_date: '', end_date: '', is_active: false }); setShowPeriodForm(true); }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+            )}
           </div>
 
-          <div className="sub-tabs" style={{ marginBottom: '16px' }}>
-            {['periods', 'classes', 'holidays', 'overrides'].map(tab => (
-              <button key={tab} className={`sub-tab ${detailTab === tab ? 'active' : ''}`} onClick={() => setDetailTab(tab)}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          {loading ? <p>Loading…</p> : (
-            <>
-              {/* Periods */}
-              {detailTab === 'periods' && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h4 style={{ margin: 0 }}>Periods</h4>
-                    <button className="btn btn-primary btn-small" onClick={() => { setEditingPeriod(null); setPeriodForm({ name: '', start_date: '', end_date: '', is_active: false }); setShowPeriodForm(true); }}>
-                      + Add Period
-                    </button>
+          {showPeriodForm && (
+            <div className="card-body" style={{ borderBottom: '1px solid var(--border)' }}>
+              <form onSubmit={handlePeriodSubmit}>
+                <div className="form-grid form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">Period Name</label>
+                    <input type="text" className="form-input" value={periodForm.name} onChange={e => setPeriodForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g., Term 1" required />
                   </div>
-
-                  {showPeriodForm && (
-                    <form onSubmit={handlePeriodSubmit} className="card" style={{ marginBottom: '12px', padding: '16px' }}>
-                      <h4 style={{ margin: '0 0 12px' }}>{editingPeriod ? 'Edit Period' : 'New Period'}</h4>
-                      <div className="form-group">
-                        <label>Name</label>
-                        <input required value={periodForm.name} onChange={e => setPeriodForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Term 1" />
-                      </div>
-                      <div className="form-group">
-                        <label>Start Date</label>
-                        <input type="date" required value={periodForm.start_date} onChange={e => setPeriodForm(p => ({ ...p, start_date: e.target.value }))} />
-                      </div>
-                      <div className="form-group">
-                        <label>End Date</label>
-                        <input type="date" required value={periodForm.end_date} onChange={e => setPeriodForm(p => ({ ...p, end_date: e.target.value }))} />
-                      </div>
-                      <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
-                        <input type="checkbox" id="period-active" checked={periodForm.is_active} onChange={e => setPeriodForm(p => ({ ...p, is_active: e.target.checked }))} />
-                        <label htmlFor="period-active" style={{ margin: 0 }}>Active</label>
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button type="submit" className="btn btn-primary btn-small">Save</button>
-                        <button type="button" className="btn btn-secondary btn-small" onClick={() => { setShowPeriodForm(false); setEditingPeriod(null); }}>Cancel</button>
-                      </div>
-                    </form>
-                  )}
-
-                  {!cohortDetail?.periods?.length ? (
-                    <p className="empty-state" style={{ fontSize: '13px' }}>No periods yet. Add a period to track attendance and exams within this cohort.</p>
-                  ) : (
-                    <table className="data-table">
-                      <thead><tr><th>Period</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead>
-                      <tbody>
-                        {cohortDetail.periods.map(period => (
-                          <tr key={period.id}>
-                            <td>{period.name}</td>
-                            <td style={{ fontSize: '13px' }}>{fmtDate(period.start_date)} — {fmtDate(period.end_date)}</td>
-                            <td>{period.is_active ? <span className="status active">Active</span> : <span className="status inactive">Inactive</span>}</td>
-                            <td className="actions">
-                              <button className="btn-small" onClick={() => { setEditingPeriod(period); setPeriodForm({ name: period.name, start_date: period.start_date.split('T')[0], end_date: period.end_date.split('T')[0], is_active: period.is_active }); setShowPeriodForm(true); }}>Edit</button>
-                              <button className="btn-small danger" onClick={() => handleDeletePeriod(period)}>Delete</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              )}
-
-              {/* Classes */}
-              {detailTab === 'classes' && (
-                <div>
-                  <h4 style={{ margin: '0 0 12px' }}>Assign Classes to This Cohort</h4>
-                  <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
-                    Classes assigned here will use this cohort's schedule when teachers record attendance or exams.
-                  </p>
-                  {!classes.length ? (
-                    <p className="empty-state" style={{ fontSize: '13px' }}>No classes found. Create classes first.</p>
-                  ) : (
-                    <table className="data-table">
-                      <thead><tr><th>Class</th><th>Grade</th><th>Assigned</th><th></th></tr></thead>
-                      <tbody>
-                        {classes.filter(c => !c.deleted_at).map(cls => {
-                          const isAssigned = assignedClassIds.includes(cls.id);
-                          return (
-                            <tr key={cls.id}>
-                              <td>{cls.name}</td>
-                              <td style={{ color: 'var(--muted)', fontSize: '13px' }}>{cls.grade_level || '—'}</td>
-                              <td>{isAssigned ? <span className="status active">Yes</span> : <span style={{ color: 'var(--muted)', fontSize: '13px' }}>No</span>}</td>
-                              <td>
-                                <button
-                                  className={`btn-small ${isAssigned ? 'danger' : 'success'}`}
-                                  onClick={() => handleAssignClass(cls.id, !isAssigned)}
-                                >
-                                  {isAssigned ? 'Unassign' : 'Assign'}
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              )}
-
-              {/* Holidays */}
-              {detailTab === 'holidays' && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h4 style={{ margin: 0 }}>Holidays</h4>
-                    <button className="btn btn-primary btn-small" onClick={() => { setHolidayForm({ name: '', date: '' }); setShowHolidayForm(true); }}>+ Add Holiday</button>
+                  <div className="form-group">
+                    <label className="form-label">Start Date</label>
+                    <input type="date" className="form-input" value={periodForm.start_date} onChange={e => setPeriodForm(p => ({ ...p, start_date: e.target.value }))} required />
                   </div>
-
-                  {showHolidayForm && (
-                    <form onSubmit={handleHolidaySubmit} className="card" style={{ marginBottom: '12px', padding: '16px' }}>
-                      <div className="form-group">
-                        <label>Name</label>
-                        <input required value={holidayForm.name} onChange={e => setHolidayForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Eid Al-Fitr" />
-                      </div>
-                      <div className="form-group">
-                        <label>Date</label>
-                        <input type="date" required value={holidayForm.date} onChange={e => setHolidayForm(p => ({ ...p, date: e.target.value }))} />
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button type="submit" className="btn btn-primary btn-small">Add</button>
-                        <button type="button" className="btn btn-secondary btn-small" onClick={() => setShowHolidayForm(false)}>Cancel</button>
-                      </div>
-                    </form>
-                  )}
-
-                  {!cohortDetail?.holidays?.length ? (
-                    <p className="empty-state" style={{ fontSize: '13px' }}>No holidays for this cohort.</p>
-                  ) : (
-                    <table className="data-table">
-                      <thead><tr><th>Name</th><th>Date</th><th></th></tr></thead>
-                      <tbody>
-                        {cohortDetail.holidays.map(h => (
-                          <tr key={h.id}>
-                            <td>{h.name || h.title}</td>
-                            <td>{fmtDate(h.date || h.start_date)}</td>
-                            <td><button className="btn-small danger" onClick={() => handleDeleteHoliday(h)}>Delete</button></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              )}
-
-              {/* Schedule Overrides */}
-              {detailTab === 'overrides' && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h4 style={{ margin: 0 }}>Schedule Overrides</h4>
-                    <button className="btn btn-primary btn-small" onClick={() => { setOverrideForm({ date: '', is_school_day: true, reason: '' }); setShowOverrideForm(true); }}>+ Add Override</button>
+                  <div className="form-group">
+                    <label className="form-label">End Date</label>
+                    <input type="date" className="form-input" value={periodForm.end_date} onChange={e => setPeriodForm(p => ({ ...p, end_date: e.target.value }))} required />
                   </div>
-                  <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '12px' }}>
-                    Override specific dates — mark a normally-off day as a school day, or cancel a normally-on day.
-                  </p>
-
-                  {showOverrideForm && (
-                    <form onSubmit={handleOverrideSubmit} className="card" style={{ marginBottom: '12px', padding: '16px' }}>
-                      <div className="form-group">
-                        <label>Date</label>
-                        <input type="date" required value={overrideForm.date} onChange={e => setOverrideForm(p => ({ ...p, date: e.target.value }))} />
-                      </div>
-                      <div className="form-group">
-                        <label>Override Type</label>
-                        <select value={overrideForm.is_school_day ? 'school' : 'off'} onChange={e => setOverrideForm(p => ({ ...p, is_school_day: e.target.value === 'school' }))}>
-                          <option value="school">School day (attendance can be taken)</option>
-                          <option value="off">Not a school day (block attendance)</option>
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label>Reason (optional)</label>
-                        <input value={overrideForm.reason} onChange={e => setOverrideForm(p => ({ ...p, reason: e.target.value }))} placeholder="e.g. Makeup class" />
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button type="submit" className="btn btn-primary btn-small">Add</button>
-                        <button type="button" className="btn btn-secondary btn-small" onClick={() => setShowOverrideForm(false)}>Cancel</button>
-                      </div>
-                    </form>
-                  )}
-
-                  {!cohortDetail?.overrides?.length ? (
-                    <p className="empty-state" style={{ fontSize: '13px' }}>No overrides for this cohort.</p>
-                  ) : (
-                    <table className="data-table">
-                      <thead><tr><th>Date</th><th>Type</th><th>Reason</th><th></th></tr></thead>
-                      <tbody>
-                        {cohortDetail.overrides.map(o => (
-                          <tr key={o.id}>
-                            <td>{fmtDate(o.date || o.start_date)}</td>
-                            <td>{o.is_school_day ? <span className="status active">School day</span> : <span className="status inactive">Not a school day</span>}</td>
-                            <td style={{ color: 'var(--muted)', fontSize: '13px' }}>{o.reason || '—'}</td>
-                            <td><button className="btn-small danger" onClick={() => handleDeleteOverride(o)}>Delete</button></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
                 </div>
-              )}
-            </>
+                <div className="form-group">
+                  <label className="form-label checkbox-label">
+                    <input type="checkbox" checked={periodForm.is_active} onChange={e => setPeriodForm(p => ({ ...p, is_active: e.target.checked }))} />
+                    <span>Set as active period</span>
+                  </label>
+                </div>
+                <div className="form-actions">
+                  <button type="button" onClick={() => { setShowPeriodForm(false); setEditingPeriod(null); }} className="btn btn-secondary">Cancel</button>
+                  <button type="submit" className="btn btn-primary">{editingPeriod ? 'Update' : 'Create'}</button>
+                </div>
+              </form>
+            </div>
           )}
+
+          <div className="card-body" style={{ padding: 0 }}>
+            {!cohortDetail?.periods?.length ? (
+              <div className="empty" style={{ padding: 'var(--md)' }}>
+                <p>No periods yet for this cohort.</p>
+              </div>
+            ) : (
+              <>
+                <div className="table-wrap planner-table-desktop">
+                  <table className="table">
+                    <thead>
+                      <tr><th>Period</th><th>Start Date</th><th>End Date</th><th>Status</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                      {cohortDetail.periods.map(period => (
+                        <tr key={period.id}>
+                          <td><strong>{period.name}</strong></td>
+                          <td>{fmtDate(period.start_date)}</td>
+                          <td>{fmtDate(period.end_date)}</td>
+                          <td><span className={`badge ${period.is_active ? 'badge-success' : 'badge-muted'}`}>{period.is_active ? 'Active' : 'Inactive'}</span></td>
+                          <td>
+                            <button onClick={() => startEditPeriod(period)} className="btn-sm btn-edit">Edit</button>
+                            <button onClick={() => handleDeletePeriod(period)} className="btn-sm btn-delete">Delete</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="planner-mobile-cards" style={{ display: 'none', padding: '8px 16px' }}>
+                  {cohortDetail.periods.map(period => (
+                    <div key={period.id} className="admin-mobile-card" style={{ marginBottom: '8px', padding: '14px', border: '1px solid var(--light)', borderRadius: 'var(--radius)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <strong style={{ fontSize: '15px' }}>{period.name}</strong>
+                        <span className={`badge ${period.is_active ? 'badge-success' : 'badge-muted'}`}>{period.is_active ? 'Active' : 'Inactive'}</span>
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '8px' }}>{fmtDate(period.start_date)} – {fmtDate(period.end_date)}</div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => startEditPeriod(period)} className="btn-sm btn-edit">Edit</button>
+                        <button onClick={() => handleDeletePeriod(period)} className="btn-sm btn-delete">Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
-    </div>
+
+      {/* ── Classes ── */}
+      {detailSection === 'classes' && (
+        <div className="card" style={{ marginBottom: 'var(--md)' }}>
+          <div className="card-header">Assign Classes to This Cohort</div>
+          <div className="card-body">
+            <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
+              Classes assigned here will use this cohort's schedule when teachers record attendance or exams.
+            </p>
+          </div>
+          <div className="card-body" style={{ padding: 0 }}>
+            {!classes?.filter(c => !c.deleted_at).length ? (
+              <div className="empty" style={{ padding: 'var(--md)' }}><p>No classes found. Create classes first.</p></div>
+            ) : (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead><tr><th>Class</th><th>Grade</th><th>Assigned</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    {classes.filter(c => !c.deleted_at).map(cls => {
+                      const isAssigned = assignedClassIds.includes(cls.id);
+                      return (
+                        <tr key={cls.id}>
+                          <td><strong>{cls.name}</strong></td>
+                          <td style={{ color: 'var(--muted)', fontSize: '13px' }}>{cls.grade_level || '—'}</td>
+                          <td><span className={`badge ${isAssigned ? 'badge-success' : 'badge-muted'}`}>{isAssigned ? 'Yes' : 'No'}</span></td>
+                          <td>
+                            <button className={isAssigned ? 'btn-sm btn-delete' : 'btn-sm btn-edit'} onClick={() => handleAssignClass(cls, !isAssigned)}>
+                              {isAssigned ? 'Unassign' : 'Assign'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Holidays ── */}
+      {detailSection === 'holidays' && (
+        <div className="card" style={{ marginBottom: 'var(--md)' }}>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Holidays</span>
+            {!showHolidayForm && (
+              <button onClick={() => { setHolidayForm({ name: '', date: '' }); setShowHolidayForm(true); }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+            )}
+          </div>
+
+          {showHolidayForm && (
+            <div className="card-body" style={{ borderBottom: '1px solid var(--border)' }}>
+              <form onSubmit={handleHolidaySubmit}>
+                <div className="form-grid form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">Holiday Name</label>
+                    <input type="text" className="form-input" value={holidayForm.name} onChange={e => setHolidayForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g., Eid Al-Fitr" required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Date</label>
+                    <input type="date" className="form-input" value={holidayForm.date} onChange={e => setHolidayForm(p => ({ ...p, date: e.target.value }))} required />
+                  </div>
+                </div>
+                <div className="form-actions">
+                  <button type="button" onClick={() => setShowHolidayForm(false)} className="btn btn-secondary">Cancel</button>
+                  <button type="submit" className="btn btn-primary">Add Holiday</button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="card-body" style={{ padding: 0 }}>
+            {!cohortDetail?.holidays?.length ? (
+              <div className="empty" style={{ padding: 'var(--md)' }}><p>No holidays for this cohort.</p></div>
+            ) : (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead><tr><th>Holiday</th><th>Date</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    {cohortDetail.holidays.map(h => (
+                      <tr key={h.id}>
+                        <td><strong>{h.name || h.title}</strong></td>
+                        <td>{fmtDate(h.date || h.start_date)}</td>
+                        <td><button onClick={() => handleDeleteHoliday(h)} className="btn-sm btn-delete">Remove</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Schedule Overrides ── */}
+      {detailSection === 'overrides' && (
+        <div className="card" style={{ marginBottom: 'var(--md)' }}>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Schedule Overrides</span>
+            {!showOverrideForm && (
+              <button onClick={() => { setOverrideForm({ date: '', is_school_day: true, reason: '' }); setShowOverrideForm(true); }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+            )}
+          </div>
+
+          {!showOverrideForm && (
+            <div className="card-body" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>Override specific dates — mark a normally-off day as a school day, or cancel a normally-on day.</p>
+            </div>
+          )}
+
+          {showOverrideForm && (
+            <div className="card-body" style={{ borderBottom: '1px solid var(--border)' }}>
+              <form onSubmit={handleOverrideSubmit}>
+                <div className="form-grid form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">Date</label>
+                    <input type="date" className="form-input" value={overrideForm.date} onChange={e => setOverrideForm(p => ({ ...p, date: e.target.value }))} required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Override Type</label>
+                    <select className="form-input" value={overrideForm.is_school_day ? 'school' : 'off'} onChange={e => setOverrideForm(p => ({ ...p, is_school_day: e.target.value === 'school' }))}>
+                      <option value="school">School day (attendance can be taken)</option>
+                      <option value="off">Not a school day (block attendance)</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Reason (optional)</label>
+                    <input type="text" className="form-input" value={overrideForm.reason} onChange={e => setOverrideForm(p => ({ ...p, reason: e.target.value }))} placeholder="e.g., Makeup class" />
+                  </div>
+                </div>
+                <div className="form-actions">
+                  <button type="button" onClick={() => setShowOverrideForm(false)} className="btn btn-secondary">Cancel</button>
+                  <button type="submit" className="btn btn-primary">Add Override</button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="card-body" style={{ padding: 0 }}>
+            {!cohortDetail?.overrides?.length ? (
+              <div className="empty" style={{ padding: 'var(--md)' }}><p>No overrides for this cohort.</p></div>
+            ) : (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead><tr><th>Date</th><th>Type</th><th>Reason</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    {cohortDetail.overrides.map(o => (
+                      <tr key={o.id}>
+                        <td>{fmtDate(o.date || o.start_date)}</td>
+                        <td><span className={`badge ${o.is_school_day ? 'badge-success' : 'badge-muted'}`}>{o.is_school_day ? 'School day' : 'Not a school day'}</span></td>
+                        <td style={{ color: 'var(--muted)', fontSize: '13px' }}>{o.reason || '—'}</td>
+                        <td><button onClick={() => handleDeleteOverride(o)} className="btn-sm btn-delete">Remove</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

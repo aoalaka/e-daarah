@@ -4673,7 +4673,7 @@ router.get('/cohorts/:cohortId/holidays', async (req, res) => {
     if (!cohort) return res.status(404).json({ error: 'Cohort not found' });
 
     const [holidays] = await pool.query(
-      'SELECT * FROM academic_holidays WHERE cohort_id = ? ORDER BY date ASC',
+      'SELECT * FROM academic_holidays WHERE cohort_id = ? AND deleted_at IS NULL ORDER BY start_date ASC',
       [req.params.cohortId]
     );
     res.json(holidays);
@@ -4686,8 +4686,8 @@ router.get('/cohorts/:cohortId/holidays', async (req, res) => {
 router.post('/cohorts/:cohortId/holidays', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { name, date } = req.body;
-    if (!name || !date) return res.status(400).json({ error: 'name and date are required' });
+    const { title, start_date, end_date, description } = req.body;
+    if (!title || !start_date || !end_date) return res.status(400).json({ error: 'title, start_date and end_date are required' });
 
     const [[cohort]] = await pool.query(
       'SELECT id FROM cohorts WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
@@ -4696,10 +4696,10 @@ router.post('/cohorts/:cohortId/holidays', requireActiveSubscription, async (req
     if (!cohort) return res.status(404).json({ error: 'Cohort not found' });
 
     const [result] = await pool.query(
-      'INSERT INTO academic_holidays (madrasah_id, session_id, cohort_id, name, date) VALUES (?, NULL, ?, ?, ?)',
-      [madrasahId, req.params.cohortId, name, date]
+      'INSERT INTO academic_holidays (madrasah_id, session_id, cohort_id, title, start_date, end_date, description) VALUES (?, NULL, ?, ?, ?, ?, ?)',
+      [madrasahId, req.params.cohortId, title, start_date, end_date, description || null]
     );
-    res.status(201).json({ id: result.insertId, cohort_id: parseInt(req.params.cohortId), name, date });
+    res.status(201).json({ id: result.insertId, cohort_id: parseInt(req.params.cohortId), title, start_date, end_date, description });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create cohort holiday' });
   }
@@ -4716,7 +4716,7 @@ router.get('/cohorts/:cohortId/schedule-overrides', async (req, res) => {
     if (!cohort) return res.status(404).json({ error: 'Cohort not found' });
 
     const [overrides] = await pool.query(
-      'SELECT * FROM schedule_overrides WHERE cohort_id = ? ORDER BY date ASC',
+      'SELECT * FROM schedule_overrides WHERE cohort_id = ? AND deleted_at IS NULL ORDER BY start_date ASC',
       [req.params.cohortId]
     );
     res.json(overrides);
@@ -4729,8 +4729,8 @@ router.get('/cohorts/:cohortId/schedule-overrides', async (req, res) => {
 router.post('/cohorts/:cohortId/schedule-overrides', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { date, is_school_day, reason } = req.body;
-    if (!date || is_school_day === undefined) return res.status(400).json({ error: 'date and is_school_day are required' });
+    const { title, start_date, end_date, is_school_day, reason } = req.body;
+    if (!start_date || !end_date || is_school_day === undefined) return res.status(400).json({ error: 'start_date, end_date and is_school_day are required' });
 
     const [[cohort]] = await pool.query(
       'SELECT id FROM cohorts WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL',
@@ -4738,11 +4738,12 @@ router.post('/cohorts/:cohortId/schedule-overrides', requireActiveSubscription, 
     );
     if (!cohort) return res.status(404).json({ error: 'Cohort not found' });
 
+    const overrideTitle = title || (is_school_day ? 'School day' : 'Non-school day');
     const [result] = await pool.query(
-      'INSERT INTO schedule_overrides (madrasah_id, session_id, cohort_id, date, is_school_day, reason) VALUES (?, NULL, ?, ?, ?, ?)',
-      [madrasahId, req.params.cohortId, date, is_school_day, reason || null]
+      'INSERT INTO schedule_overrides (madrasah_id, session_id, cohort_id, title, start_date, end_date, is_school_day, reason) VALUES (?, NULL, ?, ?, ?, ?, ?, ?)',
+      [madrasahId, req.params.cohortId, overrideTitle, start_date, end_date, is_school_day, reason || null]
     );
-    res.status(201).json({ id: result.insertId, cohort_id: parseInt(req.params.cohortId), date, is_school_day, reason });
+    res.status(201).json({ id: result.insertId, cohort_id: parseInt(req.params.cohortId), title: overrideTitle, start_date, end_date, is_school_day, reason });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create cohort schedule override' });
   }

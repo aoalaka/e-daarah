@@ -25,11 +25,11 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
 
   // Holiday form
   const [showHolidayForm, setShowHolidayForm] = useState(false);
-  const [holidayForm, setHolidayForm] = useState({ name: '', date: '' });
+  const [holidayForm, setHolidayForm] = useState({ title: '', start_date: '', end_date: '', description: '' });
 
   // Override form
   const [showOverrideForm, setShowOverrideForm] = useState(false);
-  const [overrideForm, setOverrideForm] = useState({ date: '', is_school_day: true, reason: '' });
+  const [overrideForm, setOverrideForm] = useState({ start_date: '', end_date: '', is_school_day: true, reason: '' });
 
   useEffect(() => { fetchCohorts(); }, []);
 
@@ -158,7 +158,7 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
       await api.post(`/admin/cohorts/${selectedCohort.id}/holidays`, holidayForm);
       toast.success('Holiday added');
       setShowHolidayForm(false);
-      setHolidayForm({ name: '', date: '' });
+      setHolidayForm({ title: '', start_date: '', end_date: '', description: '' });
       fetchCohortDetail(selectedCohort.id);
     } catch (err) { toast.error(err.response?.data?.error || 'Failed to add holiday'); }
   };
@@ -166,7 +166,7 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
   const handleDeleteHoliday = (holiday) => {
     setConfirmModal({
       title: 'Remove Holiday',
-      message: `Remove "${holiday.name || holiday.title}" from this cohort?`,
+      message: `Remove "${holiday.title || holiday.name}" from this cohort?`,
       confirmLabel: 'Remove',
       onConfirm: async () => {
         try {
@@ -186,7 +186,7 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
       await api.post(`/admin/cohorts/${selectedCohort.id}/schedule-overrides`, overrideForm);
       toast.success('Override added');
       setShowOverrideForm(false);
-      setOverrideForm({ date: '', is_school_day: true, reason: '' });
+      setOverrideForm({ start_date: '', end_date: '', is_school_day: true, reason: '' });
       fetchCohortDetail(selectedCohort.id);
     } catch (err) { toast.error(err.response?.data?.error || 'Failed to add override'); }
   };
@@ -194,7 +194,7 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
   const handleDeleteOverride = (override) => {
     setConfirmModal({
       title: 'Remove Override',
-      message: `Remove the schedule override for ${fmtDate(override.date || override.start_date)}?`,
+      message: `Remove the schedule override for ${fmtDate(override.start_date)}${override.end_date && override.end_date !== override.start_date ? ` – ${fmtDate(override.end_date)}` : ''}?`,
       confirmLabel: 'Remove',
       onConfirm: async () => {
         try {
@@ -509,7 +509,7 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
           <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Holidays</span>
             {!showHolidayForm && (
-              <button onClick={() => { setHolidayForm({ name: '', date: '' }); setShowHolidayForm(true); }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+              <button onClick={() => { setHolidayForm({ title: '', start_date: '', end_date: '', description: '' }); setShowHolidayForm(true); }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
             )}
           </div>
 
@@ -519,12 +519,20 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
                 <div className="form-grid form-grid-3">
                   <div className="form-group">
                     <label className="form-label">Holiday Name</label>
-                    <input type="text" className="form-input" value={holidayForm.name} onChange={e => setHolidayForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g., Eid Al-Fitr" required />
+                    <input type="text" className="form-input" value={holidayForm.title} onChange={e => setHolidayForm(p => ({ ...p, title: e.target.value }))} placeholder="e.g., Eid Al-Fitr" required />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Date</label>
-                    <input type="date" className="form-input" value={holidayForm.date} onChange={e => setHolidayForm(p => ({ ...p, date: e.target.value }))} required />
+                    <label className="form-label">Start Date</label>
+                    <input type="date" className="form-input" value={holidayForm.start_date} onChange={e => setHolidayForm(p => ({ ...p, start_date: e.target.value }))} required />
                   </div>
+                  <div className="form-group">
+                    <label className="form-label">End Date</label>
+                    <input type="date" className="form-input" value={holidayForm.end_date} min={holidayForm.start_date} onChange={e => setHolidayForm(p => ({ ...p, end_date: e.target.value }))} required />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Description (optional)</label>
+                  <input type="text" className="form-input" value={holidayForm.description} onChange={e => setHolidayForm(p => ({ ...p, description: e.target.value }))} placeholder="e.g., Public holiday" />
                 </div>
                 <div className="form-actions">
                   <button type="button" onClick={() => setShowHolidayForm(false)} className="btn btn-secondary">Cancel</button>
@@ -540,12 +548,13 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
             ) : (
               <div className="table-wrap">
                 <table className="table">
-                  <thead><tr><th>Holiday</th><th>Date</th><th>Actions</th></tr></thead>
+                  <thead><tr><th>Holiday</th><th>Start Date</th><th>End Date</th><th>Actions</th></tr></thead>
                   <tbody>
                     {cohortDetail.holidays.map(h => (
                       <tr key={h.id}>
-                        <td><strong>{h.name || h.title}</strong></td>
-                        <td>{fmtDate(h.date || h.start_date)}</td>
+                        <td><strong>{h.title || h.name}</strong></td>
+                        <td>{fmtDate(h.start_date)}</td>
+                        <td>{h.end_date && h.end_date !== h.start_date ? fmtDate(h.end_date) : '—'}</td>
                         <td><button onClick={() => handleDeleteHoliday(h)} className="btn-sm btn-delete">Remove</button></td>
                       </tr>
                     ))}
@@ -563,7 +572,7 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
           <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Schedule Overrides</span>
             {!showOverrideForm && (
-              <button onClick={() => { setOverrideForm({ date: '', is_school_day: true, reason: '' }); setShowOverrideForm(true); }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
+              <button onClick={() => { setOverrideForm({ start_date: '', end_date: '', is_school_day: true, reason: '' }); setShowOverrideForm(true); }} className="btn btn-sm btn-primary" disabled={isReadOnly()}>+ Add</button>
             )}
           </div>
 
@@ -578,8 +587,12 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
               <form onSubmit={handleOverrideSubmit}>
                 <div className="form-grid form-grid-3">
                   <div className="form-group">
-                    <label className="form-label">Date</label>
-                    <input type="date" className="form-input" value={overrideForm.date} onChange={e => setOverrideForm(p => ({ ...p, date: e.target.value }))} required />
+                    <label className="form-label">Start Date</label>
+                    <input type="date" className="form-input" value={overrideForm.start_date} onChange={e => setOverrideForm(p => ({ ...p, start_date: e.target.value }))} required />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">End Date</label>
+                    <input type="date" className="form-input" value={overrideForm.end_date} min={overrideForm.start_date} onChange={e => setOverrideForm(p => ({ ...p, end_date: e.target.value }))} required />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Override Type</label>
@@ -588,10 +601,10 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
                       <option value="off">Not a school day (block attendance)</option>
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Reason (optional)</label>
-                    <input type="text" className="form-input" value={overrideForm.reason} onChange={e => setOverrideForm(p => ({ ...p, reason: e.target.value }))} placeholder="e.g., Makeup class" />
-                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Reason (optional)</label>
+                  <input type="text" className="form-input" value={overrideForm.reason} onChange={e => setOverrideForm(p => ({ ...p, reason: e.target.value }))} placeholder="e.g., Makeup class, Exam week" />
                 </div>
                 <div className="form-actions">
                   <button type="button" onClick={() => setShowOverrideForm(false)} className="btn btn-secondary">Cancel</button>
@@ -607,11 +620,12 @@ function CohortPlanner({ classes, isReadOnly, fmtDate, setConfirmModal }) {
             ) : (
               <div className="table-wrap">
                 <table className="table">
-                  <thead><tr><th>Date</th><th>Type</th><th>Reason</th><th>Actions</th></tr></thead>
+                  <thead><tr><th>Start Date</th><th>End Date</th><th>Type</th><th>Reason</th><th>Actions</th></tr></thead>
                   <tbody>
                     {cohortDetail.overrides.map(o => (
                       <tr key={o.id}>
-                        <td>{fmtDate(o.date || o.start_date)}</td>
+                        <td>{fmtDate(o.start_date)}</td>
+                        <td>{o.end_date && o.end_date !== o.start_date ? fmtDate(o.end_date) : '—'}</td>
                         <td><span className={`badge ${o.is_school_day ? 'badge-success' : 'badge-muted'}`}>{o.is_school_day ? 'School day' : 'Not a school day'}</span></td>
                         <td style={{ color: 'var(--muted)', fontSize: '13px' }}>{o.reason || '—'}</td>
                         <td><button onClick={() => handleDeleteOverride(o)} className="btn-sm btn-delete">Remove</button></td>

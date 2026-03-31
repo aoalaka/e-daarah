@@ -69,14 +69,18 @@ ALTER TABLE quran_progress
   ADD INDEX idx_quran_cohort_period (cohort_period_id),
   ADD CONSTRAINT fk_quran_cohort_period FOREIGN KEY (cohort_period_id) REFERENCES cohort_periods(id) ON DELETE CASCADE;
 
--- 8. Add cohort_id to academic_holidays (nullable — NULL means session-scoped)
+-- 8. Add cohort_id to academic_holidays + make session_id nullable for cohort holidays
 ALTER TABLE academic_holidays
+  MODIFY COLUMN session_id INT NULL DEFAULT NULL,
   ADD COLUMN cohort_id INT NULL DEFAULT NULL AFTER session_id,
   ADD INDEX idx_holidays_cohort (cohort_id),
   ADD CONSTRAINT fk_holidays_cohort FOREIGN KEY (cohort_id) REFERENCES cohorts(id) ON DELETE CASCADE;
 
--- 9. Add cohort_id to schedule_overrides (nullable — NULL means session-scoped)
+-- 9. Add cohort_id to schedule_overrides + make session_id nullable + add cohort override columns
 ALTER TABLE schedule_overrides
+  MODIFY COLUMN session_id INT NULL DEFAULT NULL,
   ADD COLUMN cohort_id INT NULL DEFAULT NULL AFTER session_id,
+  ADD COLUMN is_school_day BOOLEAN NULL DEFAULT NULL COMMENT 'Cohort overrides: TRUE = force school day, FALSE = force non-school day' AFTER school_days,
+  ADD COLUMN reason VARCHAR(255) NULL DEFAULT NULL COMMENT 'Cohort override reason' AFTER is_school_day,
   ADD INDEX idx_overrides_cohort (cohort_id),
   ADD CONSTRAINT fk_overrides_cohort FOREIGN KEY (cohort_id) REFERENCES cohorts(id) ON DELETE CASCADE;

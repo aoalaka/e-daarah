@@ -30,8 +30,13 @@ function ReportsSection({
   setReportSemester,
   reportFilterSession,
   setReportFilterSession,
+  cohortPeriods = [],
 }) {
+  const schedulingMode = madrasahProfile?.scheduling_mode || 'academic';
+  const isCohort = schedulingMode === 'cohort';
+
   // Reports-specific state
+  const [reportFilterCohortPeriod, setReportFilterCohortPeriod] = useState('');
   const [selectedStudentForReport, setSelectedStudentForReport] = useState(null);
   const [studentReport, setStudentReport] = useState(null);
   const [classAttendance, setClassAttendance] = useState([]);
@@ -111,7 +116,7 @@ function ReportsSection({
     if (selectedClassForPerformance && reportSubTab === 'student-reports') {
       fetchStudentReports();
     }
-  }, [selectedClassForPerformance, reportFilterSession, reportFilterSemester, reportFilterSubject, reportSubTab]);
+  }, [selectedClassForPerformance, reportFilterSession, reportFilterSemester, reportFilterCohortPeriod, reportFilterSubject, reportSubTab]);
 
   // Fetch rankings based on active ranking sub-tab
   useEffect(() => {
@@ -128,7 +133,7 @@ function ReportsSection({
         fetchPunctualityRankings();
       }
     }
-  }, [selectedClassForPerformance, reportFilterSession, reportFilterSemester, reportSubTab, rankingSubTab]);
+  }, [selectedClassForPerformance, reportFilterSession, reportFilterSemester, reportFilterCohortPeriod, reportSubTab, rankingSubTab]);
 
   // Reset subject filter when class changes
   useEffect(() => {
@@ -150,23 +155,21 @@ function ReportsSection({
       fetchStudentReport(selectedStudentForReport.id);
       fetchIndividualRankings(selectedStudentForReport.id);
     }
-  }, [reportFilterSession, reportFilterSemester, selectedStudentForReport?.id]);
+  }, [reportFilterSession, reportFilterSemester, reportFilterCohortPeriod, selectedStudentForReport?.id]);
 
   // --- Functions ---
 
   const fetchStudentReport = async (studentId) => {
     try {
       const params = {};
-      if (reportFilterSession) {
-        params.session_id = reportFilterSession;
+      if (isCohort) {
+        if (reportFilterCohortPeriod) params.cohort_period_id = reportFilterCohortPeriod;
+      } else {
+        if (reportFilterSession) params.session_id = reportFilterSession;
+        if (reportFilterSemester) params.semester_id = reportFilterSemester;
       }
-      if (reportFilterSemester) {
-        params.semester_id = reportFilterSemester;
-      }
-      
-      console.log('fetchStudentReport params:', params, 'filters:', { reportFilterSession, reportFilterSemester });
+
       const response = await api.get(`/admin/students/${studentId}/report`, { params });
-      console.log('fetchStudentReport response:', response.data);
       setStudentReport(response.data);
       setSelectedStudentForReport(students.find(s => s.id === studentId));
       // Fetch madrasah-wide rankings for the student
@@ -189,7 +192,11 @@ function ReportsSection({
   const fetchClassAttendance = async (classId, dateFrom, dateTo) => {
     try {
       const params = new URLSearchParams();
-      if (reportSemester) params.append('semester_id', reportSemester);
+      if (isCohort) {
+        if (reportFilterCohortPeriod) params.append('cohort_period_id', reportFilterCohortPeriod);
+      } else {
+        if (reportSemester) params.append('semester_id', reportSemester);
+      }
       if (dateFrom) params.append('date_from', dateFrom);
       if (dateTo) params.append('date_to', dateTo);
       const qs = params.toString();
@@ -203,9 +210,14 @@ function ReportsSection({
 
   const fetchClassExams = async (classId) => {
     try {
-      const url = reportSemester
-        ? `/admin/classes/${classId}/exam-performance?semester_id=${reportSemester}`
-        : `/admin/classes/${classId}/exam-performance`;
+      const params = new URLSearchParams();
+      if (isCohort) {
+        if (reportFilterCohortPeriod) params.append('cohort_period_id', reportFilterCohortPeriod);
+      } else {
+        if (reportSemester) params.append('semester_id', reportSemester);
+      }
+      const qs = params.toString();
+      const url = `/admin/classes/${classId}/exam-performance${qs ? `?${qs}` : ''}`;
       const response = await api.get(url);
       setClassExams(response.data);
       calculateExamKpis(response.data);
@@ -283,21 +295,21 @@ function ReportsSection({
     if (!selectedClassForPerformance) return;
     try {
       const params = {};
-      
-      if (reportFilterSession) {
-        params.sessionId = reportFilterSession;
-      }
-      if (reportFilterSemester) {
-        params.semesterId = reportFilterSemester;
+
+      if (isCohort) {
+        if (reportFilterCohortPeriod) params.cohortPeriodId = reportFilterCohortPeriod;
+      } else {
+        if (reportFilterSession) params.sessionId = reportFilterSession;
+        if (reportFilterSemester) params.semesterId = reportFilterSemester;
       }
       if (reportFilterSubject && reportFilterSubject !== 'all') {
         params.subject = reportFilterSubject;
       }
-      
+
       const classId = selectedClassForPerformance.id || selectedClassForPerformance;
       const response = await api.get(`/admin/classes/${classId}/student-reports`, { params });
       setStudentReports(response.data);
-      
+
       // Extract unique subjects from the exam data
       const subjects = new Set();
       response.data.forEach(student => {
@@ -317,14 +329,12 @@ function ReportsSection({
     if (!selectedClassForPerformance) return;
     try {
       const params = {};
-      
-      if (reportFilterSession) {
-        params.sessionId = reportFilterSession;
+      if (isCohort) {
+        if (reportFilterCohortPeriod) params.cohortPeriodId = reportFilterCohortPeriod;
+      } else {
+        if (reportFilterSession) params.sessionId = reportFilterSession;
+        if (reportFilterSemester) params.semesterId = reportFilterSemester;
       }
-      if (reportFilterSemester) {
-        params.semesterId = reportFilterSemester;
-      }
-      
       const classId = selectedClassForPerformance.id || selectedClassForPerformance;
       const response = await api.get(`/admin/classes/${classId}/attendance-rankings`, { params });
       setAttendanceRankings(response.data);
@@ -338,14 +348,12 @@ function ReportsSection({
     if (!selectedClassForPerformance) return;
     try {
       const params = {};
-      
-      if (reportFilterSession) {
-        params.sessionId = reportFilterSession;
+      if (isCohort) {
+        if (reportFilterCohortPeriod) params.cohortPeriodId = reportFilterCohortPeriod;
+      } else {
+        if (reportFilterSession) params.sessionId = reportFilterSession;
+        if (reportFilterSemester) params.semesterId = reportFilterSemester;
       }
-      if (reportFilterSemester) {
-        params.semesterId = reportFilterSemester;
-      }
-      
       const classId = selectedClassForPerformance.id || selectedClassForPerformance;
       const response = await api.get(`/admin/classes/${classId}/dressing-rankings`, { params });
       setDressingRankings(response.data);
@@ -359,14 +367,12 @@ function ReportsSection({
     if (!selectedClassForPerformance) return;
     try {
       const params = {};
-      
-      if (reportFilterSession) {
-        params.sessionId = reportFilterSession;
+      if (isCohort) {
+        if (reportFilterCohortPeriod) params.cohortPeriodId = reportFilterCohortPeriod;
+      } else {
+        if (reportFilterSession) params.sessionId = reportFilterSession;
+        if (reportFilterSemester) params.semesterId = reportFilterSemester;
       }
-      if (reportFilterSemester) {
-        params.semesterId = reportFilterSemester;
-      }
-      
       const classId = selectedClassForPerformance.id || selectedClassForPerformance;
       const response = await api.get(`/admin/classes/${classId}/behavior-rankings`, { params });
       setBehaviorRankings(response.data);
@@ -380,14 +386,12 @@ function ReportsSection({
     if (!selectedClassForPerformance) return;
     try {
       const params = {};
-      
-      if (reportFilterSession) {
-        params.sessionId = reportFilterSession;
+      if (isCohort) {
+        if (reportFilterCohortPeriod) params.cohortPeriodId = reportFilterCohortPeriod;
+      } else {
+        if (reportFilterSession) params.sessionId = reportFilterSession;
+        if (reportFilterSemester) params.semesterId = reportFilterSemester;
       }
-      if (reportFilterSemester) {
-        params.semesterId = reportFilterSemester;
-      }
-      
       const classId = selectedClassForPerformance.id || selectedClassForPerformance;
       const response = await api.get(`/admin/classes/${classId}/punctuality-rankings`, { params });
       setPunctualityRankings(response.data);
@@ -401,17 +405,13 @@ function ReportsSection({
     if (!studentId) return;
     try {
       const params = {};
-      
-      if (reportFilterSession) {
-        params.sessionId = reportFilterSession;
+      if (isCohort) {
+        if (reportFilterCohortPeriod) params.cohortPeriodId = reportFilterCohortPeriod;
+      } else {
+        if (reportFilterSession) params.sessionId = reportFilterSession;
+        if (reportFilterSemester) params.semesterId = reportFilterSemester;
       }
-      if (reportFilterSemester) {
-        params.semesterId = reportFilterSemester;
-      }
-      
-      console.log('fetchIndividualRankings params:', params, 'filters:', { reportFilterSession, reportFilterSemester });
       const response = await api.get(`/admin/students/${studentId}/all-rankings`, { params });
-      console.log('fetchIndividualRankings response:', response.data);
       setIndividualRankings(response.data);
     } catch (error) {
       console.error('Failed to fetch individual rankings:', error);
@@ -520,42 +520,62 @@ function ReportsSection({
               <div className="card no-print">
                 <div className="card-body">
                   <div className="form-grid">
-                    <div className="form-group">
-                      <label className="form-label">Filter by Session</label>
-                      <select
-                        className="form-select"
-                        value={reportFilterSession}
-                        onChange={(e) => setReportFilterSession(e.target.value)}
-                      >
-                        <option value="">All Sessions</option>
-                        {sessions.map(session => (
-                          <option key={session.id} value={session.id}>
-                            {session.name} {session.is_active ? '(Active)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Filter by Semester</label>
-                      <select
-                        className="form-select"
-                        value={reportSubTab === 'student-reports' || reportSubTab === 'individual' ? reportFilterSemester : reportSemester}
-                        onChange={(e) => {
-                          if (reportSubTab === 'student-reports' || reportSubTab === 'individual') {
-                            setReportFilterSemester(e.target.value);
-                          } else {
-                            setReportSemester(e.target.value);
-                          }
-                        }}
-                      >
-                        <option value="">All Semesters</option>
-                        {reportFilteredSemesters.map(sem => (
-                          <option key={sem.id} value={sem.id}>
-                            {sem.name} {sem.is_active ? '(Active)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    {isCohort ? (
+                      <div className="form-group">
+                        <label className="form-label">Filter by Cohort Period</label>
+                        <select
+                          className="form-select"
+                          value={reportFilterCohortPeriod}
+                          onChange={(e) => setReportFilterCohortPeriod(e.target.value)}
+                        >
+                          <option value="">All Periods</option>
+                          {cohortPeriods.map(period => (
+                            <option key={period.id} value={period.id}>
+                              {period.name} {period.is_active ? '(Active)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="form-group">
+                          <label className="form-label">Filter by Session</label>
+                          <select
+                            className="form-select"
+                            value={reportFilterSession}
+                            onChange={(e) => setReportFilterSession(e.target.value)}
+                          >
+                            <option value="">All Sessions</option>
+                            {sessions.map(session => (
+                              <option key={session.id} value={session.id}>
+                                {session.name} {session.is_active ? '(Active)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Filter by Semester</label>
+                          <select
+                            className="form-select"
+                            value={reportSubTab === 'student-reports' || reportSubTab === 'individual' ? reportFilterSemester : reportSemester}
+                            onChange={(e) => {
+                              if (reportSubTab === 'student-reports' || reportSubTab === 'individual') {
+                                setReportFilterSemester(e.target.value);
+                              } else {
+                                setReportSemester(e.target.value);
+                              }
+                            }}
+                          >
+                            <option value="">All Semesters</option>
+                            {reportFilteredSemesters.map(sem => (
+                              <option key={sem.id} value={sem.id}>
+                                {sem.name} {sem.is_active ? '(Active)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    )}
                     {(reportSubTab === 'attendance' || reportSubTab === 'exams' || reportSubTab === 'student-reports') && (
                       <div className="form-group">
                         <label className="form-label">Select Class</label>

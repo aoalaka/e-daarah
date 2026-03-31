@@ -23,7 +23,11 @@ function OverviewSection({
   pendingAppCount,
   reportSemester,
   user,
+  cohorts = [],
+  cohortPeriods = [],
 }) {
+  const schedulingMode = madrasahProfile?.scheduling_mode || 'academic';
+  const isCohort = schedulingMode === 'cohort';
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const analyticsLoadedOnce = useRef(false);
@@ -37,7 +41,12 @@ function OverviewSection({
     setExpandedMetric(null);
     try {
       const params = new URLSearchParams();
-      if (reportSemester) params.append('semester_id', reportSemester);
+      if (isCohort) {
+        const activePeriod = cohortPeriods.find(p => p.is_active);
+        if (activePeriod) params.append('cohort_period_id', activePeriod.id);
+      } else {
+        if (reportSemester) params.append('semester_id', reportSemester);
+      }
       if (analyticsFilterClass) params.append('class_id', analyticsFilterClass);
       if (analyticsFilterGender) params.append('gender', analyticsFilterGender);
       // Send client's local date for accurate "today" checks
@@ -74,7 +83,7 @@ function OverviewSection({
       fetchAnalytics();
       fetchUpcomingUnavailable();
     }
-  }, [reportSemester, madrasahProfile]);
+  }, [reportSemester, madrasahProfile, cohortPeriods]);
 
   return (
     <>
@@ -84,7 +93,14 @@ function OverviewSection({
           {(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}{user?.firstName ? `, ${user.firstName}` : ''}
         </h2>
         <span className="overview-context">
-          {(() => {
+          {isCohort ? (() => {
+            const activeCohort = cohorts.find(c => c.is_active);
+            const activePeriod = cohortPeriods.find(p => p.is_active);
+            const parts = [];
+            if (activeCohort) parts.push(activeCohort.name);
+            if (activePeriod) parts.push(activePeriod.name);
+            return parts.length > 0 ? parts.join(' · ') : '';
+          })() : (() => {
             const activeSession = sessions.find(s => s.is_active);
             const activeSemester = semesters.find(s => s.is_active);
             const parts = [];

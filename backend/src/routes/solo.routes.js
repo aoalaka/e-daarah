@@ -594,7 +594,7 @@ router.get('/classes/:classId/quran-positions', async (req, res) => {
 router.get('/classes/:classId/quran-progress', async (req, res) => {
   try {
     const { classId } = req.params;
-    const { semester_id, student_id } = req.query;
+    const { semester_id, cohort_period_id, student_id } = req.query;
     const madrasahId = req.madrasahId;
 
     let query = `
@@ -603,7 +603,8 @@ router.get('/classes/:classId/quran-progress', async (req, res) => {
       WHERE qp.class_id = ? AND qp.madrasah_id = ? AND qp.deleted_at IS NULL`;
     const params = [classId, madrasahId];
 
-    if (semester_id) { query += ' AND qp.semester_id = ?'; params.push(semester_id); }
+    if (cohort_period_id) { query += ' AND qp.cohort_period_id = ?'; params.push(cohort_period_id); }
+    else if (semester_id) { query += ' AND qp.semester_id = ?'; params.push(semester_id); }
     if (student_id) { query += ' AND qp.student_id = ?'; params.push(student_id); }
 
     query += ' ORDER BY qp.date DESC, qp.created_at DESC';
@@ -1138,7 +1139,8 @@ router.get('/profile', async (req, res) => {
       `SELECT id, name, slug, logo_url, street, city, region, country, phone, email,
        institution_type, verification_status, trial_ends_at, created_at,
        pricing_plan, subscription_status, current_period_end, stripe_customer_id,
-       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency
+       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency,
+       COALESCE(scheduling_mode, 'academic') as scheduling_mode
        FROM madrasahs WHERE id = ?`,
       [req.madrasahId]
     );

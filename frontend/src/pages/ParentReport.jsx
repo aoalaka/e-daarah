@@ -42,6 +42,9 @@ function ParentReport() {
   const [filteredSemesters, setFilteredSemesters] = useState([]);
   const [selectedSession, setSelectedSession] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
+  const [cohortPeriods, setCohortPeriods] = useState([]);
+  const [selectedCohortPeriod, setSelectedCohortPeriod] = useState('');
+  const [schedulingMode, setSchedulingMode] = useState('academic');
   const [loading, setLoading] = useState(true);
   const [quranProgress, setQuranProgress] = useState([]);
   const [quranPosition, setQuranPosition] = useState(null);
@@ -61,7 +64,7 @@ function ParentReport() {
     if (selectedChildId) {
       fetchReport();
     }
-  }, [selectedChildId, selectedSession, selectedSemester]);
+  }, [selectedChildId, selectedSession, selectedSemester, selectedCohortPeriod]);
 
   // Fetch fees when switching to fees tab
   useEffect(() => {
@@ -118,8 +121,13 @@ function ParentReport() {
       setLoading(true);
       const params = new URLSearchParams();
       params.append('student_id', selectedChildId);
-      if (selectedSemester) params.append('semester_id', selectedSemester);
-      else if (selectedSession) params.append('session_id', selectedSession);
+      const isCohort = schedulingMode === 'cohort';
+      if (isCohort) {
+        if (selectedCohortPeriod) params.append('cohort_period_id', selectedCohortPeriod);
+      } else {
+        if (selectedSemester) params.append('semester_id', selectedSemester);
+        else if (selectedSession) params.append('session_id', selectedSession);
+      }
 
       const response = await api.get(`/auth/parent/report?${params}`);
       const data = response.data;
@@ -132,11 +140,21 @@ function ParentReport() {
       setRankings(data.rankings || { attendance: {}, exam: {}, dressing: {}, behavior: {}, punctuality: {} });
       setSessions(data.sessions || []);
       setSemesters(data.semesters || []);
+      setCohortPeriods(data.cohortPeriods || []);
       setQuranProgress(data.quranProgress || []);
       setQuranPosition(data.quranPosition || null);
 
-      // Default to active session/semester on first load
-      if (!selectedSession && !selectedSemester && data.sessions?.length) {
+      // Detect scheduling mode from madrasah profile
+      const mode = data.madrasah?.scheduling_mode || 'academic';
+      setSchedulingMode(mode);
+
+      // Default filter to active period on first load
+      if (mode === 'cohort') {
+        if (!selectedCohortPeriod && data.cohortPeriods?.length) {
+          const activePeriod = data.cohortPeriods.find(p => p.is_active);
+          if (activePeriod) { setSelectedCohortPeriod(String(activePeriod.id)); return; }
+        }
+      } else if (!selectedSession && !selectedSemester && data.sessions?.length) {
         const activeSession = data.sessions.find(s => s.is_active);
         if (activeSession) {
           const activeSemester = data.semesters?.find(s => s.session_id === activeSession.id && s.is_active);
@@ -315,24 +333,38 @@ function ParentReport() {
 
                 {/* Filters */}
                 <div className="report-filters no-print">
-                  <div className="filter-group">
-                    <label>Session</label>
-                    <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)}>
-                      <option value="">All Sessions</option>
-                      {sessions.map(s => (
-                        <option key={s.id} value={s.id}>{s.name} {s.is_active ? '(Active)' : ''}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="filter-group">
-                    <label>Semester</label>
-                    <select value={selectedSemester} onChange={(e) => setSelectedSemester(e.target.value)}>
-                      <option value="">All Semesters</option>
-                      {filteredSemesters.map(s => (
-                        <option key={s.id} value={s.id}>{s.name} {s.is_active ? '(Active)' : ''}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {schedulingMode === 'cohort' ? (
+                    <div className="filter-group">
+                      <label>Period</label>
+                      <select value={selectedCohortPeriod} onChange={(e) => setSelectedCohortPeriod(e.target.value)}>
+                        <option value="">All Periods</option>
+                        {cohortPeriods.map(p => (
+                          <option key={p.id} value={p.id}>{p.name} {p.is_active ? '(Active)' : ''}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="filter-group">
+                        <label>Session</label>
+                        <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)}>
+                          <option value="">All Sessions</option>
+                          {sessions.map(s => (
+                            <option key={s.id} value={s.id}>{s.name} {s.is_active ? '(Active)' : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="filter-group">
+                        <label>Semester</label>
+                        <select value={selectedSemester} onChange={(e) => setSelectedSemester(e.target.value)}>
+                          <option value="">All Semesters</option>
+                          {filteredSemesters.map(s => (
+                            <option key={s.id} value={s.id}>{s.name} {s.is_active ? '(Active)' : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Student Info */}

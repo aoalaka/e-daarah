@@ -810,7 +810,7 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
     }
 
     const madrasahId = req.user.madrasahId;
-    const { semester_id, session_id } = req.query;
+    const { semester_id, session_id, cohort_period_id } = req.query;
 
     // Support both old (single studentId in token) and new (student_id query param) flows
     let studentId = req.query.student_id ? parseInt(req.query.student_id) : req.user.studentId;
@@ -851,18 +851,43 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
 
     // Get madrasah profile for report header
     const [madrasahProfile] = await pool.query(
-      'SELECT name, logo_url, enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency FROM madrasahs WHERE id = ?',
+      'SELECT name, logo_url, enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, COALESCE(scheduling_mode, \'academic\') as scheduling_mode FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
 
-    // Build attendance query with optional session/semester filter
+    const schedulingMode = madrasahProfile[0]?.scheduling_mode || 'academic';
+    const isCohort = schedulingMode === 'cohort';
+
+    // Fetch cohort periods for filter dropdowns (cohort mode only)
+    let cohorts = [];
+    let cohortPeriods = [];
+    if (isCohort) {
+      const [cohortsData] = await pool.query(
+        'SELECT id, name, is_active FROM cohorts WHERE madrasah_id = ? AND deleted_at IS NULL ORDER BY start_date DESC',
+        [madrasahId]
+      );
+      cohorts = cohortsData;
+      const activeCohort = cohortsData.find(c => c.is_active);
+      if (activeCohort) {
+        const [periodsData] = await pool.query(
+          'SELECT id, name, is_active FROM cohort_periods WHERE cohort_id = ? AND deleted_at IS NULL ORDER BY start_date ASC',
+          [activeCohort.id]
+        );
+        cohortPeriods = periodsData;
+      }
+    }
+
+    // Build attendance query with optional session/semester/cohort filter
     let attendanceQuery = `
       SELECT a.* FROM attendance a
       LEFT JOIN semesters sem ON a.semester_id = sem.id
       WHERE a.student_id = ? AND a.madrasah_id = ?`;
     const attendanceParams = [studentId, madrasahId];
 
-    if (semester_id) {
+    if (cohort_period_id) {
+      attendanceQuery += ' AND a.cohort_period_id = ?';
+      attendanceParams.push(cohort_period_id);
+    } else if (semester_id) {
       attendanceQuery += ' AND a.semester_id = ?';
       attendanceParams.push(semester_id);
     } else if (session_id) {
@@ -873,14 +898,17 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
     attendanceQuery += ' ORDER BY a.date DESC';
     const [attendance] = await pool.query(attendanceQuery, attendanceParams);
 
-    // Build exam query with optional session/semester filter
+    // Build exam query with optional session/semester/cohort filter
     let examQuery = `
       SELECT ep.* FROM exam_performance ep
       LEFT JOIN semesters sem ON ep.semester_id = sem.id
       WHERE ep.student_id = ? AND ep.madrasah_id = ?`;
     const examParams = [studentId, madrasahId];
 
-    if (semester_id) {
+    if (cohort_period_id) {
+      examQuery += ' AND ep.cohort_period_id = ?';
+      examParams.push(cohort_period_id);
+    } else if (semester_id) {
       examQuery += ' AND ep.semester_id = ?';
       examParams.push(semester_id);
     } else if (session_id) {
@@ -937,7 +965,10 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL`;
       const examRankParams = [madrasahId, madrasahId, student.class_id];
 
-      if (semester_id) {
+      if (cohort_period_id) {
+        examRankQuery += ' AND ep.cohort_period_id = ?';
+        examRankParams.push(cohort_period_id);
+      } else if (semester_id) {
         examRankQuery += ' AND ep.semester_id = ?';
         examRankParams.push(semester_id);
       } else if (session_id) {
@@ -977,7 +1008,10 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL`;
       const attRankParams = [madrasahId, madrasahId, student.class_id];
 
-      if (semester_id) {
+      if (cohort_period_id) {
+        attRankQuery += ' AND a.cohort_period_id = ?';
+        attRankParams.push(cohort_period_id);
+      } else if (semester_id) {
         attRankQuery += ' AND a.semester_id = ?';
         attRankParams.push(semester_id);
       } else if (session_id) {
@@ -1013,7 +1047,10 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL`;
       const dressRankParams = [madrasahId, madrasahId, student.class_id];
 
-      if (semester_id) {
+      if (cohort_period_id) {
+        dressRankQuery += ' AND a.cohort_period_id = ?';
+        dressRankParams.push(cohort_period_id);
+      } else if (semester_id) {
         dressRankQuery += ' AND a.semester_id = ?';
         dressRankParams.push(semester_id);
       } else if (session_id) {
@@ -1049,7 +1086,10 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL`;
       const behavRankParams = [madrasahId, madrasahId, student.class_id];
 
-      if (semester_id) {
+      if (cohort_period_id) {
+        behavRankQuery += ' AND a.cohort_period_id = ?';
+        behavRankParams.push(cohort_period_id);
+      } else if (semester_id) {
         behavRankQuery += ' AND a.semester_id = ?';
         behavRankParams.push(semester_id);
       } else if (session_id) {
@@ -1085,7 +1125,10 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         WHERE s.madrasah_id = ? AND s.class_id = ? AND s.deleted_at IS NULL`;
       const punctRankParams = [madrasahId, madrasahId, student.class_id];
 
-      if (semester_id) {
+      if (cohort_period_id) {
+        punctRankQuery += ' AND a.cohort_period_id = ?';
+        punctRankParams.push(cohort_period_id);
+      } else if (semester_id) {
         punctRankQuery += ' AND a.semester_id = ?';
         punctRankParams.push(semester_id);
       } else if (session_id) {
@@ -1119,7 +1162,10 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       WHERE qp.student_id = ? AND qp.madrasah_id = ? AND qp.deleted_at IS NULL
     `;
     const quranParams = [studentId, student.madrasah_id];
-    if (semester_id) {
+    if (cohort_period_id) {
+      quranQuery += ' AND qp.cohort_period_id = ?';
+      quranParams.push(cohort_period_id);
+    } else if (semester_id) {
       quranQuery += ' AND qp.semester_id = ?';
       quranParams.push(semester_id);
     } else if (session_id) {
@@ -1140,6 +1186,8 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       madrasah: madrasahProfile[0] || {},
       sessions,
       semesters,
+      cohorts,
+      cohortPeriods,
       attendance: {
         records: attendance,
         totalDays,

@@ -1091,7 +1091,7 @@ router.get('/classes/:classId/kpis', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { semester_id, date_from, date_to } = req.query;
+    const { semester_id, cohort_period_id, date_from, date_to } = req.query;
 
     // Verify class belongs to this madrasah
     const [classCheck] = await pool.query(
@@ -1105,7 +1105,10 @@ router.get('/classes/:classId/kpis', async (req, res) => {
     let semesterFilter = '';
     const params = [classId, madrasahId];
 
-    if (semester_id) {
+    if (cohort_period_id) {
+      semesterFilter += ' AND a.cohort_period_id = ?';
+      params.push(cohort_period_id);
+    } else if (semester_id) {
       semesterFilter += ' AND a.semester_id = ?';
       params.push(semester_id);
     }
@@ -1138,7 +1141,10 @@ router.get('/classes/:classId/kpis', async (req, res) => {
     // Get exam statistics (join through students to filter by class)
     const examStatsParams = [classId, madrasahId];
     let examStatsFilter = '';
-    if (semester_id) {
+    if (cohort_period_id) {
+      examStatsFilter = ' AND ep.cohort_period_id = ?';
+      examStatsParams.push(cohort_period_id);
+    } else if (semester_id) {
       examStatsFilter = ' AND ep.semester_id = ?';
       examStatsParams.push(semester_id);
     }
@@ -1156,7 +1162,8 @@ router.get('/classes/:classId/kpis', async (req, res) => {
     // Get high-risk students (low attendance < 70% or poor grades below 2.5/4.0)
     // Only include students who have actual attendance data for the selected scope
     const highRiskParams = [classId, madrasahId];
-    if (semester_id) highRiskParams.push(semester_id);
+    if (cohort_period_id) highRiskParams.push(cohort_period_id);
+    else if (semester_id) highRiskParams.push(semester_id);
     if (date_from) highRiskParams.push(date_from);
     if (date_to) highRiskParams.push(date_to);
     highRiskParams.push(classId, madrasahId);
@@ -1202,7 +1209,7 @@ router.get('/classes/:classId/attendance-performance', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { semester_id, date_from, date_to } = req.query;
+    const { semester_id, cohort_period_id, date_from, date_to } = req.query;
 
     // Verify class belongs to this madrasah
     const [classCheck] = await pool.query(
@@ -1214,15 +1221,20 @@ router.get('/classes/:classId/attendance-performance', async (req, res) => {
     }
 
     let query = `
-      SELECT a.*, s.first_name, s.last_name, s.student_id, sem.name as semester_name
+      SELECT a.*, s.first_name, s.last_name, s.student_id,
+             sem.name as semester_name, cp.name as cohort_period_name
       FROM attendance a
       JOIN students s ON a.student_id = s.id
       LEFT JOIN semesters sem ON a.semester_id = sem.id
+      LEFT JOIN cohort_periods cp ON a.cohort_period_id = cp.id
       WHERE a.class_id = ? AND a.madrasah_id = ?
     `;
     const params = [classId, madrasahId];
 
-    if (semester_id) {
+    if (cohort_period_id) {
+      query += ' AND a.cohort_period_id = ?';
+      params.push(cohort_period_id);
+    } else if (semester_id) {
       query += ' AND a.semester_id = ?';
       params.push(semester_id);
     }
@@ -1249,7 +1261,7 @@ router.get('/classes/:classId/exam-performance', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { semester_id, subject } = req.query;
+    const { semester_id, cohort_period_id, subject } = req.query;
 
     // Verify class belongs to this madrasah
     const [classCheck] = await pool.query(
@@ -1261,15 +1273,20 @@ router.get('/classes/:classId/exam-performance', async (req, res) => {
     }
 
     let query = `SELECT ep.*, s.first_name, s.last_name, s.student_id,
-                        sem.name as semester_name, sess.name as session_name
+                        sem.name as semester_name, sess.name as session_name,
+                        cp.name as cohort_period_name
                  FROM exam_performance ep
                  JOIN students s ON ep.student_id = s.id
                  LEFT JOIN semesters sem ON ep.semester_id = sem.id
                  LEFT JOIN sessions sess ON sem.session_id = sess.id
+                 LEFT JOIN cohort_periods cp ON ep.cohort_period_id = cp.id
                  WHERE s.class_id = ? AND s.madrasah_id = ? AND ep.deleted_at IS NULL`;
     const queryParams = [classId, madrasahId];
 
-    if (semester_id) {
+    if (cohort_period_id) {
+      query += ' AND ep.cohort_period_id = ?';
+      queryParams.push(cohort_period_id);
+    } else if (semester_id) {
       query += ' AND ep.semester_id = ?';
       queryParams.push(semester_id);
     }
@@ -1291,7 +1308,7 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { sessionId, semesterId, subject } = req.query;
+    const { sessionId, semesterId, cohortPeriodId, subject } = req.query;
 
     // Verify class belongs to this madrasah
     const [classCheck] = await pool.query(
@@ -1304,7 +1321,7 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
 
     // Build query with filters
     let query = `
-      SELECT 
+      SELECT
         s.id,
         s.student_id,
         s.first_name,
@@ -1316,7 +1333,7 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
         SUM(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE 0 END) as total_score,
         SUM(ep.max_score) as total_max_score,
         GROUP_CONCAT(DISTINCT ep.subject ORDER BY ep.subject SEPARATOR ', ') as subjects,
-        CASE 
+        CASE
           WHEN SUM(ep.max_score) > 0 THEN (SUM(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE 0 END) / SUM(ep.max_score)) * 100
           ELSE 0
         END as overall_percentage
@@ -1325,17 +1342,21 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
       LEFT JOIN semesters sem ON ep.semester_id = sem.id
       WHERE s.class_id = ? AND s.deleted_at IS NULL
     `;
-    
+
     const queryParams = [madrasahId, classId];
 
-    if (sessionId) {
-      query += ` AND sem.session_id = ?`;
-      queryParams.push(sessionId);
-    }
-
-    if (semesterId) {
-      query += ` AND ep.semester_id = ?`;
-      queryParams.push(semesterId);
+    if (cohortPeriodId) {
+      query += ` AND ep.cohort_period_id = ?`;
+      queryParams.push(cohortPeriodId);
+    } else {
+      if (sessionId) {
+        query += ` AND sem.session_id = ?`;
+        queryParams.push(sessionId);
+      }
+      if (semesterId) {
+        query += ` AND ep.semester_id = ?`;
+        queryParams.push(semesterId);
+      }
     }
 
     if (subject) {
@@ -1389,7 +1410,7 @@ router.get('/classes/:classId/attendance-rankings', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { sessionId, semesterId } = req.query;
+    const { sessionId, semesterId, cohortPeriodId } = req.query;
 
     // Verify class belongs to this madrasah
     const [classCheck] = await pool.query(
@@ -1402,7 +1423,7 @@ router.get('/classes/:classId/attendance-rankings', async (req, res) => {
 
     // Build query with filters
     let query = `
-      SELECT 
+      SELECT
         s.id,
         s.student_id,
         s.first_name,
@@ -1411,7 +1432,7 @@ router.get('/classes/:classId/attendance-rankings', async (req, res) => {
         COUNT(a.id) as total_days,
         SUM(CASE WHEN a.present = TRUE THEN 1 ELSE 0 END) as days_present,
         SUM(CASE WHEN a.present = FALSE THEN 1 ELSE 0 END) as days_absent,
-        CASE 
+        CASE
           WHEN COUNT(a.id) > 0 THEN (SUM(CASE WHEN a.present = TRUE THEN 1 ELSE 0 END) / COUNT(a.id)) * 100
           ELSE 0
         END as attendance_rate
@@ -1421,17 +1442,21 @@ router.get('/classes/:classId/attendance-rankings', async (req, res) => {
       LEFT JOIN classes c ON s.class_id = c.id
       WHERE s.class_id = ? AND s.deleted_at IS NULL
     `;
-    
+
     const queryParams = [madrasahId, classId];
 
-    if (sessionId) {
-      query += ` AND sem.session_id = ?`;
-      queryParams.push(sessionId);
-    }
-
-    if (semesterId) {
-      query += ` AND a.semester_id = ?`;
-      queryParams.push(semesterId);
+    if (cohortPeriodId) {
+      query += ` AND a.cohort_period_id = ?`;
+      queryParams.push(cohortPeriodId);
+    } else {
+      if (sessionId) {
+        query += ` AND sem.session_id = ?`;
+        queryParams.push(sessionId);
+      }
+      if (semesterId) {
+        query += ` AND a.semester_id = ?`;
+        queryParams.push(semesterId);
+      }
     }
 
     query += ` GROUP BY s.id ORDER BY attendance_rate DESC`;
@@ -1477,7 +1502,7 @@ router.get('/classes/:classId/dressing-rankings', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { sessionId, semesterId } = req.query;
+    const { sessionId, semesterId, cohortPeriodId } = req.query;
 
     // Verify class belongs to this madrasah
     const [classCheck] = await pool.query(
@@ -1490,7 +1515,7 @@ router.get('/classes/:classId/dressing-rankings', async (req, res) => {
 
     // Build query with filters (Excellent=4, Good=3, Fair=2, Poor=1)
     let query = `
-      SELECT 
+      SELECT
         s.id,
         s.student_id,
         s.first_name,
@@ -1516,17 +1541,21 @@ router.get('/classes/:classId/dressing-rankings', async (req, res) => {
       LEFT JOIN classes c ON s.class_id = c.id
       WHERE s.class_id = ? AND s.deleted_at IS NULL
     `;
-    
+
     const queryParams = [madrasahId, classId];
 
-    if (sessionId) {
-      query += ` AND sem.session_id = ?`;
-      queryParams.push(sessionId);
-    }
-
-    if (semesterId) {
-      query += ` AND a.semester_id = ?`;
-      queryParams.push(semesterId);
+    if (cohortPeriodId) {
+      query += ` AND a.cohort_period_id = ?`;
+      queryParams.push(cohortPeriodId);
+    } else {
+      if (sessionId) {
+        query += ` AND sem.session_id = ?`;
+        queryParams.push(sessionId);
+      }
+      if (semesterId) {
+        query += ` AND a.semester_id = ?`;
+        queryParams.push(semesterId);
+      }
     }
 
     query += ` GROUP BY s.id ORDER BY avg_dressing_score DESC`;
@@ -1585,7 +1614,7 @@ router.get('/classes/:classId/behavior-rankings', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { sessionId, semesterId } = req.query;
+    const { sessionId, semesterId, cohortPeriodId } = req.query;
 
     // Verify class belongs to this madrasah
     const [classCheck] = await pool.query(
@@ -1598,7 +1627,7 @@ router.get('/classes/:classId/behavior-rankings', async (req, res) => {
 
     // Build query with filters (Excellent=4, Good=3, Fair=2, Poor=1)
     let query = `
-      SELECT 
+      SELECT
         s.id,
         s.student_id,
         s.first_name,
@@ -1624,17 +1653,21 @@ router.get('/classes/:classId/behavior-rankings', async (req, res) => {
       LEFT JOIN classes c ON s.class_id = c.id
       WHERE s.class_id = ? AND s.deleted_at IS NULL
     `;
-    
+
     const queryParams = [madrasahId, classId];
 
-    if (sessionId) {
-      query += ` AND sem.session_id = ?`;
-      queryParams.push(sessionId);
-    }
-
-    if (semesterId) {
-      query += ` AND a.semester_id = ?`;
-      queryParams.push(semesterId);
+    if (cohortPeriodId) {
+      query += ` AND a.cohort_period_id = ?`;
+      queryParams.push(cohortPeriodId);
+    } else {
+      if (sessionId) {
+        query += ` AND sem.session_id = ?`;
+        queryParams.push(sessionId);
+      }
+      if (semesterId) {
+        query += ` AND a.semester_id = ?`;
+        queryParams.push(semesterId);
+      }
     }
 
     query += ` GROUP BY s.id ORDER BY avg_behavior_score DESC`;
@@ -1693,7 +1726,7 @@ router.get('/classes/:classId/punctuality-rankings', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { sessionId, semesterId } = req.query;
+    const { sessionId, semesterId, cohortPeriodId } = req.query;
 
     // Verify class belongs to this madrasah
     const [classCheck] = await pool.query(
@@ -1706,7 +1739,7 @@ router.get('/classes/:classId/punctuality-rankings', async (req, res) => {
 
     // Build query with filters (Excellent=4, Good=3, Fair=2, Poor=1)
     let query = `
-      SELECT 
+      SELECT
         s.id,
         s.student_id,
         s.first_name,
@@ -1732,17 +1765,21 @@ router.get('/classes/:classId/punctuality-rankings', async (req, res) => {
       LEFT JOIN classes c ON s.class_id = c.id
       WHERE s.class_id = ? AND s.deleted_at IS NULL
     `;
-    
+
     const queryParams = [madrasahId, classId];
 
-    if (sessionId) {
-      query += ` AND sem.session_id = ?`;
-      queryParams.push(sessionId);
-    }
-
-    if (semesterId) {
-      query += ` AND a.semester_id = ?`;
-      queryParams.push(semesterId);
+    if (cohortPeriodId) {
+      query += ` AND a.cohort_period_id = ?`;
+      queryParams.push(cohortPeriodId);
+    } else {
+      if (sessionId) {
+        query += ` AND sem.session_id = ?`;
+        queryParams.push(sessionId);
+      }
+      if (semesterId) {
+        query += ` AND a.semester_id = ?`;
+        queryParams.push(semesterId);
+      }
     }
 
     query += ` GROUP BY s.id ORDER BY avg_punctuality_score DESC`;
@@ -1801,7 +1838,7 @@ router.get('/students/:id/all-rankings', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
-    const { sessionId, semesterId } = req.query;
+    const { sessionId, semesterId, cohortPeriodId } = req.query;
 
     // Verify student belongs to this madrasah
     const [studentCheck] = await pool.query(
@@ -1815,10 +1852,10 @@ router.get('/students/:id/all-rankings', async (req, res) => {
 
     // Get exam ranking (class-scoped, total = students in class)
     let examQuery = `
-      SELECT 
+      SELECT
         s.id,
         s.student_id,
-        CASE 
+        CASE
           WHEN SUM(ep.max_score) > 0 THEN (SUM(CASE WHEN ep.is_absent = FALSE THEN ep.score ELSE 0 END) / SUM(ep.max_score)) * 100
           ELSE 0
         END as overall_percentage
@@ -1829,13 +1866,18 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     `;
     const examParams = [madrasahId, madrasahId, student.class_id];
 
-    if (sessionId) {
-      examQuery += ` AND sem.session_id = ?`;
-      examParams.push(sessionId);
-    }
-    if (semesterId) {
-      examQuery += ` AND ep.semester_id = ?`;
-      examParams.push(semesterId);
+    if (cohortPeriodId) {
+      examQuery += ` AND ep.cohort_period_id = ?`;
+      examParams.push(cohortPeriodId);
+    } else {
+      if (sessionId) {
+        examQuery += ` AND sem.session_id = ?`;
+        examParams.push(sessionId);
+      }
+      if (semesterId) {
+        examQuery += ` AND ep.semester_id = ?`;
+        examParams.push(semesterId);
+      }
     }
 
     examQuery += ` GROUP BY s.id ORDER BY overall_percentage DESC`;
@@ -1880,9 +1922,9 @@ router.get('/students/:id/all-rankings', async (req, res) => {
 
     // Get attendance ranking (class-scoped, total = students in class)
     let attendanceQuery = `
-      SELECT 
+      SELECT
         s.id,
-        CASE 
+        CASE
           WHEN COUNT(a.id) > 0 THEN (SUM(CASE WHEN a.present = TRUE THEN 1 ELSE 0 END) / COUNT(a.id)) * 100
           ELSE 0
         END as attendance_rate
@@ -1893,13 +1935,18 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     `;
     const attendanceParams = [madrasahId, madrasahId, student.class_id];
 
-    if (sessionId) {
-      attendanceQuery += ` AND sem.session_id = ?`;
-      attendanceParams.push(sessionId);
-    }
-    if (semesterId) {
-      attendanceQuery += ` AND a.semester_id = ?`;
-      attendanceParams.push(semesterId);
+    if (cohortPeriodId) {
+      attendanceQuery += ` AND a.cohort_period_id = ?`;
+      attendanceParams.push(cohortPeriodId);
+    } else {
+      if (sessionId) {
+        attendanceQuery += ` AND sem.session_id = ?`;
+        attendanceParams.push(sessionId);
+      }
+      if (semesterId) {
+        attendanceQuery += ` AND a.semester_id = ?`;
+        attendanceParams.push(semesterId);
+      }
     }
 
     attendanceQuery += ` GROUP BY s.id ORDER BY attendance_rate DESC`;
@@ -1943,7 +1990,7 @@ router.get('/students/:id/all-rankings', async (req, res) => {
 
     // Get dressing ranking (class-scoped, total = students present)
     let dressingQuery = `
-      SELECT 
+      SELECT
         s.id,
         AVG(
           CASE a.dressing_grade
@@ -1961,13 +2008,18 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     `;
     const dressingParams = [madrasahId, madrasahId, student.class_id];
 
-    if (sessionId) {
-      dressingQuery += ` AND sem.session_id = ?`;
-      dressingParams.push(sessionId);
-    }
-    if (semesterId) {
-      dressingQuery += ` AND a.semester_id = ?`;
-      dressingParams.push(semesterId);
+    if (cohortPeriodId) {
+      dressingQuery += ` AND a.cohort_period_id = ?`;
+      dressingParams.push(cohortPeriodId);
+    } else {
+      if (sessionId) {
+        dressingQuery += ` AND sem.session_id = ?`;
+        dressingParams.push(sessionId);
+      }
+      if (semesterId) {
+        dressingQuery += ` AND a.semester_id = ?`;
+        dressingParams.push(semesterId);
+      }
     }
 
     dressingQuery += ` GROUP BY s.id HAVING avg_dressing_score IS NOT NULL ORDER BY avg_dressing_score DESC`;
@@ -2011,7 +2063,7 @@ router.get('/students/:id/all-rankings', async (req, res) => {
 
     // Get behavior ranking (class-scoped, total = students present)
     let behaviorQuery = `
-      SELECT 
+      SELECT
         s.id,
         AVG(
           CASE a.behavior_grade
@@ -2029,13 +2081,18 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     `;
     const behaviorParams = [madrasahId, madrasahId, student.class_id];
 
-    if (sessionId) {
-      behaviorQuery += ` AND sem.session_id = ?`;
-      behaviorParams.push(sessionId);
-    }
-    if (semesterId) {
-      behaviorQuery += ` AND a.semester_id = ?`;
-      behaviorParams.push(semesterId);
+    if (cohortPeriodId) {
+      behaviorQuery += ` AND a.cohort_period_id = ?`;
+      behaviorParams.push(cohortPeriodId);
+    } else {
+      if (sessionId) {
+        behaviorQuery += ` AND sem.session_id = ?`;
+        behaviorParams.push(sessionId);
+      }
+      if (semesterId) {
+        behaviorQuery += ` AND a.semester_id = ?`;
+        behaviorParams.push(semesterId);
+      }
     }
 
     behaviorQuery += ` GROUP BY s.id HAVING avg_behavior_score IS NOT NULL ORDER BY avg_behavior_score DESC`;
@@ -2079,7 +2136,7 @@ router.get('/students/:id/all-rankings', async (req, res) => {
 
     // Get punctuality ranking (class-scoped, total = students present)
     let punctualityQuery = `
-      SELECT 
+      SELECT
         s.id,
         AVG(
           CASE a.punctuality_grade
@@ -2097,13 +2154,18 @@ router.get('/students/:id/all-rankings', async (req, res) => {
     `;
     const punctualityParams = [madrasahId, madrasahId, student.class_id];
 
-    if (sessionId) {
-      punctualityQuery += ` AND sem.session_id = ?`;
-      punctualityParams.push(sessionId);
-    }
-    if (semesterId) {
-      punctualityQuery += ` AND a.semester_id = ?`;
-      punctualityParams.push(semesterId);
+    if (cohortPeriodId) {
+      punctualityQuery += ` AND a.cohort_period_id = ?`;
+      punctualityParams.push(cohortPeriodId);
+    } else {
+      if (sessionId) {
+        punctualityQuery += ` AND sem.session_id = ?`;
+        punctualityParams.push(sessionId);
+      }
+      if (semesterId) {
+        punctualityQuery += ` AND a.semester_id = ?`;
+        punctualityParams.push(semesterId);
+      }
     }
 
     punctualityQuery += ` GROUP BY s.id HAVING avg_punctuality_score IS NOT NULL ORDER BY avg_punctuality_score DESC`;
@@ -2192,7 +2254,7 @@ router.get('/students/:id/report', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { id } = req.params;
-    const { semester_id } = req.query;
+    const { semester_id, cohort_period_id } = req.query;
 
     // Get student info (scoped to madrasah)
     const [students] = await pool.query(
@@ -2211,7 +2273,10 @@ router.get('/students/:id/report', async (req, res) => {
     let attendanceQuery = 'SELECT * FROM attendance WHERE student_id = ? AND madrasah_id = ?';
     const attendanceParams = [id, madrasahId];
 
-    if (semester_id) {
+    if (cohort_period_id) {
+      attendanceQuery += ' AND cohort_period_id = ?';
+      attendanceParams.push(cohort_period_id);
+    } else if (semester_id) {
       attendanceQuery += ' AND semester_id = ?';
       attendanceParams.push(semester_id);
     }
@@ -2224,7 +2289,10 @@ router.get('/students/:id/report', async (req, res) => {
     let examQuery = 'SELECT * FROM exam_performance WHERE student_id = ? AND madrasah_id = ?';
     const examParams = [id, madrasahId];
 
-    if (semester_id) {
+    if (cohort_period_id) {
+      examQuery += ' AND cohort_period_id = ?';
+      examParams.push(cohort_period_id);
+    } else if (semester_id) {
       examQuery += ' AND semester_id = ?';
       examParams.push(semester_id);
     }
@@ -2274,21 +2342,24 @@ router.get('/students/:id/report', async (req, res) => {
     const student = students[0];
     
     if (student.class_id) {
-      // Build query with optional semester filter
+      // Build query with optional period filter
       let rankQuery = `
-        SELECT 
+        SELECT
           s.id,
           s.student_id,
-          AVG(CASE WHEN ep.is_absent = 0 AND ep.score IS NOT NULL 
-              THEN (ep.score / ep.max_score * 100) 
+          AVG(CASE WHEN ep.is_absent = 0 AND ep.score IS NOT NULL
+              THEN (ep.score / ep.max_score * 100)
               ELSE NULL END) as avg_score
          FROM students s
          LEFT JOIN exam_performance ep ON s.id = ep.student_id
          WHERE s.class_id = ? AND s.madrasah_id = ?`;
-      
+
       const rankParams = [student.class_id, madrasahId];
-      
-      if (semester_id) {
+
+      if (cohort_period_id) {
+        rankQuery += ' AND ep.cohort_period_id = ?';
+        rankParams.push(cohort_period_id);
+      } else if (semester_id) {
         rankQuery += ' AND ep.semester_id = ?';
         rankParams.push(semester_id);
       }
@@ -3004,7 +3075,7 @@ router.get('/fee-report', async (req, res) => {
 router.get('/analytics', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { semester_id, class_id, gender, today: clientToday } = req.query;
+    const { semester_id, cohort_period_id, class_id, gender, today: clientToday } = req.query;
 
     // Get date ranges for comparison
     const now = new Date();
@@ -3028,7 +3099,12 @@ router.get('/analytics', async (req, res) => {
     const studentParams = [];
     const examParams = [];
 
-    if (semester_id) {
+    if (cohort_period_id) {
+      attendanceFilters += ' AND a.cohort_period_id = ?';
+      attendanceParams.push(cohort_period_id);
+      examFilters += ' AND ep.cohort_period_id = ?';
+      examParams.push(cohort_period_id);
+    } else if (semester_id) {
       attendanceFilters += ' AND a.semester_id = ?';
       attendanceParams.push(semester_id);
       examFilters += ' AND ep.semester_id = ?';
@@ -3133,8 +3209,14 @@ router.get('/analytics', async (req, res) => {
       `;
       const classAttParams = [madrasahId];
 
-      // Add semester filter to attendance join
-      if (semester_id) {
+      // Add period filter to attendance join
+      if (cohort_period_id) {
+        classAttQuery = classAttQuery.replace(
+          'LEFT JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?',
+          'LEFT JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ? AND a.cohort_period_id = ?'
+        );
+        classAttParams.push(cohort_period_id);
+      } else if (semester_id) {
         classAttQuery = classAttQuery.replace(
           'LEFT JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ?',
           'LEFT JOIN attendance a ON c.id = a.class_id AND a.madrasah_id = ? AND a.semester_id = ?'
@@ -3343,7 +3425,10 @@ router.get('/analytics', async (req, res) => {
       WHERE ep.madrasah_id = ? AND ep.is_absent = 0
     `;
     const examSummaryParams = [madrasahId];
-    if (semester_id) {
+    if (cohort_period_id) {
+      examQuery += ' AND ep.cohort_period_id = ?';
+      examSummaryParams.push(cohort_period_id);
+    } else if (semester_id) {
       examQuery += ' AND ep.semester_id = ?';
       examSummaryParams.push(semester_id);
     }
@@ -3369,7 +3454,10 @@ router.get('/analytics', async (req, res) => {
       WHERE ep.madrasah_id = ? AND ep.is_absent = 0
     `;
     const subjectExamParams = [madrasahId];
-    if (semester_id) {
+    if (cohort_period_id) {
+      subjectExamQuery += ' AND ep.cohort_period_id = ?';
+      subjectExamParams.push(cohort_period_id);
+    } else if (semester_id) {
       subjectExamQuery += ' AND ep.semester_id = ?';
       subjectExamParams.push(semester_id);
     }
@@ -3397,7 +3485,10 @@ router.get('/analytics', async (req, res) => {
       WHERE ep.madrasah_id = ? AND ep.is_absent = 0
     `;
     const examByClassParams = [madrasahId];
-    if (semester_id) {
+    if (cohort_period_id) {
+      examByClassQuery += ' AND ep.cohort_period_id = ?';
+      examByClassParams.push(cohort_period_id);
+    } else if (semester_id) {
       examByClassQuery += ' AND ep.semester_id = ?';
       examByClassParams.push(semester_id);
     }
@@ -3409,17 +3500,34 @@ router.get('/analytics', async (req, res) => {
     const [examByClass] = await pool.query(examByClassQuery, examByClassParams);
 
     // 11. Students struggling academically (avg < 50%)
-    // If no semester filter provided, scope to active semester to avoid cross-semester noise
+    // Scope to active period to avoid cross-period noise
     let effectiveSemesterId = semester_id;
-    if (!effectiveSemesterId) {
-      const [activeSem] = await pool.query(
-        `SELECT sem.id FROM semesters sem
-         JOIN sessions sess ON sem.session_id = sess.id
-         WHERE sess.madrasah_id = ? AND sem.is_active = 1 AND sem.deleted_at IS NULL AND sess.deleted_at IS NULL
-         LIMIT 1`,
+    let effectiveCohortPeriodId = cohort_period_id;
+    if (!effectiveCohortPeriodId && !effectiveSemesterId) {
+      // Try to detect mode from madrasah settings
+      const [[mSettings]] = await pool.query(
+        'SELECT COALESCE(scheduling_mode, \'academic\') as scheduling_mode FROM madrasahs WHERE id = ?',
         [madrasahId]
       );
-      if (activeSem.length > 0) effectiveSemesterId = activeSem[0].id;
+      if (mSettings?.scheduling_mode === 'cohort') {
+        const [activePeriod] = await pool.query(
+          `SELECT cp.id FROM cohort_periods cp
+           JOIN cohorts c ON cp.cohort_id = c.id
+           WHERE c.madrasah_id = ? AND cp.is_active = 1 AND cp.deleted_at IS NULL
+           LIMIT 1`,
+          [madrasahId]
+        );
+        if (activePeriod.length > 0) effectiveCohortPeriodId = activePeriod[0].id;
+      } else {
+        const [activeSem] = await pool.query(
+          `SELECT sem.id FROM semesters sem
+           JOIN sessions sess ON sem.session_id = sess.id
+           WHERE sess.madrasah_id = ? AND sem.is_active = 1 AND sem.deleted_at IS NULL AND sess.deleted_at IS NULL
+           LIMIT 1`,
+          [madrasahId]
+        );
+        if (activeSem.length > 0) effectiveSemesterId = activeSem[0].id;
+      }
     }
     let strugglingQuery = `
       SELECT
@@ -3437,7 +3545,10 @@ router.get('/analytics', async (req, res) => {
       WHERE ep.madrasah_id = ? AND ep.is_absent = 0 AND ep.deleted_at IS NULL AND s.deleted_at IS NULL
     `;
     const strugglingParams = [madrasahId];
-    if (effectiveSemesterId) {
+    if (effectiveCohortPeriodId) {
+      strugglingQuery += ' AND ep.cohort_period_id = ?';
+      strugglingParams.push(effectiveCohortPeriodId);
+    } else if (effectiveSemesterId) {
       strugglingQuery += ' AND ep.semester_id = ?';
       strugglingParams.push(effectiveSemesterId);
     }
@@ -3496,7 +3607,10 @@ router.get('/analytics', async (req, res) => {
         WHERE a.madrasah_id = ? AND a.behavior_grade = 'Poor' AND s.deleted_at IS NULL
       `;
       const poorBehaviorParams = [madrasahId];
-      if (effectiveSemesterId) {
+      if (effectiveCohortPeriodId) {
+        poorBehaviorQuery += ' AND a.cohort_period_id = ?';
+        poorBehaviorParams.push(effectiveCohortPeriodId);
+      } else if (effectiveSemesterId) {
         poorBehaviorQuery += ' AND a.semester_id = ?';
         poorBehaviorParams.push(effectiveSemesterId);
       }
@@ -3525,15 +3639,17 @@ router.get('/analytics', async (req, res) => {
         : [madrasahId, ...attendanceParams, madrasahId]
       );
 
+      const genderExamPeriodClause = cohort_period_id ? ' AND ep.cohort_period_id = ?' : (semester_id ? ' AND ep.semester_id = ?' : '');
+      const genderExamPeriodParam = cohort_period_id || semester_id;
       const [genderExams] = await pool.query(`
         SELECT
           s.gender,
           ROUND(AVG(ep.score / ep.max_score * 100), 1) as avg_percentage
         FROM exam_performance ep
         JOIN students s ON ep.student_id = s.id
-        WHERE ep.madrasah_id = ? AND ep.is_absent = 0${semester_id ? ' AND ep.semester_id = ?' : ''}${class_id ? ' AND s.class_id = ?' : ''}
+        WHERE ep.madrasah_id = ? AND ep.is_absent = 0${genderExamPeriodClause}${class_id ? ' AND s.class_id = ?' : ''}
         GROUP BY s.gender
-      `, [madrasahId, ...(semester_id ? [semester_id] : []), ...(class_id ? [class_id] : [])]);
+      `, [madrasahId, ...(genderExamPeriodParam ? [genderExamPeriodParam] : []), ...(class_id ? [class_id] : [])]);
 
       genderBreakdown = {
         attendance: genderAttendance,
@@ -3640,7 +3756,9 @@ router.get('/analytics', async (req, res) => {
       LIMIT 3
     `, [madrasahId, madrasahId]);
 
-    // 13. Top Performer - best exam score this semester
+    // 13. Top Performer - best exam score this period
+    const topPerfPeriodClause = cohort_period_id ? 'AND ep.cohort_period_id = ?' : (semester_id ? 'AND ep.semester_id = ?' : '');
+    const topPerfPeriodParam = cohort_period_id || semester_id;
     const [topPerformer] = await pool.query(`
       SELECT
         s.first_name,
@@ -3652,12 +3770,12 @@ router.get('/analytics', async (req, res) => {
       FROM exam_performance ep
       JOIN students s ON ep.student_id = s.id
       WHERE ep.madrasah_id = ?
-        ${semester_id ? 'AND ep.semester_id = ?' : ''}
+        ${topPerfPeriodClause}
         AND ep.is_absent = 0
         AND ep.score IS NOT NULL
       ORDER BY percentage DESC
       LIMIT 1
-    `, semester_id ? [madrasahId, semester_id] : [madrasahId]);
+    `, topPerfPeriodParam ? [madrasahId, topPerfPeriodParam] : [madrasahId]);
 
     // 14. Quick Actions - pending tasks
     // Use client's local date if provided, otherwise fall back to server date
@@ -3748,10 +3866,13 @@ router.get('/analytics', async (req, res) => {
       LIMIT 1
     `, [madrasahId]);
 
-    // 15. Month-over-Month Comparison (filtered by semester if selected)
+    // 15. Month-over-Month Comparison (filtered by active period if selected)
     let momFilter = '';
     const momParams = [madrasahId];
-    if (semester_id) {
+    if (cohort_period_id) {
+      momFilter = ' AND a.cohort_period_id = ?';
+      momParams.push(cohort_period_id);
+    } else if (semester_id) {
       momFilter = ' AND a.semester_id = ?';
       momParams.push(semester_id);
     }
@@ -3765,7 +3886,8 @@ router.get('/analytics', async (req, res) => {
         AND MONTH(a.date) = MONTH(NOW())${momFilter}
     `, momParams);
     const momParamsLast = [madrasahId];
-    if (semester_id) momParamsLast.push(semester_id);
+    if (cohort_period_id) momParamsLast.push(cohort_period_id);
+    else if (semester_id) momParamsLast.push(semester_id);
     const [lastMonthAttendance] = await pool.query(`
       SELECT
         ROUND(AVG(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) * 100, 1) as rate,

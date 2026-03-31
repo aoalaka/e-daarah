@@ -59,6 +59,8 @@ function AdminDashboard() {
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
+  const [cohorts, setCohorts] = useState([]);
+  const [cohortPeriods, setCohortPeriods] = useState([]);
   const [loading, setLoading] = useState(true);
   const initialLoadDone = useRef(false);
   const [confirmModal, setConfirmModal] = useState(null);
@@ -231,6 +233,22 @@ function AdminDashboard() {
       cacheData('admin-teachers', teachersRes.data || []);
       cacheData('admin-students', studentsRes.data || []);
       if (profileRes.data) cacheData('admin-profile', profileRes.data);
+
+      // Fetch cohort data when in cohort scheduling mode
+      if (profileRes.data?.scheduling_mode === 'cohort') {
+        try {
+          const cohortsRes = await api.get('/admin/cohorts');
+          const cohortsData = cohortsRes.data || [];
+          setCohorts(cohortsData);
+          const activeCohort = cohortsData.find(c => c.is_active);
+          if (activeCohort) {
+            const periodsRes = await api.get(`/admin/cohorts/${activeCohort.id}/periods`);
+            setCohortPeriods(periodsRes.data || []);
+          }
+        } catch (e) {
+          // cohort endpoints may not exist on older installs; fail silently
+        }
+      }
 
       // Set default filters to active session and semester
       const activeSession = sessionsData.find(s => s.is_active);
@@ -480,7 +498,7 @@ function AdminDashboard() {
             </div>
           ) : (
           <>
-          {activeTab === 'overview' && <OverviewSection sessions={sessions} semesters={semesters} classes={classes} students={students} teachers={teachers} madrasahProfile={madrasahProfile} hasPlusAccess={hasPlusAccess} isReadOnly={isReadOnly} fmtDate={fmtDate} setShowTour={setShowTour} setActiveTab={setActiveTab} setReportSubTab={setReportSubTab} pendingAppCount={0} reportSemester={reportSemester} user={user} />}
+          {activeTab === 'overview' && <OverviewSection sessions={sessions} semesters={semesters} classes={classes} students={students} teachers={teachers} madrasahProfile={madrasahProfile} hasPlusAccess={hasPlusAccess} isReadOnly={isReadOnly} fmtDate={fmtDate} setShowTour={setShowTour} setActiveTab={setActiveTab} setReportSubTab={setReportSubTab} pendingAppCount={0} reportSemester={reportSemester} user={user} cohorts={cohorts} cohortPeriods={cohortPeriods} />}
 
           {/* Planner Tab */}
           {activeTab === 'planner' && <PlannerSection sessions={sessions} setSessions={setSessions} semesters={semesters} setSemesters={setSemesters} classes={classes} isReadOnly={isReadOnly} fmtDate={fmtDate} madrasahProfile={madrasahProfile} setConfirmModal={setConfirmModal} loadData={loadData} />}
@@ -558,6 +576,7 @@ function AdminDashboard() {
               setReportSemester={setReportSemester}
               reportFilterSession={reportFilterSession}
               setReportFilterSession={setReportFilterSession}
+              cohortPeriods={cohortPeriods}
             />
           )}
 

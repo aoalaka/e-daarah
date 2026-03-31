@@ -66,14 +66,41 @@ function getMigrationFiles() {
   return files;
 }
 
+// Errors that mean "already exists" — safe to skip
+const IDEMPOTENT_ERRORS = new Set([
+  'ER_DUP_FIELDNAME',       // Duplicate column name
+  'ER_DUP_KEYNAME',         // Duplicate key name / index name
+  'ER_FK_DUP_NAME',         // Duplicate FK constraint name
+  'ER_DUP_ENTRY',           // Duplicate entry (for INSERT IGNORE alternatives)
+]);
+
 async function runMigration(connection, filename) {
   const filepath = path.join(__dirname, filename);
-  const sql = fs.readFileSync(filepath, 'utf8');
+  const raw = fs.readFileSync(filepath, 'utf8');
+
+  // Split into individual statements (strip comments, split on ;)
+  const statements = raw
+    .split('\n')
+    .filter(line => !line.trimStart().startsWith('--'))  // strip line comments
+    .join('\n')
+    .split(';')
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
 
   console.log(`  Running: ${filename}`);
 
   try {
-    await connection.query(sql);
+    for (const stmt of statements) {
+      try {
+        await connection.query(stmt);
+      } catch (err) {
+        if (IDEMPOTENT_ERRORS.has(err.code)) {
+          // Column/index/FK already exists — migration was partially applied, skip
+          continue;
+        }
+        throw err;
+      }
+    }
     console.log(`  ✓ Success: ${filename}`);
     return true;
   } catch (error) {

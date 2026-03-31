@@ -35,6 +35,7 @@ function QuranSessionRecorder({
   api,
   selectedClass,
   activeSemester,
+  cohortPeriodId,
   isFreePlan,
   onSessionSaved,
   routePrefix = '/solo'
@@ -250,7 +251,7 @@ function QuranSessionRecorder({
     const base = {
       student_id: selectedStudent.id,
       class_id: selectedClass?.id || null,
-      semester_id: activeSemester?.id || null,
+      ...(cohortPeriodId ? { cohort_period_id: cohortPeriodId } : { semester_id: activeSemester?.id || null }),
       date,
       type: sessionType,
       grade,

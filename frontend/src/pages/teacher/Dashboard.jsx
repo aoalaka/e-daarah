@@ -802,7 +802,11 @@ function TeacherDashboard() {
   };
 
   const handleSaveQuranProgress = async () => {
-    if (!selectedClass || !activeSemester || !quranSelectedStudent) return;
+    const hasPeriodContext = schedulingMode === 'cohort' ? !!selectedCohortPeriod : !!activeSemester;
+    if (!selectedClass || !hasPeriodContext || !quranSelectedStudent) {
+      toast.error(schedulingMode === 'cohort' ? 'Please select a cohort period first' : 'No active semester');
+      return;
+    }
     if (!quranSurah) {
       toast.error('Please select a surah');
       return;
@@ -3816,10 +3820,11 @@ function TeacherDashboard() {
                   api={api}
                   selectedClass={selectedClass}
                   activeSemester={activeSemester}
+                  cohortPeriodId={schedulingMode === 'cohort' ? selectedCohortPeriod?.id : undefined}
                   routePrefix="/teacher"
                   onSessionSaved={() => {
                     fetchQuranPositions(selectedClass?.id);
-                    if (activeSemester) fetchQuranProgress(selectedClass?.id);
+                    if (activeSemester || selectedCohortPeriod) fetchQuranProgress(selectedClass?.id);
                   }}
                 />
               )}

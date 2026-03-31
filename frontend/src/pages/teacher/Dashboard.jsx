@@ -844,7 +844,9 @@ function TeacherDashboard() {
       await api.post('/teacher/quran/record', {
         student_id: quranSelectedStudent.id,
         class_id: selectedClass.id,
-        semester_id: activeSemester.id,
+        ...(schedulingMode === 'cohort'
+          ? { cohort_period_id: selectedCohortPeriod?.id }
+          : { semester_id: activeSemester?.id }),
         date: quranDate,
         type: quranSessionType,
         surah_number: surah.n,
@@ -885,7 +887,9 @@ function TeacherDashboard() {
         const payload = {
           student_id: quranSelectedStudent.id,
           class_id: selectedClass.id,
-          semester_id: activeSemester.id,
+          ...(schedulingMode === 'cohort'
+            ? { cohort_period_id: selectedCohortPeriod?.id }
+            : { semester_id: activeSemester?.id }),
           date: quranDate,
           type: quranSessionType,
           surah_number: surah.n,

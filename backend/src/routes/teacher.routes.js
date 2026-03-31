@@ -1728,13 +1728,13 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
     const madrasahId = req.madrasahId;
     const teacherId = req.user.id;
     const {
-      student_id, class_id, semester_id, date,
+      student_id, class_id, semester_id, cohort_period_id, date,
       type, surah_number, surah_name, to_surah_number, to_surah_name, juz,
       ayah_from, ayah_to,
       grade, passed, notes
     } = req.body;
 
-    if (!student_id || !class_id || !semester_id || !date || !type || !surah_number || !surah_name) {
+    if (!student_id || !class_id || (!semester_id && !cohort_period_id) || !date || !type || !surah_number || !surah_name) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     if (!['hifz', 'tilawah', 'revision'].includes(type)) {
@@ -1771,9 +1771,9 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
     }
 
     const [result] = await pool.query(
-      `INSERT INTO quran_progress (madrasah_id, student_id, class_id, semester_id, user_id, date, type, surah_number, surah_name, to_surah_number, to_surah_name, juz, ayah_from, ayah_to, grade, passed, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [madrasahId, student_id, class_id, semester_id, teacherId, date, type, surah_number, surah_name, to_surah_number || null, to_surah_name || null, juz || getJuz(parseInt(surah_number), ayahFromInt), ayahFromInt, ayahToInt, grade || 'Good', passed !== undefined ? passed : true, notes || null]
+      `INSERT INTO quran_progress (madrasah_id, student_id, class_id, semester_id, cohort_period_id, user_id, date, type, surah_number, surah_name, to_surah_number, to_surah_name, juz, ayah_from, ayah_to, grade, passed, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [madrasahId, student_id, class_id, semester_id ?? null, cohort_period_id ?? null, teacherId, date, type, surah_number, surah_name, to_surah_number || null, to_surah_name || null, juz || getJuz(parseInt(surah_number), ayahFromInt), ayahFromInt, ayahToInt, grade || 'Good', passed !== undefined ? passed : true, notes || null]
     );
 
     // Update student position if passed

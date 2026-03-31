@@ -94,19 +94,19 @@ async function isValidSchoolDay(madrasahId, dateStr, classId = null) {
       return { valid: false, reason: 'Date is not within this cohort\'s date range' };
     }
 
-    // Check cohort holiday
+    // Check cohort holiday (supports single-day and multi-day ranges)
     const [holidays] = await pool.query(
-      'SELECT name FROM academic_holidays WHERE cohort_id = ? AND date = ?',
-      [cls.cohort_id, dateStr]
+      'SELECT title FROM academic_holidays WHERE cohort_id = ? AND start_date <= ? AND end_date >= ? AND deleted_at IS NULL',
+      [cls.cohort_id, dateStr, dateStr]
     );
     if (holidays.length > 0) {
-      return { valid: false, reason: `Holiday: ${holidays[0].name}` };
+      return { valid: false, reason: `Holiday: ${holidays[0].title}` };
     }
 
-    // Check cohort schedule override
+    // Check cohort schedule override (supports date ranges)
     const [overrides] = await pool.query(
-      'SELECT is_school_day FROM schedule_overrides WHERE cohort_id = ? AND date = ?',
-      [cls.cohort_id, dateStr]
+      'SELECT is_school_day FROM schedule_overrides WHERE cohort_id = ? AND start_date <= ? AND end_date >= ? AND deleted_at IS NULL',
+      [cls.cohort_id, dateStr, dateStr]
     );
     if (overrides.length > 0) {
       return overrides[0].is_school_day
@@ -270,11 +270,11 @@ router.get('/school-day-info', async (req, res) => {
       }
 
       const [holidays] = await pool.query(
-        'SELECT id, name as title, date as start_date, date as end_date FROM academic_holidays WHERE cohort_id = ? ORDER BY date',
+        'SELECT id, title, start_date, end_date FROM academic_holidays WHERE cohort_id = ? AND deleted_at IS NULL ORDER BY start_date',
         [cls.cohort_id]
       );
       const [overrides] = await pool.query(
-        'SELECT id, date as start_date, date as end_date, is_school_day, reason FROM schedule_overrides WHERE cohort_id = ? ORDER BY date',
+        'SELECT id, start_date, end_date, is_school_day, reason FROM schedule_overrides WHERE cohort_id = ? AND deleted_at IS NULL ORDER BY start_date',
         [cls.cohort_id]
       );
 

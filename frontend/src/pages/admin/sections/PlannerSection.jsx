@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { CalendarIcon } from '@heroicons/react/24/outline';
 import api from '../../../services/api';
+import CohortPlanner from './CohortPlanner';
 import '../Dashboard.css';
 
 function PlannerSection({ sessions, setSessions, semesters, setSemesters, classes, isReadOnly, fmtDate, madrasahProfile, setConfirmModal, loadData }) {
@@ -207,6 +208,25 @@ function PlannerSection({ sessions, setSessions, semesters, setSemesters, classe
       catch (error) { toast.error('Failed to delete override'); }
     }});
   };
+
+  if (madrasahProfile?.scheduling_mode === 'cohort') {
+    return (
+      <>
+        <div className="page-header">
+          <h2 className="page-title">Cohort Planner</h2>
+        </div>
+        <p style={{ color: 'var(--muted)', fontSize: '14px', marginBottom: 'var(--md)' }}>
+          Manage parallel cohorts, each with their own periods, school days, holidays, and schedule overrides. Switch to Academic mode in Settings to use the traditional planner.
+        </p>
+        <CohortPlanner
+          classes={classes}
+          isReadOnly={isReadOnly}
+          fmtDate={fmtDate}
+          setConfirmModal={setConfirmModal}
+        />
+      </>
+    );
+  }
 
   return (
     <>

@@ -93,6 +93,10 @@ function TeacherDashboard() {
   });
   const [activeSession, setActiveSession] = useState(null);
   const [activeSemester, setActiveSemester] = useState(null);
+  const [schedulingMode, setSchedulingMode] = useState('academic');
+  const [activeCohorts, setActiveCohorts] = useState([]);
+  const [activePeriods, setActivePeriods] = useState([]);
+  const [selectedCohortPeriod, setSelectedCohortPeriod] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [examKpis, setExamKpis] = useState(null);
   const [availableSubjects, setAvailableSubjects] = useState([]);
@@ -277,11 +281,12 @@ function TeacherDashboard() {
   }, [attendanceDate, schoolDayInfo]);
 
   useEffect(() => {
-    if (selectedClass && selectedSemester) {
+    const hasPeriodContext = schedulingMode === 'cohort' ? !!selectedCohortPeriod : !!selectedSemester;
+    if (selectedClass && hasPeriodContext) {
       fetchStudents();
       fetchAttendance();
     }
-  }, [selectedClass, selectedSemester, attendanceDate]);
+  }, [selectedClass, selectedSemester, selectedCohortPeriod, schedulingMode, attendanceDate]);
 
   // Fetch Qur'an data when class changes and quran tab is active
   useEffect(() => {
@@ -591,16 +596,38 @@ function TeacherDashboard() {
   const fetchActiveSessionSemester = async () => {
     try {
       const response = await api.get('/teacher/active-session-semester');
-      setActiveSession(response.data.session);
-      setActiveSemester(response.data.semester);
-      cacheData('teacher-active-session-semester', response.data);
+      const data = response.data;
+      setSchedulingMode(data.scheduling_mode || 'academic');
+      if (data.scheduling_mode === 'cohort') {
+        setActiveCohorts(data.cohorts || []);
+        setActivePeriods(data.periods || []);
+        setActiveSession(null);
+        setActiveSemester(null);
+        // Auto-select first active period if none selected
+        if ((data.periods || []).length > 0 && !selectedCohortPeriod) {
+          setSelectedCohortPeriod(data.periods[0]);
+        }
+      } else {
+        setActiveSession(data.session);
+        setActiveSemester(data.semester);
+        setActiveCohorts([]);
+        setActivePeriods([]);
+      }
+      cacheData('teacher-active-session-semester', data);
     } catch (error) {
       console.error('Failed to fetch active session/semester:', error);
       if (!error.response) {
         const cached = await getCachedData('teacher-active-session-semester');
         if (cached) {
-          setActiveSession(cached.data.session);
-          setActiveSemester(cached.data.semester);
+          const data = cached.data;
+          setSchedulingMode(data.scheduling_mode || 'academic');
+          if (data.scheduling_mode === 'cohort') {
+            setActiveCohorts(data.cohorts || []);
+            setActivePeriods(data.periods || []);
+          } else {
+            setActiveSession(data.session);
+            setActiveSemester(data.semester);
+          }
         }
       }
     }
@@ -1025,14 +1052,16 @@ function TeacherDashboard() {
   };
 
   const fetchAttendance = async () => {
-    if (!selectedClass || !selectedSemester) {
-      console.log('Cannot fetch attendance - missing class or semester');
+    const hasPeriodContext = schedulingMode === 'cohort' ? !!selectedCohortPeriod : !!selectedSemester;
+    if (!selectedClass || !hasPeriodContext) {
       return;
     }
-    
+
     try {
-      console.log(`Fetching attendance for class ${selectedClass.id}, date ${attendanceDate}, semester ${selectedSemester.id}`);
-      const response = await api.get(`/teacher/classes/${selectedClass.id}/attendance/${attendanceDate}?semester_id=${selectedSemester.id}`);
+      const periodParam = schedulingMode === 'cohort'
+        ? `cohort_period_id=${selectedCohortPeriod.id}`
+        : `semester_id=${selectedSemester.id}`;
+      const response = await api.get(`/teacher/classes/${selectedClass.id}/attendance/${attendanceDate}?${periodParam}`);
       
       console.log('Attendance data received:', response.data);
       
@@ -1182,8 +1211,11 @@ function TeacherDashboard() {
 
   const saveAttendance = async () => {
     if (isReadOnly()) { toast.error('Account is in read-only mode. Contact your administrator.'); return; }
-    if (!selectedClass || !selectedSemester || students.length === 0) {
-      toast.error('Please select a class and ensure there are students');
+    const hasPeriodContext = schedulingMode === 'cohort' ? !!selectedCohortPeriod : !!selectedSemester;
+    if (!selectedClass || !hasPeriodContext || students.length === 0) {
+      toast.error(schedulingMode === 'cohort'
+        ? 'Please select a class and a cohort period'
+        : 'Please select a class and ensure there are students');
       return;
     }
 
@@ -1287,7 +1319,9 @@ function TeacherDashboard() {
     }));
     const requestUrl = `/teacher/classes/${selectedClass.id}/attendance/bulk`;
     const requestData = {
-      semester_id: selectedSemester.id,
+      ...(schedulingMode === 'cohort'
+        ? { cohort_period_id: selectedCohortPeriod?.id }
+        : { semester_id: selectedSemester?.id }),
       date: attendanceDate,
       records,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -1392,7 +1426,10 @@ function TeacherDashboard() {
     }
     
     try {
-      await api.post(`/teacher/classes/${selectedClass.id}/exam-performance/bulk`, examForm);
+      const examPayload = schedulingMode === 'cohort'
+        ? { ...examForm, semester_id: undefined, cohort_period_id: selectedCohortPeriod?.id }
+        : examForm;
+      await api.post(`/teacher/classes/${selectedClass.id}/exam-performance/bulk`, examPayload);
       toast.success('Exam performance recorded successfully!');
       setShowExamModal(false);
       setExamForm({
@@ -1411,18 +1448,22 @@ function TeacherDashboard() {
   };
 
   const openExamModal = () => {
-    if (sessions.length === 0 || semesters.length === 0) {
+    if (schedulingMode === 'academic' && (sessions.length === 0 || semesters.length === 0)) {
       toast.error('No sessions or semesters available');
       return;
     }
-    
+    if (schedulingMode === 'cohort' && !selectedCohortPeriod) {
+      toast.error('No active cohort period. Ask your admin to activate a period.');
+      return;
+    }
+
     // Initialize exam form with active session/semester (or first available) and all students
     const defaultSession = activeSession || sessions[0];
     const defaultSemester = activeSemester || semesters[0];
-    
+
     setExamForm({
-      session_id: defaultSession.id,
-      semester_id: defaultSemester.id,
+      session_id: defaultSession?.id || '',
+      semester_id: defaultSemester?.id || '',
       subject: '',
       exam_date: getLocalDate(),
       max_score: 100,
@@ -2074,17 +2115,39 @@ function TeacherDashboard() {
                   <div className="card">
                     <div className="card-body">
                       <div className="form-grid">
-                        <div className="form-group">
-                          <label className="form-label">Active Semester</label>
-                          <input
-                            type="text"
-                            value={selectedSemester ? `${selectedSemester.session_name} - ${selectedSemester.name}` : 'No active semester'}
-                            readOnly
-                            disabled
-                            className="form-select"
-                            style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
-                          />
-                        </div>
+                        {schedulingMode === 'cohort' ? (
+                          <div className="form-group">
+                            <label className="form-label">Cohort Period</label>
+                            {activePeriods.length === 0 ? (
+                              <input type="text" value="No active periods" readOnly disabled className="form-select" style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }} />
+                            ) : (
+                              <select
+                                value={selectedCohortPeriod?.id || ''}
+                                onChange={e => {
+                                  const p = activePeriods.find(p => p.id === parseInt(e.target.value));
+                                  setSelectedCohortPeriod(p || null);
+                                }}
+                                className="form-select"
+                              >
+                                {activePeriods.map(p => (
+                                  <option key={p.id} value={p.id}>{p.cohort_name} — {p.name}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="form-group">
+                            <label className="form-label">Active Semester</label>
+                            <input
+                              type="text"
+                              value={selectedSemester ? `${selectedSemester.session_name} - ${selectedSemester.name}` : 'No active semester'}
+                              readOnly
+                              disabled
+                              className="form-select"
+                              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                            />
+                          </div>
+                        )}
 
                         <div className="form-group">
                           <label className="form-label">Select Class</label>

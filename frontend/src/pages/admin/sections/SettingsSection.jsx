@@ -296,6 +296,71 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
         </div>
       </div>
 
+      {/* Scheduling Mode */}
+      <div className="card" style={{ marginTop: '20px' }}>
+        <h3>Scheduling Mode</h3>
+        <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
+          <strong>Academic mode</strong> uses a single active session with semesters — one at a time. <strong>Cohort mode</strong> allows multiple parallel cohorts running simultaneously, each with its own classes, dates, and periods. Ideal for online schools.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '8px' }}>
+          <button
+            className={`btn ${(!madrasahProfile?.scheduling_mode || madrasahProfile?.scheduling_mode === 'academic') ? 'btn-primary' : 'btn-secondary'}`}
+            disabled={savingSettings}
+            onClick={async () => {
+              if (!madrasahProfile?.scheduling_mode || madrasahProfile?.scheduling_mode === 'academic') return;
+              setConfirmModal({
+                title: 'Switch to Academic Mode',
+                message: 'Switching to Academic mode will hide your cohorts but not delete them. Teachers will use sessions and semesters again. Switch back to Cohort mode at any time to restore them.',
+                confirmLabel: 'Switch to Academic',
+                onConfirm: async () => {
+                  setSavingSettings(true);
+                  try {
+                    const res = await api.put('/admin/settings', { scheduling_mode: 'academic' });
+                    setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                    toast.success('Switched to Academic scheduling mode');
+                  } catch (error) {
+                    toast.error('Failed to update setting');
+                  } finally {
+                    setSavingSettings(false);
+                  }
+                }
+              });
+            }}
+          >
+            Academic
+          </button>
+          <button
+            className={`btn ${madrasahProfile?.scheduling_mode === 'cohort' ? 'btn-primary' : 'btn-secondary'}`}
+            disabled={savingSettings}
+            onClick={async () => {
+              if (madrasahProfile?.scheduling_mode === 'cohort') return;
+              setConfirmModal({
+                title: 'Switch to Cohort Mode',
+                message: 'Cohort mode lets you run multiple parallel cohorts at the same time. Your existing sessions and semesters will be hidden (not deleted) while in Cohort mode. You can switch back to Academic mode at any time.',
+                confirmLabel: 'Switch to Cohort',
+                onConfirm: async () => {
+                  setSavingSettings(true);
+                  try {
+                    const res = await api.put('/admin/settings', { scheduling_mode: 'cohort' });
+                    setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                    toast.success('Switched to Cohort scheduling mode');
+                  } catch (error) {
+                    toast.error('Failed to update setting');
+                  } finally {
+                    setSavingSettings(false);
+                  }
+                }
+              });
+            }}
+          >
+            Cohort
+          </button>
+        </div>
+        <p style={{ fontSize: '12px', color: 'var(--muted)' }}>
+          Current mode: <strong>{madrasahProfile?.scheduling_mode === 'cohort' ? 'Cohort' : 'Academic'}</strong>
+        </p>
+      </div>
+
       {/* Fee Tracking Mode */}
       {(madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false) && (
         <div className="card" style={{ marginTop: '20px' }}>

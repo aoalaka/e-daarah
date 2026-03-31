@@ -290,3 +290,24 @@ UPDATE madrasahs SET
   auto_fee_reminder_day = 1,
   auto_fee_reminder_message = 'Assalamu Alaikum. This is a friendly reminder that fees for {month} are now due. JazakAllah khair.'
 WHERE id = 2;
+
+-- =====================================================
+-- Demo cohort data for enterprise-demo (id=8)
+-- Admin can switch to Cohort mode in Settings to use these
+-- =====================================================
+INSERT INTO cohorts (madrasah_id, name, start_date, end_date, is_active, default_school_days) VALUES
+(8, 'Beginners Cohort 2025', '2025-01-06', '2025-12-20', TRUE, '["Saturday", "Sunday"]'),
+(8, 'Advanced Cohort 2025', '2025-01-06', '2025-12-20', TRUE, '["Saturday", "Sunday"]');
+
+-- Periods for each cohort (cohort ids: last 2 inserts)
+INSERT INTO cohort_periods (cohort_id, name, start_date, end_date, is_active)
+SELECT id, 'Term 1', '2025-01-06', '2025-04-05', TRUE FROM cohorts WHERE madrasah_id = 8 AND name = 'Beginners Cohort 2025';
+
+INSERT INTO cohort_periods (cohort_id, name, start_date, end_date, is_active)
+SELECT id, 'Term 2', '2025-04-28', '2025-07-19', FALSE FROM cohorts WHERE madrasah_id = 8 AND name = 'Beginners Cohort 2025';
+
+INSERT INTO cohort_periods (cohort_id, name, start_date, end_date, is_active)
+SELECT id, 'Term 1', '2025-01-06', '2025-04-05', TRUE FROM cohorts WHERE madrasah_id = 8 AND name = 'Advanced Cohort 2025';
+
+INSERT INTO cohort_periods (cohort_id, name, start_date, end_date, is_active)
+SELECT id, 'Term 2', '2025-04-28', '2025-07-19', FALSE FROM cohorts WHERE madrasah_id = 8 AND name = 'Advanced Cohort 2025';

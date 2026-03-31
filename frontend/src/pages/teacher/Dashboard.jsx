@@ -515,7 +515,12 @@ function TeacherDashboard() {
   const fetchAttendanceHistory = async () => {
     if (!historyClass) return;
     try {
-      const params = selectedSemester ? `?semester_id=${selectedSemester.id}` : '';
+      let params = '';
+      if (schedulingMode === 'cohort') {
+        params = selectedCohortPeriod ? `?cohort_period_id=${selectedCohortPeriod.id}` : '';
+      } else {
+        params = selectedSemester ? `?semester_id=${selectedSemester.id}` : '';
+      }
       const response = await api.get(`/teacher/classes/${historyClass.id}/attendance-history${params}`);
       setAttendanceHistory(response.data);
     } catch (error) {

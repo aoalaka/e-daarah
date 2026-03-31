@@ -906,7 +906,7 @@ router.get('/classes/:classId/attendance-history', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { semester_id } = req.query;
+    const { semester_id, cohort_period_id } = req.query;
 
     // Verify access
     const [access] = await pool.query(
@@ -922,16 +922,21 @@ router.get('/classes/:classId/attendance-history', async (req, res) => {
 
     let query = `
       SELECT a.*, s.first_name, s.last_name, s.student_id,
-             sem.name as semester_name, sess.name as session_name
+             sem.name as semester_name, sess.name as session_name,
+             cp.name as cohort_period_name
       FROM attendance a
       INNER JOIN students s ON a.student_id = s.id
       LEFT JOIN semesters sem ON a.semester_id = sem.id
       LEFT JOIN sessions sess ON sem.session_id = sess.id
+      LEFT JOIN cohort_periods cp ON a.cohort_period_id = cp.id
       WHERE a.class_id = ? AND a.madrasah_id = ?
     `;
     const params = [classId, madrasahId];
 
-    if (semester_id) {
+    if (cohort_period_id) {
+      query += ' AND a.cohort_period_id = ?';
+      params.push(cohort_period_id);
+    } else if (semester_id) {
       query += ' AND a.semester_id = ?';
       params.push(semester_id);
     }

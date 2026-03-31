@@ -832,7 +832,7 @@ function SoloDashboard() {
           const requestData = {
             student_id: student.id,
             class_id: selectedClass.id,
-            semester_id: activeSemester.id,
+            semester_id: activeSemester?.id,
             date: attendanceDate,
             present: record.present,
             dressing_grade: record.dressing_grade || null,
@@ -1035,7 +1035,7 @@ function SoloDashboard() {
       await api.post('/solo/quran/record', {
         student_id: quranSelectedStudent.id,
         class_id: selectedClass.id,
-        semester_id: activeSemester.id,
+        semester_id: activeSemester?.id,
         date: quranDate,
         type: quranSessionType,
         surah_number: surah.n,

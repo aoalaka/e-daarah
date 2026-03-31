@@ -1682,7 +1682,7 @@ router.get('/classes/:classId/quran-positions', async (req, res) => {
 router.get('/classes/:classId/quran-progress', async (req, res) => {
   try {
     const { classId } = req.params;
-    const { semester_id, student_id } = req.query;
+    const { semester_id, cohort_period_id, student_id } = req.query;
     const madrasahId = req.madrasahId;
     const teacherId = req.user.id;
 
@@ -1702,7 +1702,10 @@ router.get('/classes/:classId/quran-progress', async (req, res) => {
     `;
     const params = [classId, madrasahId];
 
-    if (semester_id) {
+    if (cohort_period_id) {
+      query += ' AND qp.cohort_period_id = ?';
+      params.push(cohort_period_id);
+    } else if (semester_id) {
       query += ' AND qp.semester_id = ?';
       params.push(semester_id);
     }

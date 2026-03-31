@@ -560,7 +560,7 @@ function TeacherDashboard() {
       
       if (activeSemester) {
         console.log('Setting active semester:', {
-          id: activeSemester.id,
+          id: activeSemester?.id,
           name: activeSemester.name,
           session_name: activeSemester.session_name,
           is_active: activeSemester.is_active
@@ -726,11 +726,14 @@ function TeacherDashboard() {
   };
 
   const fetchQuranProgress = async (classId) => {
-    if (!classId || !activeSemester) return;
+    if (!classId) return;
+    if (schedulingMode === 'cohort' && !selectedCohortPeriod) return;
+    if (schedulingMode === 'academic' && !activeSemester) return;
     try {
-      const response = await api.get(`/teacher/classes/${classId}/quran-progress`, {
-        params: { semester_id: activeSemester.id }
-      });
+      const params = schedulingMode === 'cohort'
+        ? { cohort_period_id: selectedCohortPeriod.id }
+        : { semester_id: activeSemester.id };
+      const response = await api.get(`/teacher/classes/${classId}/quran-progress`, { params });
       setQuranRecords(response.data);
     } catch (error) {
       console.error('Failed to fetch quran progress:', error);

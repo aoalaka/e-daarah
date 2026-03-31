@@ -110,6 +110,7 @@ function TeacherDashboard() {
   const [examFilterSession, setExamFilterSession] = useState('');
   const [examFilterSemester, setExamFilterSemester] = useState('');
   const [examFilteredSemesters, setExamFilteredSemesters] = useState([]);
+  const [examFilterCohortPeriod, setExamFilterCohortPeriod] = useState('');
   const [examStudentSearch, setExamStudentSearch] = useState('');
   const [showEditExamModal, setShowEditExamModal] = useState(false);
   const [editingExamRecord, setEditingExamRecord] = useState(null);
@@ -125,6 +126,7 @@ function TeacherDashboard() {
   const [reportFilterSession, setReportFilterSession] = useState('');
   const [reportFilterSemester, setReportFilterSemester] = useState('');
   const [reportFilteredSemesters, setReportFilteredSemesters] = useState([]);
+  const [reportFilterCohortPeriod, setReportFilterCohortPeriod] = useState('');
   const [reportFilterSubject, setReportFilterSubject] = useState('all');
   const [reportAvailableSubjects, setReportAvailableSubjects] = useState([]);
   // Settings state
@@ -308,7 +310,7 @@ function TeacherDashboard() {
       fetchExamPerformance();
       setCurrentSubjectPage(1); // Reset to first page when filters change
     }
-  }, [selectedClass, examFilterSession, examFilterSemester, selectedSubject, activeTab]);
+  }, [selectedClass, examFilterSession, examFilterSemester, examFilterCohortPeriod, selectedSubject, activeTab]);
 
   // Filter semesters by selected session for exam tab
   useEffect(() => {
@@ -344,7 +346,7 @@ function TeacherDashboard() {
     if (selectedClass && activeTab === 'reports') {
       fetchStudentReports();
     }
-  }, [selectedClass, reportFilterSession, reportFilterSemester, reportFilterSubject, activeTab]);
+  }, [selectedClass, reportFilterSession, reportFilterSemester, reportFilterCohortPeriod, reportFilterSubject, activeTab]);
 
   // Fetch all students for overview when classes are loaded
   useEffect(() => {
@@ -1113,10 +1115,10 @@ function TeacherDashboard() {
     if (!selectedClass) return;
     try {
       const params = {};
-      
-      // Add semester filter if selected
-      if (examFilterSemester) {
-        params.semesterId = examFilterSemester;
+      if (schedulingMode === 'cohort') {
+        if (examFilterCohortPeriod) params.cohortPeriodId = examFilterCohortPeriod;
+      } else {
+        if (examFilterSemester) params.semesterId = examFilterSemester;
       }
       
       // Always fetch all subjects first (without subject filter) to populate dropdown
@@ -1618,12 +1620,11 @@ function TeacherDashboard() {
     if (!selectedClass) return;
     try {
       const params = {};
-      
-      if (reportFilterSession) {
-        params.sessionId = reportFilterSession;
-      }
-      if (reportFilterSemester) {
-        params.semesterId = reportFilterSemester;
+      if (schedulingMode === 'cohort') {
+        if (reportFilterCohortPeriod) params.cohortPeriodId = reportFilterCohortPeriod;
+      } else {
+        if (reportFilterSession) params.sessionId = reportFilterSession;
+        if (reportFilterSemester) params.semesterId = reportFilterSemester;
       }
       if (reportFilterSubject && reportFilterSubject !== 'all') {
         params.subject = reportFilterSubject;
@@ -2751,38 +2752,57 @@ function TeacherDashboard() {
                         ))}
                       </select>
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Filter by Session</label>
-                      <select
-                        value={examFilterSession}
-                        onChange={(e) => setExamFilterSession(e.target.value)}
-                        className="form-select"
-                        disabled={!selectedClass}
-                      >
-                        <option value="">All Sessions</option>
-                        {sessions.map(session => (
-                          <option key={session.id} value={session.id}>
-                            {session.name} {session.is_active ? '(Active)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Filter by Semester</label>
-                      <select
-                        value={examFilterSemester}
-                        onChange={(e) => setExamFilterSemester(e.target.value)}
-                        className="form-select"
-                        disabled={!selectedClass}
-                      >
-                        <option value="">All Semesters</option>
-                        {examFilteredSemesters.map(sem => (
-                          <option key={sem.id} value={sem.id}>
-                            {sem.name} {sem.is_active ? '(Active)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    {schedulingMode === 'cohort' ? (
+                      <div className="form-group">
+                        <label className="form-label">Filter by Cohort Period</label>
+                        <select
+                          value={examFilterCohortPeriod}
+                          onChange={(e) => setExamFilterCohortPeriod(e.target.value)}
+                          className="form-select"
+                          disabled={!selectedClass}
+                        >
+                          <option value="">All Periods</option>
+                          {activePeriods.map(p => (
+                            <option key={p.id} value={p.id}>{p.cohort_name} — {p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="form-group">
+                          <label className="form-label">Filter by Session</label>
+                          <select
+                            value={examFilterSession}
+                            onChange={(e) => setExamFilterSession(e.target.value)}
+                            className="form-select"
+                            disabled={!selectedClass}
+                          >
+                            <option value="">All Sessions</option>
+                            {sessions.map(session => (
+                              <option key={session.id} value={session.id}>
+                                {session.name} {session.is_active ? '(Active)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Filter by Semester</label>
+                          <select
+                            value={examFilterSemester}
+                            onChange={(e) => setExamFilterSemester(e.target.value)}
+                            className="form-select"
+                            disabled={!selectedClass}
+                          >
+                            <option value="">All Semesters</option>
+                            {examFilteredSemesters.map(sem => (
+                              <option key={sem.id} value={sem.id}>
+                                {sem.name} {sem.is_active ? '(Active)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    )}
                     <div className="form-group">
                       <label className="form-label">Filter by Subject</label>
                       <select
@@ -3511,38 +3531,57 @@ function TeacherDashboard() {
                         ))}
                       </select>
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Filter by Session</label>
-                      <select
-                        value={reportFilterSession}
-                        onChange={(e) => setReportFilterSession(e.target.value)}
-                        className="form-select"
-                        disabled={!selectedClass}
-                      >
-                        <option value="">All Sessions</option>
-                        {sessions.map(session => (
-                          <option key={session.id} value={session.id}>
-                            {session.name} {session.is_active ? '(Active)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Filter by Semester</label>
-                      <select
-                        value={reportFilterSemester}
-                        onChange={(e) => setReportFilterSemester(e.target.value)}
-                        className="form-select"
-                        disabled={!selectedClass}
-                      >
-                        <option value="">All Semesters</option>
-                        {reportFilteredSemesters.map(sem => (
-                          <option key={sem.id} value={sem.id}>
-                            {sem.name} {sem.is_active ? '(Active)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    {schedulingMode === 'cohort' ? (
+                      <div className="form-group">
+                        <label className="form-label">Filter by Cohort Period</label>
+                        <select
+                          value={reportFilterCohortPeriod}
+                          onChange={(e) => setReportFilterCohortPeriod(e.target.value)}
+                          className="form-select"
+                          disabled={!selectedClass}
+                        >
+                          <option value="">All Periods</option>
+                          {activePeriods.map(p => (
+                            <option key={p.id} value={p.id}>{p.cohort_name} — {p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="form-group">
+                          <label className="form-label">Filter by Session</label>
+                          <select
+                            value={reportFilterSession}
+                            onChange={(e) => setReportFilterSession(e.target.value)}
+                            className="form-select"
+                            disabled={!selectedClass}
+                          >
+                            <option value="">All Sessions</option>
+                            {sessions.map(session => (
+                              <option key={session.id} value={session.id}>
+                                {session.name} {session.is_active ? '(Active)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Filter by Semester</label>
+                          <select
+                            value={reportFilterSemester}
+                            onChange={(e) => setReportFilterSemester(e.target.value)}
+                            className="form-select"
+                            disabled={!selectedClass}
+                          >
+                            <option value="">All Semesters</option>
+                            {reportFilteredSemesters.map(sem => (
+                              <option key={sem.id} value={sem.id}>
+                                {sem.name} {sem.is_active ? '(Active)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    )}
                     <div className="form-group">
                       <label className="form-label">Filter by Subject</label>
                       <select

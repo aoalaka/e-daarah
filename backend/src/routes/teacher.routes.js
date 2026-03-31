@@ -988,7 +988,7 @@ router.get('/classes/:classId/exam-performance', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { semesterId, subject } = req.query;
+    const { semesterId, cohortPeriodId, subject } = req.query;
 
     // Verify access
     const [access] = await pool.query(
@@ -1004,16 +1004,21 @@ router.get('/classes/:classId/exam-performance', async (req, res) => {
 
     let query = `
       SELECT ep.*, s.first_name, s.last_name, s.student_id,
-             sem.name as semester_name, sess.name as session_name
+             sem.name as semester_name, sess.name as session_name,
+             cp.name as cohort_period_name
       FROM exam_performance ep
       INNER JOIN students s ON ep.student_id = s.id
       LEFT JOIN semesters sem ON ep.semester_id = sem.id
       LEFT JOIN sessions sess ON sem.session_id = sess.id
+      LEFT JOIN cohort_periods cp ON ep.cohort_period_id = cp.id
       WHERE s.class_id = ? AND s.madrasah_id = ? AND ep.deleted_at IS NULL`;
 
     const params = [classId, madrasahId];
 
-    if (semesterId) {
+    if (cohortPeriodId) {
+      query += ' AND ep.cohort_period_id = ?';
+      params.push(cohortPeriodId);
+    } else if (semesterId) {
       query += ' AND ep.semester_id = ?';
       params.push(semesterId);
     }
@@ -1377,7 +1382,7 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const { classId } = req.params;
-    const { sessionId, semesterId, subject } = req.query;
+    const { sessionId, semesterId, cohortPeriodId, subject } = req.query;
 
     // Verify access
     const [access] = await pool.query(
@@ -1417,14 +1422,18 @@ router.get('/classes/:classId/student-reports', async (req, res) => {
     
     const queryParams = [madrasahId, classId];
 
-    if (sessionId) {
-      query += ` AND sem.session_id = ?`;
-      queryParams.push(sessionId);
-    }
-
-    if (semesterId) {
-      query += ` AND ep.semester_id = ?`;
-      queryParams.push(semesterId);
+    if (cohortPeriodId) {
+      query += ` AND ep.cohort_period_id = ?`;
+      queryParams.push(cohortPeriodId);
+    } else {
+      if (sessionId) {
+        query += ` AND sem.session_id = ?`;
+        queryParams.push(sessionId);
+      }
+      if (semesterId) {
+        query += ` AND ep.semester_id = ?`;
+        queryParams.push(semesterId);
+      }
     }
 
     if (subject) {

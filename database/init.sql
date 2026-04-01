@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS madrasahs (
     verified_by INT NULL,
     -- Feature toggles
     enable_quran_tracking BOOLEAN NOT NULL DEFAULT TRUE,
+    enable_learning_tracker BOOLEAN NOT NULL DEFAULT TRUE,
     enable_fee_tracking BOOLEAN NOT NULL DEFAULT TRUE,
     currency VARCHAR(3) NOT NULL DEFAULT 'USD',
     fee_tracking_mode ENUM('manual', 'auto') NOT NULL DEFAULT 'manual',
@@ -62,6 +63,8 @@ CREATE TABLE IF NOT EXISTS madrasahs (
     availability_planner_aware TINYINT(1) NOT NULL DEFAULT 1,
     -- Scheduling mode
     scheduling_mode ENUM('academic', 'cohort') NOT NULL DEFAULT 'academic',
+    -- Onboarding
+    setup_complete BOOLEAN NOT NULL DEFAULT FALSE,
     -- Auto fee reminders
     auto_fee_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     auto_fee_reminder_message TEXT NULL DEFAULT NULL,
@@ -743,6 +746,79 @@ CREATE TABLE IF NOT EXISTS quran_student_position (
 );
 
 -- =====================================================
+-- Courses table (migration 037 — Learning Tracker)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS courses (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  madrasah_id INT NOT NULL,
+  class_id INT NOT NULL COMMENT 'Course is pinned to a specific class',
+  name VARCHAR(255) NOT NULL,
+  description TEXT DEFAULT NULL,
+  colour VARCHAR(7) DEFAULT NULL COMMENT 'Optional hex colour for UI e.g. #4CAF50',
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  display_order INT NOT NULL DEFAULT 0,
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+  INDEX idx_courses_madrasah (madrasah_id, deleted_at),
+  INDEX idx_courses_class (class_id, deleted_at)
+);
+
+-- =====================================================
+-- Course Units table (migration 037 — Learning Tracker)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS course_units (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  course_id INT NOT NULL,
+  madrasah_id INT NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT DEFAULT NULL,
+  display_order INT NOT NULL DEFAULT 0,
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+  INDEX idx_units_course (course_id, deleted_at)
+);
+
+-- =====================================================
+-- Course Progress table (migration 037 — Learning Tracker)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS course_progress (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  madrasah_id INT NOT NULL,
+  course_id INT NOT NULL,
+  unit_id INT NOT NULL,
+  student_id INT NOT NULL,
+  class_id INT NOT NULL,
+  semester_id INT DEFAULT NULL,
+  cohort_period_id INT DEFAULT NULL,
+  recorded_by INT NOT NULL COMMENT 'Teacher user_id',
+  date DATE NOT NULL,
+  grade ENUM('Excellent', 'Good', 'Fair', 'Needs Improvement') NOT NULL DEFAULT 'Good',
+  passed TINYINT(1) NOT NULL DEFAULT 1,
+  notes TEXT DEFAULT NULL,
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+  FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+  FOREIGN KEY (unit_id) REFERENCES course_units(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+  FOREIGN KEY (recorded_by) REFERENCES users(id),
+  INDEX idx_cp_madrasah (madrasah_id, deleted_at),
+  INDEX idx_cp_student (student_id, deleted_at),
+  INDEX idx_cp_class (class_id, deleted_at),
+  INDEX idx_cp_unit (unit_id, deleted_at),
+  INDEX idx_cp_semester (semester_id),
+  INDEX idx_cp_cohort_period (cohort_period_id)
+);
+
+-- =====================================================
 -- Student Promotions table (migration 015)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS student_promotions (
@@ -961,5 +1037,8 @@ INSERT INTO migrations (name) VALUES
 ('032_free_quran_tier'),
 ('033_quran_progress_free_plan'),
 ('034_quran_position_tracks'),
-('035_cross_surah_columns')
+('035_cross_surah_columns'),
+('036_cohort_scheduling'),
+('037_learning_tracker'),
+('038_setup_complete')
 ON DUPLICATE KEY UPDATE name = name;

@@ -69,6 +69,26 @@ function ReportsSection({
   const [teacherDetailData, setTeacherDetailData] = useState(null);
   const [teacherDetailLoading, setTeacherDetailLoading] = useState(false);
 
+  // Fee Report state
+  const [feeReportData, setFeeReportData] = useState(null);
+  const [feeReportLoading, setFeeReportLoading] = useState(false);
+  const [feeReportClassFilter, setFeeReportClassFilter] = useState('');
+  const [feeReportFamilyFilter, setFeeReportFamilyFilter] = useState('');
+
+  const fetchFeeReport = async (classId) => {
+    setFeeReportLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (classId) params.append('class_id', classId);
+      const res = await api.get(`/admin/fee-report/families?${params}`);
+      setFeeReportData(res.data);
+    } catch {
+      toast.error('Failed to load fee report');
+    } finally {
+      setFeeReportLoading(false);
+    }
+  };
+
   // Initialize reportFilterSemester from active semester
   useEffect(() => {
     const activeSemester = semesters.find(s => s.is_active);
@@ -513,6 +533,14 @@ function ReportsSection({
                   >
                     Teacher Activity
                   </button>
+                  {(madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false) && (
+                    <button
+                      onClick={() => { setReportSubTab('fee-report'); fetchFeeReport(); }}
+                      className={`report-tab-btn ${reportSubTab === 'fee-report' ? 'active' : ''}`}
+                    >
+                      Fee Report
+                    </button>
+                  )}
                 </nav>
               </div>
 
@@ -2789,6 +2817,203 @@ function ReportsSection({
                   )}
                 </>
               )}
+
+              {/* Fee Report Tab */}
+              {reportSubTab === 'fee-report' && (
+                <>
+                  {/* Filters */}
+                  <div className="card no-print" style={{ marginBottom: 'var(--md)' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <select
+                        className="form-select"
+                        style={{ maxWidth: '200px' }}
+                        value={feeReportClassFilter}
+                        onChange={e => {
+                          setFeeReportClassFilter(e.target.value);
+                          setFeeReportFamilyFilter('');
+                          fetchFeeReport(e.target.value || undefined);
+                        }}
+                      >
+                        <option value="">All classes</option>
+                        {classes.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                      {feeReportData?.families?.length > 0 && (
+                        <select
+                          className="form-select"
+                          style={{ maxWidth: '240px' }}
+                          value={feeReportFamilyFilter}
+                          onChange={e => setFeeReportFamilyFilter(e.target.value)}
+                        >
+                          <option value="">All families</option>
+                          {feeReportData.families.map((f, i) => {
+                            const label = f.guardianName
+                              ? `${f.guardianName}${f.children.length > 1 ? ` (${f.children.length} students)` : ` — ${f.children[0]?.studentName}`}`
+                              : f.children.map(c => c.studentName).join(', ');
+                            return <option key={i} value={i}>{label}</option>;
+                          })}
+                        </select>
+                      )}
+                      <button
+                        className="btn btn-secondary"
+                        style={{ marginLeft: 'auto' }}
+                        onClick={() => window.print()}
+                      >
+                        <PrinterIcon width={14} height={14} style={{ marginRight: '6px' }} />
+                        {feeReportFamilyFilter !== '' ? 'Print statement' : 'Print all'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {feeReportLoading ? (
+                    <div className="empty">Loading fee report…</div>
+                  ) : !feeReportData ? (
+                    <div className="empty">Select filters above to generate the report.</div>
+                  ) : (() => {
+                    const visibleFamilies = feeReportFamilyFilter !== ''
+                      ? [feeReportData.families[parseInt(feeReportFamilyFilter)]].filter(Boolean)
+                      : feeReportData.families;
+                    const visibleTotal = visibleFamilies.reduce((s, f) => s + f.grandTotal, 0);
+                    const visiblePaid = visibleFamilies.reduce((s, f) => s + f.grandPaid, 0);
+                    const visibleBalance = visibleTotal - visiblePaid;
+                    return (
+                    <>
+                      {/* Print-only header */}
+                      <div className="print-only" style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid #000' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <div style={{ fontSize: '20px', fontWeight: 700 }}>{madrasahProfile?.name || 'Madrasah'}</div>
+                            <div style={{ fontSize: '13px', color: '#555', marginTop: '2px' }}>Fee Statement</div>
+                            {feeReportFamilyFilter !== '' && visibleFamilies[0] && (
+                              <div style={{ fontSize: '13px', marginTop: '6px' }}>
+                                <span style={{ fontWeight: 600 }}>{visibleFamilies[0].guardianName || 'Parent / Guardian'}</span>
+                                {visibleFamilies[0].guardianPhone && <span style={{ marginLeft: '8px', color: '#555' }}>{visibleFamilies[0].guardianPhone}</span>}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ textAlign: 'right', fontSize: '12px', color: '#555' }}>
+                            <div>Printed: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                            <div style={{ marginTop: '4px', fontSize: '11px', color: '#999' }}>Powered by E-Daarah</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Grand totals */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                        {[
+                          { label: 'Total Expected', value: visibleTotal, cls: '' },
+                          { label: 'Total Paid', value: visiblePaid, cls: 'fee-paid' },
+                          { label: 'Outstanding', value: visibleBalance, cls: visibleBalance > 0 ? 'fee-unpaid' : 'fee-paid' },
+                        ].map(({ label, value, cls }) => (
+                          <div key={label} className="card" style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>{label}</div>
+                            <div className={`fee-grand-value ${cls}`} style={{ fontSize: '24px', fontWeight: 700 }}>
+                              {feeReportData.currency} {value.toFixed(2)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {visibleFamilies.length === 0 ? (
+                        <div className="empty">No fee data found.</div>
+                      ) : visibleFamilies.map((family, fi) => (
+                        <div key={fi} className="card" style={{ marginBottom: '16px', overflow: 'hidden', padding: 0, borderRadius: '8px' }}>
+                          {/* Family header */}
+                          <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                            <div>
+                              <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
+                                {family.guardianName || 'Parent / Guardian'}
+                              </span>
+                              {family.guardianPhone && (
+                                <span style={{ marginLeft: '10px', fontSize: '12px', color: 'var(--muted)' }}>{family.guardianPhone}</span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '16px', fontSize: '13px' }}>
+                              <span style={{ color: 'var(--gray)' }}>Expected: <strong>{feeReportData.currency} {family.grandTotal.toFixed(2)}</strong></span>
+                              <span style={{ color: 'var(--gray)' }}>Paid: <strong style={{ color: '#166534' }}>{feeReportData.currency} {family.grandPaid.toFixed(2)}</strong></span>
+                              {family.grandBalance > 0 && (
+                                <span style={{ color: '#dc2626', fontWeight: 600 }}>Outstanding: {feeReportData.currency} {family.grandBalance.toFixed(2)}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Per-child sections */}
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            {family.children.map((child, ci) => (
+                                <div key={ci} style={{ borderTop: '1px solid var(--light)' }}>
+                                  {/* Child name header */}
+                                  <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    padding: '10px 16px',
+                                  }}>
+                                    <div>
+                                      <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>{child.studentName}</span>
+                                      <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--muted)' }}>{child.className}</span>
+                                    </div>
+                                    <span className={`status-badge ${child.status === 'paid' ? 'active' : child.status === 'partial' ? 'warning' : child.status === 'unpaid' ? 'inactive' : ''}`}>
+                                      {child.status === 'paid' ? 'Paid' : child.status === 'partial' ? 'Partial' : child.status === 'unpaid' ? 'Unpaid' : 'No fee set'}
+                                    </span>
+                                  </div>
+
+                                  {/* Expected / Paid / Balance summary */}
+                                  {child.totalOwed > 0 && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid var(--light)' }}>
+                                      {[
+                                        { label: 'Expected', val: `${feeReportData.currency} ${child.totalOwed.toFixed(2)}`, color: 'var(--text-primary)' },
+                                        { label: 'Paid', val: `${feeReportData.currency} ${child.totalPaid.toFixed(2)}`, color: '#166534' },
+                                        { label: 'Outstanding', val: `${feeReportData.currency} ${child.totalBalance.toFixed(2)}`, color: child.totalBalance > 0 ? '#c1121f' : '#166534' },
+                                      ].map(({ label, val, color }, idx) => (
+                                        <div key={label} style={{
+                                          padding: '12px 16px',
+                                          borderRight: idx < 2 ? '1px solid var(--light)' : 'none',
+                                          textAlign: 'center',
+                                        }}>
+                                          <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '4px' }}>{label}</div>
+                                          <div style={{ fontSize: '14px', fontWeight: 700, color }}>{val}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Payments table */}
+                                  {child.recentPayments.length > 0 && (
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                                      <thead>
+                                        <tr style={{ background: 'var(--bg)' }}>
+                                          {['Date', 'Period', 'Description', 'Amount', 'Method'].map(h => (
+                                            <th key={h} style={{ padding: '7px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: '1px solid var(--light)' }}>{h}</th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {child.recentPayments.map((p, pi) => (
+                                          <tr key={pi} style={{ borderBottom: '1px solid var(--lighter)' }}>
+                                            <td style={{ padding: '8px 16px' }}>{fmtDate(p.date)}</td>
+                                            <td style={{ padding: '8px 16px', color: 'var(--gray)' }}>{p.period || '—'}</td>
+                                            <td style={{ padding: '8px 16px', color: 'var(--gray)' }}>{p.label || '—'}</td>
+                                            <td style={{ padding: '8px 16px', fontWeight: 600 }}>{feeReportData.currency} {p.amount.toFixed(2)}</td>
+                                            <td style={{ padding: '8px 16px', color: 'var(--gray)', textTransform: 'capitalize' }}>{p.method?.replace('_', ' ') || '—'}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  )}
+                                </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {/* Print-only footer */}
+                      <div className="print-only" style={{ marginTop: '32px', paddingTop: '12px', borderTop: '1px solid #ccc', fontSize: '11px', color: '#999', textAlign: 'center' }}>
+                        {madrasahProfile?.name || 'Madrasah'} &nbsp;·&nbsp; Powered by E-Daarah &nbsp;·&nbsp; E-Daarah.com
+                      </div>
+                    </>
+                    );
+                  })()}
+                </>
+              )}
+
             </>
   );
 }

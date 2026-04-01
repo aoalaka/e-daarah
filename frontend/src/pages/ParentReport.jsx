@@ -48,6 +48,7 @@ function ParentReport() {
   const [loading, setLoading] = useState(true);
   const [quranProgress, setQuranProgress] = useState([]);
   const [quranPosition, setQuranPosition] = useState(null);
+  const [courseProgress, setCourseProgress] = useState([]);
 
   // Initialize: check auth, load children
   useEffect(() => {
@@ -143,6 +144,7 @@ function ParentReport() {
       setCohortPeriods(data.cohortPeriods || []);
       setQuranProgress(data.quranProgress || []);
       setQuranPosition(data.quranPosition || null);
+      setCourseProgress(data.courseProgress || []);
 
       // Detect scheduling mode from madrasah profile
       const mode = data.madrasah?.scheduling_mode || 'academic';
@@ -389,6 +391,94 @@ function ParentReport() {
                   </div>
                 </div>
 
+                {/* Learning Progress — Qur'an + Courses */}
+                {(madrasah?.enable_learning_tracker !== 0 && madrasah?.enable_learning_tracker !== false) &&
+                  (quranProgress.length > 0 || quranPosition || courseProgress.length > 0) && (
+                  <div className="exam-detail-section">
+                    <h3 className="section-title">Learning Progress</h3>
+                    <div className="exam-subjects">
+
+                      {/* Qur'an block */}
+                      {(quranProgress.length > 0 || quranPosition) && (
+                        <div className="subject-block">
+                          <div className="subject-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span className="subject-dot" style={{ background: '#2d6a4f' }} />
+                              <span style={{ fontWeight: 600, fontSize: '14px', color: '#0a0a0a' }}>Qur'an</span>
+                            </div>
+                            {quranPosition && (
+                              <div className="quran-position-banner">
+                                <span className="quran-position-track">Hifdh position</span>
+                                <span className="quran-position-value">
+                                  {quranPosition.current_surah_number}. {quranPosition.current_surah_name}
+                                  {quranPosition.current_ayah ? ` — Ayah ${quranPosition.current_ayah}` : ''}
+                                  <span className="quran-position-juz">Juz {quranPosition.current_juz}</span>
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {quranProgress.length > 0 && (
+                            <div className="exam-table">
+                              <div className="exam-table-header" style={{ gridTemplateColumns: '1fr 0.8fr 1.3fr 0.8fr 0.8fr' }}>
+                                <span>Date</span><span>Type</span><span>Surah</span><span>Ayahs</span><span>Grade</span>
+                              </div>
+                              {quranProgress.map(r => (
+                                <div key={r.id} className="exam-table-row" style={{ gridTemplateColumns: '1fr 0.8fr 1.3fr 0.8fr 0.8fr' }}>
+                                  <span className="exam-date">{fmtDate(r.date)}</span>
+                                  <span className="exam-type">
+                                    {r.type === 'hifz' || r.type === 'memorization_new' ? 'Hifdh'
+                                      : r.type === 'revision' || r.type === 'memorization_revision' ? 'Revision'
+                                      : 'Tilawah'}
+                                  </span>
+                                  <span>{r.surah_number}. {r.surah_name}</span>
+                                  <span>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : '—'}</span>
+                                  <span className={`grade-badge grade-${r.grade?.toLowerCase().replace(' ', '-')}`}>{r.grade}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Course blocks */}
+                      {courseProgress.length > 0 && (() => {
+                        const byCourse = courseProgress.reduce((acc, r) => {
+                          const key = r.course_name;
+                          if (!acc[key]) acc[key] = { colour: r.course_colour, records: [] };
+                          acc[key].records.push(r);
+                          return acc;
+                        }, {});
+                        return Object.entries(byCourse).map(([courseName, { colour, records }]) => (
+                          <div key={courseName} className="subject-block">
+                            <div className="subject-header">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span className="subject-dot" style={{ background: colour || '#475569' }} />
+                                <span style={{ fontWeight: 600, fontSize: '14px', color: '#0a0a0a' }}>{courseName}</span>
+                              </div>
+                            </div>
+                            <div className="exam-table">
+                              <div className="exam-table-header" style={{ gridTemplateColumns: '1fr 1.6fr 0.8fr 0.8fr' }}>
+                                <span>Date</span><span>Unit</span><span>Grade</span><span>Outcome</span>
+                              </div>
+                              {records.map(r => (
+                                <div key={r.id} className="exam-table-row" style={{ gridTemplateColumns: '1fr 1.6fr 0.8fr 0.8fr' }}>
+                                  <span className="exam-date">{fmtDate(r.date)}</span>
+                                  <span>{r.unit_title}</span>
+                                  <span className={`grade-badge grade-${r.grade?.toLowerCase().replace(' ', '-')}`}>{r.grade}</span>
+                                  <span className={`outcome-badge ${r.passed ? 'outcome-pass' : 'outcome-repeat'}`}>
+                                    {r.passed ? 'Pass' : 'Repeat'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ));
+                      })()}
+
+                    </div>
+                  </div>
+                )}
+
                 {/* Performance Cards */}
                 <div className="performance-grid">
                   {/* Attendance */}
@@ -558,52 +648,6 @@ function ParentReport() {
                   </div>
                 )}
 
-                {/* Qur'an Progress */}
-                {(madrasah?.enable_quran_tracking !== 0 && madrasah?.enable_quran_tracking !== false) && (quranProgress.length > 0 || quranPosition) && (
-                  <div className="exam-detail-section">
-                    <h3 className="section-title">Qur'an Progress</h3>
-                    {quranPosition && (
-                      <div className="quran-position-grid">
-                        <div className="perf-card">
-                          <div className="perf-card-header">
-                            <BookOpenIcon width={18} height={18} />
-                            <span>Current Position</span>
-                          </div>
-                          <div className="perf-card-body">
-                            <div className="perf-details">
-                              <div className="perf-row"><span>Surah:</span><strong>{quranPosition.current_surah_number}. {quranPosition.current_surah_name}</strong></div>
-                              <div className="perf-row"><span>Juz:</span><strong>{quranPosition.current_juz || '—'}</strong></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {quranProgress.length > 0 && (
-                      <div className="exam-subjects">
-                        <div className="subject-block">
-                          <div className="exam-table">
-                            <div className="exam-table-header" style={{ gridTemplateColumns: '1fr 0.7fr 1.2fr 0.7fr 0.7fr' }}>
-                              <span>Date</span><span>Type</span><span>Surah</span><span>Ayahs</span><span>Grade</span>
-                            </div>
-                            {quranProgress.map(r => (
-                              <div key={r.id} className="exam-table-row" style={{ gridTemplateColumns: '1fr 0.7fr 1.2fr 0.7fr 0.7fr' }}>
-                                <span className="exam-date">{fmtDate(r.date)}</span>
-                                <span className="exam-type">{r.type === 'hifz' || r.type === 'memorization_new' ? 'Hifdh' : r.type === 'revision' || r.type === 'memorization_revision' ? 'Revision' : 'Tilawah'}</span>
-                                <span>{r.surah_number}. {r.surah_name}</span>
-                                <span>{r.ayah_from && r.ayah_to ? `${r.ayah_from}–${r.ayah_to}` : '—'}</span>
-                                <span className="stat-badge" style={{
-                                  background: r.grade === 'Excellent' ? '#f0fdf4' : r.grade === 'Good' ? '#f5f5f5' : r.grade === 'Fair' ? '#fff7ed' : '#fef2f2',
-                                  color: r.grade === 'Excellent' ? '#2d6a4f' : r.grade === 'Good' ? '#525252' : r.grade === 'Fair' ? '#b86e00' : '#c1121f',
-                                  fontSize: '12px'
-                                }}>{r.grade}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* School Comment */}
                 {student?.notes && (
@@ -697,16 +741,18 @@ function ParentReport() {
                           <div className="fee-table">
                             <div className="fee-table-header fee-payment-header">
                               <span>Date</span>
-                              <span>Label</span>
+                              <span>Period</span>
+                              <span>Description</span>
                               <span>Amount</span>
                               <span>Method</span>
                             </div>
                             {child.recentPayments.map((p, idx) => (
                               <div key={idx} className="fee-table-row fee-payment-row">
                                 <span>{fmtDate(p.date)}</span>
-                                <span>{p.payment_label || p.templateName || '—'}</span>
+                                <span>{p.period || '—'}</span>
+                                <span>{p.label || '—'}</span>
                                 <span>{formatCurrency(p.amount, feeData.currency)}</span>
-                                <span className="fee-method">{p.method}</span>
+                                <span className="fee-method">{p.method?.replace('_', ' ')}</span>
                               </div>
                             ))}
                           </div>

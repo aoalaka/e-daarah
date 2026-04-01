@@ -3242,6 +3242,11 @@ a:focus-visible,
   font-style: italic;
 }
 
+/* Elements hidden on screen, shown only when printing */
+.print-only {
+  display: none;
+}
+
 /* Madrasah name and print header (hidden by default, shown when printing) */
 .print-header {
   display: none;
@@ -3344,7 +3349,8 @@ a:focus-visible,
   }
 
   /* Show print header */
-  .print-header {
+  .print-header,
+  .print-only {
     display: block !important;
   }
 
@@ -5735,3 +5741,34 @@ a:focus-visible,
     height: 44px;
   }
 }
+
+/* ============================================
+   SUB-TAB PILLS (Learning tab + others)
+   ============================================ */
+
+.sub-tab-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sub-tab-pill {
+  padding: 8px 18px;
+  border: 1px solid var(--light, #e5e7eb);
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+}
+.sub-tab-pill:hover {
+  border-color: var(--primary, #1e293b);
+}
+.sub-tab-pill.active {
+  background: var(--primary, #1e293b);
+  border-color: var(--primary, #1e293b);
+  color: #fff;
+}
+

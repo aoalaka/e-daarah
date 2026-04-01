@@ -127,7 +127,7 @@ export default function SchoolProfile() {
             <ul>
               <li>Attendance Tracking</li>
               <li>Exam Recording</li>
-              {school.enable_quran_tracking ? <li>Qur'an Progress Tracking</li> : null}
+              {school.enable_learning_tracker ? <li>Qur'an Progress Tracking</li> : null}
               {school.enable_fee_tracking ? <li>Fee Management</li> : null}
               <li>Parent Portal</li>
             </ul>

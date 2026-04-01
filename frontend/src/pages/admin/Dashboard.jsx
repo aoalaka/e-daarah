@@ -21,6 +21,7 @@ import {
   Cog6ToothIcon,
   CreditCardIcon,
   ArrowRightStartOnRectangleIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 import { authService } from '../../services/auth.service';
 import api from '../../services/api';
@@ -45,6 +46,8 @@ import StudentsSection from './sections/StudentsSection';
 import FeesSection from './sections/FeesSection';
 import ReportsSection from './sections/ReportsSection';
 import SettingsSection from './sections/SettingsSection';
+import CoursesSection from './sections/CoursesSection';
+import OnboardingWizard from './OnboardingWizard';
 
 function AdminDashboard() {
   // Format date as "01 Sep 2025"
@@ -128,13 +131,14 @@ function AdminDashboard() {
   const navGroups = [
     { items: [{ id: 'overview', label: 'Overview' }] },
     { label: 'Manage', items: [
+      { id: 'planner', label: 'Planner' },
       { id: 'classes', label: 'Classes' },
       { id: 'teachers', label: 'Teachers' },
       { id: 'students', label: 'Students' },
       ...(madrasahProfile?.enable_fee_tracking ? [{ id: 'fees', label: 'Fees' }] : []),
+      ...(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false ? [{ id: 'courses', label: 'Courses' }] : []),
     ]},
     { label: 'Tools', items: [
-      { id: 'planner', label: 'Planner' },
       ...(hasPlusAccess() ? [{ id: 'reports', label: 'Reports' }] : []),
       { id: 'sms', label: 'SMS' },
     ]},
@@ -328,10 +332,22 @@ function AdminDashboard() {
         return <ChatBubbleLeftIcon {...iconProps} />;
       case 'sms':
         return <ChatBubbleOvalLeftIcon {...iconProps} />;
+      case 'courses':
+        return <AcademicCapIcon {...iconProps} />;
       default:
         return null;
     }
   };
+
+  // Show full-page onboarding wizard before anything else loads
+  if (madrasahProfile && !madrasahProfile.setup_complete) {
+    return (
+      <OnboardingWizard
+        madrasahProfile={madrasahProfile}
+        onComplete={(updatedProfile) => setMadrasahProfile(updatedProfile)}
+      />
+    );
+  }
 
   return (
     <div className="dashboard">
@@ -588,6 +604,9 @@ function AdminDashboard() {
 
           {/* SMS Tab */}
           {activeTab === 'sms' && <SmsSection classes={classes} madrasahProfile={madrasahProfile} setMadrasahProfile={setMadrasahProfile} savingSettings={savingSettings} setSavingSettings={setSavingSettings} formatCurrency={formatCurrency} fmtDate={fmtDate} />}
+
+          {/* Courses Tab */}
+          {activeTab === 'courses' && <CoursesSection classes={classes} isReadOnly={isReadOnly} setConfirmModal={setConfirmModal} />}
 
           {/* Settings Tab */}
           {activeTab === 'settings' && <SettingsSection madrasahProfile={madrasahProfile} setMadrasahProfile={setMadrasahProfile} user={user} fmtDate={fmtDate} isReadOnly={isReadOnly} hasPlusAccess={hasPlusAccess} sessions={sessions} setConfirmModal={setConfirmModal} />}

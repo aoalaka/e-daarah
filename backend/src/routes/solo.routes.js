@@ -1139,7 +1139,7 @@ router.get('/profile', async (req, res) => {
       `SELECT id, name, slug, logo_url, street, city, region, country, phone, email,
        institution_type, verification_status, trial_ends_at, created_at,
        pricing_plan, subscription_status, current_period_end, stripe_customer_id,
-       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency,
+       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker, enable_fee_tracking, currency,
        COALESCE(scheduling_mode, 'academic') as scheduling_mode
        FROM madrasahs WHERE id = ?`,
       [req.madrasahId]
@@ -1157,7 +1157,7 @@ router.get('/profile', async (req, res) => {
 
 router.put('/settings', requireActiveSubscription, async (req, res) => {
   try {
-    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency } = req.body;
+    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker, enable_fee_tracking, currency } = req.body;
 
     const updates = [];
     const params = [];
@@ -1165,7 +1165,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
     if (typeof enable_dressing_grade === 'boolean') { updates.push('enable_dressing_grade = ?'); params.push(enable_dressing_grade); }
     if (typeof enable_behavior_grade === 'boolean') { updates.push('enable_behavior_grade = ?'); params.push(enable_behavior_grade); }
     if (typeof enable_punctuality_grade === 'boolean') { updates.push('enable_punctuality_grade = ?'); params.push(enable_punctuality_grade); }
-    if (typeof enable_quran_tracking === 'boolean') { updates.push('enable_quran_tracking = ?'); params.push(enable_quran_tracking); }
+    if (typeof enable_learning_tracker === 'boolean') { updates.push('enable_learning_tracker = ?'); params.push(enable_learning_tracker); }
     if (typeof enable_fee_tracking === 'boolean') { updates.push('enable_fee_tracking = ?'); params.push(enable_fee_tracking); }
     if (typeof currency === 'string' && /^[A-Z]{3}$/.test(currency)) { updates.push('currency = ?'); params.push(currency); }
 
@@ -1175,12 +1175,146 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
     await pool.query(`UPDATE madrasahs SET ${updates.join(', ')} WHERE id = ?`, params);
 
     const [updated] = await pool.query(
-      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency FROM madrasahs WHERE id = ?',
+      'SELECT enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker, enable_fee_tracking, currency FROM madrasahs WHERE id = ?',
       [req.madrasahId]
     );
     res.json(updated[0]);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
+// =====================================================
+// Learning Tracker — Course Progress (solo)
+// =====================================================
+
+// GET /solo/classes/:classId/courses
+router.get('/classes/:classId/courses', async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const madrasahId = req.madrasahId;
+    const [courses] = await pool.query(
+      `SELECT c.*, cl.name as class_name,
+        (SELECT COUNT(*) FROM course_units cu WHERE cu.course_id = c.id AND cu.deleted_at IS NULL) as unit_count
+       FROM courses c
+       JOIN classes cl ON cl.id = c.class_id
+       WHERE c.class_id = ? AND c.madrasah_id = ? AND c.deleted_at IS NULL AND c.is_active = TRUE
+       ORDER BY c.display_order ASC, c.name ASC`,
+      [classId, madrasahId]
+    );
+    res.json(courses);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch courses' });
+  }
+});
+
+// GET /solo/courses/:courseId/units
+router.get('/courses/:courseId/units', async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const madrasahId = req.madrasahId;
+    const [[course]] = await pool.query('SELECT id FROM courses WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [courseId, madrasahId]);
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+    const [units] = await pool.query(
+      'SELECT * FROM course_units WHERE course_id = ? AND deleted_at IS NULL ORDER BY display_order ASC, id ASC',
+      [courseId]
+    );
+    res.json(units);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch units' });
+  }
+});
+
+// GET /solo/classes/:classId/courses/:courseId/progress
+router.get('/classes/:classId/courses/:courseId/progress', async (req, res) => {
+  try {
+    const { classId, courseId } = req.params;
+    const madrasahId = req.madrasahId;
+    const { semester_id, cohort_period_id } = req.query;
+
+    let query = `
+      SELECT cp.*, cu.title as unit_title, cu.display_order as unit_order,
+        s.first_name, s.last_name
+      FROM course_progress cp
+      JOIN course_units cu ON cu.id = cp.unit_id
+      JOIN students s ON s.id = cp.student_id
+      WHERE cp.class_id = ? AND cp.course_id = ? AND cp.madrasah_id = ? AND cp.deleted_at IS NULL
+    `;
+    const params = [classId, courseId, madrasahId];
+
+    if (cohort_period_id) {
+      query += ' AND cp.cohort_period_id = ?';
+      params.push(cohort_period_id);
+    } else if (semester_id) {
+      query += ' AND cp.semester_id = ?';
+      params.push(semester_id);
+    }
+
+    query += ' ORDER BY cp.date DESC, cu.display_order ASC';
+    const [records] = await pool.query(query, params);
+    res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch course progress' });
+  }
+});
+
+// POST /solo/classes/:classId/courses/:courseId/progress
+router.post('/classes/:classId/courses/:courseId/progress', async (req, res) => {
+  try {
+    const { classId, courseId } = req.params;
+    const madrasahId = req.madrasahId;
+    const teacherId = req.user.id;
+    const { unit_id, student_id, date, grade, passed, notes, semester_id, cohort_period_id } = req.body;
+
+    if (!unit_id || !student_id || !date) {
+      return res.status(400).json({ error: 'unit_id, student_id, and date are required' });
+    }
+
+    const [[course]] = await pool.query('SELECT id FROM courses WHERE id = ? AND class_id = ? AND madrasah_id = ? AND deleted_at IS NULL', [courseId, classId, madrasahId]);
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+
+    const [[unit]] = await pool.query('SELECT id FROM course_units WHERE id = ? AND course_id = ? AND deleted_at IS NULL', [unit_id, courseId]);
+    if (!unit) return res.status(404).json({ error: 'Unit not found' });
+
+    const [result] = await pool.query(
+      `INSERT INTO course_progress
+        (madrasah_id, course_id, unit_id, student_id, class_id, semester_id, cohort_period_id, recorded_by, date, grade, passed, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        madrasahId, courseId, unit_id, student_id, classId,
+        semester_id || null, cohort_period_id || null,
+        teacherId, date,
+        grade || 'Good',
+        passed !== undefined ? (passed ? 1 : 0) : 1,
+        notes || null
+      ]
+    );
+
+    const [[record]] = await pool.query(
+      `SELECT cp.*, cu.title as unit_title, s.first_name, s.last_name
+       FROM course_progress cp
+       JOIN course_units cu ON cu.id = cp.unit_id
+       JOIN students s ON s.id = cp.student_id
+       WHERE cp.id = ?`,
+      [result.insertId]
+    );
+    res.status(201).json(record);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to record course progress' });
+  }
+});
+
+// DELETE /solo/course-progress/:progressId
+router.delete('/course-progress/:progressId', async (req, res) => {
+  try {
+    const { progressId } = req.params;
+    const madrasahId = req.madrasahId;
+    const [[record]] = await pool.query('SELECT id FROM course_progress WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [progressId, madrasahId]);
+    if (!record) return res.status(404).json({ error: 'Record not found' });
+    await pool.query('UPDATE course_progress SET deleted_at = NOW() WHERE id = ?', [progressId]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete progress record' });
   }
 });
 

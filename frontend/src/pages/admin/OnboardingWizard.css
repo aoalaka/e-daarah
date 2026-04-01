@@ -1,0 +1,415 @@
+/* Onboarding Wizard — full-page, one question per step */
+
+.ob-page {
+  min-height: 100vh;
+  background: var(--lighter);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Top bar ── */
+.ob-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  background: var(--white);
+  border-bottom: 1px solid var(--light);
+}
+
+.ob-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.ob-logo-img {
+  height: 30px;
+  width: auto;
+}
+
+.ob-logo-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.ob-skip {
+  font-size: 13px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color var(--transition-normal);
+}
+
+.ob-skip:hover {
+  color: var(--dark);
+}
+
+/* ── Progress bar ── */
+.ob-progress-track {
+  height: 3px;
+  background: var(--light);
+}
+
+.ob-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+/* ── Content area ── */
+.ob-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+
+.ob-step {
+  width: 100%;
+  max-width: 560px;
+}
+
+.ob-step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 10px;
+}
+
+.ob-question {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--black);
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+
+.ob-hint {
+  font-size: 14px;
+  color: var(--gray);
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+/* ── Option cards ── */
+.ob-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.ob-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--white);
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-normal), background var(--transition-normal);
+  width: 100%;
+  min-height: 64px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ob-option:hover {
+  border-color: var(--dark);
+}
+
+.ob-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.ob-option-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--light);
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--transition-normal);
+}
+
+.ob-option.selected .ob-option-radio {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.ob-option-radio-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--white);
+}
+
+.ob-option-text {
+  flex: 1;
+}
+
+.ob-option-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--black);
+  margin-bottom: 2px;
+}
+
+.ob-option-desc {
+  font-size: 13px;
+  color: var(--gray);
+  line-height: 1.4;
+}
+
+/* ── Checkbox options (features) ── */
+.ob-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--white);
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-normal), background var(--transition-normal);
+  width: 100%;
+  min-height: 64px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ob-check:hover {
+  border-color: var(--dark);
+}
+
+.ob-check.checked {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.ob-check-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--light);
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--transition-normal), background var(--transition-normal);
+}
+
+.ob-check.checked .ob-check-box {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.ob-check-tick {
+  display: none;
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ob-check.checked .ob-check-tick {
+  display: block;
+}
+
+/* ── "Recommended" tag inside option title ── */
+.ob-option-tag {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-light);
+  border-radius: 4px;
+  padding: 1px 6px;
+  vertical-align: middle;
+  letter-spacing: 0.2px;
+}
+
+/* ── Sub-question (conditional follow-up inside a step) ── */
+.ob-subquestion {
+  margin-top: 4px;
+  margin-bottom: 8px;
+  padding: 20px;
+  background: var(--lighter);
+  border-radius: var(--radius);
+  border: 1px solid var(--light);
+}
+
+.ob-subquestion-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+}
+
+.ob-subquestion-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 6px;
+}
+
+.ob-subquestion-desc {
+  font-size: 13px;
+  color: var(--gray);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.ob-options-inline {
+  flex-direction: row;
+  gap: 10px;
+}
+
+.ob-options-inline .ob-option {
+  flex: 1;
+}
+
+/* ── Currency select ── */
+.ob-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  font-size: 15px;
+  color: var(--black);
+  background: var(--white);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  margin-bottom: 32px;
+  transition: border-color var(--transition-normal);
+}
+
+.ob-select:focus {
+  outline: none;
+  border-color: var(--dark);
+}
+
+/* ── Actions ── */
+.ob-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ob-btn-primary {
+  flex: 1;
+  height: 48px;
+  background: var(--black);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity var(--transition-normal);
+}
+
+.ob-btn-primary:hover {
+  opacity: 0.88;
+}
+
+.ob-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ob-btn-back {
+  height: 48px;
+  padding: 0 20px;
+  background: var(--white);
+  color: var(--dark);
+  border: 1px solid var(--light);
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--transition-normal);
+}
+
+.ob-btn-back:hover {
+  border-color: var(--dark);
+}
+
+/* ── Done screen ── */
+.ob-done {
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.ob-done-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  color: var(--accent);
+}
+
+.ob-done h2 {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 10px;
+}
+
+.ob-done p {
+  font-size: 15px;
+  color: var(--gray);
+  line-height: 1.6;
+  margin-bottom: 36px;
+}
+
+.ob-done .ob-btn-primary {
+  width: 100%;
+  max-width: 320px;
+}
+
+/* ── Mobile ── */
+@media (max-width: 540px) {
+  .ob-topbar {
+    padding: 16px 20px;
+  }
+
+  .ob-body {
+    padding: 32px 20px;
+    align-items: flex-start;
+  }
+
+  .ob-question {
+    font-size: 22px;
+  }
+
+  .ob-btn-primary,
+  .ob-btn-back {
+    height: 52px;
+  }
+}

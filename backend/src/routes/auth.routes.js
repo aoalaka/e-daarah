@@ -851,7 +851,7 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
 
     // Get madrasah profile for report header
     const [madrasahProfile] = await pool.query(
-      'SELECT name, logo_url, enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, COALESCE(scheduling_mode, \'academic\') as scheduling_mode FROM madrasahs WHERE id = ?',
+      'SELECT name, logo_url, enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker, enable_fee_tracking, currency, COALESCE(scheduling_mode, \'academic\') as scheduling_mode FROM madrasahs WHERE id = ?',
       [madrasahId]
     );
 
@@ -1181,6 +1181,37 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       [studentId, student.madrasah_id]
     );
 
+    // Course progress — grouped by course
+    let courseProgressQuery = `
+      SELECT cp.*, cu.title as unit_title, cu.display_order as unit_order,
+        c.name as course_name, c.colour as course_colour
+      FROM course_progress cp
+      JOIN course_units cu ON cu.id = cp.unit_id
+      JOIN courses c ON c.id = cp.course_id
+      WHERE cp.student_id = ? AND cp.madrasah_id = ? AND cp.deleted_at IS NULL
+    `;
+    const courseProgressParams = [studentId, student.madrasah_id];
+
+    if (cohort_period_id) {
+      courseProgressQuery += ' AND cp.cohort_period_id = ?';
+      courseProgressParams.push(cohort_period_id);
+    } else if (semester_id) {
+      courseProgressQuery += ' AND cp.semester_id = ?';
+      courseProgressParams.push(semester_id);
+    } else if (session_id) {
+      courseProgressQuery += ' AND cp.semester_id IN (SELECT id FROM semesters WHERE session_id = ? AND deleted_at IS NULL)';
+      courseProgressParams.push(session_id);
+    }
+    courseProgressQuery += ' ORDER BY c.display_order ASC, cu.display_order ASC, cp.date DESC';
+
+    let courseProgressRecords = [];
+    try {
+      const [rows] = await pool.query(courseProgressQuery, courseProgressParams);
+      courseProgressRecords = rows;
+    } catch (e) {
+      // Table may not exist yet on old DB instances — return empty gracefully
+    }
+
     res.json({
       student,
       madrasah: madrasahProfile[0] || {},
@@ -1206,7 +1237,8 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
         totalStudents: rankings.exam?.total_students || null
       },
       quranProgress,
-      quranPosition: quranPosition[0] || null
+      quranPosition: quranPosition[0] || null,
+      courseProgress: courseProgressRecords
     });
   } catch (error) {
     console.error('Error fetching parent report:', error);
@@ -1296,7 +1328,7 @@ router.get('/parent/fees', authenticateToken, async (req, res) => {
     let recentPaymentsByChild = {};
     if (childIds.length > 0) {
       const [recentPayments] = await pool.query(
-        `SELECT fp.student_id, fp.amount_paid, fp.payment_date, fp.payment_method, fp.reference_note, fp.payment_label
+        `SELECT fp.student_id, fp.amount_paid, fp.payment_date, fp.payment_method, fp.reference_note, fp.payment_label, fp.period_label
          FROM fee_payments fp
          WHERE fp.madrasah_id = ? AND fp.deleted_at IS NULL AND fp.student_id IN (?)
          ORDER BY fp.payment_date DESC, fp.created_at DESC`,
@@ -1309,6 +1341,7 @@ router.get('/parent/fees', authenticateToken, async (req, res) => {
             date: p.payment_date,
             amount: parseFloat(p.amount_paid),
             label: p.payment_label,
+            period: p.period_label,
             method: p.payment_method,
             reference: p.reference_note
           });

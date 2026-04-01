@@ -2445,12 +2445,13 @@ router.get('/profile', async (req, res) => {
       `SELECT id, name, slug, logo_url, street, city, region, country, phone, email,
        institution_type, verification_status, trial_ends_at, created_at,
        pricing_plan, subscription_status, current_period_end, stripe_customer_id,
-       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency,
+       enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker, enable_fee_tracking, currency,
        fee_tracking_mode, fee_prorate_mid_period,
        auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent
        ${hasTimingCol ? ', auto_fee_reminder_timing' : ''}
        ${hasAvailabilityCol ? ', availability_planner_aware' : ''}
        , COALESCE(scheduling_mode, 'academic') as scheduling_mode
+       , COALESCE(setup_complete, 0) as setup_complete
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -2493,7 +2494,7 @@ router.get('/profile', async (req, res) => {
 router.put('/settings', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, availability_planner_aware } = req.body;
+    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, availability_planner_aware } = req.body;
 
     const updates = [];
     const params = [];
@@ -2510,9 +2511,9 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
       updates.push('enable_punctuality_grade = ?');
       params.push(enable_punctuality_grade);
     }
-    if (typeof enable_quran_tracking === 'boolean') {
-      updates.push('enable_quran_tracking = ?');
-      params.push(enable_quran_tracking);
+    if (typeof enable_learning_tracker === 'boolean') {
+      updates.push('enable_learning_tracker = ?');
+      params.push(enable_learning_tracker);
     }
     if (typeof enable_fee_tracking === 'boolean') {
       updates.push('enable_fee_tracking = ?');
@@ -2585,7 +2586,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
     );
 
     // Return updated settings
-    let settingsCols = 'enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_quran_tracking, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent, COALESCE(scheduling_mode, \'academic\') as scheduling_mode';
+    let settingsCols = 'enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent, COALESCE(scheduling_mode, \'academic\') as scheduling_mode';
     try {
       await pool.query('SELECT auto_fee_reminder_timing FROM madrasahs LIMIT 0');
       settingsCols += ', auto_fee_reminder_timing';
@@ -4871,4 +4872,375 @@ router.post('/cohorts/:cohortId/schedule-overrides', requireActiveSubscription, 
   }
 });
 
+// =====================================================
+// Learning Tracker — Course CRUD (admin)
+// =====================================================
+
+// GET /admin/courses — list all courses for this madrasah
+router.get('/courses', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const [courses] = await pool.query(
+      `SELECT c.*, cl.name as class_name,
+        (SELECT COUNT(*) FROM course_units cu WHERE cu.course_id = c.id AND cu.deleted_at IS NULL) as unit_count
+       FROM courses c
+       JOIN classes cl ON cl.id = c.class_id
+       WHERE c.madrasah_id = ? AND c.deleted_at IS NULL
+       ORDER BY c.display_order ASC, c.name ASC`,
+      [madrasahId]
+    );
+    res.json(courses);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch courses' });
+  }
+});
+
+// POST /admin/courses — create a course
+router.post('/courses', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { class_id, name, description, colour } = req.body;
+    if (!class_id || !name?.trim()) return res.status(400).json({ error: 'class_id and name are required' });
+
+    // Verify class belongs to this madrasah
+    const [[cls]] = await pool.query('SELECT id FROM classes WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [class_id, madrasahId]);
+    if (!cls) return res.status(404).json({ error: 'Class not found' });
+
+    const [result] = await pool.query(
+      'INSERT INTO courses (madrasah_id, class_id, name, description, colour) VALUES (?, ?, ?, ?, ?)',
+      [madrasahId, class_id, name.trim(), description || null, colour || null]
+    );
+    const [[course]] = await pool.query('SELECT * FROM courses WHERE id = ?', [result.insertId]);
+    res.status(201).json(course);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create course' });
+  }
+});
+
+// PUT /admin/courses/:courseId — update a course
+router.put('/courses/:courseId', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { courseId } = req.params;
+    const { name, description, colour, is_active } = req.body;
+
+    const [[existing]] = await pool.query('SELECT id FROM courses WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [courseId, madrasahId]);
+    if (!existing) return res.status(404).json({ error: 'Course not found' });
+
+    const updates = [];
+    const params = [];
+    if (name !== undefined) { updates.push('name = ?'); params.push(name.trim()); }
+    if (description !== undefined) { updates.push('description = ?'); params.push(description || null); }
+    if (colour !== undefined) { updates.push('colour = ?'); params.push(colour || null); }
+    if (typeof is_active === 'boolean') { updates.push('is_active = ?'); params.push(is_active); }
+
+    if (updates.length === 0) return res.status(400).json({ error: 'No valid fields to update' });
+
+    params.push(courseId);
+    await pool.query(`UPDATE courses SET ${updates.join(', ')} WHERE id = ?`, params);
+    const [[course]] = await pool.query('SELECT * FROM courses WHERE id = ?', [courseId]);
+    res.json(course);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update course' });
+  }
+});
+
+// DELETE /admin/courses/:courseId — soft delete a course
+router.delete('/courses/:courseId', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { courseId } = req.params;
+
+    const [[existing]] = await pool.query('SELECT id FROM courses WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [courseId, madrasahId]);
+    if (!existing) return res.status(404).json({ error: 'Course not found' });
+
+    await pool.query('UPDATE courses SET deleted_at = NOW() WHERE id = ?', [courseId]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete course' });
+  }
+});
+
+// GET /admin/courses/:courseId/units — list units for a course
+router.get('/courses/:courseId/units', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { courseId } = req.params;
+
+    const [[course]] = await pool.query('SELECT id FROM courses WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [courseId, madrasahId]);
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+
+    const [units] = await pool.query(
+      'SELECT * FROM course_units WHERE course_id = ? AND deleted_at IS NULL ORDER BY display_order ASC, id ASC',
+      [courseId]
+    );
+    res.json(units);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch course units' });
+  }
+});
+
+// POST /admin/courses/:courseId/units — add a unit
+router.post('/courses/:courseId/units', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { courseId } = req.params;
+    const { title, description } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: 'title is required' });
+
+    const [[course]] = await pool.query('SELECT id FROM courses WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [courseId, madrasahId]);
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+
+    // Auto-increment display_order
+    const [[maxOrder]] = await pool.query('SELECT COALESCE(MAX(display_order), 0) as max_order FROM course_units WHERE course_id = ? AND deleted_at IS NULL', [courseId]);
+    const displayOrder = maxOrder.max_order + 1;
+
+    const [result] = await pool.query(
+      'INSERT INTO course_units (course_id, madrasah_id, title, description, display_order) VALUES (?, ?, ?, ?, ?)',
+      [courseId, madrasahId, title.trim(), description || null, displayOrder]
+    );
+    const [[unit]] = await pool.query('SELECT * FROM course_units WHERE id = ?', [result.insertId]);
+    res.status(201).json(unit);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create unit' });
+  }
+});
+
+// PUT /admin/courses/:courseId/units/:unitId — update a unit
+router.put('/courses/:courseId/units/:unitId', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { courseId, unitId } = req.params;
+    const { title, description, display_order } = req.body;
+
+    const [[unit]] = await pool.query('SELECT id FROM course_units WHERE id = ? AND course_id = ? AND madrasah_id = ? AND deleted_at IS NULL', [unitId, courseId, madrasahId]);
+    if (!unit) return res.status(404).json({ error: 'Unit not found' });
+
+    const updates = [];
+    const params = [];
+    if (title !== undefined) { updates.push('title = ?'); params.push(title.trim()); }
+    if (description !== undefined) { updates.push('description = ?'); params.push(description || null); }
+    if (display_order !== undefined) { updates.push('display_order = ?'); params.push(display_order); }
+
+    if (updates.length === 0) return res.status(400).json({ error: 'No valid fields to update' });
+
+    params.push(unitId);
+    await pool.query(`UPDATE course_units SET ${updates.join(', ')} WHERE id = ?`, params);
+    const [[updated]] = await pool.query('SELECT * FROM course_units WHERE id = ?', [unitId]);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update unit' });
+  }
+});
+
+// DELETE /admin/courses/:courseId/units/:unitId — soft delete a unit
+router.delete('/courses/:courseId/units/:unitId', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { courseId, unitId } = req.params;
+
+    const [[unit]] = await pool.query('SELECT id FROM course_units WHERE id = ? AND course_id = ? AND madrasah_id = ? AND deleted_at IS NULL', [unitId, courseId, madrasahId]);
+    if (!unit) return res.status(404).json({ error: 'Unit not found' });
+
+    await pool.query('UPDATE course_units SET deleted_at = NOW() WHERE id = ?', [unitId]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete unit' });
+  }
+});
+
+// POST /admin/onboarding/complete — save wizard answers and mark setup as done
+router.post('/onboarding/complete', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const {
+      scheduling_mode,
+      enable_learning_tracker,
+      enable_fee_tracking,
+      enable_grade_tracking,
+      currency,
+      fee_tracking_mode,
+      fee_prorate_mid_period,
+      availability_planner_aware,
+    } = req.body;
+
+    const fields = [];
+    const values = [];
+
+    if (scheduling_mode !== undefined) {
+      fields.push('scheduling_mode = ?');
+      values.push(scheduling_mode);
+    }
+    if (enable_learning_tracker !== undefined) {
+      fields.push('enable_learning_tracker = ?');
+      values.push(enable_learning_tracker ? 1 : 0);
+    }
+    if (enable_fee_tracking !== undefined) {
+      fields.push('enable_fee_tracking = ?');
+      values.push(enable_fee_tracking ? 1 : 0);
+    }
+    if (enable_grade_tracking !== undefined) {
+      const gradeVal = enable_grade_tracking ? 1 : 0;
+      fields.push('enable_dressing_grade = ?', 'enable_behavior_grade = ?', 'enable_punctuality_grade = ?');
+      values.push(gradeVal, gradeVal, gradeVal);
+    }
+    if (currency !== undefined) {
+      fields.push('currency = ?');
+      values.push(currency);
+    }
+    if (fee_tracking_mode !== undefined && ['manual', 'auto'].includes(fee_tracking_mode)) {
+      fields.push('fee_tracking_mode = ?');
+      values.push(fee_tracking_mode);
+    }
+    if (fee_prorate_mid_period !== undefined) {
+      fields.push('fee_prorate_mid_period = ?');
+      values.push(fee_prorate_mid_period ? 1 : 0);
+    }
+    if (availability_planner_aware !== undefined) {
+      fields.push('availability_planner_aware = ?');
+      values.push(availability_planner_aware ? 1 : 0);
+    }
+
+    fields.push('setup_complete = 1');
+    values.push(madrasahId);
+
+    await pool.query(
+      `UPDATE madrasahs SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Onboarding complete error:', error);
+    res.status(500).json({ error: 'Failed to save onboarding settings' });
+  }
+});
+
+// GET /admin/fee-report/families — fee summary grouped by family (same parent phone)
+// Optional query: ?class_id=X
+router.get('/fee-report/families', async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { class_id } = req.query;
+
+    const [madrasahRow] = await pool.query(
+      'SELECT enable_fee_tracking, currency FROM madrasahs WHERE id = ?',
+      [madrasahId]
+    );
+    const madrasahInfo = madrasahRow[0] || {};
+    const currency = madrasahInfo.currency || 'USD';
+
+    if (!madrasahInfo.enable_fee_tracking) {
+      return res.json({ currency, families: [], grandTotal: 0, grandPaid: 0, grandBalance: 0 });
+    }
+
+    // Fetch all active students (optionally filtered by class)
+    const studentParams = [madrasahId];
+    let studentWhere = 's.madrasah_id = ? AND s.deleted_at IS NULL';
+    if (class_id) {
+      studentWhere += ' AND s.class_id = ?';
+      studentParams.push(class_id);
+    }
+    const [students] = await pool.query(
+      `SELECT s.id, s.first_name, s.last_name, s.student_id as student_code,
+              s.expected_fee, s.class_id, s.parent_guardian_name,
+              s.parent_guardian_phone, s.parent_guardian_phone_country_code,
+              c.name as class_name
+       FROM students s
+       LEFT JOIN classes c ON s.class_id = c.id
+       WHERE ${studentWhere}
+       ORDER BY s.parent_guardian_phone, s.first_name`,
+      studentParams
+    );
+
+    if (students.length === 0) {
+      return res.json({ currency, families: [], grandTotal: 0, grandPaid: 0, grandBalance: 0 });
+    }
+
+    const studentIds = students.map(s => s.id);
+
+    // Total paid per student
+    const [payments] = await pool.query(
+      `SELECT student_id, SUM(amount_paid) as total_paid
+       FROM fee_payments WHERE madrasah_id = ? AND deleted_at IS NULL AND student_id IN (?)
+       GROUP BY student_id`,
+      [madrasahId, studentIds]
+    );
+    const paidMap = {};
+    for (const p of payments) paidMap[p.student_id] = parseFloat(p.total_paid);
+
+    // Recent payments per student (up to 10 each)
+    const [recentPayments] = await pool.query(
+      `SELECT student_id, amount_paid, payment_date, payment_method, payment_label, period_label, reference_note
+       FROM fee_payments
+       WHERE madrasah_id = ? AND deleted_at IS NULL AND student_id IN (?)
+       ORDER BY payment_date DESC, created_at DESC`,
+      [madrasahId, studentIds]
+    );
+    const recentMap = {};
+    for (const p of recentPayments) {
+      if (!recentMap[p.student_id]) recentMap[p.student_id] = [];
+      if (recentMap[p.student_id].length < 10) {
+        recentMap[p.student_id].push({
+          date: p.payment_date,
+          amount: parseFloat(p.amount_paid),
+          label: p.payment_label,
+          period: p.period_label,
+          method: p.payment_method,
+          reference: p.reference_note,
+        });
+      }
+    }
+
+    // Group students into families by (normalised phone + country code)
+    // Students with no phone get their own pseudo-family
+    const familyMap = {};
+    for (const s of students) {
+      const phone = s.parent_guardian_phone || '';
+      const cc = s.parent_guardian_phone_country_code || '';
+      const key = phone ? `${cc}|${phone}` : `solo|${s.id}`;
+      if (!familyMap[key]) {
+        familyMap[key] = {
+          guardianName: s.parent_guardian_name || null,
+          guardianPhone: phone ? `${cc} ${phone}` : null,
+          children: [],
+        };
+      }
+      const totalOwed = parseFloat(s.expected_fee) || 0;
+      const totalPaid = paidMap[s.id] || 0;
+      const totalBalance = totalOwed - totalPaid;
+      familyMap[key].children.push({
+        studentDbId: s.id,
+        studentCode: s.student_code,
+        studentName: `${s.first_name} ${s.last_name}`,
+        className: s.class_name || '',
+        totalOwed,
+        totalPaid,
+        totalBalance,
+        status: totalOwed === 0 ? 'none' : totalPaid >= totalOwed ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid',
+        recentPayments: recentMap[s.id] || [],
+      });
+    }
+
+    const families = Object.values(familyMap).map(f => {
+      const grandTotal = f.children.reduce((s, c) => s + c.totalOwed, 0);
+      const grandPaid = f.children.reduce((s, c) => s + c.totalPaid, 0);
+      return { ...f, grandTotal, grandPaid, grandBalance: grandTotal - grandPaid };
+    });
+
+    // Sort: families with outstanding balance first
+    families.sort((a, b) => b.grandBalance - a.grandBalance);
+
+    const grandTotal = families.reduce((s, f) => s + f.grandTotal, 0);
+    const grandPaid = families.reduce((s, f) => s + f.grandPaid, 0);
+
+    res.json({ currency, families, grandTotal, grandPaid, grandBalance: grandTotal - grandPaid });
+  } catch (error) {
+    console.error('Fee family report error:', error);
+    res.status(500).json({ error: 'Failed to generate fee report' });
+  }
+});
+
 export default router;
+
+

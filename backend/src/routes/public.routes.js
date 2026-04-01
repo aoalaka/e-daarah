@@ -14,7 +14,7 @@ router.get('/schools', async (req, res) => {
         m.region,
         m.country,
         m.institution_type,
-        m.enable_quran_tracking,
+        m.enable_learning_tracker,
         (SELECT COUNT(*) FROM students s
          JOIN classes c ON s.class_id = c.id
          WHERE c.madrasah_id = m.id AND s.deleted_at IS NULL) as student_count,
@@ -48,7 +48,7 @@ router.get('/schools/:slug', async (req, res) => {
         m.region,
         m.country,
         m.institution_type,
-        m.enable_quran_tracking,
+        m.enable_learning_tracker,
         m.enable_fee_tracking,
         m.created_at,
         (SELECT COUNT(*) FROM students s

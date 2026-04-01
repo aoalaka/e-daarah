@@ -195,24 +195,24 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
           </div>
           <div className="setting-toggle-row">
             <div className="setting-toggle-info">
-              <span className="setting-toggle-label">Qur'an Tracking</span>
+              <span className="setting-toggle-label">Learning Tracker</span>
               <p className="setting-toggle-desc">
-                Enable Qur'an memorization and recitation progress tracking for teachers
+                Enable Qur'an and course progress tracking for teachers
               </p>
             </div>
             <button
               type="button"
               role="switch"
-              aria-checked={madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false}
-              className={`setting-switch ${(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false) ? 'on' : ''}`}
+              aria-checked={madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false}
+              className={`setting-switch ${(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false) ? 'on' : ''}`}
               disabled={savingSettings}
               onClick={async () => {
-                const newValue = !(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false);
+                const newValue = !(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false);
                 setSavingSettings(true);
                 try {
-                  const res = await api.put('/admin/settings', { enable_quran_tracking: newValue });
+                  const res = await api.put('/admin/settings', { enable_learning_tracker: newValue });
                   setMadrasahProfile(prev => ({ ...prev, ...res.data }));
-                  toast.success(`Qur'an tracking ${newValue ? 'enabled' : 'disabled'}`);
+                  toast.success(`Learning tracker ${newValue ? 'enabled' : 'disabled'}`);
                 } catch (error) {
                   toast.error('Failed to update setting');
                 } finally {

@@ -52,7 +52,7 @@ function TeacherDashboard() {
 
   // Browser tab title
   useEffect(() => {
-    const labels = { overview: 'Overview', attendance: 'Attendance', exams: 'Exams', reports: 'Reports', quran: "Qur'an Progress", availability: 'Availability', help: 'Help', settings: 'Settings' };
+    const labels = { overview: 'Overview', attendance: 'Attendance', exams: 'Exams', reports: 'Reports', quran: 'Learning', availability: 'Availability', help: 'Help', settings: 'Settings' };
     document.title = `${labels[activeTab] || 'Dashboard'} — E-Daarah`;
   }, [activeTab]);
 
@@ -173,6 +173,18 @@ function TeacherDashboard() {
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityReason, setAvailabilityReason] = useState('');
   const [availabilityReasonDate, setAvailabilityReasonDate] = useState(null);
+  // Learning tab sub-tab: 'quran' | 'courses'
+  const [learningSubTab, setLearningSubTab] = useState('quran');
+  // Course tracking state
+  const [classCourses, setClassCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courseUnits, setCourseUnits] = useState([]);
+  const [courseProgress, setCourseProgress] = useState([]);
+  const [courseProgressLoading, setCourseProgressLoading] = useState(false);
+  const [selectedCourseUnit, setSelectedCourseUnit] = useState(null);
+  const [courseProgressForm, setCourseProgressForm] = useState({ student_id: '', date: '', grade: 'Good', passed: true, notes: '' });
+  const [savingCourseProgress, setSavingCourseProgress] = useState(false);
+  const [showCourseProgressForm, setShowCourseProgressForm] = useState(false);
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
@@ -180,7 +192,7 @@ function TeacherDashboard() {
     { items: [{ id: 'overview', label: 'Overview' }] },
     { label: 'Teach', items: [
       { id: 'attendance', label: 'Attendance' },
-      ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? [{ id: 'quran', label: "Qur'an Tracker" }] : []),
+      ...(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false ? [{ id: 'quran', label: 'Learning' }] : []),
       { id: 'exams', label: 'Exam Recording' },
     ]},
     { label: 'Reports', items: [
@@ -195,7 +207,7 @@ function TeacherDashboard() {
   ];
 
   // Primary tabs for mobile bottom bar
-  const bottomTabIds = ['overview', 'attendance', ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? ['quran'] : []), 'exams'];
+  const bottomTabIds = ['overview', 'attendance', ...(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false ? ['quran'] : []), 'exams'];
   const isBottomTab = bottomTabIds.includes(activeTab);
 
   // Close mobile menu when tab changes
@@ -301,8 +313,17 @@ function TeacherDashboard() {
       setQuranSelectedStudent(null);
       setQuranStudentPosition(null);
       setQuranStudentHistory([]);
+      // Fetch courses for this class
+      fetchClassCourses(selectedClass.id);
     }
   }, [selectedClass, activeTab]);
+
+  // Fetch course progress when selected course or period changes
+  useEffect(() => {
+    if (selectedClass && selectedCourse && activeTab === 'quran' && learningSubTab === 'courses') {
+      fetchCourseProgress(selectedClass.id, selectedCourse.id);
+    }
+  }, [selectedCourse, activeSemester, selectedCohortPeriod, learningSubTab]);
 
   // Fetch exam performance when class, semester, or subject filter changes
   useEffect(() => {
@@ -749,6 +770,44 @@ function TeacherDashboard() {
       setQuranPositions(response.data);
     } catch (error) {
       console.error('Failed to fetch quran positions:', error);
+    }
+  };
+
+  const fetchClassCourses = async (classId) => {
+    if (!classId) return;
+    try {
+      const res = await api.get(`/teacher/classes/${classId}/courses`);
+      setClassCourses(res.data || []);
+      setSelectedCourse(null);
+      setCourseUnits([]);
+      setCourseProgress([]);
+    } catch (error) {
+      console.error('Failed to fetch courses:', error);
+    }
+  };
+
+  const fetchCourseUnits = async (courseId) => {
+    try {
+      const res = await api.get(`/teacher/courses/${courseId}/units`);
+      setCourseUnits(res.data || []);
+    } catch (error) {
+      console.error('Failed to fetch course units:', error);
+    }
+  };
+
+  const fetchCourseProgress = async (classId, courseId) => {
+    if (!classId || !courseId) return;
+    try {
+      setCourseProgressLoading(true);
+      const params = schedulingMode === 'cohort' && selectedCohortPeriod
+        ? { cohort_period_id: selectedCohortPeriod.id }
+        : activeSemester ? { semester_id: activeSemester.id } : {};
+      const res = await api.get(`/teacher/classes/${classId}/courses/${courseId}/progress`, { params });
+      setCourseProgress(res.data || []);
+    } catch (error) {
+      console.error('Failed to fetch course progress:', error);
+    } finally {
+      setCourseProgressLoading(false);
     }
   };
 
@@ -3845,30 +3904,291 @@ function TeacherDashboard() {
             </>
           )}
 
-          {/* Qur'an Progress Tab */}
+          {/* Learning Tab (Qur'an + Courses) */}
           {activeTab === 'quran' && (
             <>
               <div className="page-header">
-                <h2 className="page-title">Qur'an Progress</h2>
+                <h2 className="page-title">Learning</h2>
               </div>
 
-              {!selectedClass ? (
-                <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
-                  <p className="empty">Select a class from the sidebar to record Qur'an progress</p>
+              {/* Class selector */}
+              <div className="card" style={{ marginBottom: 'var(--md)' }}>
+                <div className="card-body">
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">Class</label>
+                    <select
+                      className="form-select"
+                      value={selectedClass?.id || ''}
+                      onChange={e => {
+                        const cls = classes.find(c => c.id === parseInt(e.target.value));
+                        setSelectedClass(cls || null);
+                      }}
+                    >
+                      <option value="">— Select a class —</option>
+                      {classes.map(cls => (
+                        <option key={cls.id} value={cls.id}>{cls.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              ) : (
-                <QuranSessionRecorder
-                  students={students}
-                  api={api}
-                  selectedClass={selectedClass}
-                  activeSemester={activeSemester}
-                  cohortPeriodId={schedulingMode === 'cohort' ? selectedCohortPeriod?.id : undefined}
-                  routePrefix="/teacher"
-                  onSessionSaved={() => {
-                    fetchQuranPositions(selectedClass?.id);
-                    if (activeSemester || selectedCohortPeriod) fetchQuranProgress(selectedClass?.id);
-                  }}
-                />
+              </div>
+
+              {/* Sub-tab pills */}
+              <div className="sub-tab-pills" style={{ marginBottom: 'var(--md)' }}>
+                <button
+                  className={`sub-tab-pill ${learningSubTab === 'quran' ? 'active' : ''}`}
+                  onClick={() => setLearningSubTab('quran')}
+                >
+                  Qur'an
+                </button>
+                <button
+                  className={`sub-tab-pill ${learningSubTab === 'courses' ? 'active' : ''}`}
+                  onClick={() => setLearningSubTab('courses')}
+                >
+                  Courses
+                </button>
+              </div>
+
+              {/* Qur'an sub-tab */}
+              {learningSubTab === 'quran' && (
+                !selectedClass ? (
+                  <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                    <p className="empty">Select a class above to record Qur'an progress</p>
+                  </div>
+                ) : (
+                  <QuranSessionRecorder
+                    students={students}
+                    api={api}
+                    selectedClass={selectedClass}
+                    activeSemester={activeSemester}
+                    cohortPeriodId={schedulingMode === 'cohort' ? selectedCohortPeriod?.id : undefined}
+                    routePrefix="/teacher"
+                    onSessionSaved={() => {
+                      fetchQuranPositions(selectedClass?.id);
+                      if (activeSemester || selectedCohortPeriod) fetchQuranProgress(selectedClass?.id);
+                    }}
+                  />
+                )
+              )}
+
+              {/* Courses sub-tab */}
+              {learningSubTab === 'courses' && (
+                !selectedClass ? (
+                  <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                    <p className="empty">Select a class above to view courses</p>
+                  </div>
+                ) : classCourses.length === 0 ? (
+                  <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                    <p className="empty">No courses have been set up for this class yet. Ask your admin to add courses.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Course selector pills */}
+                    <div className="sub-tab-pills" style={{ marginBottom: 'var(--md)', flexWrap: 'wrap' }}>
+                      {classCourses.map(course => (
+                        <button
+                          key={course.id}
+                          className={`sub-tab-pill ${selectedCourse?.id === course.id ? 'active' : ''}`}
+                          style={selectedCourse?.id === course.id && course.colour ? { background: course.colour, borderColor: course.colour, color: '#fff' } : {}}
+                          onClick={() => {
+                            setSelectedCourse(course);
+                            fetchCourseUnits(course.id);
+                            fetchCourseProgress(selectedClass.id, course.id);
+                            setShowCourseProgressForm(false);
+                          }}
+                        >
+                          {course.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {selectedCourse && (
+                      <>
+                        {/* Unit list with record button */}
+                        {courseUnits.length === 0 ? (
+                          <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                            <p className="empty">No units in this course yet.</p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="card" style={{ padding: 'var(--md)', marginBottom: 'var(--md)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <h3 style={{ margin: 0, fontSize: '1rem' }}>{selectedCourse.name} — Units</h3>
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() => {
+                                    setCourseProgressForm({ student_id: '', date: getLocalDate ? getLocalDate() : new Date().toISOString().slice(0,10), grade: 'Good', passed: true, notes: '' });
+                                    setSelectedCourseUnit(null);
+                                    setShowCourseProgressForm(true);
+                                  }}
+                                >
+                                  + Record Progress
+                                </button>
+                              </div>
+
+                              {/* Record progress form */}
+                              {showCourseProgressForm && (
+                                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+                                  <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem' }}>Record Progress</h4>
+                                  <div className="form-group">
+                                    <label className="form-label">Unit</label>
+                                    <select
+                                      className="form-select"
+                                      value={selectedCourseUnit?.id || ''}
+                                      onChange={e => setSelectedCourseUnit(courseUnits.find(u => u.id === parseInt(e.target.value)) || null)}
+                                    >
+                                      <option value="">Select unit...</option>
+                                      {courseUnits.map((u, i) => <option key={u.id} value={u.id}>{i+1}. {u.title}</option>)}
+                                    </select>
+                                  </div>
+                                  <div className="form-group">
+                                    <label className="form-label">Student</label>
+                                    <select
+                                      className="form-select"
+                                      value={courseProgressForm.student_id}
+                                      onChange={e => setCourseProgressForm(f => ({ ...f, student_id: e.target.value }))}
+                                    >
+                                      <option value="">Select student...</option>
+                                      {students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}
+                                    </select>
+                                  </div>
+                                  <div className="form-group">
+                                    <label className="form-label">Date</label>
+                                    <input type="date" className="form-input" value={courseProgressForm.date} onChange={e => setCourseProgressForm(f => ({ ...f, date: e.target.value }))} />
+                                  </div>
+                                  <div className="form-group">
+                                    <label className="form-label">Grade</label>
+                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                      {['Excellent', 'Good', 'Fair', 'Needs Improvement'].map(g => (
+                                        <button
+                                          key={g}
+                                          type="button"
+                                          className={`btn btn-sm ${courseProgressForm.grade === g ? 'btn-primary' : 'btn-secondary'}`}
+                                          onClick={() => setCourseProgressForm(f => ({ ...f, grade: g }))}
+                                        >{g}</button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="form-group">
+                                    <label className="form-label">Outcome</label>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                      <button
+                                        type="button"
+                                        className={`btn btn-sm ${courseProgressForm.passed ? 'btn-primary' : 'btn-secondary'}`}
+                                        onClick={() => setCourseProgressForm(f => ({ ...f, passed: true }))}
+                                      >Pass</button>
+                                      <button
+                                        type="button"
+                                        className={`btn btn-sm ${!courseProgressForm.passed ? 'btn-primary' : 'btn-secondary'}`}
+                                        onClick={() => setCourseProgressForm(f => ({ ...f, passed: false }))}
+                                      >Repeat</button>
+                                    </div>
+                                  </div>
+                                  <div className="form-group">
+                                    <label className="form-label">Notes <span style={{ fontSize: '0.75rem', color: '#888' }}>(optional)</span></label>
+                                    <input type="text" className="form-input" value={courseProgressForm.notes} onChange={e => setCourseProgressForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any notes..." />
+                                  </div>
+                                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                    <button className="btn btn-secondary btn-sm" onClick={() => setShowCourseProgressForm(false)}>Cancel</button>
+                                    <button
+                                      className="btn btn-primary btn-sm"
+                                      disabled={savingCourseProgress || !selectedCourseUnit || !courseProgressForm.student_id || !courseProgressForm.date}
+                                      onClick={async () => {
+                                        setSavingCourseProgress(true);
+                                        try {
+                                          const params = schedulingMode === 'cohort' && selectedCohortPeriod
+                                            ? { cohort_period_id: selectedCohortPeriod.id }
+                                            : activeSemester ? { semester_id: activeSemester.id } : {};
+                                          await api.post(`/teacher/classes/${selectedClass.id}/courses/${selectedCourse.id}/progress`, {
+                                            unit_id: selectedCourseUnit.id,
+                                            student_id: parseInt(courseProgressForm.student_id),
+                                            date: courseProgressForm.date,
+                                            grade: courseProgressForm.grade,
+                                            passed: courseProgressForm.passed,
+                                            notes: courseProgressForm.notes || null,
+                                            ...params,
+                                          });
+                                          toast.success('Progress recorded');
+                                          setShowCourseProgressForm(false);
+                                          fetchCourseProgress(selectedClass.id, selectedCourse.id);
+                                        } catch {
+                                          toast.error('Failed to save progress');
+                                        } finally {
+                                          setSavingCourseProgress(false);
+                                        }
+                                      }}
+                                    >
+                                      {savingCourseProgress ? 'Saving...' : 'Save'}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Units list */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {courseUnits.map((unit, idx) => {
+                                  const unitRecords = courseProgress.filter(r => r.unit_id === unit.id);
+                                  const lastRecord = unitRecords[0];
+                                  return (
+                                    <div key={unit.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fafafa' }}>
+                                      <span style={{ flexShrink: 0, width: 24, height: 24, background: selectedCourse.colour || '#475569', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 600 }}>{idx+1}</span>
+                                      <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{unit.title}</div>
+                                        {lastRecord && (
+                                          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 2 }}>
+                                            Last: {lastRecord.first_name} {lastRecord.last_name} — {lastRecord.grade} — {lastRecord.date ? lastRecord.date.slice(0,10) : ''}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>{unitRecords.length} record{unitRecords.length !== 1 ? 's' : ''}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Progress history */}
+                            {courseProgressLoading ? (
+                              <div style={{ textAlign: 'center', padding: 'var(--lg)' }}>Loading...</div>
+                            ) : courseProgress.length > 0 && (
+                              <div className="card" style={{ padding: 'var(--md)' }}>
+                                <h3 style={{ margin: '0 0 12px', fontSize: '1rem' }}>Progress History</h3>
+                                <div style={{ overflowX: 'auto' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                    <thead>
+                                      <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Date</th>
+                                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Student</th>
+                                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Unit</th>
+                                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Grade</th>
+                                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Outcome</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {courseProgress.map(r => (
+                                        <tr key={r.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                          <td style={{ padding: '8px 0', color: '#6b7280' }}>{r.date ? r.date.slice(0,10) : ''}</td>
+                                          <td style={{ padding: '8px 0' }}>{r.first_name} {r.last_name}</td>
+                                          <td style={{ padding: '8px 0', color: '#374151' }}>{r.unit_title}</td>
+                                          <td style={{ padding: '8px 0' }}>{r.grade}</td>
+                                          <td style={{ padding: '8px 0' }}>
+                                            <span style={{ fontSize: '0.72rem', padding: '2px 6px', borderRadius: 4, background: r.passed ? '#dcfce7' : '#fef9c3', color: r.passed ? '#166534' : '#713f12' }}>
+                                              {r.passed ? 'Pass' : 'Repeat'}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </>
+                )
               )}
             </>
           )}
@@ -4114,7 +4434,7 @@ function TeacherDashboard() {
                   { title: 'Export exam reports', content: 'Use the export button on the reports page to download results as a file for printing or sharing.' },
                 ]} />
 
-                {madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false && (
+                {madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false && (
                   <HelpSection sectionKey="quran" title="Qur'an Tracker" items={[
                     { title: 'Update student progress', content: 'Go to Qur\'an Tracker and select a class. For each student, update their current position (Juz, Surah, Ayah). This helps track memorisation or reading progress over time.' },
                     { title: 'View progress history', content: 'Select a student to see their full Qur\'an progress history, including past positions and dates of each update.' },

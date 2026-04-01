@@ -320,13 +320,63 @@
   font-size: 13px;
 }
 
-.quran-position-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-  max-width: 400px;
+/* Qur'an current position — inline banner in subject-header */
+.quran-position-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
 }
+
+.quran-position-track {
+  font-size: 11px;
+  font-weight: 500;
+  color: #a3a3a3;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.quran-position-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0a0a0a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quran-position-juz {
+  font-size: 11px;
+  font-weight: 500;
+  color: #fff;
+  background: #2d6a4f;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* Unified grade badge */
+.grade-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+.grade-excellent  { background: #f0fdf4; color: #2d6a4f; }
+.grade-good       { background: #f5f5f5; color: #525252; }
+.grade-fair       { background: #fff7ed; color: #b86e00; }
+.grade-needs-improvement { background: #fef2f2; color: #c1121f; }
+
+/* Outcome badge */
+.outcome-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+.outcome-pass   { background: #f0fdf4; color: #2d6a4f; }
+.outcome-repeat { background: #fefce8; color: #854d0e; }
 
 /* Exam Detail Section */
 .exam-detail-section {
@@ -361,6 +411,14 @@
   flex-wrap: wrap;
   gap: 8px;
   border-bottom: 1px solid #e5e5e5;
+}
+
+.subject-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
 }
 
 .subject-name {
@@ -759,11 +817,11 @@
 }
 
 .fee-payment-header {
-  grid-template-columns: 1.2fr 1.5fr 1fr 0.8fr;
+  grid-template-columns: 1fr 1fr 1.5fr 1fr 0.8fr;
 }
 
 .fee-payment-row {
-  grid-template-columns: 1.2fr 1.5fr 1fr 0.8fr;
+  grid-template-columns: 1fr 1fr 1.5fr 1fr 0.8fr;
 }
 
 .fee-method {
@@ -861,7 +919,7 @@
 
   .fee-payment-header,
   .fee-payment-row {
-    grid-template-columns: 1fr 1.2fr 0.8fr 0.7fr;
+    grid-template-columns: 0.9fr 0.9fr 1.2fr 0.8fr 0.7fr;
   }
 
   .fee-status {

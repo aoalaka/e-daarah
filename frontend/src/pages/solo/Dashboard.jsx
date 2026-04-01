@@ -183,6 +183,18 @@ function SoloDashboard() {
   const [quranSaving, setQuranSaving] = useState(false);
   const [quranDate, setQuranDate] = useState(getLocalDate());
   const [surahs, setSurahs] = useState([]);
+  // Learning sub-tab: 'quran' | 'courses'
+  const [learningSubTab, setLearningSubTab] = useState('quran');
+  // Course tracking state
+  const [classCourses, setClassCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courseUnits, setCourseUnits] = useState([]);
+  const [courseProgress, setCourseProgress] = useState([]);
+  const [courseProgressLoading, setCourseProgressLoading] = useState(false);
+  const [selectedCourseUnit, setSelectedCourseUnit] = useState(null);
+  const [courseProgressForm, setCourseProgressForm] = useState({ student_id: '', date: '', grade: 'Good', passed: true, notes: '' });
+  const [savingCourseProgress, setSavingCourseProgress] = useState(false);
+  const [showCourseProgressForm, setShowCourseProgressForm] = useState(false);
 
   // ─── Fees ────────────────────────────────────────
   const [feeSummary, setFeeSummary] = useState([]);
@@ -322,8 +334,16 @@ function SoloDashboard() {
     if (activeTab === 'quran' && selectedClass) {
       fetchQuranPositions();
       fetchQuranRecords();
+      fetchClassCourses();
     }
   }, [selectedClass, activeTab]);
+
+  // Fetch course progress when selected course changes
+  useEffect(() => {
+    if (selectedCourse && activeTab === 'quran' && learningSubTab === 'courses') {
+      fetchCourseProgress(selectedCourse.id);
+    }
+  }, [selectedCourse, activeSemester, learningSubTab]);
 
   // ─── Fetch Qur'an student position when selected
   useEffect(() => {
@@ -552,6 +572,43 @@ function SoloDashboard() {
       const res = await api.get(`/solo/quran/student/${studentId}/history?limit=20`);
       setQuranStudentHistory(res.data || []);
     } catch (e) { setQuranStudentHistory([]); }
+  };
+
+  const fetchClassCourses = async () => {
+    if (!selectedClass) return;
+    try {
+      const res = await api.get(`/solo/classes/${selectedClass.id}/courses`);
+      setClassCourses(res.data || []);
+      setSelectedCourse(null);
+      setCourseUnits([]);
+      setCourseProgress([]);
+    } catch (error) {
+      console.error('Failed to fetch courses:', error);
+    }
+  };
+
+  const fetchCourseUnits = async (courseId) => {
+    try {
+      const res = await api.get(`/solo/courses/${courseId}/units`);
+      setCourseUnits(res.data || []);
+    } catch (error) {
+      console.error('Failed to fetch course units:', error);
+    }
+  };
+
+  const fetchCourseProgress = async (courseId) => {
+    if (!selectedClass || !courseId) return;
+    try {
+      setCourseProgressLoading(true);
+      const params = {};
+      if (activeSemester?.id) params.semester_id = activeSemester.id;
+      const res = await api.get(`/solo/classes/${selectedClass.id}/courses/${courseId}/progress`, { params });
+      setCourseProgress(res.data || []);
+    } catch (error) {
+      console.error('Failed to fetch course progress:', error);
+    } finally {
+      setCourseProgressLoading(false);
+    }
   };
 
   const fetchFeeSummary = async () => {
@@ -1315,7 +1372,7 @@ function SoloDashboard() {
       { id: 'students', label: 'Students' },
     ]},
     { label: 'Teach', items: [
-      { id: 'quran', label: "Qur'an Tracker" },
+      { id: 'quran', label: 'Learning' },
     ]},
     { label: 'Help', items: [
       { id: 'help', label: 'Help' },
@@ -1331,7 +1388,7 @@ function SoloDashboard() {
     { label: 'Teach', items: [
       { id: 'attendance', label: 'Attendance' },
       { id: 'exams', label: 'Exam Recording' },
-      ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? [{ id: 'quran', label: "Qur'an Tracker" }] : []),
+      ...(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false ? [{ id: 'quran', label: 'Learning' }] : []),
     ]},
     { label: 'Tools', items: [
       { id: 'planner', label: 'Planner' },
@@ -1345,7 +1402,7 @@ function SoloDashboard() {
   // Primary tabs for mobile bottom bar
   const bottomTabIds = isFreePlan
     ? ['overview', 'students', 'quran']
-    : ['overview', 'students', 'attendance', ...(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false ? ['quran'] : ['exams'])];
+    : ['overview', 'students', 'attendance', ...(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false ? ['quran'] : ['exams'])];
   const isBottomTab = bottomTabIds.includes(activeTab);
 
   const getNavIcon = (id) => {
@@ -3200,45 +3257,263 @@ function SoloDashboard() {
             </>
           )}
 
-          {/* ═══════ QUR'AN TAB ═══════ */}
+          {/* ═══════ LEARNING TAB ═══════ */}
           {activeTab === 'quran' && (
             <>
-              <div className="page-header"><h2 className="page-title">Qur'an Progress</h2></div>
+              <div className="page-header"><h2 className="page-title">Learning</h2></div>
 
-              {/* Class Selector — hidden for free plan */}
-              {!isFreePlan && (
-                <div className="card" style={{ marginBottom: 'var(--md)' }}>
-                  <div className="card-body">
-                    <div className="form-group">
-                      <label className="form-label">Select Class</label>
-                      <select className="form-select" value={selectedClass?.id || ''} onChange={(e) => {
-                        const cls = classes.find(c => c.id === parseInt(e.target.value));
-                        setSelectedClass(cls || null);
-                      }}>
-                        <option value="">-- Select a class --</option>
-                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
+              {/* Sub-tab pills */}
+              <div className="sub-tab-pills" style={{ marginBottom: 'var(--md)' }}>
+                <button className={`sub-tab-pill ${learningSubTab === 'quran' ? 'active' : ''}`} onClick={() => setLearningSubTab('quran')}>Qur'an</button>
+                <button className={`sub-tab-pill ${learningSubTab === 'courses' ? 'active' : ''}`} onClick={() => setLearningSubTab('courses')}>Courses</button>
+              </div>
+
+              {/* Qur'an sub-tab */}
+              {learningSubTab === 'quran' && (
+                <>
+                  {/* Class Selector — hidden for free plan */}
+                  {!isFreePlan && (
+                    <div className="card" style={{ marginBottom: 'var(--md)' }}>
+                      <div className="card-body">
+                        <div className="form-group">
+                          <label className="form-label">Select Class</label>
+                          <select className="form-select" value={selectedClass?.id || ''} onChange={(e) => {
+                            const cls = classes.find(c => c.id === parseInt(e.target.value));
+                            setSelectedClass(cls || null);
+                          }}>
+                            <option value="">-- Select a class --</option>
+                            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  )}
+                  {!isFreePlan && !selectedClass ? (
+                    <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                      <p className="empty">Select a class to record Qur'an progress</p>
+                    </div>
+                  ) : (
+                    <QuranSessionRecorder
+                      students={isFreePlan ? students : students.filter(s => s.class_id === selectedClass?.id)}
+                      api={api}
+                      selectedClass={isFreePlan ? null : selectedClass}
+                      activeSemester={activeSemester}
+                      isFreePlan={isFreePlan}
+                      onSessionSaved={() => {
+                        fetchQuranPositions();
+                        fetchQuranRecords();
+                      }}
+                    />
+                  )}
+                </>
               )}
 
-              {!isFreePlan && !selectedClass ? (
-                <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
-                  <p className="empty">Select a class to record Qur'an progress</p>
-                </div>
-              ) : (
-                <QuranSessionRecorder
-                  students={isFreePlan ? students : students.filter(s => s.class_id === selectedClass?.id)}
-                  api={api}
-                  selectedClass={isFreePlan ? null : selectedClass}
-                  activeSemester={activeSemester}
-                  isFreePlan={isFreePlan}
-                  onSessionSaved={() => {
-                    fetchQuranPositions();
-                    fetchQuranRecords();
-                  }}
-                />
+              {/* Courses sub-tab */}
+              {learningSubTab === 'courses' && (
+                <>
+                  {/* Class Selector */}
+                  {!isFreePlan && (
+                    <div className="card" style={{ marginBottom: 'var(--md)' }}>
+                      <div className="card-body">
+                        <div className="form-group">
+                          <label className="form-label">Select Class</label>
+                          <select className="form-select" value={selectedClass?.id || ''} onChange={(e) => {
+                            const cls = classes.find(c => c.id === parseInt(e.target.value));
+                            setSelectedClass(cls || null);
+                          }}>
+                            <option value="">-- Select a class --</option>
+                            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!selectedClass && !isFreePlan ? (
+                    <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                      <p className="empty">Select a class to view courses</p>
+                    </div>
+                  ) : classCourses.length === 0 ? (
+                    <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                      <p className="empty">No courses have been set up for this class yet.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Course pills */}
+                      <div className="sub-tab-pills" style={{ marginBottom: 'var(--md)', flexWrap: 'wrap' }}>
+                        {classCourses.map(course => (
+                          <button
+                            key={course.id}
+                            className={`sub-tab-pill ${selectedCourse?.id === course.id ? 'active' : ''}`}
+                            style={selectedCourse?.id === course.id && course.colour ? { background: course.colour, borderColor: course.colour, color: '#fff' } : {}}
+                            onClick={() => {
+                              setSelectedCourse(course);
+                              fetchCourseUnits(course.id);
+                              fetchCourseProgress(course.id);
+                              setShowCourseProgressForm(false);
+                            }}
+                          >
+                            {course.name}
+                          </button>
+                        ))}
+                      </div>
+
+                      {selectedCourse && (
+                        <>
+                          {courseUnits.length === 0 ? (
+                            <div className="card" style={{ padding: 'var(--lg)', textAlign: 'center' }}>
+                              <p className="empty">No units in this course yet.</p>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="card" style={{ padding: 'var(--md)', marginBottom: 'var(--md)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                  <h3 style={{ margin: 0, fontSize: '1rem' }}>{selectedCourse.name} — Units</h3>
+                                  <button className="btn btn-primary btn-sm" onClick={() => {
+                                    setCourseProgressForm({ student_id: '', date: getLocalDate(), grade: 'Good', passed: true, notes: '' });
+                                    setSelectedCourseUnit(null);
+                                    setShowCourseProgressForm(true);
+                                  }}>+ Record Progress</button>
+                                </div>
+
+                                {showCourseProgressForm && (
+                                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+                                    <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem' }}>Record Progress</h4>
+                                    <div className="form-group">
+                                      <label className="form-label">Unit</label>
+                                      <select className="form-select" value={selectedCourseUnit?.id || ''} onChange={e => setSelectedCourseUnit(courseUnits.find(u => u.id === parseInt(e.target.value)) || null)}>
+                                        <option value="">Select unit...</option>
+                                        {courseUnits.map((u, i) => <option key={u.id} value={u.id}>{i+1}. {u.title}</option>)}
+                                      </select>
+                                    </div>
+                                    <div className="form-group">
+                                      <label className="form-label">Student</label>
+                                      <select className="form-select" value={courseProgressForm.student_id} onChange={e => setCourseProgressForm(f => ({ ...f, student_id: e.target.value }))}>
+                                        <option value="">Select student...</option>
+                                        {(isFreePlan ? students : students.filter(s => s.class_id === selectedClass?.id)).map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}
+                                      </select>
+                                    </div>
+                                    <div className="form-group">
+                                      <label className="form-label">Date</label>
+                                      <input type="date" className="form-input" value={courseProgressForm.date} onChange={e => setCourseProgressForm(f => ({ ...f, date: e.target.value }))} />
+                                    </div>
+                                    <div className="form-group">
+                                      <label className="form-label">Grade</label>
+                                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                        {['Excellent', 'Good', 'Fair', 'Needs Improvement'].map(g => (
+                                          <button key={g} type="button" className={`btn btn-sm ${courseProgressForm.grade === g ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCourseProgressForm(f => ({ ...f, grade: g }))}>{g}</button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <div className="form-group">
+                                      <label className="form-label">Outcome</label>
+                                      <div style={{ display: 'flex', gap: 8 }}>
+                                        <button type="button" className={`btn btn-sm ${courseProgressForm.passed ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCourseProgressForm(f => ({ ...f, passed: true }))}>Pass</button>
+                                        <button type="button" className={`btn btn-sm ${!courseProgressForm.passed ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCourseProgressForm(f => ({ ...f, passed: false }))}>Repeat</button>
+                                      </div>
+                                    </div>
+                                    <div className="form-group">
+                                      <label className="form-label">Notes <span style={{ fontSize: '0.75rem', color: '#888' }}>(optional)</span></label>
+                                      <input type="text" className="form-input" value={courseProgressForm.notes} onChange={e => setCourseProgressForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any notes..." />
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                      <button className="btn btn-secondary btn-sm" onClick={() => setShowCourseProgressForm(false)}>Cancel</button>
+                                      <button
+                                        className="btn btn-primary btn-sm"
+                                        disabled={savingCourseProgress || !selectedCourseUnit || !courseProgressForm.student_id || !courseProgressForm.date}
+                                        onClick={async () => {
+                                          setSavingCourseProgress(true);
+                                          try {
+                                            const params = activeSemester ? { semester_id: activeSemester.id } : {};
+                                            await api.post(`/solo/classes/${selectedClass?.id || 'solo'}/courses/${selectedCourse.id}/progress`, {
+                                              unit_id: selectedCourseUnit.id,
+                                              student_id: parseInt(courseProgressForm.student_id),
+                                              date: courseProgressForm.date,
+                                              grade: courseProgressForm.grade,
+                                              passed: courseProgressForm.passed,
+                                              notes: courseProgressForm.notes || null,
+                                              ...params,
+                                            });
+                                            toast.success('Progress recorded');
+                                            setShowCourseProgressForm(false);
+                                            fetchCourseProgress(selectedCourse.id);
+                                          } catch {
+                                            toast.error('Failed to save progress');
+                                          } finally {
+                                            setSavingCourseProgress(false);
+                                          }
+                                        }}
+                                      >
+                                        {savingCourseProgress ? 'Saving...' : 'Save'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                  {courseUnits.map((unit, idx) => {
+                                    const unitRecords = courseProgress.filter(r => r.unit_id === unit.id);
+                                    const lastRecord = unitRecords[0];
+                                    return (
+                                      <div key={unit.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fafafa' }}>
+                                        <span style={{ flexShrink: 0, width: 24, height: 24, background: selectedCourse.colour || '#475569', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 600 }}>{idx+1}</span>
+                                        <div style={{ flex: 1 }}>
+                                          <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{unit.title}</div>
+                                          {lastRecord && (
+                                            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 2 }}>
+                                              Last: {lastRecord.first_name} {lastRecord.last_name} — {lastRecord.grade} — {lastRecord.date ? lastRecord.date.slice(0,10) : ''}
+                                            </div>
+                                          )}
+                                        </div>
+                                        <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>{unitRecords.length} record{unitRecords.length !== 1 ? 's' : ''}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {courseProgressLoading ? (
+                                <div style={{ textAlign: 'center', padding: 'var(--lg)' }}>Loading...</div>
+                              ) : courseProgress.length > 0 && (
+                                <div className="card" style={{ padding: 'var(--md)' }}>
+                                  <h3 style={{ margin: '0 0 12px', fontSize: '1rem' }}>Progress History</h3>
+                                  <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                      <thead>
+                                        <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                                          <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Date</th>
+                                          <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Student</th>
+                                          <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Unit</th>
+                                          <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Grade</th>
+                                          <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Outcome</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {courseProgress.map(r => (
+                                          <tr key={r.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                            <td style={{ padding: '8px 0', color: '#6b7280' }}>{r.date ? r.date.slice(0,10) : ''}</td>
+                                            <td style={{ padding: '8px 0' }}>{r.first_name} {r.last_name}</td>
+                                            <td style={{ padding: '8px 0', color: '#374151' }}>{r.unit_title}</td>
+                                            <td style={{ padding: '8px 0' }}>{r.grade}</td>
+                                            <td style={{ padding: '8px 0' }}>
+                                              <span style={{ fontSize: '0.72rem', padding: '2px 6px', borderRadius: 4, background: r.passed ? '#dcfce7' : '#fef9c3', color: r.passed ? '#166534' : '#713f12' }}>
+                                                {r.passed ? 'Pass' : 'Repeat'}
+                                              </span>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </>
               )}
             </>
           )}
@@ -3570,24 +3845,24 @@ function SoloDashboard() {
                   </div>
                   <div className="setting-toggle-row">
                     <div className="setting-toggle-info">
-                      <span className="setting-toggle-label">Qur'an Tracking</span>
+                      <span className="setting-toggle-label">Learning Tracker</span>
                       <p className="setting-toggle-desc">
-                        Enable Qur'an memorization and recitation progress tracking
+                        Enable Qur'an and course progress tracking
                       </p>
                     </div>
                     <button
                       type="button"
                       role="switch"
-                      aria-checked={madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false}
-                      className={`setting-switch ${(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false) ? 'on' : ''}`}
+                      aria-checked={madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false}
+                      className={`setting-switch ${(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false) ? 'on' : ''}`}
                       disabled={savingSettings}
                       onClick={async () => {
-                        const newValue = !(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false);
+                        const newValue = !(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false);
                         setSavingSettings(true);
                         try {
-                          const res = await api.put('/solo/settings', { enable_quran_tracking: newValue });
+                          const res = await api.put('/solo/settings', { enable_learning_tracker: newValue });
                           setMadrasahProfile(prev => ({ ...prev, ...res.data }));
-                          toast.success(`Qur'an tracking ${newValue ? 'enabled' : 'disabled'}`);
+                          toast.success(`Learning tracker ${newValue ? 'enabled' : 'disabled'}`);
                         } catch (error) {
                           toast.error('Failed to update setting');
                         } finally {
@@ -4225,7 +4500,7 @@ function SoloDashboard() {
                   ]} />
                 )}
 
-                {(madrasahProfile?.enable_quran_tracking !== 0 && madrasahProfile?.enable_quran_tracking !== false) && (
+                {(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false) && (
                   <HelpSection sectionKey="quran" title="Qur'an Tracker" items={[
                     { title: 'Record progress', content: 'Go to the Qur\'an Tracker tab, select a class and student. Record their current surah, ayah, and juz. You can add notes about their recitation quality or areas to improve.' },
                     { title: 'Track over time', content: 'The tracker keeps a history of each student\'s Qur\'an progress. You can see where they started and how far they\'ve come over the semester.' },

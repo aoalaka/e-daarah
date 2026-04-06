@@ -489,9 +489,10 @@ async function handleSubscriptionUpdated(subscription) {
     await pool.query(
       `UPDATE madrasahs SET
         subscription_status = ?,
+        stripe_subscription_id = ?,
         current_period_end = FROM_UNIXTIME(?)
        WHERE id = ?`,
-      [status, subscription.current_period_end, madrasahs[0].id]
+      [status, subscription.id, subscription.current_period_end, madrasahs[0].id]
     );
     return;
   }
@@ -505,9 +506,10 @@ async function handleSubscriptionUpdated(subscription) {
     `UPDATE madrasahs SET
       pricing_plan = ?,
       subscription_status = ?,
+      stripe_subscription_id = ?,
       current_period_end = FROM_UNIXTIME(?)
      WHERE id = ?`,
-    [plan, status, subscription.current_period_end, madrasahId]
+    [plan, status, subscription.id, subscription.current_period_end, madrasahId]
   );
 
   console.log(`Subscription updated for madrasah ${madrasahId}`);
@@ -523,16 +525,45 @@ async function handleSubscriptionDeleted(subscription) {
 
   if (madrasahs.length === 0) return;
 
-  // Downgrade to expired/canceled - keep data but restrict access
-  await pool.query(
-    `UPDATE madrasahs SET
-      subscription_status = 'canceled',
-      stripe_subscription_id = NULL
-     WHERE id = ?`,
-    [madrasahs[0].id]
-  );
+  const madrasahId = madrasahs[0].id;
 
-  console.log(`Subscription canceled for madrasah ${madrasahs[0].id}`);
+  // Check if the customer has another active subscription on Stripe
+  const otherSubs = await stripe.subscriptions.list({
+    customer: customerId,
+    status: 'active',
+    limit: 5,
+  });
+
+  const remaining = otherSubs.data.filter(s => s.id !== subscription.id);
+
+  if (remaining.length > 0) {
+    // Another active subscription exists — sync to that one instead of canceling
+    const activeSub = remaining[0];
+    const plan = activeSub.metadata?.plan || 'standard';
+
+    await pool.query(
+      `UPDATE madrasahs SET
+        pricing_plan = ?,
+        subscription_status = 'active',
+        stripe_subscription_id = ?,
+        current_period_end = FROM_UNIXTIME(?)
+       WHERE id = ?`,
+      [plan, activeSub.id, activeSub.current_period_end, madrasahId]
+    );
+
+    console.log(`Subscription ${subscription.id} deleted for madrasah ${madrasahId}, but active sub ${activeSub.id} (${plan}) remains`);
+  } else {
+    // No other active subscription — downgrade
+    await pool.query(
+      `UPDATE madrasahs SET
+        subscription_status = 'canceled',
+        stripe_subscription_id = NULL
+       WHERE id = ?`,
+      [madrasahId]
+    );
+
+    console.log(`Subscription canceled for madrasah ${madrasahId}`);
+  }
 }
 
 /**

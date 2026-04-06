@@ -393,6 +393,22 @@ async function handleCheckoutComplete(session) {
   // Get subscription details
   const subscription = await stripe.subscriptions.retrieve(session.subscription);
 
+  // Cancel any previous subscription so there's never two active subs
+  const [existing] = await pool.query(
+    'SELECT stripe_subscription_id FROM madrasahs WHERE id = ?',
+    [madrasahId]
+  );
+  const oldSubId = existing[0]?.stripe_subscription_id;
+  if (oldSubId && oldSubId !== subscription.id) {
+    try {
+      await stripe.subscriptions.cancel(oldSubId);
+      console.log(`Canceled old subscription ${oldSubId} for madrasah ${madrasahId} (upgraded to ${plan})`);
+    } catch (err) {
+      // Already canceled or doesn't exist — safe to ignore
+      console.log(`Old subscription ${oldSubId} cleanup skipped: ${err.message}`);
+    }
+  }
+
   await pool.query(
     `UPDATE madrasahs SET
       stripe_subscription_id = ?,

@@ -1746,7 +1746,7 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
       grade, passed, notes
     } = req.body;
 
-    if (!student_id || !class_id || (!semester_id && !cohort_period_id) || !date || !type || !surah_number || !surah_name) {
+    if (!student_id || !class_id || !date || !type || !surah_number || !surah_name) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     if (!['hifz', 'tilawah', 'revision'].includes(type)) {
@@ -1770,8 +1770,11 @@ router.post('/quran/record', requireActiveSubscription, async (req, res) => {
       if (ayahFromInt > ayahToInt) return res.status(400).json({ error: 'Ayah From cannot be greater than Ayah To' });
     }
 
-    const today = new Date(); today.setHours(23, 59, 59, 999);
-    if (new Date(date) > today) return res.status(400).json({ error: 'Date cannot be in the future' });
+    // Allow dates up to server UTC+1 day to accommodate clients in any timezone (e.g. NZ is UTC+12/13)
+    const maxAllowed = new Date();
+    maxAllowed.setUTCDate(maxAllowed.getUTCDate() + 1);
+    maxAllowed.setUTCHours(23, 59, 59, 999);
+    if (new Date(date) > maxAllowed) return res.status(400).json({ error: 'Date cannot be in the future' });
 
     // Verify teacher is assigned to this class
     const [assignment] = await pool.query(

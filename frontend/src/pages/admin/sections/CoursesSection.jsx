@@ -389,7 +389,9 @@ function CoursesSection({ classes, isReadOnly, setConfirmModal }) {
               <span style={{ width: 10, height: 10, borderRadius: '50%', background: selectedCourse.colour || '#475569', display: 'inline-block', marginRight: 8 }} />
               {selectedCourse.name} — Curriculum Units
             </span>
-            <button className="btn btn-sm btn-primary" onClick={openCreateUnit}>+ Add Unit</button>
+            {!showUnitForm && (
+              <button className="btn btn-sm btn-primary" onClick={openCreateUnit}>+ Add Unit</button>
+            )}
           </div>
           <div className="card-body">
             {/* Unit form */}
@@ -421,7 +423,7 @@ function CoursesSection({ classes, isReadOnly, setConfirmModal }) {
                 </div>
                 <div className="form-actions">
                   <button type="button" className="btn btn-secondary" onClick={() => { setShowUnitForm(false); setEditingUnit(null); }}>Cancel</button>
-                  <button type="submit" className="btn btn-primary">{editingUnit ? 'Save Changes' : 'Add Unit'}</button>
+                  <button type="submit" className="btn btn-primary">{editingUnit ? 'Save Changes' : 'Save Unit'}</button>
                 </div>
               </form>
             )}

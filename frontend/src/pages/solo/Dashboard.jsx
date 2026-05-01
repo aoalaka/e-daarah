@@ -195,6 +195,8 @@ function SoloDashboard() {
   const [courseProgressForm, setCourseProgressForm] = useState({ student_id: '', date: '', grade: 'Good', passed: true, notes: '' });
   const [savingCourseProgress, setSavingCourseProgress] = useState(false);
   const [showCourseProgressForm, setShowCourseProgressForm] = useState(false);
+  const [courseTrackMode, setCourseTrackMode] = useState('class'); // 'class' or 'student'
+  const [excludedStudentIds, setExcludedStudentIds] = useState([]);
 
   // ─── Fees ────────────────────────────────────────
   const [feeSummary, setFeeSummary] = useState([]);
@@ -3372,13 +3374,27 @@ function SoloDashboard() {
                                   <button className="btn btn-primary btn-sm" onClick={() => {
                                     setCourseProgressForm({ student_id: '', date: getLocalDate(), grade: 'Good', passed: true, notes: '' });
                                     setSelectedCourseUnit(null);
+                                    setExcludedStudentIds([]);
                                     setShowCourseProgressForm(true);
                                   }}>+ Record Progress</button>
                                 </div>
 
-                                {showCourseProgressForm && (
+                                {showCourseProgressForm && (() => {
+                                  const eligibleStudents = isFreePlan ? students : students.filter(s => s.class_id === selectedClass?.id);
+                                  const targetCount = eligibleStudents.length - excludedStudentIds.length;
+                                  return (
                                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, marginBottom: 16 }}>
                                     <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem' }}>Record Progress</h4>
+
+                                    {/* Mode toggle */}
+                                    <div className="form-group">
+                                      <label className="form-label">Track for</label>
+                                      <div style={{ display: 'flex', gap: 8 }}>
+                                        <button type="button" className={`btn btn-sm ${courseTrackMode === 'class' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCourseTrackMode('class')}>Whole class</button>
+                                        <button type="button" className={`btn btn-sm ${courseTrackMode === 'student' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCourseTrackMode('student')}>One student</button>
+                                      </div>
+                                    </div>
+
                                     <div className="form-group">
                                       <label className="form-label">Unit</label>
                                       <select className="form-select" value={selectedCourseUnit?.id || ''} onChange={e => setSelectedCourseUnit(courseUnits.find(u => u.id === parseInt(e.target.value)) || null)}>
@@ -3386,13 +3402,43 @@ function SoloDashboard() {
                                         {courseUnits.map((u, i) => <option key={u.id} value={u.id}>{i+1}. {u.title}</option>)}
                                       </select>
                                     </div>
-                                    <div className="form-group">
-                                      <label className="form-label">Student</label>
-                                      <select className="form-select" value={courseProgressForm.student_id} onChange={e => setCourseProgressForm(f => ({ ...f, student_id: e.target.value }))}>
-                                        <option value="">Select student...</option>
-                                        {(isFreePlan ? students : students.filter(s => s.class_id === selectedClass?.id)).map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}
-                                      </select>
-                                    </div>
+
+                                    {courseTrackMode === 'student' ? (
+                                      <div className="form-group">
+                                        <label className="form-label">Student</label>
+                                        <select className="form-select" value={courseProgressForm.student_id} onChange={e => setCourseProgressForm(f => ({ ...f, student_id: e.target.value }))}>
+                                          <option value="">Select student...</option>
+                                          {eligibleStudents.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}
+                                        </select>
+                                      </div>
+                                    ) : (
+                                      <div className="form-group">
+                                        <label className="form-label">
+                                          Students <span style={{ fontSize: '0.75rem', color: '#888' }}>(tap to exclude any who missed it — {targetCount} of {eligibleStudents.length} will be marked)</span>
+                                        </label>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                          {eligibleStudents.map(s => {
+                                            const excluded = excludedStudentIds.includes(s.id);
+                                            return (
+                                              <button
+                                                key={s.id}
+                                                type="button"
+                                                onClick={() => setExcludedStudentIds(prev => excluded ? prev.filter(id => id !== s.id) : [...prev, s.id])}
+                                                style={{
+                                                  padding: '4px 10px', fontSize: '0.78rem', borderRadius: 14,
+                                                  border: '1px solid ' + (excluded ? '#e5e7eb' : '#16a34a'),
+                                                  background: excluded ? '#f3f4f6' : '#dcfce7',
+                                                  color: excluded ? '#9ca3af' : '#166534',
+                                                  textDecoration: excluded ? 'line-through' : 'none',
+                                                  cursor: 'pointer',
+                                                }}
+                                              >{s.first_name} {s.last_name}</button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+
                                     <div className="form-group">
                                       <label className="form-label">Date</label>
                                       <input type="date" className="form-input" value={courseProgressForm.date} onChange={e => setCourseProgressForm(f => ({ ...f, date: e.target.value }))} />
@@ -3420,21 +3466,37 @@ function SoloDashboard() {
                                       <button className="btn btn-secondary btn-sm" onClick={() => setShowCourseProgressForm(false)}>Cancel</button>
                                       <button
                                         className="btn btn-primary btn-sm"
-                                        disabled={savingCourseProgress || !selectedCourseUnit || !courseProgressForm.student_id || !courseProgressForm.date}
+                                        disabled={savingCourseProgress || !selectedCourseUnit || !courseProgressForm.date || (courseTrackMode === 'student' && !courseProgressForm.student_id) || (courseTrackMode === 'class' && targetCount === 0)}
                                         onClick={async () => {
                                           setSavingCourseProgress(true);
                                           try {
                                             const params = activeSemester ? { semester_id: activeSemester.id } : {};
-                                            await api.post(`/solo/classes/${selectedClass?.id || 'solo'}/courses/${selectedCourse.id}/progress`, {
-                                              unit_id: selectedCourseUnit.id,
-                                              student_id: parseInt(courseProgressForm.student_id),
-                                              date: courseProgressForm.date,
-                                              grade: courseProgressForm.grade,
-                                              passed: courseProgressForm.passed,
-                                              notes: courseProgressForm.notes || null,
-                                              ...params,
-                                            });
-                                            toast.success('Progress recorded');
+                                            if (courseTrackMode === 'class') {
+                                              const targets = eligibleStudents.filter(s => !excludedStudentIds.includes(s.id));
+                                              await Promise.all(targets.map(s =>
+                                                api.post(`/solo/classes/${selectedClass?.id || 'solo'}/courses/${selectedCourse.id}/progress`, {
+                                                  unit_id: selectedCourseUnit.id,
+                                                  student_id: s.id,
+                                                  date: courseProgressForm.date,
+                                                  grade: courseProgressForm.grade,
+                                                  passed: courseProgressForm.passed,
+                                                  notes: courseProgressForm.notes || null,
+                                                  ...params,
+                                                })
+                                              ));
+                                              toast.success(`Progress recorded for ${targets.length} student${targets.length === 1 ? '' : 's'}`);
+                                            } else {
+                                              await api.post(`/solo/classes/${selectedClass?.id || 'solo'}/courses/${selectedCourse.id}/progress`, {
+                                                unit_id: selectedCourseUnit.id,
+                                                student_id: parseInt(courseProgressForm.student_id),
+                                                date: courseProgressForm.date,
+                                                grade: courseProgressForm.grade,
+                                                passed: courseProgressForm.passed,
+                                                notes: courseProgressForm.notes || null,
+                                                ...params,
+                                              });
+                                              toast.success('Progress recorded');
+                                            }
                                             setShowCourseProgressForm(false);
                                             fetchCourseProgress(selectedCourse.id);
                                           } catch {
@@ -3444,11 +3506,12 @@ function SoloDashboard() {
                                           }
                                         }}
                                       >
-                                        {savingCourseProgress ? 'Saving...' : 'Save'}
+                                        {savingCourseProgress ? 'Saving...' : (courseTrackMode === 'class' ? `Save for ${targetCount} student${targetCount === 1 ? '' : 's'}` : 'Save')}
                                       </button>
                                     </div>
                                   </div>
-                                )}
+                                  );
+                                })()}
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                   {courseUnits.map((unit, idx) => {

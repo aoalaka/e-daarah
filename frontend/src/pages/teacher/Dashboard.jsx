@@ -805,8 +805,18 @@ function TeacherDashboard() {
       const params = schedulingMode === 'cohort' && selectedCohortPeriod
         ? { cohort_period_id: selectedCohortPeriod.id }
         : activeSemester ? { semester_id: activeSemester.id } : {};
-      const res = await api.get(`/teacher/classes/${classId}/courses/${courseId}/progress`, { params });
-      setCourseProgress(res.data || []);
+      const isCoverage = madrasahProfile?.course_tracking_mode === 'class_coverage';
+      const endpoint = isCoverage ? 'coverage' : 'progress';
+      const res = await api.get(`/teacher/classes/${classId}/courses/${courseId}/${endpoint}`, { params });
+      // Normalise coverage rows so the rest of the UI (which expects student/grade fields) still renders
+      const data = (res.data || []).map(r => isCoverage ? ({
+        ...r,
+        first_name: 'Class',
+        last_name: '(taught)',
+        grade: '—',
+        passed: 1,
+      }) : r);
+      setCourseProgress(data);
     } catch (error) {
       console.error('Failed to fetch course progress:', error);
     } finally {
@@ -4031,7 +4041,60 @@ function TeacherDashboard() {
                               </div>
 
                               {/* Record progress form */}
-                              {showCourseProgressForm && (
+                              {showCourseProgressForm && madrasahProfile?.course_tracking_mode === 'class_coverage' ? (
+                                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+                                  <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem' }}>Mark unit as taught</h4>
+                                  <div className="form-group">
+                                    <label className="form-label">Unit</label>
+                                    <select
+                                      className="form-select"
+                                      value={selectedCourseUnit?.id || ''}
+                                      onChange={e => setSelectedCourseUnit(courseUnits.find(u => u.id === parseInt(e.target.value)) || null)}
+                                    >
+                                      <option value="">Select unit...</option>
+                                      {courseUnits.map((u, i) => <option key={u.id} value={u.id}>{i+1}. {u.title}</option>)}
+                                    </select>
+                                  </div>
+                                  <div className="form-group">
+                                    <label className="form-label">Date</label>
+                                    <input type="date" className="form-input" value={courseProgressForm.date} onChange={e => setCourseProgressForm(f => ({ ...f, date: e.target.value }))} />
+                                  </div>
+                                  <div className="form-group">
+                                    <label className="form-label">Notes <span style={{ fontSize: '0.75rem', color: '#888' }}>(optional)</span></label>
+                                    <input type="text" className="form-input" value={courseProgressForm.notes} onChange={e => setCourseProgressForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any notes..." />
+                                  </div>
+                                  <div className="cs-form-actions">
+                                    <button className="btn btn-secondary btn-sm" onClick={() => setShowCourseProgressForm(false)}>Cancel</button>
+                                    <button
+                                      className="btn btn-primary btn-sm"
+                                      disabled={savingCourseProgress || !selectedCourseUnit || !courseProgressForm.date}
+                                      onClick={async () => {
+                                        setSavingCourseProgress(true);
+                                        try {
+                                          const params = schedulingMode === 'cohort' && selectedCohortPeriod
+                                            ? { cohort_period_id: selectedCohortPeriod.id }
+                                            : activeSemester ? { semester_id: activeSemester.id } : {};
+                                          await api.post(`/teacher/classes/${selectedClass.id}/courses/${selectedCourse.id}/coverage`, {
+                                            unit_id: selectedCourseUnit.id,
+                                            date: courseProgressForm.date,
+                                            notes: courseProgressForm.notes || null,
+                                            ...params,
+                                          });
+                                          toast.success('Marked as taught');
+                                          setShowCourseProgressForm(false);
+                                          fetchCourseProgress(selectedClass.id, selectedCourse.id);
+                                        } catch {
+                                          toast.error('Failed to save');
+                                        } finally {
+                                          setSavingCourseProgress(false);
+                                        }
+                                      }}
+                                    >
+                                      {savingCourseProgress ? 'Saving...' : 'Mark taught'}
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : showCourseProgressForm && (
                                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, marginBottom: 16 }}>
                                   <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem' }}>Record Progress</h4>
 

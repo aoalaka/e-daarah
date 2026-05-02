@@ -3125,7 +3125,7 @@ function ReportsSection({
                         <div className="card" style={{ textAlign: 'center', padding: '16px' }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Units taught</div>
                           <div style={{ fontSize: '22px', fontWeight: 700, color: '#166534' }}>
-                            {courseReportData.unit_stats.filter(u => u.total_records > 0).length}
+                            {courseReportData.unit_stats.filter(u => u.was_taught || u.total_records > 0).length}
                           </div>
                         </div>
                       </div>

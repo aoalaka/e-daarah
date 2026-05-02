@@ -1496,7 +1496,8 @@ router.get('/madrasah-info', async (req, res) => {
     const [madrasahs] = await pool.query(
       `SELECT pricing_plan, subscription_status, trial_ends_at,
        enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker,
-       enable_fee_tracking, currency${hasAvailabilityCol ? ', availability_planner_aware' : ''}
+       enable_fee_tracking, currency${hasAvailabilityCol ? ', availability_planner_aware' : ''},
+       COALESCE(course_tracking_mode, 'student_progress') as course_tracking_mode
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -2091,6 +2092,91 @@ router.post('/classes/:classId/courses/:courseId/progress', async (req, res) => 
     res.status(201).json(record);
   } catch (error) {
     res.status(500).json({ error: 'Failed to record course progress' });
+  }
+});
+
+// POST /teacher/classes/:classId/courses/:courseId/coverage — record that a unit was taught to the class
+// Used when madrasah is in 'class_coverage' mode (no per-student grades)
+router.post('/classes/:classId/courses/:courseId/coverage', async (req, res) => {
+  try {
+    const { classId, courseId } = req.params;
+    const madrasahId = req.madrasahId;
+    const teacherId = req.user.id;
+    const { unit_id, date, notes, semester_id, cohort_period_id } = req.body;
+
+    if (!unit_id || !date) {
+      return res.status(400).json({ error: 'unit_id and date are required' });
+    }
+
+    const [[course]] = await pool.query(
+      `SELECT c.id FROM courses c
+       JOIN course_classes cc ON cc.course_id = c.id
+       WHERE c.id = ? AND cc.class_id = ? AND c.madrasah_id = ? AND c.deleted_at IS NULL`,
+      [courseId, classId, madrasahId]
+    );
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+
+    const [[unit]] = await pool.query('SELECT id FROM course_units WHERE id = ? AND course_id = ? AND deleted_at IS NULL', [unit_id, courseId]);
+    if (!unit) return res.status(404).json({ error: 'Unit not found' });
+
+    const [result] = await pool.query(
+      `INSERT INTO course_unit_coverage
+        (madrasah_id, course_id, unit_id, class_id, semester_id, cohort_period_id, recorded_by, date, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [madrasahId, courseId, unit_id, classId, semester_id || null, cohort_period_id || null, teacherId, date, notes || null]
+    );
+
+    res.status(201).json({ id: result.insertId, success: true });
+  } catch (error) {
+    console.error('Record coverage error:', error);
+    res.status(500).json({ error: 'Failed to record coverage' });
+  }
+});
+
+// GET /teacher/classes/:classId/courses/:courseId/coverage — list coverage records
+router.get('/classes/:classId/courses/:courseId/coverage', async (req, res) => {
+  try {
+    const { classId, courseId } = req.params;
+    const madrasahId = req.madrasahId;
+    const { semester_id, cohort_period_id } = req.query;
+
+    let query = `
+      SELECT cuc.*, cu.title as unit_title, cu.display_order as unit_order,
+        u.first_name as recorder_first, u.last_name as recorder_last
+      FROM course_unit_coverage cuc
+      JOIN course_units cu ON cu.id = cuc.unit_id
+      LEFT JOIN users u ON u.id = cuc.recorded_by
+      WHERE cuc.class_id = ? AND cuc.course_id = ? AND cuc.madrasah_id = ? AND cuc.deleted_at IS NULL
+    `;
+    const params = [classId, courseId, madrasahId];
+
+    if (cohort_period_id) {
+      query += ' AND cuc.cohort_period_id = ?';
+      params.push(cohort_period_id);
+    } else if (semester_id) {
+      query += ' AND cuc.semester_id = ?';
+      params.push(semester_id);
+    }
+
+    query += ' ORDER BY cuc.date DESC, cu.display_order ASC';
+    const [records] = await pool.query(query, params);
+    res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch coverage records' });
+  }
+});
+
+// DELETE /teacher/coverage/:coverageId — soft delete a coverage record
+router.delete('/coverage/:coverageId', async (req, res) => {
+  try {
+    const { coverageId } = req.params;
+    const madrasahId = req.madrasahId;
+    const [[record]] = await pool.query('SELECT id FROM course_unit_coverage WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [coverageId, madrasahId]);
+    if (!record) return res.status(404).json({ error: 'Record not found' });
+    await pool.query('UPDATE course_unit_coverage SET deleted_at = NOW() WHERE id = ?', [coverageId]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete coverage' });
   }
 });
 

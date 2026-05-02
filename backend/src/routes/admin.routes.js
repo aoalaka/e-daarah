@@ -2452,6 +2452,7 @@ router.get('/profile', async (req, res) => {
        ${hasAvailabilityCol ? ', availability_planner_aware' : ''}
        , COALESCE(scheduling_mode, 'academic') as scheduling_mode
        , COALESCE(setup_complete, 0) as setup_complete
+       , COALESCE(course_tracking_mode, 'student_progress') as course_tracking_mode
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -2494,7 +2495,7 @@ router.get('/profile', async (req, res) => {
 router.put('/settings', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, availability_planner_aware } = req.body;
+    const { enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, availability_planner_aware, course_tracking_mode } = req.body;
 
     const updates = [];
     const params = [];
@@ -2514,6 +2515,10 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
     if (typeof enable_learning_tracker === 'boolean') {
       updates.push('enable_learning_tracker = ?');
       params.push(enable_learning_tracker);
+    }
+    if (typeof course_tracking_mode === 'string' && ['student_progress', 'class_coverage'].includes(course_tracking_mode)) {
+      updates.push('course_tracking_mode = ?');
+      params.push(course_tracking_mode);
     }
     if (typeof enable_fee_tracking === 'boolean') {
       updates.push('enable_fee_tracking = ?');
@@ -5157,18 +5162,45 @@ router.get('/courses/:courseId/report', requireActiveSubscription, async (req, r
       [courseId, class_id, madrasahId]
     );
 
+    // Also pull class-level coverage records (when madrasah is in class_coverage mode)
+    const [coverageRecords] = await pool.query(
+      `SELECT cuc.unit_id, cuc.date,
+              u.first_name as recorder_first, u.last_name as recorder_last
+       FROM course_unit_coverage cuc
+       LEFT JOIN users u ON u.id = cuc.recorded_by
+       WHERE cuc.course_id = ? AND cuc.class_id = ? AND cuc.madrasah_id = ? AND cuc.deleted_at IS NULL
+       ORDER BY cuc.date DESC`,
+      [courseId, class_id, madrasahId]
+    );
+
     // Per-unit coverage summary
     const totalStudents = students.length;
     const unitStats = units.map(u => {
       const unitRecords = records.filter(r => r.unit_id === u.id);
+      const unitCoverage = coverageRecords.filter(r => r.unit_id === u.id);
       const uniqueStudents = new Set(unitRecords.map(r => r.student_id));
       const passCount = unitRecords.filter(r => r.passed).length;
-      const lastRecord = unitRecords[0]; // already sorted DESC by date
+
+      // Pick most recent record from either source
+      const lastProgress = unitRecords[0];
+      const lastCoverage = unitCoverage[0];
+      let lastRecord = null;
+      if (lastProgress && lastCoverage) {
+        lastRecord = new Date(lastProgress.date) > new Date(lastCoverage.date) ? lastProgress : lastCoverage;
+      } else {
+        lastRecord = lastProgress || lastCoverage;
+      }
+
+      // "Taught" = either we have any per-student records OR any class-coverage records
+      const wasTaught = unitRecords.length > 0 || unitCoverage.length > 0;
+
       return {
         ...u,
         students_recorded: uniqueStudents.size,
         coverage_pct: totalStudents > 0 ? Math.round((uniqueStudents.size / totalStudents) * 100) : 0,
         total_records: unitRecords.length,
+        coverage_records: unitCoverage.length,
+        was_taught: wasTaught,
         pass_count: passCount,
         last_recorded_date: lastRecord?.date || null,
         last_recorded_by: lastRecord ? `${lastRecord.recorder_first || ''} ${lastRecord.recorder_last || ''}`.trim() || null : null,

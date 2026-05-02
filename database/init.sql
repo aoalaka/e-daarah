@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS madrasahs (
     -- Feature toggles
     enable_quran_tracking BOOLEAN NOT NULL DEFAULT TRUE,
     enable_learning_tracker BOOLEAN NOT NULL DEFAULT TRUE,
+    course_tracking_mode ENUM('student_progress', 'class_coverage') NOT NULL DEFAULT 'student_progress',
     enable_fee_tracking BOOLEAN NOT NULL DEFAULT TRUE,
     currency VARCHAR(3) NOT NULL DEFAULT 'USD',
     fee_tracking_mode ENUM('manual', 'auto') NOT NULL DEFAULT 'manual',
@@ -833,6 +834,32 @@ CREATE TABLE IF NOT EXISTS course_progress (
   INDEX idx_cp_unit (unit_id, deleted_at),
   INDEX idx_cp_semester (semester_id),
   INDEX idx_cp_cohort_period (cohort_period_id)
+);
+
+-- =====================================================
+-- Course Unit Coverage table (migration 041 — class_coverage mode)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS course_unit_coverage (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  madrasah_id INT NOT NULL,
+  course_id INT NOT NULL,
+  unit_id INT NOT NULL,
+  class_id INT NOT NULL,
+  semester_id INT DEFAULT NULL,
+  cohort_period_id INT DEFAULT NULL,
+  recorded_by INT NOT NULL,
+  date DATE NOT NULL,
+  notes TEXT DEFAULT NULL,
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+  FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+  FOREIGN KEY (unit_id) REFERENCES course_units(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+  FOREIGN KEY (recorded_by) REFERENCES users(id),
+  INDEX idx_cuc_madrasah (madrasah_id, deleted_at),
+  INDEX idx_cuc_class_course (class_id, course_id),
+  INDEX idx_cuc_unit (unit_id)
 );
 
 -- =====================================================

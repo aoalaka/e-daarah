@@ -223,6 +223,61 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
               <span className="setting-switch-thumb" />
             </button>
           </div>
+
+          {(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false) && (
+            <div className="setting-toggle-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
+              <div className="setting-toggle-info">
+                <span className="setting-toggle-label">Course tracking mode</span>
+                <p className="setting-toggle-desc">
+                  How teachers record course progress. Switch any time — historical records are preserved either way.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {[
+                  { value: 'student_progress', label: 'Per student', desc: 'Each student\'s grade & outcome on each unit (parents see this).' },
+                  { value: 'class_coverage', label: 'Class coverage', desc: 'Just record which units the class has covered. No grades.' },
+                ].map(opt => {
+                  const current = madrasahProfile?.course_tracking_mode || 'student_progress';
+                  const selected = current === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={savingSettings}
+                      onClick={async () => {
+                        if (selected) return;
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/admin/settings', { course_tracking_mode: opt.value });
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data, course_tracking_mode: opt.value }));
+                          toast.success(`Switched to ${opt.label}`);
+                        } catch {
+                          toast.error('Failed to update setting');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}
+                      style={{
+                        flex: '1 1 200px',
+                        textAlign: 'left',
+                        padding: '12px 14px',
+                        borderRadius: 8,
+                        border: selected ? '2px solid #0d9488' : '1.5px solid #cbd5e1',
+                        background: selected ? '#f0fdfa' : '#fff',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: 14, color: selected ? '#0d9488' : '#0a0a0a', marginBottom: 4 }}>
+                        {selected ? '✓ ' : ''}{opt.label}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#525252', lineHeight: 1.4 }}>{opt.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="setting-toggle-row">
             <div className="setting-toggle-info">
               <span className="setting-toggle-label">Fee Tracking</span>

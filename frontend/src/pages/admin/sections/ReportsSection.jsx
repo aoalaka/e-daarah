@@ -75,6 +75,40 @@ function ReportsSection({
   const [feeReportClassFilter, setFeeReportClassFilter] = useState('');
   const [feeReportFamilyFilter, setFeeReportFamilyFilter] = useState('');
 
+  // Courses Report state
+  const [coursesList, setCoursesList] = useState([]);
+  const [courseReportClassId, setCourseReportClassId] = useState('');
+  const [courseReportCourseId, setCourseReportCourseId] = useState('');
+  const [courseReportData, setCourseReportData] = useState(null);
+  const [courseReportLoading, setCourseReportLoading] = useState(false);
+  const [courseReportView, setCourseReportView] = useState('coverage'); // 'coverage' or 'matrix'
+
+  const fetchCoursesList = async () => {
+    try {
+      const res = await api.get('/admin/courses');
+      setCoursesList(res.data || []);
+    } catch {
+      toast.error('Failed to load courses');
+    }
+  };
+
+  const fetchCourseReport = async (courseId, classId) => {
+    if (!courseId || !classId) {
+      setCourseReportData(null);
+      return;
+    }
+    setCourseReportLoading(true);
+    try {
+      const res = await api.get(`/admin/courses/${courseId}/report?class_id=${classId}`);
+      setCourseReportData(res.data);
+    } catch {
+      toast.error('Failed to load course report');
+      setCourseReportData(null);
+    } finally {
+      setCourseReportLoading(false);
+    }
+  };
+
   const fetchFeeReport = async (classId) => {
     setFeeReportLoading(true);
     try {
@@ -539,6 +573,14 @@ function ReportsSection({
                       className={`report-tab-btn ${reportSubTab === 'fee-report' ? 'active' : ''}`}
                     >
                       Fee Report
+                    </button>
+                  )}
+                  {(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false) && (
+                    <button
+                      onClick={() => { setReportSubTab('courses-report'); fetchCoursesList(); }}
+                      className={`report-tab-btn ${reportSubTab === 'courses-report' ? 'active' : ''}`}
+                    >
+                      Courses
                     </button>
                   )}
                 </nav>
@@ -3011,6 +3053,152 @@ function ReportsSection({
                     </>
                     );
                   })()}
+                </>
+              )}
+
+              {reportSubTab === 'courses-report' && (
+                <>
+                  <div className="card no-print" style={{ marginBottom: 'var(--md)' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <select
+                        className="form-select"
+                        value={courseReportClassId}
+                        onChange={e => {
+                          const cid = e.target.value;
+                          setCourseReportClassId(cid);
+                          setCourseReportCourseId('');
+                          setCourseReportData(null);
+                        }}
+                        style={{ maxWidth: '240px' }}
+                      >
+                        <option value="">Select class…</option>
+                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+
+                      <select
+                        className="form-select"
+                        value={courseReportCourseId}
+                        onChange={e => {
+                          const courseId = e.target.value;
+                          setCourseReportCourseId(courseId);
+                          fetchCourseReport(courseId, courseReportClassId);
+                        }}
+                        disabled={!courseReportClassId}
+                        style={{ maxWidth: '240px' }}
+                      >
+                        <option value="">Select course…</option>
+                        {coursesList
+                          .filter(c => !courseReportClassId || (c.class_ids || []).includes(parseInt(courseReportClassId)))
+                          .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+
+                      {courseReportData && (
+                        <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
+                          <button
+                            className={`btn btn-sm ${courseReportView === 'coverage' ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => setCourseReportView('coverage')}
+                          >Unit coverage</button>
+                          <button
+                            className={`btn btn-sm ${courseReportView === 'matrix' ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => setCourseReportView('matrix')}
+                          >Student matrix</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {courseReportLoading ? (
+                    <div className="empty">Loading course report…</div>
+                  ) : !courseReportData ? (
+                    <div className="empty">Select a class and course to generate the report.</div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+                        <div className="card" style={{ textAlign: 'center', padding: '16px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Students</div>
+                          <div style={{ fontSize: '22px', fontWeight: 700 }}>{courseReportData.total_students}</div>
+                        </div>
+                        <div className="card" style={{ textAlign: 'center', padding: '16px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Units</div>
+                          <div style={{ fontSize: '22px', fontWeight: 700 }}>{courseReportData.units.length}</div>
+                        </div>
+                        <div className="card" style={{ textAlign: 'center', padding: '16px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Units taught</div>
+                          <div style={{ fontSize: '22px', fontWeight: 700, color: '#166534' }}>
+                            {courseReportData.unit_stats.filter(u => u.total_records > 0).length}
+                          </div>
+                        </div>
+                      </div>
+
+                      {courseReportView === 'coverage' ? (
+                        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                          <div className="card-header">Unit coverage</div>
+                          <div>
+                            {courseReportData.unit_stats.length === 0 ? (
+                              <div className="empty" style={{ padding: '24px' }}>No units in this course.</div>
+                            ) : courseReportData.unit_stats.map((u, idx) => (
+                              <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderTop: idx === 0 ? 'none' : '1px solid var(--light)' }}>
+                                <div style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', background: 'var(--lighter)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600 }}>{idx + 1}</div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontWeight: 600, fontSize: 14 }}>{u.title}</div>
+                                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                                    {u.last_recorded_date
+                                      ? `Last recorded ${fmtDate ? fmtDate(u.last_recorded_date) : u.last_recorded_date.slice(0,10)}${u.last_recorded_by ? ` by ${u.last_recorded_by}` : ''}`
+                                      : 'Not yet taught'}
+                                  </div>
+                                </div>
+                                <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                                  <div style={{ fontWeight: 700, fontSize: 14, color: u.coverage_pct === 100 ? '#166534' : u.coverage_pct === 0 ? '#9ca3af' : '#b86e00' }}>
+                                    {u.students_recorded} / {courseReportData.total_students}
+                                  </div>
+                                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{u.coverage_pct}% covered</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="card" style={{ padding: 0, overflow: 'auto' }}>
+                          <div className="card-header">Student progress matrix</div>
+                          {courseReportData.student_matrix.length === 0 ? (
+                            <div className="empty" style={{ padding: '24px' }}>No students in this class.</div>
+                          ) : (
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                              <thead>
+                                <tr style={{ background: 'var(--bg)' }}>
+                                  <th style={{ position: 'sticky', left: 0, background: 'var(--bg)', padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--light)', minWidth: 140 }}>Student</th>
+                                  {courseReportData.units.map((u, idx) => (
+                                    <th key={u.id} title={u.title} style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--light)', minWidth: 36 }}>{idx + 1}</th>
+                                  ))}
+                                  <th style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--light)' }}>Passed</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {courseReportData.student_matrix.map(s => (
+                                  <tr key={s.id}>
+                                    <td style={{ position: 'sticky', left: 0, background: '#fff', padding: '8px 12px', fontWeight: 500, borderBottom: '1px solid var(--lighter)' }}>{s.first_name} {s.last_name}</td>
+                                    {courseReportData.units.map(u => {
+                                      const passed = s.passed_unit_ids.includes(u.id);
+                                      return (
+                                        <td key={u.id} style={{ padding: '6px', textAlign: 'center', borderBottom: '1px solid var(--lighter)' }}>
+                                          {passed
+                                            ? <span style={{ color: '#166534', fontSize: 14 }}>✓</span>
+                                            : <span style={{ color: '#cbd5e1', fontSize: 14 }}>—</span>}
+                                        </td>
+                                      );
+                                    })}
+                                    <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600, color: s.passed_count === courseReportData.units.length ? '#166534' : 'var(--text-primary)', borderBottom: '1px solid var(--lighter)' }}>
+                                      {s.passed_count} / {courseReportData.units.length}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </>
               )}
 

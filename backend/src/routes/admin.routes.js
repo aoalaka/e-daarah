@@ -5118,6 +5118,88 @@ router.delete('/courses/:courseId/units/:unitId', requireActiveSubscription, asy
   }
 });
 
+// GET /admin/courses/:courseId/report?class_id=X
+// Returns: per-unit coverage stats and per-student progress matrix for a course in a class
+router.get('/courses/:courseId/report', requireActiveSubscription, async (req, res) => {
+  try {
+    const madrasahId = req.madrasahId;
+    const { courseId } = req.params;
+    const { class_id } = req.query;
+    if (!class_id) return res.status(400).json({ error: 'class_id is required' });
+
+    const [[course]] = await pool.query(
+      `SELECT c.id, c.name, c.colour FROM courses c
+       JOIN course_classes cc ON cc.course_id = c.id
+       WHERE c.id = ? AND cc.class_id = ? AND c.madrasah_id = ? AND c.deleted_at IS NULL`,
+      [courseId, class_id, madrasahId]
+    );
+    if (!course) return res.status(404).json({ error: 'Course not found for this class' });
+
+    const [units] = await pool.query(
+      'SELECT id, title, display_order FROM course_units WHERE course_id = ? AND deleted_at IS NULL ORDER BY display_order ASC, id ASC',
+      [courseId]
+    );
+
+    const [students] = await pool.query(
+      `SELECT id, first_name, last_name FROM students
+       WHERE class_id = ? AND madrasah_id = ? AND deleted_at IS NULL
+       ORDER BY first_name ASC, last_name ASC`,
+      [class_id, madrasahId]
+    );
+
+    const [records] = await pool.query(
+      `SELECT cp.unit_id, cp.student_id, cp.date, cp.grade, cp.passed,
+              u.first_name as recorder_first, u.last_name as recorder_last
+       FROM course_progress cp
+       LEFT JOIN users u ON u.id = cp.recorded_by
+       WHERE cp.course_id = ? AND cp.class_id = ? AND cp.madrasah_id = ? AND cp.deleted_at IS NULL
+       ORDER BY cp.date DESC`,
+      [courseId, class_id, madrasahId]
+    );
+
+    // Per-unit coverage summary
+    const totalStudents = students.length;
+    const unitStats = units.map(u => {
+      const unitRecords = records.filter(r => r.unit_id === u.id);
+      const uniqueStudents = new Set(unitRecords.map(r => r.student_id));
+      const passCount = unitRecords.filter(r => r.passed).length;
+      const lastRecord = unitRecords[0]; // already sorted DESC by date
+      return {
+        ...u,
+        students_recorded: uniqueStudents.size,
+        coverage_pct: totalStudents > 0 ? Math.round((uniqueStudents.size / totalStudents) * 100) : 0,
+        total_records: unitRecords.length,
+        pass_count: passCount,
+        last_recorded_date: lastRecord?.date || null,
+        last_recorded_by: lastRecord ? `${lastRecord.recorder_first || ''} ${lastRecord.recorder_last || ''}`.trim() || null : null,
+      };
+    });
+
+    // Per-student matrix: for each student, which units they've passed
+    const studentMatrix = students.map(s => {
+      const studentRecords = records.filter(r => r.student_id === s.id);
+      const passedUnitIds = new Set(studentRecords.filter(r => r.passed).map(r => r.unit_id));
+      return {
+        ...s,
+        passed_unit_ids: Array.from(passedUnitIds),
+        passed_count: passedUnitIds.size,
+        total_records: studentRecords.length,
+      };
+    });
+
+    res.json({
+      course,
+      units,
+      total_students: totalStudents,
+      unit_stats: unitStats,
+      student_matrix: studentMatrix,
+    });
+  } catch (error) {
+    console.error('Course report error:', error);
+    res.status(500).json({ error: 'Failed to fetch course report' });
+  }
+});
+
 // POST /admin/onboarding/complete — save wizard answers and mark setup as done
 router.post('/onboarding/complete', async (req, res) => {
   try {

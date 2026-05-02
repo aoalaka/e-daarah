@@ -457,11 +457,11 @@ function ParentReport() {
                               </div>
                             </div>
                             <div className="exam-table">
-                              <div className="exam-table-header" style={{ gridTemplateColumns: '1fr 1.6fr 0.8fr 0.8fr' }}>
+                              <div className="exam-table-header course-grid-4">
                                 <span>Date</span><span>Unit</span><span>Grade</span><span>Outcome</span>
                               </div>
                               {records.map(r => (
-                                <div key={r.id} className="exam-table-row" style={{ gridTemplateColumns: '1fr 1.6fr 0.8fr 0.8fr' }}>
+                                <div key={r.id} className="exam-table-row course-grid-4">
                                   <span className="exam-date">{fmtDate(r.date)}</span>
                                   <span>{r.unit_title}</span>
                                   <span className={`grade-badge grade-${r.grade?.toLowerCase().replace(' ', '-')}`}>{r.grade}</span>

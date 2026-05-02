@@ -31,6 +31,7 @@ import QuranSessionRecorder from '../../components/QuranSessionRecorder';
 import { addToSyncQueue, cacheData, getCachedData } from '../../utils/offlineStore';
 import OfflineBanner from '../../components/OfflineBanner';
 import '../admin/Dashboard.css';
+import '../admin/sections/CoursesSection.css';
 
 function TeacherDashboard() {
   // Format date as "01 Sep 2025"
@@ -4080,22 +4081,15 @@ function TeacherDashboard() {
                                       <label className="form-label">
                                         Students <span style={{ fontSize: '0.75rem', color: '#888' }}>(tap to exclude any who missed it — {students.length - excludedStudentIds.length} of {students.length} will be marked)</span>
                                       </label>
-                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                      <div className="cs-student-chips">
                                         {students.map(s => {
                                           const excluded = excludedStudentIds.includes(s.id);
                                           return (
                                             <button
                                               key={s.id}
                                               type="button"
+                                              className={`cs-student-chip ${excluded ? 'excluded' : ''}`}
                                               onClick={() => setExcludedStudentIds(prev => excluded ? prev.filter(id => id !== s.id) : [...prev, s.id])}
-                                              style={{
-                                                padding: '4px 10px', fontSize: '0.78rem', borderRadius: 14,
-                                                border: '1px solid ' + (excluded ? '#e5e7eb' : '#16a34a'),
-                                                background: excluded ? '#f3f4f6' : '#dcfce7',
-                                                color: excluded ? '#9ca3af' : '#166534',
-                                                textDecoration: excluded ? 'line-through' : 'none',
-                                                cursor: 'pointer',
-                                              }}
                                             >{s.first_name} {s.last_name}</button>
                                           );
                                         })}
@@ -4139,7 +4133,7 @@ function TeacherDashboard() {
                                     <label className="form-label">Notes <span style={{ fontSize: '0.75rem', color: '#888' }}>(optional)</span></label>
                                     <input type="text" className="form-input" value={courseProgressForm.notes} onChange={e => setCourseProgressForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any notes..." />
                                   </div>
-                                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                  <div className="cs-form-actions">
                                     <button className="btn btn-secondary btn-sm" onClick={() => setShowCourseProgressForm(false)}>Cancel</button>
                                     <button
                                       className="btn btn-primary btn-sm"
@@ -4221,33 +4215,48 @@ function TeacherDashboard() {
                             ) : courseProgress.length > 0 && (
                               <div className="card" style={{ padding: 'var(--md)' }}>
                                 <h3 style={{ margin: '0 0 12px', fontSize: '1rem' }}>Progress History</h3>
-                                <div style={{ overflowX: 'auto' }}>
-                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                                    <thead>
-                                      <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Date</th>
-                                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Student</th>
-                                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Unit</th>
-                                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Grade</th>
-                                        <th style={{ textAlign: 'left', padding: '8px 0', fontWeight: 600 }}>Outcome</th>
+                                <table className="cs-history-table">
+                                  <thead>
+                                    <tr>
+                                      <th>Date</th>
+                                      <th>Student</th>
+                                      <th>Unit</th>
+                                      <th>Grade</th>
+                                      <th>Outcome</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {courseProgress.map(r => (
+                                      <tr key={r.id}>
+                                        <td style={{ color: '#6b7280' }}>{r.date ? r.date.slice(0,10) : ''}</td>
+                                        <td>{r.first_name} {r.last_name}</td>
+                                        <td style={{ color: '#374151' }}>{r.unit_title}</td>
+                                        <td>{r.grade}</td>
+                                        <td>
+                                          <span className={`cs-outcome-badge ${r.passed ? 'pass' : 'repeat'}`}>
+                                            {r.passed ? 'Pass' : 'Repeat'}
+                                          </span>
+                                        </td>
                                       </tr>
-                                    </thead>
-                                    <tbody>
-                                      {courseProgress.map(r => (
-                                        <tr key={r.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                                          <td style={{ padding: '8px 0', color: '#6b7280' }}>{r.date ? r.date.slice(0,10) : ''}</td>
-                                          <td style={{ padding: '8px 0' }}>{r.first_name} {r.last_name}</td>
-                                          <td style={{ padding: '8px 0', color: '#374151' }}>{r.unit_title}</td>
-                                          <td style={{ padding: '8px 0' }}>{r.grade}</td>
-                                          <td style={{ padding: '8px 0' }}>
-                                            <span style={{ fontSize: '0.72rem', padding: '2px 6px', borderRadius: 4, background: r.passed ? '#dcfce7' : '#fef9c3', color: r.passed ? '#166534' : '#713f12' }}>
-                                              {r.passed ? 'Pass' : 'Repeat'}
-                                            </span>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                                    ))}
+                                  </tbody>
+                                </table>
+                                <div className="cs-history-cards">
+                                  {courseProgress.map(r => (
+                                    <div key={r.id} className="cs-history-card">
+                                      <div className="cs-history-card-top">
+                                        <span className="cs-history-card-name">{r.first_name} {r.last_name}</span>
+                                        <span className="cs-history-card-date">{r.date ? r.date.slice(0,10) : ''}</span>
+                                      </div>
+                                      <div className="cs-history-card-unit">{r.unit_title}</div>
+                                      <div className="cs-history-card-meta">
+                                        <span style={{ color: '#374151' }}>{r.grade}</span>
+                                        <span className={`cs-outcome-badge ${r.passed ? 'pass' : 'repeat'}`}>
+                                          {r.passed ? 'Pass' : 'Repeat'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
                             )}

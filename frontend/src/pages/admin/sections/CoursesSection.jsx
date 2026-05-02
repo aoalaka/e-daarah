@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { AcademicCapIcon } from '@heroicons/react/24/outline';
 import api from '../../../services/api';
 import '../Dashboard.css';
+import './CoursesSection.css';
 
 const COLOUR_OPTIONS = [
   { label: 'Teal', value: '#0d9488' },
@@ -241,24 +242,15 @@ function CoursesSection({ classes, isReadOnly, setConfirmModal }) {
               <div className="form-grid">
                 <div className="form-group full">
                   <label className="form-label">Classes <span style={{ fontWeight: 400, color: '#888', fontSize: '0.8rem' }}>(select one or more)</span></label>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                  <div className="cs-class-chips">
                     {classes.map(c => {
                       const selected = courseForm.class_ids.includes(c.id);
                       return (
                         <button
                           key={c.id}
                           type="button"
+                          className={`cs-class-chip ${selected ? 'selected' : ''}`}
                           onClick={() => toggleClassId(c.id)}
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: 16,
-                            border: selected ? '1.5px solid #0d9488' : '1.5px solid #cbd5e1',
-                            background: selected ? '#0d9488' : '#fff',
-                            color: selected ? '#fff' : '#334155',
-                            cursor: 'pointer',
-                            fontSize: '0.875rem',
-                            fontWeight: 500,
-                          }}
                         >
                           {selected ? '✓ ' : ''}{c.name}
                         </button>
@@ -289,21 +281,16 @@ function CoursesSection({ classes, isReadOnly, setConfirmModal }) {
                 </div>
                 <div className="form-group full">
                   <label className="form-label">Colour</label>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                  <div className="cs-colour-row">
                     {COLOUR_OPTIONS.map(opt => (
                       <button
                         key={opt.value}
                         type="button"
                         title={opt.label}
+                        aria-label={opt.label}
                         onClick={() => setCourseForm(f => ({ ...f, colour: opt.value }))}
-                        style={{
-                          width: 28, height: 28, borderRadius: '50%',
-                          background: opt.value,
-                          border: courseForm.colour === opt.value ? '3px solid #1e293b' : '2px solid transparent',
-                          cursor: 'pointer',
-                          transition: 'transform 0.15s',
-                          transform: courseForm.colour === opt.value ? 'scale(1.2)' : 'scale(1)',
-                        }}
+                        className={`cs-colour-dot ${courseForm.colour === opt.value ? 'selected' : ''}`}
+                        style={{ background: opt.value }}
                       />
                     ))}
                   </div>
@@ -462,47 +449,15 @@ function CoursesSection({ classes, isReadOnly, setConfirmModal }) {
                 <button className="empty-action" onClick={openCreateUnit}>+ Add Unit</button>
               </div>
             ) : (
-              <div className="table-wrap admin-table-desktop">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: 40 }}>#</th>
-                      <th>Unit</th>
-                      <th>Description</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {units.map((unit, idx) => (
-                      <tr key={unit.id}>
-                        <td style={{ color: '#888', fontWeight: 600 }}>{idx + 1}</td>
-                        <td><strong>{unit.title}</strong></td>
-                        <td style={{ color: '#888' }}>{unit.description || '—'}</td>
-                        <td>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button className="btn btn-sm btn-secondary" onClick={() => openEditUnit(unit)}>Edit</button>
-                            <button className="btn btn-sm btn-danger" onClick={() => handleDeleteUnit(unit)}>Delete</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Mobile unit cards */}
-            {!unitsLoading && units.length > 0 && (
-              <div className="admin-mobile-cards">
+              <div>
                 {units.map((unit, idx) => (
-                  <div key={unit.id} className="admin-mobile-card">
-                    <div className="admin-mobile-card-main">
-                      <div className="admin-mobile-card-name">
-                        <span style={{ color: '#888', marginRight: 6 }}>{idx + 1}.</span>{unit.title}
-                      </div>
-                      {unit.description && <div className="admin-mobile-card-meta">{unit.description}</div>}
+                  <div key={unit.id} className="cs-unit-row">
+                    <div className="cs-unit-num">{idx + 1}</div>
+                    <div className="cs-unit-body">
+                      <div className="cs-unit-title">{unit.title}</div>
+                      {unit.description && <div className="cs-unit-desc">{unit.description}</div>}
                     </div>
-                    <div className="admin-mobile-card-actions">
+                    <div className="cs-unit-actions">
                       <button className="btn btn-sm btn-secondary" onClick={() => openEditUnit(unit)}>Edit</button>
                       <button className="btn btn-sm btn-danger" onClick={() => handleDeleteUnit(unit)}>Delete</button>
                     </div>

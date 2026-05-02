@@ -485,6 +485,28 @@
   border-bottom: none;
 }
 
+/* Course progress grid — 4 cols on desktop, stacks unit row on mobile */
+.course-grid-4 {
+  grid-template-columns: 1fr 1.6fr 0.8fr 0.8fr;
+}
+
+@media (max-width: 640px) {
+  .course-grid-4 {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "date grade outcome"
+      "unit unit unit";
+    row-gap: 4px;
+  }
+  .course-grid-4 > :nth-child(1) { grid-area: date; }
+  .course-grid-4 > :nth-child(2) { grid-area: unit; font-size: 12px; color: #525252; }
+  .course-grid-4 > :nth-child(3) { grid-area: grade; }
+  .course-grid-4 > :nth-child(4) { grid-area: outcome; }
+
+  /* Hide the desktop header text on mobile — units header makes no sense in stacked layout */
+  .exam-table-header.course-grid-4 > :nth-child(2) { display: none; }
+}
+
 .exam-date {
   color: #525252;
 }

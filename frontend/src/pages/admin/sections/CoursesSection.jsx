@@ -24,7 +24,7 @@ function CoursesSection({ classes, isReadOnly, setConfirmModal }) {
   // Course form
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
-  const [courseForm, setCourseForm] = useState({ class_id: '', name: '', description: '', colour: '#0d9488' });
+  const [courseForm, setCourseForm] = useState({ class_ids: [], name: '', description: '', colour: '#0d9488' });
 
   // Unit form
   const [showUnitForm, setShowUnitForm] = useState(false);
@@ -68,32 +68,44 @@ function CoursesSection({ classes, isReadOnly, setConfirmModal }) {
 
   const openCreateCourse = () => {
     setEditingCourse(null);
-    setCourseForm({ class_id: String(classes[0]?.id || ''), name: '', description: '', colour: '#0d9488' });
+    setCourseForm({ class_ids: [], name: '', description: '', colour: '#0d9488' });
     setShowCourseForm(true);
   };
 
   const openEditCourse = (course, e) => {
     e.stopPropagation();
     setEditingCourse(course);
-    setCourseForm({ class_id: String(course.class_id), name: course.name, description: course.description || '', colour: course.colour || '#0d9488' });
+    const ids = Array.isArray(course.class_ids) && course.class_ids.length > 0
+      ? course.class_ids
+      : (course.class_id ? [course.class_id] : []);
+    setCourseForm({ class_ids: ids, name: course.name, description: course.description || '', colour: course.colour || '#0d9488' });
     setShowCourseForm(true);
+  };
+
+  const toggleClassId = (id) => {
+    setCourseForm(f => ({
+      ...f,
+      class_ids: f.class_ids.includes(id) ? f.class_ids.filter(x => x !== id) : [...f.class_ids, id],
+    }));
   };
 
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     if (isReadOnly()) { toast.error('Account is in read-only mode. Please subscribe to make changes.'); return; }
     if (!courseForm.name.trim()) { toast.error('Course name is required'); return; }
+    if (courseForm.class_ids.length === 0) { toast.error('Select at least one class'); return; }
     try {
       if (editingCourse) {
         await api.put(`/admin/courses/${editingCourse.id}`, {
           name: courseForm.name.trim(),
           description: courseForm.description || null,
           colour: courseForm.colour,
+          class_ids: courseForm.class_ids,
         });
         toast.success('Course updated');
       } else {
         await api.post('/admin/courses', {
-          class_id: parseInt(courseForm.class_id),
+          class_ids: courseForm.class_ids,
           name: courseForm.name.trim(),
           description: courseForm.description || null,
           colour: courseForm.colour,
@@ -227,19 +239,33 @@ function CoursesSection({ classes, isReadOnly, setConfirmModal }) {
           <div className="card-body">
             <form onSubmit={handleSaveCourse}>
               <div className="form-grid">
-                {!editingCourse && (
-                  <div className="form-group">
-                    <label className="form-label">Class</label>
-                    <select
-                      className="form-select"
-                      value={courseForm.class_id}
-                      onChange={e => setCourseForm(f => ({ ...f, class_id: e.target.value }))}
-                      required
-                    >
-                      {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+                <div className="form-group full">
+                  <label className="form-label">Classes <span style={{ fontWeight: 400, color: '#888', fontSize: '0.8rem' }}>(select one or more)</span></label>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                    {classes.map(c => {
+                      const selected = courseForm.class_ids.includes(c.id);
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => toggleClassId(c.id)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: 16,
+                            border: selected ? '1.5px solid #0d9488' : '1.5px solid #cbd5e1',
+                            background: selected ? '#0d9488' : '#fff',
+                            color: selected ? '#fff' : '#334155',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {selected ? '✓ ' : ''}{c.name}
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
                 <div className="form-group">
                   <label className="form-label">Course Name</label>
                   <input
@@ -312,7 +338,7 @@ function CoursesSection({ classes, isReadOnly, setConfirmModal }) {
               <thead>
                 <tr>
                   <th>Course</th>
-                  <th>Class</th>
+                  <th>Classes</th>
                   <th>Units</th>
                   <th>Status</th>
                   <th>Actions</th>

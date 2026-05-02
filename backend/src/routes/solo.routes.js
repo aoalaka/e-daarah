@@ -1200,8 +1200,9 @@ router.get('/classes/:classId/courses', async (req, res) => {
       `SELECT c.*, cl.name as class_name,
         (SELECT COUNT(*) FROM course_units cu WHERE cu.course_id = c.id AND cu.deleted_at IS NULL) as unit_count
        FROM courses c
-       JOIN classes cl ON cl.id = c.class_id
-       WHERE c.class_id = ? AND c.madrasah_id = ? AND c.deleted_at IS NULL AND c.is_active = TRUE
+       JOIN course_classes cc ON cc.course_id = c.id
+       JOIN classes cl ON cl.id = cc.class_id
+       WHERE cc.class_id = ? AND c.madrasah_id = ? AND c.deleted_at IS NULL AND c.is_active = TRUE
        ORDER BY c.display_order ASC, c.name ASC`,
       [classId, madrasahId]
     );
@@ -1273,7 +1274,12 @@ router.post('/classes/:classId/courses/:courseId/progress', async (req, res) => 
       return res.status(400).json({ error: 'unit_id, student_id, and date are required' });
     }
 
-    const [[course]] = await pool.query('SELECT id FROM courses WHERE id = ? AND class_id = ? AND madrasah_id = ? AND deleted_at IS NULL', [courseId, classId, madrasahId]);
+    const [[course]] = await pool.query(
+      `SELECT c.id FROM courses c
+       JOIN course_classes cc ON cc.course_id = c.id
+       WHERE c.id = ? AND cc.class_id = ? AND c.madrasah_id = ? AND c.deleted_at IS NULL`,
+      [courseId, classId, madrasahId]
+    );
     if (!course) return res.status(404).json({ error: 'Course not found' });
 
     const [[unit]] = await pool.query('SELECT id FROM course_units WHERE id = ? AND course_id = ? AND deleted_at IS NULL', [unit_id, courseId]);

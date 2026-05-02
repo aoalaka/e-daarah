@@ -4881,15 +4881,39 @@ router.get('/courses', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
     const [courses] = await pool.query(
-      `SELECT c.*, cl.name as class_name,
+      `SELECT c.*,
         (SELECT COUNT(*) FROM course_units cu WHERE cu.course_id = c.id AND cu.deleted_at IS NULL) as unit_count
        FROM courses c
-       JOIN classes cl ON cl.id = c.class_id
        WHERE c.madrasah_id = ? AND c.deleted_at IS NULL
        ORDER BY c.display_order ASC, c.name ASC`,
       [madrasahId]
     );
-    res.json(courses);
+
+    if (courses.length === 0) return res.json([]);
+
+    const courseIds = courses.map(c => c.id);
+    const [links] = await pool.query(
+      `SELECT cc.course_id, cc.class_id, cl.name as class_name
+       FROM course_classes cc
+       JOIN classes cl ON cl.id = cc.class_id
+       WHERE cc.course_id IN (?) AND cl.deleted_at IS NULL`,
+      [courseIds]
+    );
+
+    const byCourse = {};
+    for (const l of links) {
+      if (!byCourse[l.course_id]) byCourse[l.course_id] = [];
+      byCourse[l.course_id].push({ id: l.class_id, name: l.class_name });
+    }
+
+    const enriched = courses.map(c => ({
+      ...c,
+      classes: byCourse[c.id] || [],
+      class_ids: (byCourse[c.id] || []).map(x => x.id),
+      class_name: (byCourse[c.id] || []).map(x => x.name).join(', '),
+    }));
+
+    res.json(enriched);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch courses' });
   }
@@ -4899,20 +4923,39 @@ router.get('/courses', requireActiveSubscription, async (req, res) => {
 router.post('/courses', requireActiveSubscription, async (req, res) => {
   try {
     const madrasahId = req.madrasahId;
-    const { class_id, name, description, colour } = req.body;
-    if (!class_id || !name?.trim()) return res.status(400).json({ error: 'class_id and name are required' });
+    const { class_ids, name, description, colour } = req.body;
+    const classIds = Array.isArray(class_ids) ? class_ids.map(Number).filter(Boolean) : [];
 
-    // Verify class belongs to this madrasah
-    const [[cls]] = await pool.query('SELECT id FROM classes WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [class_id, madrasahId]);
-    if (!cls) return res.status(404).json({ error: 'Class not found' });
+    if (classIds.length === 0 || !name?.trim()) {
+      return res.status(400).json({ error: 'At least one class and a name are required' });
+    }
 
+    // Verify all classes belong to this madrasah
+    const [validClasses] = await pool.query(
+      'SELECT id FROM classes WHERE id IN (?) AND madrasah_id = ? AND deleted_at IS NULL',
+      [classIds, madrasahId]
+    );
+    if (validClasses.length !== classIds.length) {
+      return res.status(404).json({ error: 'One or more classes not found' });
+    }
+
+    const primaryClassId = classIds[0];
     const [result] = await pool.query(
       'INSERT INTO courses (madrasah_id, class_id, name, description, colour) VALUES (?, ?, ?, ?, ?)',
-      [madrasahId, class_id, name.trim(), description || null, colour || null]
+      [madrasahId, primaryClassId, name.trim(), description || null, colour || null]
     );
-    const [[course]] = await pool.query('SELECT * FROM courses WHERE id = ?', [result.insertId]);
-    res.status(201).json(course);
+    const courseId = result.insertId;
+
+    const linkRows = classIds.map(cid => [courseId, cid, madrasahId]);
+    await pool.query(
+      'INSERT INTO course_classes (course_id, class_id, madrasah_id) VALUES ?',
+      [linkRows]
+    );
+
+    const [[course]] = await pool.query('SELECT * FROM courses WHERE id = ?', [courseId]);
+    res.status(201).json({ ...course, class_ids: classIds });
   } catch (error) {
+    console.error('Create course error:', error);
     res.status(500).json({ error: 'Failed to create course' });
   }
 });
@@ -4922,7 +4965,7 @@ router.put('/courses/:courseId', requireActiveSubscription, async (req, res) => 
   try {
     const madrasahId = req.madrasahId;
     const { courseId } = req.params;
-    const { name, description, colour, is_active } = req.body;
+    const { name, description, colour, is_active, class_ids } = req.body;
 
     const [[existing]] = await pool.query('SELECT id FROM courses WHERE id = ? AND madrasah_id = ? AND deleted_at IS NULL', [courseId, madrasahId]);
     if (!existing) return res.status(404).json({ error: 'Course not found' });
@@ -4934,6 +4977,31 @@ router.put('/courses/:courseId', requireActiveSubscription, async (req, res) => 
     if (colour !== undefined) { updates.push('colour = ?'); params.push(colour || null); }
     if (typeof is_active === 'boolean') { updates.push('is_active = ?'); params.push(is_active); }
 
+    // Handle class assignment changes
+    if (Array.isArray(class_ids)) {
+      const cleanIds = class_ids.map(Number).filter(Boolean);
+      if (cleanIds.length === 0) {
+        return res.status(400).json({ error: 'At least one class is required' });
+      }
+      const [validClasses] = await pool.query(
+        'SELECT id FROM classes WHERE id IN (?) AND madrasah_id = ? AND deleted_at IS NULL',
+        [cleanIds, madrasahId]
+      );
+      if (validClasses.length !== cleanIds.length) {
+        return res.status(404).json({ error: 'One or more classes not found' });
+      }
+
+      await pool.query('DELETE FROM course_classes WHERE course_id = ?', [courseId]);
+      const linkRows = cleanIds.map(cid => [courseId, cid, madrasahId]);
+      await pool.query(
+        'INSERT INTO course_classes (course_id, class_id, madrasah_id) VALUES ?',
+        [linkRows]
+      );
+      // Keep legacy class_id pointing at the first selected class
+      updates.push('class_id = ?');
+      params.push(cleanIds[0]);
+    }
+
     if (updates.length === 0) return res.status(400).json({ error: 'No valid fields to update' });
 
     params.push(courseId);
@@ -4941,6 +5009,7 @@ router.put('/courses/:courseId', requireActiveSubscription, async (req, res) => 
     const [[course]] = await pool.query('SELECT * FROM courses WHERE id = ?', [courseId]);
     res.json(course);
   } catch (error) {
+    console.error('Update course error:', error);
     res.status(500).json({ error: 'Failed to update course' });
   }
 });

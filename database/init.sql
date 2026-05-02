@@ -767,6 +767,23 @@ CREATE TABLE IF NOT EXISTS courses (
 );
 
 -- =====================================================
+-- Course Classes join table (migration 039 — multi-class courses)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS course_classes (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  course_id INT NOT NULL,
+  class_id INT NOT NULL,
+  madrasah_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+  FOREIGN KEY (madrasah_id) REFERENCES madrasahs(id) ON DELETE CASCADE,
+  UNIQUE KEY uq_course_class (course_id, class_id),
+  INDEX idx_cc_class (class_id),
+  INDEX idx_cc_madrasah (madrasah_id)
+);
+
+-- =====================================================
 -- Course Units table (migration 037 — Learning Tracker)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS course_units (

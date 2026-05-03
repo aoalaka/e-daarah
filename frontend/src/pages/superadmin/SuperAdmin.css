@@ -1388,15 +1388,28 @@
     font-size: 12px;
   }
 
-  /* Tabs responsive */
+  /* Tabs responsive — scroll horizontally instead of wrapping */
   .tabs {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
     gap: 0;
+    padding-bottom: 2px;
+  }
+  .tabs::-webkit-scrollbar {
+    height: 3px;
+  }
+  .tabs::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 2px;
   }
 
   .tab {
-    padding: 10px 12px;
+    padding: 10px 14px;
     font-size: 13px;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   /* Table section responsive */

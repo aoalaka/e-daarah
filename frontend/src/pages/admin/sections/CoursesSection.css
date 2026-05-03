@@ -231,6 +231,117 @@
   }
 }
 
+/* Course selector strip — horizontally scrollable on mobile, wrap on desktop */
+.cs-course-strip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--md, 16px);
+}
+
+.cs-course-strip-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 4px; /* room for scrollbar */
+}
+.cs-course-strip-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+.cs-course-strip-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.cs-course-pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 22px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 40px;
+  transition: border-color 0.15s, transform 0.15s;
+  white-space: nowrap;
+}
+.cs-course-pill:hover {
+  border-color: #94a3b8;
+}
+.cs-course-pill.active {
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.cs-course-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cs-course-pill-count {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+  margin-left: 2px;
+}
+.cs-course-pill.active .cs-course-pill-count {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.cs-course-strip-search {
+  flex-shrink: 0;
+  position: relative;
+}
+
+.cs-course-strip-search-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s;
+}
+.cs-course-strip-search-btn:hover,
+.cs-course-strip-search-btn.active {
+  border-color: #0d9488;
+  color: #0d9488;
+}
+
+.cs-course-strip-search-input {
+  width: 200px;
+  padding: 8px 12px;
+  border: 1.5px solid #0d9488;
+  border-radius: 20px;
+  font-size: 14px;
+  outline: none;
+}
+
+@media (min-width: 768px) {
+  .cs-course-strip-scroll {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
 /* Outcome badge — used in history view */
 .cs-outcome-badge {
   font-size: 0.72rem;

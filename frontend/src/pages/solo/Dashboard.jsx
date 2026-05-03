@@ -34,6 +34,8 @@ import EmailVerificationBanner from '../../components/EmailVerificationBanner';
 import DemoBanner from '../../components/DemoBanner';
 import AnnouncementBanner from '../../components/AnnouncementBanner';
 import QuranSessionRecorder from '../../components/QuranSessionRecorder';
+import CourseStrip from '../../components/CourseStrip';
+import '../admin/sections/CoursesSection.css';
 import BottomTabBar from '../../components/BottomTabBar';
 import VerifiedBadge from '../../components/VerifiedBadge';
 import { addToSyncQueue, cacheData, getCachedData } from '../../utils/offlineStore';
@@ -3341,24 +3343,17 @@ function SoloDashboard() {
                     </div>
                   ) : (
                     <>
-                      {/* Course pills */}
-                      <div className="sub-tab-pills" style={{ marginBottom: 'var(--md)', flexWrap: 'wrap' }}>
-                        {classCourses.map(course => (
-                          <button
-                            key={course.id}
-                            className={`sub-tab-pill ${selectedCourse?.id === course.id ? 'active' : ''}`}
-                            style={selectedCourse?.id === course.id && course.colour ? { background: course.colour, borderColor: course.colour, color: '#fff' } : {}}
-                            onClick={() => {
-                              setSelectedCourse(course);
-                              fetchCourseUnits(course.id);
-                              fetchCourseProgress(course.id);
-                              setShowCourseProgressForm(false);
-                            }}
-                          >
-                            {course.name}
-                          </button>
-                        ))}
-                      </div>
+                      {/* Course strip */}
+                      <CourseStrip
+                        courses={classCourses}
+                        selectedCourseId={selectedCourse?.id}
+                        onSelect={(course) => {
+                          setSelectedCourse(course);
+                          fetchCourseUnits(course.id);
+                          fetchCourseProgress(course.id);
+                          setShowCourseProgressForm(false);
+                        }}
+                      />
 
                       {selectedCourse && (
                         <>

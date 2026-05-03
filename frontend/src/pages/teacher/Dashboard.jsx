@@ -8,6 +8,7 @@ import EmailVerificationBanner from '../../components/EmailVerificationBanner';
 import DemoBanner from '../../components/DemoBanner';
 import AnnouncementBanner from '../../components/AnnouncementBanner';
 import GuidedTour from '../../components/GuidedTour';
+import CourseStrip from '../../components/CourseStrip';
 import {
   HomeIcon,
   ClipboardDocumentCheckIcon,
@@ -811,15 +812,7 @@ function TeacherDashboard() {
       const isCoverage = madrasahProfile?.course_tracking_mode === 'class_coverage';
       const endpoint = isCoverage ? 'coverage' : 'progress';
       const res = await api.get(`/teacher/classes/${classId}/courses/${courseId}/${endpoint}`, { params });
-      // Normalise coverage rows so the rest of the UI (which expects student/grade fields) still renders
-      const data = (res.data || []).map(r => isCoverage ? ({
-        ...r,
-        first_name: 'Class',
-        last_name: '(taught)',
-        grade: '—',
-        passed: 1,
-      }) : r);
-      setCourseProgress(data);
+      setCourseProgress(res.data || []);
     } catch (error) {
       console.error('Failed to fetch course progress:', error);
     } finally {
@@ -3999,24 +3992,17 @@ function TeacherDashboard() {
                   </div>
                 ) : (
                   <>
-                    {/* Course selector pills */}
-                    <div className="sub-tab-pills" style={{ marginBottom: 'var(--md)', flexWrap: 'wrap' }}>
-                      {classCourses.map(course => (
-                        <button
-                          key={course.id}
-                          className={`sub-tab-pill ${selectedCourse?.id === course.id ? 'active' : ''}`}
-                          style={selectedCourse?.id === course.id && course.colour ? { background: course.colour, borderColor: course.colour, color: '#fff' } : {}}
-                          onClick={() => {
-                            setSelectedCourse(course);
-                            fetchCourseUnits(course.id);
-                            fetchCourseProgress(selectedClass.id, course.id);
-                            setShowCourseProgressForm(false);
-                          }}
-                        >
-                          {course.name}
-                        </button>
-                      ))}
-                    </div>
+                    {/* Course selector strip */}
+                    <CourseStrip
+                      courses={classCourses}
+                      selectedCourseId={selectedCourse?.id}
+                      onSelect={(course) => {
+                        setSelectedCourse(course);
+                        fetchCourseUnits(course.id);
+                        fetchCourseProgress(selectedClass.id, course.id);
+                        setShowCourseProgressForm(false);
+                      }}
+                    />
 
                     {selectedCourse && (
                       <>
@@ -4255,6 +4241,7 @@ function TeacherDashboard() {
                               {/* Units list */}
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {courseUnits.map((unit, idx) => {
+                                  const isCoverage = madrasahProfile?.course_tracking_mode === 'class_coverage';
                                   const unitRecords = courseProgress.filter(r => r.unit_id === unit.id);
                                   const lastRecord = unitRecords[0];
                                   return (
@@ -4264,11 +4251,17 @@ function TeacherDashboard() {
                                         <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{unit.title}</div>
                                         {lastRecord && (
                                           <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 2 }}>
-                                            Last: {lastRecord.first_name} {lastRecord.last_name} — {lastRecord.grade} — {lastRecord.date ? lastRecord.date.slice(0,10) : ''}
+                                            {isCoverage
+                                              ? `Last taught ${lastRecord.date ? lastRecord.date.slice(0,10) : ''}${lastRecord.recorder_first ? ` by ${lastRecord.recorder_first} ${lastRecord.recorder_last || ''}` : ''}`
+                                              : `Last: ${lastRecord.first_name} ${lastRecord.last_name} — ${lastRecord.grade} — ${lastRecord.date ? lastRecord.date.slice(0,10) : ''}`}
                                           </div>
                                         )}
                                       </div>
-                                      <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>{unitRecords.length} record{unitRecords.length !== 1 ? 's' : ''}</span>
+                                      <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                                        {isCoverage
+                                          ? (unitRecords.length > 0 ? '✓ taught' : 'not yet')
+                                          : `${unitRecords.length} record${unitRecords.length !== 1 ? 's' : ''}`}
+                                      </span>
                                     </div>
                                   );
                                 })}
@@ -4279,55 +4272,99 @@ function TeacherDashboard() {
                             {courseProgressLoading ? (
                               <div style={{ textAlign: 'center', padding: 'var(--lg)' }}>Loading...</div>
                             ) : courseProgress.length > 0 && (() => {
+                              const isCoverage = madrasahProfile?.course_tracking_mode === 'class_coverage';
                               const totalPages = Math.max(1, Math.ceil(courseProgress.length / PROGRESS_HISTORY_PAGE_SIZE));
                               const page = Math.min(progressHistoryPage, totalPages);
                               const pageRows = courseProgress.slice((page - 1) * PROGRESS_HISTORY_PAGE_SIZE, page * PROGRESS_HISTORY_PAGE_SIZE);
                               return (
                               <div className="card" style={{ padding: 'var(--md)' }}>
-                                <h3 style={{ margin: '0 0 12px', fontSize: '1rem' }}>Progress History</h3>
-                                <table className="cs-history-table">
-                                  <thead>
-                                    <tr>
-                                      <th>Date</th>
-                                      <th>Student</th>
-                                      <th>Unit</th>
-                                      <th>Grade</th>
-                                      <th>Outcome</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {pageRows.map(r => (
-                                      <tr key={r.id}>
-                                        <td style={{ color: '#6b7280' }}>{r.date ? r.date.slice(0,10) : ''}</td>
-                                        <td>{r.first_name} {r.last_name}</td>
-                                        <td style={{ color: '#374151' }}>{r.unit_title}</td>
-                                        <td>{r.grade}</td>
-                                        <td>
-                                          <span className={`cs-outcome-badge ${r.passed ? 'pass' : 'repeat'}`}>
-                                            {r.passed ? 'Pass' : 'Repeat'}
-                                          </span>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                                <div className="cs-history-cards">
-                                  {pageRows.map(r => (
-                                    <div key={r.id} className="cs-history-card">
-                                      <div className="cs-history-card-top">
-                                        <span className="cs-history-card-name">{r.first_name} {r.last_name}</span>
-                                        <span className="cs-history-card-date">{r.date ? r.date.slice(0,10) : ''}</span>
-                                      </div>
-                                      <div className="cs-history-card-unit">{r.unit_title}</div>
-                                      <div className="cs-history-card-meta">
-                                        <span style={{ color: '#374151' }}>{r.grade}</span>
-                                        <span className={`cs-outcome-badge ${r.passed ? 'pass' : 'repeat'}`}>
-                                          {r.passed ? 'Pass' : 'Repeat'}
-                                        </span>
-                                      </div>
+                                <h3 style={{ margin: '0 0 12px', fontSize: '1rem' }}>{isCoverage ? 'Units Taught' : 'Progress History'}</h3>
+                                {isCoverage ? (
+                                  <>
+                                    <table className="cs-history-table">
+                                      <thead>
+                                        <tr>
+                                          <th>Date</th>
+                                          <th>Unit</th>
+                                          <th>Recorded by</th>
+                                          <th>Notes</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {pageRows.map(r => (
+                                          <tr key={r.id}>
+                                            <td style={{ color: '#6b7280' }}>{r.date ? r.date.slice(0,10) : ''}</td>
+                                            <td style={{ color: '#374151', fontWeight: 500 }}>{r.unit_title}</td>
+                                            <td style={{ color: '#525252' }}>{[r.recorder_first, r.recorder_last].filter(Boolean).join(' ') || '—'}</td>
+                                            <td style={{ color: '#6b7280' }}>{r.notes || '—'}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                    <div className="cs-history-cards">
+                                      {pageRows.map(r => (
+                                        <div key={r.id} className="cs-history-card">
+                                          <div className="cs-history-card-top">
+                                            <span className="cs-history-card-name">{r.unit_title}</span>
+                                            <span className="cs-history-card-date">{r.date ? r.date.slice(0,10) : ''}</span>
+                                          </div>
+                                          {(r.recorder_first || r.notes) && (
+                                            <div className="cs-history-card-meta">
+                                              {(r.recorder_first || r.recorder_last) && <span style={{ color: '#525252' }}>{[r.recorder_first, r.recorder_last].filter(Boolean).join(' ')}</span>}
+                                              {r.notes && <span style={{ color: '#6b7280' }}>{r.notes}</span>}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
                                     </div>
-                                  ))}
-                                </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <table className="cs-history-table">
+                                      <thead>
+                                        <tr>
+                                          <th>Date</th>
+                                          <th>Student</th>
+                                          <th>Unit</th>
+                                          <th>Grade</th>
+                                          <th>Outcome</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {pageRows.map(r => (
+                                          <tr key={r.id}>
+                                            <td style={{ color: '#6b7280' }}>{r.date ? r.date.slice(0,10) : ''}</td>
+                                            <td>{r.first_name} {r.last_name}</td>
+                                            <td style={{ color: '#374151' }}>{r.unit_title}</td>
+                                            <td>{r.grade}</td>
+                                            <td>
+                                              <span className={`cs-outcome-badge ${r.passed ? 'pass' : 'repeat'}`}>
+                                                {r.passed ? 'Pass' : 'Repeat'}
+                                              </span>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                    <div className="cs-history-cards">
+                                      {pageRows.map(r => (
+                                        <div key={r.id} className="cs-history-card">
+                                          <div className="cs-history-card-top">
+                                            <span className="cs-history-card-name">{r.first_name} {r.last_name}</span>
+                                            <span className="cs-history-card-date">{r.date ? r.date.slice(0,10) : ''}</span>
+                                          </div>
+                                          <div className="cs-history-card-unit">{r.unit_title}</div>
+                                          <div className="cs-history-card-meta">
+                                            <span style={{ color: '#374151' }}>{r.grade}</span>
+                                            <span className={`cs-outcome-badge ${r.passed ? 'pass' : 'repeat'}`}>
+                                              {r.passed ? 'Pass' : 'Repeat'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
                                 {totalPages > 1 && (
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 12, fontSize: 13, borderTop: '1px solid #f3f4f6', marginTop: 12 }}>
                                     <button className="btn btn-sm btn-secondary" disabled={page === 1} onClick={() => setProgressHistoryPage(page - 1)}>Prev</button>

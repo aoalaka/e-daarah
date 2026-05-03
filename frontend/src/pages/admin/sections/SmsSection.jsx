@@ -418,6 +418,152 @@ function SmsSection({ classes, madrasahProfile, setMadrasahProfile, savingSettin
                 )}
               </div>
 
+              {/* Auto Attendance Alert */}
+              <div className="card" style={{
+                marginBottom: '16px',
+                border: madrasahProfile?.auto_attendance_alert_enabled ? '1px solid #f59e0b' : '1px solid var(--border, #e5e7eb)',
+                background: madrasahProfile?.auto_attendance_alert_enabled ? 'var(--surface, #f9fafb)' : undefined
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <h3 style={{ margin: 0 }}>Auto Attendance Alert</h3>
+                      {madrasahProfile?.auto_attendance_alert_enabled && (
+                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '2px 8px', borderRadius: '10px' }}>ACTIVE</span>
+                      )}
+                    </div>
+                    <p className="page-description" style={{ margin: 0 }}>
+                      Automatically alert parents whose children miss class repeatedly. Multi-child families get one SMS that lists every child who hit the threshold.
+                    </p>
+                  </div>
+                  <label className="toggle-switch" style={{ flexShrink: 0, marginTop: '2px' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!madrasahProfile?.auto_attendance_alert_enabled}
+                      disabled={savingSettings}
+                      onChange={async (e) => {
+                        const enabled = e.target.checked;
+                        const updates = { auto_attendance_alert_enabled: enabled };
+                        if (enabled) {
+                          updates.auto_attendance_alert_message = madrasahProfile?.auto_attendance_alert_message
+                            || `Assalaamu Alaikum. This is from {madrasah_name}. {absences_per_child} missed class {period_label}. Please get in touch if there's a concern. JazakAllahu Khairan.`;
+                        }
+                        setSavingSettings(true);
+                        try {
+                          const res = await api.put('/admin/settings', updates);
+                          setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          toast.success(enabled ? 'Auto attendance alert enabled' : 'Auto attendance alert disabled');
+                        } catch (err) { toast.error('Failed to update'); }
+                        setSavingSettings(false);
+                      }}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+
+                {madrasahProfile?.auto_attendance_alert_enabled && (
+                  <div style={{ marginTop: '16px', maxWidth: '520px' }}>
+                    <div className="form-group" style={{ marginBottom: '12px' }}>
+                      <label className="form-label">Period</label>
+                      <select
+                        className="form-input"
+                        style={{ width: '220px' }}
+                        value={madrasahProfile?.auto_attendance_alert_period || 'monthly'}
+                        onChange={async (e) => {
+                          const period = e.target.value;
+                          setMadrasahProfile(prev => ({ ...prev, auto_attendance_alert_period: period }));
+                          setSavingSettings(true);
+                          try {
+                            const res = await api.put('/admin/settings', { auto_attendance_alert_period: period });
+                            setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                          } catch (err) { toast.error('Failed to update'); }
+                          setSavingSettings(false);
+                        }}
+                      >
+                        <option value="weekly">Weekly (every Monday for last week)</option>
+                        <option value="monthly">Monthly (1st of next month)</option>
+                        <option value="semester">End of semester</option>
+                        {madrasahProfile?.scheduling_mode === 'cohort' && (
+                          <option value="cohort_period">End of each cohort period</option>
+                        )}
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '12px' }}>
+                      <label className="form-label">Threshold</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>Alert when a student misses</span>
+                        <input
+                          type="number"
+                          className="form-input"
+                          style={{ width: '70px' }}
+                          min={1}
+                          max={30}
+                          value={madrasahProfile?.auto_attendance_alert_threshold || 3}
+                          onChange={(e) => setMadrasahProfile(prev => ({ ...prev, auto_attendance_alert_threshold: e.target.value }))}
+                          onBlur={async (e) => {
+                            const t = parseInt(e.target.value);
+                            if (!t || t < 1 || t > 30) return;
+                            setSavingSettings(true);
+                            try {
+                              const res = await api.put('/admin/settings', { auto_attendance_alert_threshold: t });
+                              setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                            } catch (err) { toast.error('Failed to update'); }
+                            setSavingSettings(false);
+                          }}
+                        />
+                        <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>or more classes in the period</span>
+                      </div>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '12px' }}>
+                      <label className="form-label">Message</label>
+                      <textarea
+                        className="form-textarea"
+                        rows={3}
+                        value={madrasahProfile?.auto_attendance_alert_message || ''}
+                        onChange={(e) => setMadrasahProfile(prev => ({ ...prev, auto_attendance_alert_message: e.target.value }))}
+                        maxLength={1600}
+                        placeholder="Type your alert message..."
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                          Variables: {'{madrasah_name}'} {'{student_name}'} {'{first_name}'} {'{absent_count}'} {'{absences_per_child}'} {'{period_label}'}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: (madrasahProfile?.auto_attendance_alert_message || '').length > 1400 ? '#dc2626' : 'var(--muted)' }}>
+                          {(madrasahProfile?.auto_attendance_alert_message || '').length}/1600
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        className="btn btn-primary"
+                        disabled={savingSettings || !(madrasahProfile?.auto_attendance_alert_message || '').trim()}
+                        onClick={async () => {
+                          setSavingSettings(true);
+                          try {
+                            const res = await api.put('/admin/settings', {
+                              auto_attendance_alert_message: madrasahProfile.auto_attendance_alert_message
+                            });
+                            setMadrasahProfile(prev => ({ ...prev, ...res.data }));
+                            toast.success('Message saved');
+                          } catch (err) { toast.error('Failed to save'); }
+                          setSavingSettings(false);
+                        }}
+                      >
+                        {savingSettings ? 'Saving...' : 'Save Message'}
+                      </button>
+                      {madrasahProfile?.auto_attendance_alert_last_sent && (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                          Last sent: {new Date(madrasahProfile.auto_attendance_alert_last_sent).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Manual Send — collapsible recipients */}
               <div className="card">
                 <h3 style={{ marginBottom: '0.25rem' }}>Send Now</h3>

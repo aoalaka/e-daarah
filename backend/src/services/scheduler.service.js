@@ -312,6 +312,233 @@ export const processAutoFeeReminders = async () => {
 };
 
 /**
+ * Send automatic attendance alerts to parents whose kids have N+ absences in the configured period.
+ * Runs daily — fires at the natural boundary of each period (Mon for weekly, 1st for monthly,
+ * day-after-end for semester/cohort_period). Multi-child families get one SMS naming all
+ * qualifying children with their absence counts.
+ */
+export const processAutoAttendanceAlerts = async () => {
+  if (!isSmsConfigured()) return;
+
+  const today = new Date();
+  const todayDate = today.toISOString().split('T')[0];
+
+  try {
+    const [madrasahs] = await pool.query(`
+      SELECT id, name, auto_attendance_alert_period, auto_attendance_alert_threshold,
+             auto_attendance_alert_message, auto_attendance_alert_last_sent
+      FROM madrasahs
+      WHERE auto_attendance_alert_enabled = 1
+        AND auto_attendance_alert_message IS NOT NULL
+        AND deleted_at IS NULL
+        AND subscription_status IN ('active', 'trialing')
+    `);
+
+    if (madrasahs.length === 0) return;
+
+    for (const madrasah of madrasahs) {
+      try {
+        // Decide whether today is the boundary for this madrasah's period
+        const period = madrasah.auto_attendance_alert_period || 'monthly';
+        const lastSent = madrasah.auto_attendance_alert_last_sent;
+        const periodWindow = await resolveAttendancePeriodWindow(madrasah.id, period, today);
+        if (!periodWindow) continue;
+
+        const { startDate, endDate, label, sendOn } = periodWindow;
+        if (todayDate !== sendOn) continue;
+        if (lastSent && new Date(lastSent).toISOString().split('T')[0] === sendOn) continue;
+
+        // Skip on holidays
+        const [holidays] = await pool.query(
+          `SELECT id FROM academic_holidays
+           WHERE madrasah_id = ? AND deleted_at IS NULL AND start_date <= ? AND end_date >= ?
+           LIMIT 1`,
+          [madrasah.id, todayDate, todayDate]
+        );
+        if (holidays.length > 0) continue;
+
+        // Pull absences in the window for every student with a parent phone
+        const [absentees] = await pool.query(`
+          SELECT s.id, s.first_name, s.last_name,
+                 s.parent_guardian_phone, s.parent_guardian_phone_country_code,
+                 COUNT(*) AS absent_count
+          FROM students s
+          JOIN attendance a ON a.student_id = s.id
+          WHERE s.madrasah_id = ?
+            AND s.deleted_at IS NULL
+            AND s.class_id IS NOT NULL
+            AND s.parent_guardian_phone IS NOT NULL AND s.parent_guardian_phone != ''
+            AND a.present = 0
+            AND a.date >= ? AND a.date <= ?
+          GROUP BY s.id
+          HAVING absent_count >= ?
+        `, [madrasah.id, startDate, endDate, madrasah.auto_attendance_alert_threshold]);
+
+        if (absentees.length === 0) {
+          // Mark as processed so we don't keep re-checking the same period
+          await pool.query(
+            'UPDATE madrasahs SET auto_attendance_alert_last_sent = ? WHERE id = ?',
+            [todayDate, madrasah.id]
+          );
+          console.log(`[Scheduler] ${madrasah.name}: no students hit attendance threshold for ${label}`);
+          continue;
+        }
+
+        // Group by parent phone — one SMS per family covering all qualifying kids
+        const phoneGroups = {};
+        for (const s of absentees) {
+          const phone = formatPhoneNumber(s.parent_guardian_phone, s.parent_guardian_phone_country_code || '');
+          if (!phone) continue;
+          if (!phoneGroups[phone]) phoneGroups[phone] = [];
+          phoneGroups[phone].push(s);
+        }
+
+        const uniquePhones = Object.keys(phoneGroups);
+        const msgTemplate = madrasah.auto_attendance_alert_message;
+
+        // Credit check (rough estimate using template — actual cost depends on substitutions)
+        const [credits] = await pool.query('SELECT balance FROM sms_credits WHERE madrasah_id = ?', [madrasah.id]);
+        const balance = credits[0]?.balance || 0;
+        const estimatedCredits = uniquePhones.length * calculateCredits(msgTemplate);
+        if (balance < estimatedCredits) {
+          console.log(`[Scheduler] ${madrasah.name}: insufficient credits for attendance alerts (need ~${estimatedCredits}, have ${balance})`);
+          continue;
+        }
+
+        const [admins] = await pool.query(
+          'SELECT id FROM users WHERE madrasah_id = ? AND role = ? AND deleted_at IS NULL LIMIT 1',
+          [madrasah.id, 'admin']
+        );
+        const adminId = admins[0]?.id || null;
+
+        let sent = 0, failed = 0, totalCreditsUsed = 0;
+        const errors = [];
+
+        for (const [phone, group] of Object.entries(phoneGroups)) {
+          const studentNames = group.map(s => `${s.first_name} ${s.last_name}`).join(', ');
+          const firstNames = group.map(s => s.first_name).join(', ');
+          const perChild = group.map(s => `${s.first_name} (${s.absent_count})`).join(', ');
+          const totalAbsences = group.reduce((sum, s) => sum + Number(s.absent_count), 0);
+
+          const personalizedMsg = msgTemplate
+            .replace(/\{student_name\}/gi, studentNames)
+            .replace(/\{first_name\}/gi, firstNames)
+            .replace(/\{absences_per_child\}/gi, perChild)
+            .replace(/\{absent_count\}/gi, String(totalAbsences))
+            .replace(/\{period_label\}/gi, label)
+            .replace(/\{madrasah_name\}/gi, madrasah.name);
+
+          try {
+            const smsResult = await sendSMS(phone, personalizedMsg);
+            const msgCredits = calculateCredits(personalizedMsg);
+            totalCreditsUsed += msgCredits;
+
+            for (const s of group) {
+              await pool.query(
+                `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, provider_message_id, credits_used, sent_by)
+                 VALUES (?, ?, ?, ?, 'attendance_alert', ?, ?, ?, ?)`,
+                [madrasah.id, s.id, phone, personalizedMsg, smsResult.status, smsResult.sid,
+                 group.indexOf(s) === 0 ? msgCredits : 0, adminId]
+              );
+            }
+            sent++;
+          } catch (smsError) {
+            for (const s of group) {
+              await pool.query(
+                `INSERT INTO sms_messages (madrasah_id, student_id, to_phone, message_body, message_type, status, error_message, credits_used, sent_by)
+                 VALUES (?, ?, ?, ?, 'attendance_alert', 'failed', ?, 0, ?)`,
+                [madrasah.id, s.id, phone, personalizedMsg, smsError.message, adminId]
+              );
+            }
+            failed++;
+            errors.push({ phone, error: smsError.message });
+          }
+        }
+
+        if (totalCreditsUsed > 0) {
+          await pool.query(
+            'UPDATE sms_credits SET balance = balance - ?, total_used = total_used + ? WHERE madrasah_id = ?',
+            [totalCreditsUsed, totalCreditsUsed, madrasah.id]
+          );
+        }
+
+        await pool.query(
+          'UPDATE madrasahs SET auto_attendance_alert_last_sent = ? WHERE id = ?',
+          [todayDate, madrasah.id]
+        );
+
+        console.log(`[Scheduler] ${madrasah.name}: ${sent} attendance alerts sent (${period}, threshold ${madrasah.auto_attendance_alert_threshold}), ${failed} failed, ${totalCreditsUsed} credits used`);
+
+        if (failed > 0) {
+          sendSmsFailureAlert(madrasah.name, failed, uniquePhones.length, errors).catch(console.error);
+        }
+      } catch (err) {
+        console.error(`[Scheduler] Auto attendance alert error for ${madrasah.name}:`, err.message);
+      }
+    }
+  } catch (error) {
+    if (error.code !== 'ER_BAD_FIELD_ERROR') {
+      console.error('[Scheduler] Auto attendance alerts error:', error.message);
+    }
+  }
+};
+
+/**
+ * Resolve the (start, end, label, sendOn) for a given period mode.
+ * sendOn = the date today must equal for the alert to fire (the boundary).
+ */
+async function resolveAttendancePeriodWindow(madrasahId, period, today) {
+  const fmt = (d) => d.toISOString().split('T')[0];
+
+  if (period === 'weekly') {
+    // Send every Monday for the previous Mon–Sun week
+    if (today.getDay() !== 1) return null;
+    const end = new Date(today); end.setDate(end.getDate() - 1); // yesterday (Sunday)
+    const start = new Date(end); start.setDate(start.getDate() - 6); // previous Monday
+    return { startDate: fmt(start), endDate: fmt(end), label: 'last week', sendOn: fmt(today) };
+  }
+
+  if (period === 'monthly') {
+    // Send on the 1st of each month for the previous full month
+    if (today.getDate() !== 1) return null;
+    const end = new Date(today); end.setDate(0); // last day of previous month
+    const start = new Date(end.getFullYear(), end.getMonth(), 1);
+    const monthLabel = end.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return { startDate: fmt(start), endDate: fmt(end), label: monthLabel, sendOn: fmt(today) };
+  }
+
+  if (period === 'semester') {
+    // Send the day after the active semester ends
+    const [rows] = await pool.query(`
+      SELECT sem.id, sem.name, sem.start_date, sem.end_date
+      FROM semesters sem
+      JOIN sessions s ON s.id = sem.session_id
+      WHERE s.madrasah_id = ? AND s.is_active = 1 AND s.deleted_at IS NULL AND sem.deleted_at IS NULL
+      ORDER BY sem.end_date DESC LIMIT 1
+    `, [madrasahId]);
+    if (rows.length === 0) return null;
+    const sem = rows[0];
+    const dayAfter = new Date(sem.end_date); dayAfter.setDate(dayAfter.getDate() + 1);
+    return { startDate: fmt(new Date(sem.start_date)), endDate: fmt(new Date(sem.end_date)), label: sem.name || 'this semester', sendOn: fmt(dayAfter) };
+  }
+
+  if (period === 'cohort_period') {
+    const [rows] = await pool.query(`
+      SELECT id, name, start_date, end_date
+      FROM cohort_periods
+      WHERE madrasah_id = ? AND deleted_at IS NULL
+      ORDER BY end_date DESC LIMIT 1
+    `, [madrasahId]);
+    if (rows.length === 0) return null;
+    const cp = rows[0];
+    const dayAfter = new Date(cp.end_date); dayAfter.setDate(dayAfter.getDate() + 1);
+    return { startDate: fmt(new Date(cp.start_date)), endDate: fmt(new Date(cp.end_date)), label: cp.name || 'this period', sendOn: fmt(dayAfter) };
+  }
+
+  return null;
+}
+
+/**
  * Start the scheduler with interval-based execution
  * @param {number} intervalHours - How often to run (default: 24 hours)
  */
@@ -351,6 +578,12 @@ export const startScheduler = (intervalHours = 24) => {
   processAutoFeeReminders().catch(console.error);
   setInterval(() => {
     processAutoFeeReminders().catch(console.error);
+  }, intervalMs);
+
+  // Auto attendance alerts — runs daily, fires on each period's natural boundary
+  processAutoAttendanceAlerts().catch(console.error);
+  setInterval(() => {
+    processAutoAttendanceAlerts().catch(console.error);
   }, intervalMs);
 };
 

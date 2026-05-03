@@ -2453,6 +2453,7 @@ router.get('/profile', async (req, res) => {
        , COALESCE(scheduling_mode, 'academic') as scheduling_mode
        , COALESCE(setup_complete, 0) as setup_complete
        , COALESCE(course_tracking_mode, 'student_progress') as course_tracking_mode
+       , auto_attendance_alert_enabled, auto_attendance_alert_period, auto_attendance_alert_threshold, auto_attendance_alert_message, auto_attendance_alert_last_sent
        FROM madrasahs WHERE id = ?`,
       [madrasahId]
     );
@@ -2567,6 +2568,26 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
       } catch {}
     }
 
+    // Auto attendance alert settings
+    if (typeof req.body.auto_attendance_alert_enabled === 'boolean') {
+      updates.push('auto_attendance_alert_enabled = ?');
+      params.push(req.body.auto_attendance_alert_enabled);
+    }
+    if (typeof req.body.auto_attendance_alert_period === 'string'
+        && ['weekly', 'monthly', 'semester', 'cohort_period'].includes(req.body.auto_attendance_alert_period)) {
+      updates.push('auto_attendance_alert_period = ?');
+      params.push(req.body.auto_attendance_alert_period);
+    }
+    if (typeof req.body.auto_attendance_alert_threshold === 'number'
+        && req.body.auto_attendance_alert_threshold >= 1 && req.body.auto_attendance_alert_threshold <= 30) {
+      updates.push('auto_attendance_alert_threshold = ?');
+      params.push(req.body.auto_attendance_alert_threshold);
+    }
+    if (typeof req.body.auto_attendance_alert_message === 'string') {
+      updates.push('auto_attendance_alert_message = ?');
+      params.push(req.body.auto_attendance_alert_message.substring(0, 1600));
+    }
+
     if (typeof availability_planner_aware === 'boolean') {
       try {
         await pool.query('SELECT availability_planner_aware FROM madrasahs LIMIT 0');
@@ -2591,7 +2612,7 @@ router.put('/settings', requireActiveSubscription, async (req, res) => {
     );
 
     // Return updated settings
-    let settingsCols = 'enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent, COALESCE(scheduling_mode, \'academic\') as scheduling_mode';
+    let settingsCols = 'enable_dressing_grade, enable_behavior_grade, enable_punctuality_grade, enable_learning_tracker, enable_fee_tracking, currency, fee_tracking_mode, fee_prorate_mid_period, auto_fee_reminder_enabled, auto_fee_reminder_message, auto_fee_reminder_day, auto_fee_reminder_last_sent, COALESCE(scheduling_mode, \'academic\') as scheduling_mode, auto_attendance_alert_enabled, auto_attendance_alert_period, auto_attendance_alert_threshold, auto_attendance_alert_message, auto_attendance_alert_last_sent';
     try {
       await pool.query('SELECT auto_fee_reminder_timing FROM madrasahs LIMIT 0');
       settingsCols += ', auto_fee_reminder_timing';

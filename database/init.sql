@@ -72,6 +72,12 @@ CREATE TABLE IF NOT EXISTS madrasahs (
     auto_fee_reminder_day TINYINT NOT NULL DEFAULT 1 COMMENT 'Day of month to send (1-28)',
     auto_fee_reminder_timing ENUM('day_of_month', 'semester_start') NOT NULL DEFAULT 'day_of_month',
     auto_fee_reminder_last_sent DATE NULL DEFAULT NULL,
+    -- Auto attendance alerts
+    auto_attendance_alert_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    auto_attendance_alert_period ENUM('weekly', 'monthly', 'semester', 'cohort_period') NOT NULL DEFAULT 'monthly',
+    auto_attendance_alert_threshold TINYINT UNSIGNED NOT NULL DEFAULT 3,
+    auto_attendance_alert_message TEXT NULL DEFAULT NULL,
+    auto_attendance_alert_last_sent DATE NULL DEFAULT NULL,
     -- Suspension
     suspended_at TIMESTAMP NULL DEFAULT NULL,
     suspended_reason TEXT NULL DEFAULT NULL,
@@ -1006,7 +1012,7 @@ CREATE TABLE IF NOT EXISTS sms_messages (
   student_id INT NULL,
   to_phone VARCHAR(20) NOT NULL,
   message_body TEXT NOT NULL,
-  message_type ENUM('fee_reminder', 'custom', 'announcement') DEFAULT 'custom',
+  message_type ENUM('fee_reminder', 'attendance_alert', 'custom', 'announcement') DEFAULT 'custom',
   status ENUM('queued', 'sent', 'delivered', 'failed', 'undelivered') DEFAULT 'queued',
   provider_message_id VARCHAR(50) NULL,
   error_message VARCHAR(255) NULL,

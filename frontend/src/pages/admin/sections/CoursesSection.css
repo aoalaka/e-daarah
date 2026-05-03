@@ -357,3 +357,110 @@
   background: #fef9c3;
   color: #713f12;
 }
+
+/* Unit tap card — like rollcall buttons but row-shaped */
+.cs-unit-tap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fafafa;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.05s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cs-unit-tap:active {
+  transform: scale(0.99);
+}
+
+.cs-unit-tap.taught {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.cs-unit-tap-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.cs-unit-tap-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cs-unit-tap-title {
+  font-weight: 500;
+  font-size: 14px;
+  color: #111827;
+}
+
+.cs-unit-tap-meta {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.cs-unit-tap-status {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border: 2px solid #e5e7eb;
+  background: #fff;
+  color: #cbd5e1;
+  transition: all 0.15s;
+}
+
+.cs-unit-tap.taught .cs-unit-tap-status {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+}
+
+.cs-unit-tap-saving {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Quick-mark icon button on per-student rows */
+.cs-unit-tap-quick {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 18px;
+  border: 1.5px solid #16a34a;
+  background: #fff;
+  color: #16a34a;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+.cs-unit-tap-quick:hover:not(:disabled) {
+  background: #16a34a;
+  color: #fff;
+}
+
+.cs-unit-tap-quick:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -199,6 +199,7 @@ function SoloDashboard() {
   const [showCourseProgressForm, setShowCourseProgressForm] = useState(false);
   const [courseTrackMode, setCourseTrackMode] = useState('class'); // 'class' or 'student'
   const [excludedStudentIds, setExcludedStudentIds] = useState([]);
+  const [savingUnitIds, setSavingUnitIds] = useState([]);
 
   // ─── Fees ────────────────────────────────────────
   const [feeSummary, setFeeSummary] = useState([]);
@@ -612,6 +613,51 @@ function SoloDashboard() {
       console.error('Failed to fetch course progress:', error);
     } finally {
       setCourseProgressLoading(false);
+    }
+  };
+
+  // Quick-mark every student as passed for a given unit (single-tap shortcut)
+  const quickMarkAllPassedSolo = async (unit) => {
+    if (!selectedClass || !selectedCourse) return;
+    const targetStudents = isFreePlan ? students : students.filter(s => s.class_id === selectedClass.id);
+    if (targetStudents.length === 0) return;
+
+    setSavingUnitIds(ids => [...ids, unit.id]);
+    try {
+      const params = {};
+      if (activeSemester?.id) params.semester_id = activeSemester.id;
+      const today = new Date().toISOString().slice(0, 10);
+
+      const responses = await Promise.all(targetStudents.map(s =>
+        api.post(`/solo/classes/${selectedClass.id}/courses/${selectedCourse.id}/progress`, {
+          unit_id: unit.id,
+          student_id: s.id,
+          date: today,
+          grade: 'Good',
+          passed: true,
+          notes: null,
+          ...params,
+        })
+      ));
+      const newIds = responses.map(r => r.data?.id).filter(Boolean);
+      toast.success(`Marked ${targetStudents.length} student${targetStudents.length === 1 ? '' : 's'} on "${unit.title}"`, {
+        action: newIds.length > 0 ? {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              await Promise.all(newIds.map(id => api.delete(`/solo/course-progress/${id}`)));
+              await fetchCourseProgress(selectedCourse.id);
+              toast.success('Undone');
+            } catch { toast.error('Undo failed'); }
+          },
+        } : undefined,
+        duration: 5000,
+      });
+      await fetchCourseProgress(selectedCourse.id);
+    } catch {
+      toast.error('Failed to save');
+    } finally {
+      setSavingUnitIds(ids => ids.filter(id => id !== unit.id));
     }
   };
 
@@ -3512,18 +3558,28 @@ function SoloDashboard() {
                                   {courseUnits.map((unit, idx) => {
                                     const unitRecords = courseProgress.filter(r => r.unit_id === unit.id);
                                     const lastRecord = unitRecords[0];
+                                    const isSaving = savingUnitIds.includes(unit.id);
+                                    const visibleStudents = isFreePlan ? students : students.filter(s => s.class_id === selectedClass?.id);
                                     return (
-                                      <div key={unit.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fafafa' }}>
-                                        <span style={{ flexShrink: 0, width: 24, height: 24, background: selectedCourse.colour || '#475569', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 600 }}>{idx+1}</span>
-                                        <div style={{ flex: 1 }}>
-                                          <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{unit.title}</div>
-                                          {lastRecord && (
-                                            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 2 }}>
-                                              Last: {lastRecord.first_name} {lastRecord.last_name} — {lastRecord.grade} — {lastRecord.date ? lastRecord.date.slice(0,10) : ''}
-                                            </div>
-                                          )}
+                                      <div key={unit.id} className="cs-unit-tap" style={{ cursor: 'default' }}>
+                                        <span className="cs-unit-tap-num" style={{ background: selectedCourse.colour || '#475569' }}>{idx + 1}</span>
+                                        <div className="cs-unit-tap-body">
+                                          <div className="cs-unit-tap-title">{unit.title}</div>
+                                          <div className="cs-unit-tap-meta">
+                                            {lastRecord
+                                              ? `Last: ${lastRecord.first_name} ${lastRecord.last_name} — ${lastRecord.grade} — ${lastRecord.date ? lastRecord.date.slice(0,10) : ''}`
+                                              : `${unitRecords.length} record${unitRecords.length !== 1 ? 's' : ''}`}
+                                          </div>
                                         </div>
-                                        <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>{unitRecords.length} record{unitRecords.length !== 1 ? 's' : ''}</span>
+                                        <button
+                                          type="button"
+                                          className="cs-unit-tap-quick"
+                                          disabled={isSaving || visibleStudents.length === 0}
+                                          onClick={() => quickMarkAllPassedSolo(unit)}
+                                          title={`Mark all ${visibleStudents.length} students as passed today`}
+                                        >
+                                          {isSaving ? '…' : `✓ Mark all (${visibleStudents.length})`}
+                                        </button>
                                       </div>
                                     );
                                   })}

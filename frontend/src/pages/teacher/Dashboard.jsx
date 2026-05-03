@@ -191,6 +191,7 @@ function TeacherDashboard() {
   const [excludedStudentIds, setExcludedStudentIds] = useState([]);
   const [progressHistoryPage, setProgressHistoryPage] = useState(1);
   const PROGRESS_HISTORY_PAGE_SIZE = 10;
+  const [savingUnitIds, setSavingUnitIds] = useState([]);
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
@@ -798,6 +799,95 @@ function TeacherDashboard() {
       setCourseUnits(res.data || []);
     } catch (error) {
       console.error('Failed to fetch course units:', error);
+    }
+  };
+
+  // Tap-to-toggle a unit in coverage mode. One tap = one POST + undo toast.
+  const tapCoverageUnit = async (unit) => {
+    if (!selectedClass || !selectedCourse) return;
+    const existing = courseProgress.find(r => r.unit_id === unit.id);
+
+    setSavingUnitIds(ids => [...ids, unit.id]);
+    try {
+      if (existing) {
+        // Already taught — confirm removal of the most recent record
+        await api.delete(`/teacher/coverage/${existing.id}`);
+        toast.success(`Removed "${unit.title}"`);
+        await fetchCourseProgress(selectedClass.id, selectedCourse.id);
+      } else {
+        const params = schedulingMode === 'cohort' && selectedCohortPeriod
+          ? { cohort_period_id: selectedCohortPeriod.id }
+          : activeSemester ? { semester_id: activeSemester.id } : {};
+        const today = (typeof getLocalDate === 'function') ? getLocalDate() : new Date().toISOString().slice(0, 10);
+        const res = await api.post(`/teacher/classes/${selectedClass.id}/courses/${selectedCourse.id}/coverage`, {
+          unit_id: unit.id,
+          date: today,
+          ...params,
+        });
+        const newId = res.data?.id;
+        toast.success(`Marked "${unit.title}" as taught`, {
+          action: newId ? {
+            label: 'Undo',
+            onClick: async () => {
+              try {
+                await api.delete(`/teacher/coverage/${newId}`);
+                await fetchCourseProgress(selectedClass.id, selectedCourse.id);
+                toast.success('Undone');
+              } catch { toast.error('Undo failed'); }
+            },
+          } : undefined,
+          duration: 5000,
+        });
+        await fetchCourseProgress(selectedClass.id, selectedCourse.id);
+      }
+    } catch {
+      toast.error('Failed to save');
+    } finally {
+      setSavingUnitIds(ids => ids.filter(id => id !== unit.id));
+    }
+  };
+
+  // Quick-mark all students passed for a unit (per-student mode shortcut).
+  const quickMarkAllPassed = async (unit) => {
+    if (!selectedClass || !selectedCourse || students.length === 0) return;
+
+    setSavingUnitIds(ids => [...ids, unit.id]);
+    try {
+      const params = schedulingMode === 'cohort' && selectedCohortPeriod
+        ? { cohort_period_id: selectedCohortPeriod.id }
+        : activeSemester ? { semester_id: activeSemester.id } : {};
+      const today = (typeof getLocalDate === 'function') ? getLocalDate() : new Date().toISOString().slice(0, 10);
+
+      const responses = await Promise.all(students.map(s =>
+        api.post(`/teacher/classes/${selectedClass.id}/courses/${selectedCourse.id}/progress`, {
+          unit_id: unit.id,
+          student_id: s.id,
+          date: today,
+          grade: 'Good',
+          passed: true,
+          notes: null,
+          ...params,
+        })
+      ));
+      const newIds = responses.map(r => r.data?.id).filter(Boolean);
+      toast.success(`Marked ${students.length} student${students.length === 1 ? '' : 's'} on "${unit.title}"`, {
+        action: newIds.length > 0 ? {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              await Promise.all(newIds.map(id => api.delete(`/teacher/course-progress/${id}`)));
+              await fetchCourseProgress(selectedClass.id, selectedCourse.id);
+              toast.success('Undone');
+            } catch { toast.error('Undo failed'); }
+          },
+        } : undefined,
+        duration: 5000,
+      });
+      await fetchCourseProgress(selectedClass.id, selectedCourse.id);
+    } catch {
+      toast.error('Failed to save');
+    } finally {
+      setSavingUnitIds(ids => ids.filter(id => id !== unit.id));
     }
   };
 
@@ -4014,20 +4104,27 @@ function TeacherDashboard() {
                         ) : (
                           <>
                             <div className="card" style={{ padding: 'var(--md)', marginBottom: 'var(--md)' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
                                 <h3 style={{ margin: 0, fontSize: '1rem' }}>{selectedCourse.name} — Units</h3>
-                                <button
-                                  className="btn btn-primary btn-sm"
-                                  onClick={() => {
-                                    setCourseProgressForm({ student_id: '', date: getLocalDate ? getLocalDate() : new Date().toISOString().slice(0,10), grade: 'Good', passed: true, notes: '' });
-                                    setSelectedCourseUnit(null);
-                                    setExcludedStudentIds([]);
-                                    setShowCourseProgressForm(true);
-                                  }}
-                                >
-                                  + Record Progress
-                                </button>
+                                {madrasahProfile?.course_tracking_mode !== 'class_coverage' && (
+                                  <button
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => {
+                                      setCourseProgressForm({ student_id: '', date: getLocalDate ? getLocalDate() : new Date().toISOString().slice(0,10), grade: 'Good', passed: true, notes: '' });
+                                      setSelectedCourseUnit(null);
+                                      setExcludedStudentIds([]);
+                                      setShowCourseProgressForm(true);
+                                    }}
+                                  >
+                                    + Detailed entry
+                                  </button>
+                                )}
                               </div>
+                              {madrasahProfile?.course_tracking_mode === 'class_coverage' ? (
+                                <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 12px' }}>Tap a unit when you've taught it. Tap again to undo.</p>
+                              ) : (
+                                <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 12px' }}>Tap "Mark all" to record every student as passed with grade Good. Use "Detailed entry" for individual grades or repeats.</p>
+                              )}
 
                               {/* Record progress form */}
                               {showCourseProgressForm && madrasahProfile?.course_tracking_mode === 'class_coverage' ? (
@@ -4238,33 +4335,66 @@ function TeacherDashboard() {
                                 </div>
                               )}
 
-                              {/* Units list */}
+                              {/* Units list — tap to mark in coverage mode, quick-mark button in per-student mode */}
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {courseUnits.map((unit, idx) => {
+                                {(() => {
                                   const isCoverage = madrasahProfile?.course_tracking_mode === 'class_coverage';
-                                  const unitRecords = courseProgress.filter(r => r.unit_id === unit.id);
-                                  const lastRecord = unitRecords[0];
-                                  return (
-                                    <div key={unit.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fafafa' }}>
-                                      <span style={{ flexShrink: 0, width: 24, height: 24, background: selectedCourse.colour || '#475569', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 600 }}>{idx+1}</span>
-                                      <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{unit.title}</div>
-                                        {lastRecord && (
-                                          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 2 }}>
-                                            {isCoverage
-                                              ? `Last taught ${lastRecord.date ? lastRecord.date.slice(0,10) : ''}${lastRecord.recorder_first ? ` by ${lastRecord.recorder_first} ${lastRecord.recorder_last || ''}` : ''}`
-                                              : `Last: ${lastRecord.first_name} ${lastRecord.last_name} — ${lastRecord.grade} — ${lastRecord.date ? lastRecord.date.slice(0,10) : ''}`}
+                                  return courseUnits.map((unit, idx) => {
+                                    const unitRecords = courseProgress.filter(r => r.unit_id === unit.id);
+                                    const lastRecord = unitRecords[0];
+                                    const isTaught = unitRecords.length > 0;
+                                    const isSaving = savingUnitIds.includes(unit.id);
+
+                                    if (isCoverage) {
+                                      return (
+                                        <button
+                                          key={unit.id}
+                                          type="button"
+                                          className={`cs-unit-tap ${isTaught ? 'taught' : ''} ${isSaving ? 'cs-unit-tap-saving' : ''}`}
+                                          disabled={isSaving}
+                                          onClick={() => tapCoverageUnit(unit)}
+                                        >
+                                          <span className="cs-unit-tap-num" style={{ background: selectedCourse.colour || '#475569' }}>{idx + 1}</span>
+                                          <div className="cs-unit-tap-body">
+                                            <div className="cs-unit-tap-title">{unit.title}</div>
+                                            <div className="cs-unit-tap-meta">
+                                              {lastRecord
+                                                ? `Last taught ${lastRecord.date ? lastRecord.date.slice(0,10) : ''}${lastRecord.recorder_first ? ` by ${lastRecord.recorder_first} ${lastRecord.recorder_last || ''}` : ''}`
+                                                : 'Tap to mark as taught'}
+                                            </div>
                                           </div>
-                                        )}
+                                          <span className="cs-unit-tap-status" aria-label={isTaught ? 'Taught — tap to remove' : 'Not yet — tap to mark'}>
+                                            {isTaught ? '✓' : ''}
+                                          </span>
+                                        </button>
+                                      );
+                                    }
+
+                                    // Per-student mode — show metadata + quick-mark-all button
+                                    return (
+                                      <div key={unit.id} className="cs-unit-tap" style={{ cursor: 'default' }}>
+                                        <span className="cs-unit-tap-num" style={{ background: selectedCourse.colour || '#475569' }}>{idx + 1}</span>
+                                        <div className="cs-unit-tap-body">
+                                          <div className="cs-unit-tap-title">{unit.title}</div>
+                                          <div className="cs-unit-tap-meta">
+                                            {lastRecord
+                                              ? `Last: ${lastRecord.first_name} ${lastRecord.last_name} — ${lastRecord.grade} — ${lastRecord.date ? lastRecord.date.slice(0,10) : ''}`
+                                              : `${unitRecords.length} record${unitRecords.length !== 1 ? 's' : ''}`}
+                                          </div>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          className="cs-unit-tap-quick"
+                                          disabled={isSaving || students.length === 0}
+                                          onClick={() => quickMarkAllPassed(unit)}
+                                          title={`Mark all ${students.length} students as passed today`}
+                                        >
+                                          {isSaving ? '…' : `✓ Mark all (${students.length})`}
+                                        </button>
                                       </div>
-                                      <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>
-                                        {isCoverage
-                                          ? (unitRecords.length > 0 ? '✓ taught' : 'not yet')
-                                          : `${unitRecords.length} record${unitRecords.length !== 1 ? 's' : ''}`}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
+                                    );
+                                  });
+                                })()}
                               </div>
                             </div>
 

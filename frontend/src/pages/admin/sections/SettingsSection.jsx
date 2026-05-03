@@ -669,24 +669,6 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
               </p>
             </div>
             <div>
-              <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Verification Status</label>
-              <p style={{ margin: '4px 0 0 0' }}>
-                <span style={{
-                  display: 'inline-block',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  backgroundColor: madrasahProfile.verification_status === 'fully_verified' ? '#f5f5f5' :
-                    madrasahProfile.verification_status === 'basic_verified' ? '#f5f5f5' : '#f5f5f5',
-                  color: madrasahProfile.verification_status === 'fully_verified' ? '#404040' :
-                    madrasahProfile.verification_status === 'basic_verified' ? '#525252' : '#737373'
-                }}>
-                  {madrasahProfile.verification_status?.replace(/_/g, ' ') || 'Unverified'}
-                </span>
-              </p>
-            </div>
-            <div>
               <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Trial Ends</label>
               <p style={{ margin: '4px 0 0 0' }}>
                 {madrasahProfile.trial_ends_at

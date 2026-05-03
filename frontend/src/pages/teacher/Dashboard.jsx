@@ -188,6 +188,8 @@ function TeacherDashboard() {
   const [showCourseProgressForm, setShowCourseProgressForm] = useState(false);
   const [courseTrackMode, setCourseTrackMode] = useState('class'); // 'class' or 'student'
   const [excludedStudentIds, setExcludedStudentIds] = useState([]);
+  const [progressHistoryPage, setProgressHistoryPage] = useState(1);
+  const PROGRESS_HISTORY_PAGE_SIZE = 10;
   const user = authService.getCurrentUser();
   const { madrasahSlug } = useParams();
 
@@ -802,6 +804,7 @@ function TeacherDashboard() {
     if (!classId || !courseId) return;
     try {
       setCourseProgressLoading(true);
+      setProgressHistoryPage(1);
       const params = schedulingMode === 'cohort' && selectedCohortPeriod
         ? { cohort_period_id: selectedCohortPeriod.id }
         : activeSemester ? { semester_id: activeSemester.id } : {};
@@ -4275,7 +4278,11 @@ function TeacherDashboard() {
                             {/* Progress history */}
                             {courseProgressLoading ? (
                               <div style={{ textAlign: 'center', padding: 'var(--lg)' }}>Loading...</div>
-                            ) : courseProgress.length > 0 && (
+                            ) : courseProgress.length > 0 && (() => {
+                              const totalPages = Math.max(1, Math.ceil(courseProgress.length / PROGRESS_HISTORY_PAGE_SIZE));
+                              const page = Math.min(progressHistoryPage, totalPages);
+                              const pageRows = courseProgress.slice((page - 1) * PROGRESS_HISTORY_PAGE_SIZE, page * PROGRESS_HISTORY_PAGE_SIZE);
+                              return (
                               <div className="card" style={{ padding: 'var(--md)' }}>
                                 <h3 style={{ margin: '0 0 12px', fontSize: '1rem' }}>Progress History</h3>
                                 <table className="cs-history-table">
@@ -4289,7 +4296,7 @@ function TeacherDashboard() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {courseProgress.map(r => (
+                                    {pageRows.map(r => (
                                       <tr key={r.id}>
                                         <td style={{ color: '#6b7280' }}>{r.date ? r.date.slice(0,10) : ''}</td>
                                         <td>{r.first_name} {r.last_name}</td>
@@ -4305,7 +4312,7 @@ function TeacherDashboard() {
                                   </tbody>
                                 </table>
                                 <div className="cs-history-cards">
-                                  {courseProgress.map(r => (
+                                  {pageRows.map(r => (
                                     <div key={r.id} className="cs-history-card">
                                       <div className="cs-history-card-top">
                                         <span className="cs-history-card-name">{r.first_name} {r.last_name}</span>
@@ -4321,8 +4328,16 @@ function TeacherDashboard() {
                                     </div>
                                   ))}
                                 </div>
+                                {totalPages > 1 && (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 12, fontSize: 13, borderTop: '1px solid #f3f4f6', marginTop: 12 }}>
+                                    <button className="btn btn-sm btn-secondary" disabled={page === 1} onClick={() => setProgressHistoryPage(page - 1)}>Prev</button>
+                                    <span style={{ color: '#6b7280' }}>Showing {(page - 1) * PROGRESS_HISTORY_PAGE_SIZE + 1}–{Math.min(page * PROGRESS_HISTORY_PAGE_SIZE, courseProgress.length)} of {courseProgress.length}</span>
+                                    <button className="btn btn-sm btn-secondary" disabled={page === totalPages} onClick={() => setProgressHistoryPage(page + 1)}>Next</button>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                              );
+                            })()}
                           </>
                         )}
                       </>

@@ -1212,6 +1212,78 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       // Table may not exist yet on old DB instances — return empty gracefully
     }
 
+    // Course positions — derived from records + class coverage. One per course the student
+    // has touched (either via per-student records or via the class teaching the course).
+    let coursePositions = [];
+    try {
+      // Collect candidate courses: those linked to the student's class
+      const [linkedCourses] = await pool.query(
+        `SELECT c.id, c.name, c.colour
+         FROM courses c
+         JOIN course_classes cc ON cc.course_id = c.id
+         WHERE cc.class_id = ? AND c.madrasah_id = ? AND c.deleted_at IS NULL AND c.is_active = TRUE
+         ORDER BY c.display_order ASC, c.name ASC`,
+        [student.class_id || 0, student.madrasah_id]
+      );
+
+      for (const course of linkedCourses) {
+        const [units] = await pool.query(
+          'SELECT id, title, display_order FROM course_units WHERE course_id = ? AND deleted_at IS NULL ORDER BY display_order ASC, id ASC',
+          [course.id]
+        );
+        if (units.length === 0) continue;
+
+        // Furthest passed unit by this student
+        const studentRecords = courseProgressRecords.filter(r => r.course_id === course.id && r.passed);
+        let furthestUnit = null;
+        for (const r of studentRecords) {
+          const u = units.find(x => x.id === r.unit_id);
+          if (u && (!furthestUnit || u.display_order > furthestUnit.display_order)) {
+            furthestUnit = u;
+          }
+        }
+
+        // Latest unit the class has covered (covers class_coverage mode)
+        let coverageRows = [];
+        try {
+          const [cov] = await pool.query(
+            `SELECT cuc.unit_id, cuc.date, cu.display_order, cu.title
+             FROM course_unit_coverage cuc
+             JOIN course_units cu ON cu.id = cuc.unit_id
+             WHERE cuc.course_id = ? AND cuc.class_id = ? AND cuc.madrasah_id = ? AND cuc.deleted_at IS NULL
+             ORDER BY cu.display_order DESC, cuc.date DESC LIMIT 1`,
+            [course.id, student.class_id || 0, student.madrasah_id]
+          );
+          coverageRows = cov;
+        } catch (e) { /* table may not exist */ }
+
+        const classFurthest = coverageRows[0] || null;
+
+        // Pick the more advanced of the two
+        let position = null;
+        if (furthestUnit && classFurthest) {
+          position = furthestUnit.display_order >= classFurthest.display_order ? furthestUnit : classFurthest;
+        } else {
+          position = furthestUnit || classFurthest;
+        }
+
+        if (position) {
+          const unitMeta = units.find(u => u.id === position.unit_id || u.id === position.id);
+          coursePositions.push({
+            course_id: course.id,
+            course_name: course.name,
+            course_colour: course.colour,
+            current_unit_id: position.unit_id || position.id,
+            current_unit_title: position.title || unitMeta?.title || '',
+            current_unit_order: position.display_order || unitMeta?.display_order || 1,
+            total_units: units.length,
+          });
+        }
+      }
+    } catch (e) {
+      // Best-effort — leave empty if anything fails
+    }
+
     res.json({
       student,
       madrasah: madrasahProfile[0] || {},
@@ -1238,7 +1310,8 @@ router.get('/parent/report', authenticateToken, async (req, res) => {
       },
       quranProgress,
       quranPosition: quranPosition[0] || null,
-      courseProgress: courseProgressRecords
+      courseProgress: courseProgressRecords,
+      coursePositions
     });
   } catch (error) {
     console.error('Error fetching parent report:', error);

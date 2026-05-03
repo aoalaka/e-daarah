@@ -5219,12 +5219,23 @@ router.get('/courses/:courseId/report', requireActiveSubscription, async (req, r
       };
     });
 
+    // Class current position = the furthest unit either taught or with student records
+    let classCurrentUnit = null;
+    for (const u of unitStats) {
+      if (u.was_taught) {
+        if (!classCurrentUnit || u.display_order > classCurrentUnit.display_order) {
+          classCurrentUnit = { id: u.id, title: u.title, display_order: u.display_order };
+        }
+      }
+    }
+
     res.json({
       course,
       units,
       total_students: totalStudents,
       unit_stats: unitStats,
       student_matrix: studentMatrix,
+      class_current_unit: classCurrentUnit,
     });
   } catch (error) {
     console.error('Course report error:', error);

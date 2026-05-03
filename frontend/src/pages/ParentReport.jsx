@@ -49,6 +49,9 @@ function ParentReport() {
   const [quranProgress, setQuranProgress] = useState([]);
   const [quranPosition, setQuranPosition] = useState(null);
   const [courseProgress, setCourseProgress] = useState([]);
+  const [coursePositions, setCoursePositions] = useState([]);
+  const [coursePages, setCoursePages] = useState({});
+  const COURSE_PAGE_SIZE = 10;
 
   // Initialize: check auth, load children
   useEffect(() => {
@@ -145,6 +148,8 @@ function ParentReport() {
       setQuranProgress(data.quranProgress || []);
       setQuranPosition(data.quranPosition || null);
       setCourseProgress(data.courseProgress || []);
+      setCoursePositions(data.coursePositions || []);
+      setCoursePages({});
 
       // Detect scheduling mode from madrasah profile
       const mode = data.madrasah?.scheduling_mode || 'academic';
@@ -393,7 +398,7 @@ function ParentReport() {
 
                 {/* Learning Progress — Qur'an + Courses */}
                 {(madrasah?.enable_learning_tracker !== 0 && madrasah?.enable_learning_tracker !== false) &&
-                  (quranProgress.length > 0 || quranPosition || courseProgress.length > 0) && (
+                  (quranProgress.length > 0 || quranPosition || courseProgress.length > 0 || coursePositions.length > 0) && (
                   <div className="exam-detail-section">
                     <h3 className="section-title">Learning Progress</h3>
                     <div className="exam-subjects">
@@ -441,38 +446,78 @@ function ParentReport() {
                       )}
 
                       {/* Course blocks */}
-                      {courseProgress.length > 0 && (() => {
+                      {(courseProgress.length > 0 || coursePositions.length > 0) && (() => {
                         const byCourse = courseProgress.reduce((acc, r) => {
-                          const key = r.course_name;
-                          if (!acc[key]) acc[key] = { colour: r.course_colour, records: [] };
+                          const key = r.course_id;
+                          if (!acc[key]) acc[key] = { name: r.course_name, colour: r.course_colour, records: [] };
                           acc[key].records.push(r);
                           return acc;
                         }, {});
-                        return Object.entries(byCourse).map(([courseName, { colour, records }]) => (
-                          <div key={courseName} className="subject-block">
-                            <div className="subject-header">
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span className="subject-dot" style={{ background: colour || '#475569' }} />
-                                <span style={{ fontWeight: 600, fontSize: '14px', color: '#0a0a0a' }}>{courseName}</span>
-                              </div>
-                            </div>
-                            <div className="exam-table">
-                              <div className="exam-table-header course-grid-4">
-                                <span>Date</span><span>Unit</span><span>Grade</span><span>Outcome</span>
-                              </div>
-                              {records.map(r => (
-                                <div key={r.id} className="exam-table-row course-grid-4">
-                                  <span className="exam-date">{fmtDate(r.date)}</span>
-                                  <span>{r.unit_title}</span>
-                                  <span className={`grade-badge grade-${r.grade?.toLowerCase().replace(' ', '-')}`}>{r.grade}</span>
-                                  <span className={`outcome-badge ${r.passed ? 'outcome-pass' : 'outcome-repeat'}`}>
-                                    {r.passed ? 'Pass' : 'Repeat'}
-                                  </span>
+                        // Also include courses with a position but no records yet
+                        coursePositions.forEach(p => {
+                          if (!byCourse[p.course_id]) {
+                            byCourse[p.course_id] = { name: p.course_name, colour: p.course_colour, records: [] };
+                          }
+                        });
+                        return Object.entries(byCourse).map(([courseId, { name, colour, records }]) => {
+                          const position = coursePositions.find(p => p.course_id === parseInt(courseId));
+                          const currentPage = coursePages[courseId] || 1;
+                          const totalPages = Math.max(1, Math.ceil(records.length / COURSE_PAGE_SIZE));
+                          const pageRecords = records.slice((currentPage - 1) * COURSE_PAGE_SIZE, currentPage * COURSE_PAGE_SIZE);
+                          return (
+                            <div key={courseId} className="subject-block">
+                              <div className="subject-header">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span className="subject-dot" style={{ background: colour || '#475569' }} />
+                                  <span style={{ fontWeight: 600, fontSize: '14px', color: '#0a0a0a' }}>{name}</span>
                                 </div>
-                              ))}
+                                {position && (
+                                  <div className="quran-position-banner">
+                                    <span className="quran-position-track">Current unit</span>
+                                    <span className="quran-position-value">
+                                      {position.current_unit_order}. {position.current_unit_title}
+                                      <span className="quran-position-juz">{position.current_unit_order} of {position.total_units}</span>
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              {records.length > 0 && (
+                                <>
+                                  <div className="exam-table">
+                                    <div className="exam-table-header course-grid-4">
+                                      <span>Date</span><span>Unit</span><span>Grade</span><span>Outcome</span>
+                                    </div>
+                                    {pageRecords.map(r => (
+                                      <div key={r.id} className="exam-table-row course-grid-4">
+                                        <span className="exam-date">{fmtDate(r.date)}</span>
+                                        <span>{r.unit_title}</span>
+                                        <span className={`grade-badge grade-${r.grade?.toLowerCase().replace(' ', '-')}`}>{r.grade}</span>
+                                        <span className={`outcome-badge ${r.passed ? 'outcome-pass' : 'outcome-repeat'}`}>
+                                          {r.passed ? 'Pass' : 'Repeat'}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {totalPages > 1 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '10px 0', fontSize: 12 }}>
+                                      <button
+                                        className="btn btn-sm btn-secondary"
+                                        disabled={currentPage === 1}
+                                        onClick={() => setCoursePages(p => ({ ...p, [courseId]: currentPage - 1 }))}
+                                      >Prev</button>
+                                      <span style={{ color: '#6b7280' }}>Page {currentPage} of {totalPages}</span>
+                                      <button
+                                        className="btn btn-sm btn-secondary"
+                                        disabled={currentPage === totalPages}
+                                        onClick={() => setCoursePages(p => ({ ...p, [courseId]: currentPage + 1 }))}
+                                      >Next</button>
+                                    </div>
+                                  )}
+                                </>
+                              )}
                             </div>
-                          </div>
-                        ));
+                          );
+                        });
                       })()}
 
                     </div>

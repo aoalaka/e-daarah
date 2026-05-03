@@ -82,6 +82,8 @@ function ReportsSection({
   const [courseReportData, setCourseReportData] = useState(null);
   const [courseReportLoading, setCourseReportLoading] = useState(false);
   const [courseReportView, setCourseReportView] = useState('coverage'); // 'coverage' or 'matrix'
+  const [matrixPage, setMatrixPage] = useState(1);
+  const MATRIX_PAGE_SIZE = 10;
 
   const fetchCoursesList = async () => {
     try {
@@ -98,6 +100,7 @@ function ReportsSection({
       return;
     }
     setCourseReportLoading(true);
+    setMatrixPage(1);
     try {
       const res = await api.get(`/admin/courses/${courseId}/report?class_id=${classId}`);
       setCourseReportData(res.data);
@@ -3113,6 +3116,21 @@ function ReportsSection({
                     <div className="empty">Select a class and course to generate the report.</div>
                   ) : (
                     <>
+                      {/* Class current position banner */}
+                      {courseReportData.class_current_unit && (
+                        <div className="card" style={{ marginBottom: 16, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, borderLeft: `4px solid ${courseReportData.course.colour || '#0d9488'}` }}>
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Class current unit</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)', marginTop: 2 }}>
+                              {courseReportData.class_current_unit.display_order}. {courseReportData.class_current_unit.title}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                            {courseReportData.class_current_unit.display_order} of {courseReportData.units.length} units
+                          </div>
+                        </div>
+                      )}
+
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
                         <div className="card" style={{ textAlign: 'center', padding: '16px' }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Students</div>
@@ -3157,46 +3175,63 @@ function ReportsSection({
                             ))}
                           </div>
                         </div>
-                      ) : (
-                        <div className="card" style={{ padding: 0, overflow: 'auto' }}>
-                          <div className="card-header">Student progress matrix</div>
-                          {courseReportData.student_matrix.length === 0 ? (
-                            <div className="empty" style={{ padding: '24px' }}>No students in this class.</div>
-                          ) : (
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                              <thead>
-                                <tr style={{ background: 'var(--bg)' }}>
-                                  <th style={{ position: 'sticky', left: 0, background: 'var(--bg)', padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--light)', minWidth: 140 }}>Student</th>
-                                  {courseReportData.units.map((u, idx) => (
-                                    <th key={u.id} title={u.title} style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--light)', minWidth: 36 }}>{idx + 1}</th>
-                                  ))}
-                                  <th style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--light)' }}>Passed</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {courseReportData.student_matrix.map(s => (
-                                  <tr key={s.id}>
-                                    <td style={{ position: 'sticky', left: 0, background: '#fff', padding: '8px 12px', fontWeight: 500, borderBottom: '1px solid var(--lighter)' }}>{s.first_name} {s.last_name}</td>
-                                    {courseReportData.units.map(u => {
-                                      const passed = s.passed_unit_ids.includes(u.id);
-                                      return (
-                                        <td key={u.id} style={{ padding: '6px', textAlign: 'center', borderBottom: '1px solid var(--lighter)' }}>
-                                          {passed
-                                            ? <span style={{ color: '#166534', fontSize: 14 }}>✓</span>
-                                            : <span style={{ color: '#cbd5e1', fontSize: 14 }}>—</span>}
-                                        </td>
-                                      );
-                                    })}
-                                    <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600, color: s.passed_count === courseReportData.units.length ? '#166534' : 'var(--text-primary)', borderBottom: '1px solid var(--lighter)' }}>
-                                      {s.passed_count} / {courseReportData.units.length}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          )}
-                        </div>
-                      )}
+                      ) : (() => {
+                        const matrix = courseReportData.student_matrix;
+                        const totalPages = Math.max(1, Math.ceil(matrix.length / MATRIX_PAGE_SIZE));
+                        const page = Math.min(matrixPage, totalPages);
+                        const pageRows = matrix.slice((page - 1) * MATRIX_PAGE_SIZE, page * MATRIX_PAGE_SIZE);
+                        return (
+                          <div className="card" style={{ padding: 0 }}>
+                            <div className="card-header">Student progress matrix</div>
+                            {matrix.length === 0 ? (
+                              <div className="empty" style={{ padding: '24px' }}>No students in this class.</div>
+                            ) : (
+                              <>
+                                <div style={{ overflow: 'auto' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                                    <thead>
+                                      <tr style={{ background: 'var(--bg)' }}>
+                                        <th style={{ position: 'sticky', left: 0, background: 'var(--bg)', padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--light)', minWidth: 140 }}>Student</th>
+                                        {courseReportData.units.map((u, idx) => (
+                                          <th key={u.id} title={u.title} style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--light)', minWidth: 36 }}>{idx + 1}</th>
+                                        ))}
+                                        <th style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--light)' }}>Passed</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {pageRows.map(s => (
+                                        <tr key={s.id}>
+                                          <td style={{ position: 'sticky', left: 0, background: '#fff', padding: '8px 12px', fontWeight: 500, borderBottom: '1px solid var(--lighter)' }}>{s.first_name} {s.last_name}</td>
+                                          {courseReportData.units.map(u => {
+                                            const passed = s.passed_unit_ids.includes(u.id);
+                                            return (
+                                              <td key={u.id} style={{ padding: '6px', textAlign: 'center', borderBottom: '1px solid var(--lighter)' }}>
+                                                {passed
+                                                  ? <span style={{ color: '#166534', fontSize: 14 }}>✓</span>
+                                                  : <span style={{ color: '#cbd5e1', fontSize: 14 }}>—</span>}
+                                              </td>
+                                            );
+                                          })}
+                                          <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: 600, color: s.passed_count === courseReportData.units.length ? '#166534' : 'var(--text-primary)', borderBottom: '1px solid var(--lighter)' }}>
+                                            {s.passed_count} / {courseReportData.units.length}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                                {totalPages > 1 && (
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '12px 16px', borderTop: '1px solid var(--light)', fontSize: 13 }}>
+                                    <button className="btn btn-sm btn-secondary" disabled={page === 1} onClick={() => setMatrixPage(page - 1)}>Prev</button>
+                                    <span style={{ color: 'var(--muted)' }}>Showing {(page - 1) * MATRIX_PAGE_SIZE + 1}–{Math.min(page * MATRIX_PAGE_SIZE, matrix.length)} of {matrix.length}</span>
+                                    <button className="btn btn-sm btn-secondary" disabled={page === totalPages} onClick={() => setMatrixPage(page + 1)}>Next</button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </>
                   )}
                 </>

@@ -1,0 +1,202 @@
+/* AutoReminderCard — mobile-first card with prominent enable/disable button */
+
+.arc-card {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.arc-card.arc-active {
+  border-width: 1.5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.arc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.arc-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.arc-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.arc-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.arc-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.arc-status-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.arc-description {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+/* Enable/disable button — bigger, clearer than a checkbox */
+.arc-toggle-btn {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  border-radius: 22px;
+  border: 1.5px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 40px;
+  min-width: 90px;
+  transition: all 0.15s;
+}
+
+.arc-toggle-btn:hover:not(:disabled) {
+  border-color: #94a3b8;
+}
+
+.arc-toggle-btn.on {
+  color: #fff;
+  border-color: transparent;
+}
+
+.arc-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.arc-body {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.arc-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.arc-field .form-label {
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.arc-field-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.arc-variables {
+  font-size: 11px;
+  color: #6b7280;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+}
+
+.arc-variables code {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  background: #f3f4f6;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #374151;
+}
+
+.arc-char-count {
+  font-size: 11px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.arc-char-count.warn {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.arc-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.arc-last-sent {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Inner config rows that AutoReminderCard parents (period, threshold pickers) can use */
+.arc-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.arc-row-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.arc-row-inline .form-label {
+  margin: 0;
+}
+
+@media (max-width: 540px) {
+  .arc-card {
+    padding: 14px;
+  }
+  .arc-toggle-btn {
+    padding: 10px 14px;
+    min-width: 80px;
+  }
+  .arc-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .arc-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .arc-last-sent {
+    text-align: center;
+    padding-top: 4px;
+  }
+}

@@ -103,43 +103,48 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Get dashboard stats
+// Get dashboard stats — all metrics exclude demo madrasahs
 router.get('/dashboard', authenticateSuperAdmin, async (req, res) => {
   try {
-    // Total madrasahs
+    // Total madrasahs (excludes demo)
     const [[{ totalMadrasahs }]] = await pool.query(
-      'SELECT COUNT(*) as totalMadrasahs FROM madrasahs WHERE deleted_at IS NULL'
+      'SELECT COUNT(*) as totalMadrasahs FROM madrasahs WHERE deleted_at IS NULL AND is_demo = FALSE'
     );
 
-    // Active madrasahs
+    // Active madrasahs (excludes demo)
     const [[{ activeMadrasahs }]] = await pool.query(
-      'SELECT COUNT(*) as activeMadrasahs FROM madrasahs WHERE is_active = TRUE AND deleted_at IS NULL'
+      'SELECT COUNT(*) as activeMadrasahs FROM madrasahs WHERE is_active = TRUE AND deleted_at IS NULL AND is_demo = FALSE'
     );
 
-    // Total users
-    const [[{ totalUsers }]] = await pool.query(
-      'SELECT COUNT(*) as totalUsers FROM users WHERE deleted_at IS NULL'
-    );
+    // Total users (excludes users belonging to demo madrasahs)
+    const [[{ totalUsers }]] = await pool.query(`
+      SELECT COUNT(*) as totalUsers FROM users u
+      JOIN madrasahs m ON m.id = u.madrasah_id
+      WHERE u.deleted_at IS NULL AND m.is_demo = FALSE AND m.deleted_at IS NULL
+    `);
 
-    // Total students
-    const [[{ totalStudents }]] = await pool.query(
-      'SELECT COUNT(*) as totalStudents FROM students WHERE deleted_at IS NULL'
-    );
+    // Total students (excludes students belonging to demo madrasahs)
+    const [[{ totalStudents }]] = await pool.query(`
+      SELECT COUNT(*) as totalStudents FROM students s
+      JOIN madrasahs m ON m.id = s.madrasah_id
+      WHERE s.deleted_at IS NULL AND m.is_demo = FALSE AND m.deleted_at IS NULL
+    `);
 
-    // Recent registrations (last 7 days)
+    // Recent registrations (last 7 days, excludes demo)
     const [[{ recentRegistrations }]] = await pool.query(
-      'SELECT COUNT(*) as recentRegistrations FROM madrasahs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND deleted_at IS NULL'
+      `SELECT COUNT(*) as recentRegistrations FROM madrasahs
+       WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND deleted_at IS NULL AND is_demo = FALSE`
     );
 
-    // Madrasahs by plan
+    // Madrasahs by plan (excludes demo)
     const [planStats] = await pool.query(
       `SELECT pricing_plan, COUNT(*) as count
        FROM madrasahs
-       WHERE deleted_at IS NULL
+       WHERE deleted_at IS NULL AND is_demo = FALSE
        GROUP BY pricing_plan`
     );
 
-    // MRR quick calculation — exclude demo madrasahs (list-price estimate, does not reflect coupons)
+    // MRR quick calculation — list-price estimate, does not reflect coupons
     const [[{ mrr }]] = await pool.query(`
       SELECT COALESCE(SUM(CASE
         WHEN pricing_plan = 'solo' AND subscription_status = 'active' THEN 5
@@ -147,16 +152,16 @@ router.get('/dashboard', authenticateSuperAdmin, async (req, res) => {
         WHEN pricing_plan = 'plus' AND subscription_status = 'active' THEN 29
         ELSE 0
       END), 0) as mrr
-      FROM madrasahs WHERE deleted_at IS NULL AND slug NOT LIKE '%-demo'
+      FROM madrasahs WHERE deleted_at IS NULL AND is_demo = FALSE
     `);
 
-    // Active this week (at least one user logged in last 7 days)
+    // Active this week (excludes demo)
     const [[{ activeThisWeek }]] = await pool.query(`
       SELECT COUNT(DISTINCT m.id) as activeThisWeek
       FROM madrasahs m
       JOIN users u ON u.madrasah_id = m.id
       WHERE u.last_login_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-        AND m.deleted_at IS NULL
+        AND m.deleted_at IS NULL AND m.is_demo = FALSE
     `);
 
     // SMS revenue (total completed SMS credit purchases)
@@ -190,13 +195,59 @@ router.get('/dashboard', authenticateSuperAdmin, async (req, res) => {
   }
 });
 
-// List all madrasahs
+// Growth metrics — time-series for charts on the overview tab
+// All series exclude demo madrasahs.
+router.get('/growth-metrics', authenticateSuperAdmin, async (req, res) => {
+  try {
+    // Weekly signups (last 12 weeks)
+    const [weeklySignups] = await pool.query(`
+      SELECT
+        DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d') as week_start,
+        COUNT(*) as signups
+      FROM madrasahs
+      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 12 WEEK)
+        AND deleted_at IS NULL AND is_demo = FALSE
+      GROUP BY week_start
+      ORDER BY week_start
+    `);
+
+    // MRR snapshot per month (estimate from current plans only — historical billing not tracked)
+    // For now, the growth-trend bar chart already covers monthly signups; this endpoint also
+    // exposes a plan distribution suited for a pie chart.
+    const [planPie] = await pool.query(`
+      SELECT pricing_plan, COUNT(*) as count
+      FROM madrasahs
+      WHERE deleted_at IS NULL AND is_demo = FALSE AND subscription_status IN ('active', 'trialing')
+      GROUP BY pricing_plan
+      ORDER BY count DESC
+    `);
+
+    // Active schools per week (last 12 weeks) — counts unique madrasahs whose users logged in that week
+    const [activeWeekly] = await pool.query(`
+      SELECT
+        DATE_FORMAT(DATE_SUB(u.last_login_at, INTERVAL WEEKDAY(u.last_login_at) DAY), '%Y-%m-%d') as week_start,
+        COUNT(DISTINCT m.id) as active_schools
+      FROM madrasahs m
+      JOIN users u ON u.madrasah_id = m.id
+      WHERE u.last_login_at >= DATE_SUB(NOW(), INTERVAL 12 WEEK)
+        AND m.deleted_at IS NULL AND m.is_demo = FALSE
+      GROUP BY week_start
+      ORDER BY week_start
+    `);
+
+    res.json({ weeklySignups, planPie, activeWeekly });
+  } catch (error) {
+    console.error('Growth metrics error:', error);
+    res.status(500).json({ error: 'Failed to fetch growth metrics' });
+  }
+});
+
+// List all madrasahs (excludes demo by default — pass include_demo=true to see them)
 router.get('/madrasahs', authenticateSuperAdmin, async (req, res) => {
   try {
-    const { status, plan, search, page = 1, limit = 20 } = req.query;
+    const { status, plan, search, page = 1, limit = 20, include_demo, include_deleted } = req.query;
     const offset = (page - 1) * limit;
-
-    const { include_deleted } = req.query;
+    const showDemo = include_demo === 'true';
 
     let query = `
       SELECT
@@ -208,9 +259,11 @@ router.get('/madrasahs', authenticateSuperAdmin, async (req, res) => {
     `;
     const params = [];
 
-    // By default exclude deleted madrasahs unless explicitly requested
     if (include_deleted !== 'true') {
       query += ' AND m.deleted_at IS NULL';
+    }
+    if (!showDemo) {
+      query += ' AND m.is_demo = FALSE';
     }
 
     if (status === 'active') {
@@ -239,12 +292,11 @@ router.get('/madrasahs', authenticateSuperAdmin, async (req, res) => {
 
     const [madrasahs] = await pool.query(query, params);
 
-    // Get total count (matching the same filter)
-    const [[{ total }]] = await pool.query(
-      include_deleted === 'true'
-        ? 'SELECT COUNT(*) as total FROM madrasahs'
-        : 'SELECT COUNT(*) as total FROM madrasahs WHERE deleted_at IS NULL'
-    );
+    // Total count (mirrors the same filters)
+    let totalSql = 'SELECT COUNT(*) as total FROM madrasahs WHERE 1=1';
+    if (include_deleted !== 'true') totalSql += ' AND deleted_at IS NULL';
+    if (!showDemo) totalSql += ' AND is_demo = FALSE';
+    const [[{ total }]] = await pool.query(totalSql);
 
     res.json({
       madrasahs,
@@ -599,6 +651,7 @@ router.get('/registrations/recent', authenticateSuperAdmin, async (req, res) => 
       LEFT JOIN users u ON u.madrasah_id = m.id AND u.role = 'admin'
       WHERE m.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
       AND m.deleted_at IS NULL
+      AND m.is_demo = FALSE
     `;
     const params = [parseInt(days)];
 
@@ -710,29 +763,31 @@ router.get('/engagement', authenticateSuperAdmin, async (req, res) => {
         (SELECT COUNT(*) FROM students s WHERE s.madrasah_id = m.id AND s.deleted_at IS NULL) as student_count,
         (SELECT COUNT(*) FROM users u WHERE u.madrasah_id = m.id AND u.deleted_at IS NULL) as user_count
       FROM madrasahs m
-      WHERE m.deleted_at IS NULL
+      WHERE m.deleted_at IS NULL AND m.is_demo = FALSE
       ORDER BY last_login DESC
     `);
 
-    // Summary metrics
+    // Summary metrics — all exclude demo
     const [[summary]] = await pool.query(`
       SELECT
         (SELECT COUNT(DISTINCT m.id) FROM madrasahs m
          JOIN users u ON u.madrasah_id = m.id
-         WHERE u.last_login_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND m.deleted_at IS NULL) as activeThisWeek,
+         WHERE u.last_login_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND m.deleted_at IS NULL AND m.is_demo = FALSE) as activeThisWeek,
         (SELECT COUNT(DISTINCT m.id) FROM madrasahs m
          JOIN users u ON u.madrasah_id = m.id
-         WHERE u.last_login_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND m.deleted_at IS NULL) as activeThisMonth,
+         WHERE u.last_login_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND m.deleted_at IS NULL AND m.is_demo = FALSE) as activeThisMonth,
         (SELECT COUNT(*) FROM (
            SELECT m.id
            FROM madrasahs m
            LEFT JOIN users u ON u.madrasah_id = m.id AND u.deleted_at IS NULL
-           WHERE m.deleted_at IS NULL AND m.is_active = TRUE
+           WHERE m.deleted_at IS NULL AND m.is_active = TRUE AND m.is_demo = FALSE
            GROUP BY m.id
            HAVING MAX(u.last_login_at) IS NULL OR MAX(u.last_login_at) < DATE_SUB(NOW(), INTERVAL 30 DAY)
          ) dormant) as dormantCount,
-        (SELECT COUNT(*) FROM attendance WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND deleted_at IS NULL) as attendanceThisWeek,
-        (SELECT COUNT(*) FROM exam_performance WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND deleted_at IS NULL) as examsThisWeek
+        (SELECT COUNT(*) FROM attendance a JOIN madrasahs m ON m.id = a.madrasah_id
+         WHERE a.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND a.deleted_at IS NULL AND m.is_demo = FALSE) as attendanceThisWeek,
+        (SELECT COUNT(*) FROM exam_performance ep JOIN madrasahs m ON m.id = ep.madrasah_id
+         WHERE ep.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND ep.deleted_at IS NULL AND m.is_demo = FALSE) as examsThisWeek
     `);
 
     res.json({ engagement, summary });
@@ -745,19 +800,19 @@ router.get('/engagement', authenticateSuperAdmin, async (req, res) => {
 // Get revenue overview — MRR, plan distribution, growth
 router.get('/revenue', authenticateSuperAdmin, async (req, res) => {
   try {
-    // Plan distribution with counts
+    // Plan distribution (excludes demo)
     const [planDistribution] = await pool.query(`
       SELECT
         pricing_plan,
         COUNT(*) as count,
         subscription_status
       FROM madrasahs
-      WHERE deleted_at IS NULL
+      WHERE deleted_at IS NULL AND is_demo = FALSE
       GROUP BY pricing_plan, subscription_status
       ORDER BY pricing_plan
     `);
 
-    // Calculate MRR (Monthly Recurring Revenue) — exclude demo madrasahs (list-price estimate, does not reflect coupons)
+    // MRR (list-price estimate, does not reflect coupons; excludes demo)
     const [[mrr]] = await pool.query(`
       SELECT
         COALESCE(SUM(CASE
@@ -771,28 +826,28 @@ router.get('/revenue', authenticateSuperAdmin, async (req, res) => {
         COUNT(CASE WHEN subscription_status = 'canceled' THEN 1 END) as canceledCount,
         COUNT(CASE WHEN subscription_status = 'past_due' THEN 1 END) as pastDueCount
       FROM madrasahs
-      WHERE deleted_at IS NULL AND slug NOT LIKE '%-demo'
+      WHERE deleted_at IS NULL AND is_demo = FALSE
     `);
 
-    // Growth trend — new signups per month (last 6 months)
+    // Growth trend — new signups per month (last 6 months, excludes demo)
     const [growthTrend] = await pool.query(`
       SELECT
         DATE_FORMAT(created_at, '%Y-%m') as month,
         COUNT(*) as signups
       FROM madrasahs
       WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-        AND deleted_at IS NULL
+        AND deleted_at IS NULL AND is_demo = FALSE
       GROUP BY DATE_FORMAT(created_at, '%Y-%m')
       ORDER BY month
     `);
 
-    // Trial conversion rate — exclude demo madrasahs
+    // Trial conversion rate (excludes demo)
     const [[conversion]] = await pool.query(`
       SELECT
         COUNT(CASE WHEN pricing_plan != 'trial' AND subscription_status = 'active' THEN 1 END) as converted,
         COUNT(*) as total
       FROM madrasahs
-      WHERE deleted_at IS NULL AND slug NOT LIKE '%-demo'
+      WHERE deleted_at IS NULL AND is_demo = FALSE
         AND created_at < DATE_SUB(NOW(), INTERVAL 14 DAY)
     `);
 
@@ -931,7 +986,7 @@ router.get('/churn-risks', authenticateSuperAdmin, async (req, res) => {
       FROM madrasahs m
       WHERE m.deleted_at IS NULL
         AND m.is_active = TRUE
-        AND m.slug NOT LIKE '%-demo'
+        AND m.is_demo = FALSE
         AND m.pricing_plan != 'trial'
         AND (
           m.subscription_status IN ('canceled', 'past_due', 'cancelled')

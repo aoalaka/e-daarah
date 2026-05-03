@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS madrasahs (
     -- Verification
     institution_type ENUM('mosque_based', 'independent', 'school_affiliated', 'online', 'other', 'quran_focused'),
     verification_status ENUM('unverified', 'pending', 'verified', 'flagged', 'rejected') DEFAULT 'unverified',
+    is_demo BOOLEAN NOT NULL DEFAULT FALSE,
     student_count_estimate INT,
     verification_document_url VARCHAR(500),
     verification_notes TEXT,

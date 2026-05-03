@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, Component } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '../../services/api';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
 import './SuperAdmin.css';
 
 // Check if we're on the admin subdomain
@@ -60,6 +61,7 @@ function SuperAdminDashboard() {
   const [securityEvents, setSecurityEvents] = useState([]);
   const [engagement, setEngagement] = useState(null);
   const [revenue, setRevenue] = useState(null);
+  const [growthMetrics, setGrowthMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ status: '', plan: '', search: '' });
   const [page, setPage] = useState(1);
@@ -85,6 +87,7 @@ function SuperAdminDashboard() {
   const [templateName, setTemplateName] = useState('');
   const [editingTemplateId, setEditingTemplateId] = useState(null);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
   // Coupon state
   const [coupons, setCoupons] = useState([]);
   const [couponsLoading, setCouponsLoading] = useState(false);
@@ -127,7 +130,7 @@ function SuperAdminDashboard() {
 
   useEffect(() => {
     fetchMadrasahs();
-  }, [filter, page, showDeleted]);
+  }, [filter, page, showDeleted, showDemo]);
 
   useEffect(() => {
     if (activeTab === 'security') {
@@ -138,6 +141,7 @@ function SuperAdminDashboard() {
   useEffect(() => {
     if (activeTab === 'revenue') {
       fetchSmsCredits();
+      fetchGrowthMetrics();
     }
   }, [activeTab]);
 
@@ -174,6 +178,7 @@ function SuperAdminDashboard() {
       if (filter.plan) params.append('plan', filter.plan);
       if (filter.search) params.append('search', filter.search);
       if (showDeleted) params.append('include_deleted', 'true');
+      if (showDemo) params.append('include_demo', 'true');
       params.append('page', page);
 
       const response = await api.get(`/superadmin/madrasahs?${params}`, getAuthHeader());
@@ -220,6 +225,15 @@ function SuperAdminDashboard() {
       setRevenue(response.data);
     } catch (error) {
       console.error('Failed to fetch revenue:', error);
+    }
+  };
+
+  const fetchGrowthMetrics = async () => {
+    try {
+      const response = await api.get('/superadmin/growth-metrics', getAuthHeader());
+      setGrowthMetrics(response.data);
+    } catch (error) {
+      console.error('Failed to fetch growth metrics:', error);
     }
   };
 
@@ -667,6 +681,12 @@ function SuperAdminDashboard() {
       </header>
 
       <main className="superadmin-main">
+        {/* Scope chip — communicates that demo accounts are excluded from metrics */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 14, background: '#f1f5f9', color: '#475569', fontSize: 12, fontWeight: 500, marginBottom: 12 }}>
+          <span style={{ fontSize: 14 }}>🧪</span>
+          <span>Demo madrasahs excluded · all metrics show real schools only</span>
+        </div>
+
         {/* Stats Cards */}
         {stats && (
           <section className="stats-grid">
@@ -810,6 +830,14 @@ function SuperAdminDashboard() {
                 />
                 Show deleted
               </label>
+              <label className="show-deleted-toggle">
+                <input
+                  type="checkbox"
+                  checked={showDemo}
+                  onChange={(e) => { setShowDemo(e.target.checked); setPage(1); }}
+                />
+                Show demo accounts
+              </label>
             </section>
 
             <section className="table-section">
@@ -834,7 +862,10 @@ function SuperAdminDashboard() {
                     <tbody>
                       {madrasahs.map((m) => (
                         <tr key={m.id} className={m.deleted_at ? 'madrasah-row-deleted' : m.suspended_at ? 'suspended' : ''}>
-                          <td>{m.name}</td>
+                          <td>
+                            {m.name}
+                            {m.is_demo ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#fef3c7', color: '#b45309' }}>DEMO</span> : null}
+                          </td>
                           <td><code>{m.slug}</code></td>
                           <td>
                             <span className={`plan-badge ${m.pricing_plan || m.subscription_plan || 'trial'}`}>
@@ -1051,19 +1082,87 @@ function SuperAdminDashboard() {
                   {/* Growth Trend */}
                   {revenue.growthTrend?.length > 0 && (
                     <div className="growth-section">
-                      <h4 style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 12px' }}>Signups by Month</h4>
-                      <div className="growth-chart">
-                        {revenue.growthTrend.map((item) => {
-                          const max = Math.max(...revenue.growthTrend.map(g => g.signups), 1);
-                          return (
-                            <div key={item.month} className="growth-bar-wrapper">
-                              <div className="growth-count">{item.signups}</div>
-                              <div className="growth-bar" style={{ height: `${Math.max((item.signups / max) * 120, 4)}px` }} />
-                              <div className="growth-month">{item.month.slice(5)}</div>
-                            </div>
-                          );
-                        })}
+                      <h4 style={{ fontSize: '13px', fontWeight: 600, color: '#374151', margin: '0 0 12px' }}>Signups by Month (last 6 months)</h4>
+                      <div style={{ width: '100%', height: 220 }}>
+                        <ResponsiveContainer>
+                          <BarChart data={revenue.growthTrend.map(g => ({ month: g.month.slice(5), signups: g.signups }))}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                            <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                            <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                            <Tooltip cursor={{ fill: 'rgba(13, 148, 136, 0.1)' }} contentStyle={{ fontSize: 12, borderRadius: 6 }} />
+                            <Bar dataKey="signups" fill="#0d9488" radius={[6, 6, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Growth charts grid */}
+                  {growthMetrics && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginTop: 24 }}>
+                      {/* Weekly signups */}
+                      {growthMetrics.weeklySignups?.length > 0 && (
+                        <div>
+                          <h4 style={{ fontSize: 13, fontWeight: 600, color: '#374151', margin: '0 0 12px' }}>Signups by Week (last 12 weeks)</h4>
+                          <div style={{ width: '100%', height: 200 }}>
+                            <ResponsiveContainer>
+                              <LineChart data={growthMetrics.weeklySignups.map(w => ({ week: w.week_start.slice(5), signups: w.signups }))}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                                <XAxis dataKey="week" tick={{ fontSize: 11 }} />
+                                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
+                                <Line type="monotone" dataKey="signups" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Active schools per week */}
+                      {growthMetrics.activeWeekly?.length > 0 && (
+                        <div>
+                          <h4 style={{ fontSize: 13, fontWeight: 600, color: '#374151', margin: '0 0 12px' }}>Active Schools per Week</h4>
+                          <div style={{ width: '100%', height: 200 }}>
+                            <ResponsiveContainer>
+                              <LineChart data={growthMetrics.activeWeekly.map(w => ({ week: w.week_start.slice(5), active: w.active_schools }))}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                                <XAxis dataKey="week" tick={{ fontSize: 11 }} />
+                                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
+                                <Line type="monotone" dataKey="active" stroke="#16a34a" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Plan distribution pie */}
+                      {growthMetrics.planPie?.length > 0 && (
+                        <div>
+                          <h4 style={{ fontSize: 13, fontWeight: 600, color: '#374151', margin: '0 0 12px' }}>Plan Distribution (active + trial)</h4>
+                          <div style={{ width: '100%', height: 200 }}>
+                            <ResponsiveContainer>
+                              <PieChart>
+                                <Pie
+                                  data={growthMetrics.planPie.map(p => ({ name: p.pricing_plan, value: p.count }))}
+                                  cx="50%"
+                                  cy="50%"
+                                  outerRadius={70}
+                                  dataKey="value"
+                                  label={({ name, value }) => `${name}: ${value}`}
+                                  labelLine={false}
+                                >
+                                  {growthMetrics.planPie.map((_, i) => {
+                                    const colours = ['#0d9488', '#2563eb', '#7c3aed', '#e11d48', '#d97706', '#16a34a', '#475569'];
+                                    return <Cell key={i} fill={colours[i % colours.length]} />;
+                                  })}
+                                </Pie>
+                                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -21,13 +21,33 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
   const [selectedPlan, setSelectedPlan] = useState('plus');
   const [couponCode, setCouponCode] = useState('');
 
+  const [settingsTab, setSettingsTab] = useState('account');
+
   return (
     <>
       <div className="section-header">
         <h2>Settings</h2>
       </div>
 
+      <div className="report-tabs">
+        <nav className="report-tabs-nav">
+          <button
+            className={`report-tab-btn ${settingsTab === 'account' ? 'active' : ''}`}
+            onClick={() => setSettingsTab('account')}
+          >Account</button>
+          <button
+            className={`report-tab-btn ${settingsTab === 'features' ? 'active' : ''}`}
+            onClick={() => setSettingsTab('features')}
+          >Features</button>
+          <button
+            className={`report-tab-btn ${settingsTab === 'billing' ? 'active' : ''}`}
+            onClick={() => setSettingsTab('billing')}
+          >Billing</button>
+        </nav>
+      </div>
+
       {/* Change Password */}
+      {settingsTab === 'account' && (
       <div className="card" id="settings-password">
         <h3>Change Password</h3>
         <form onSubmit={async (e) => {
@@ -95,9 +115,11 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
           </button>
         </form>
       </div>
+      )}
 
       {/* Attendance Features */}
-      <div className="card" style={{ marginTop: '20px' }}>
+      {settingsTab === 'features' && (
+      <div className="card">
         <h3>Attendance Features</h3>
         <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
           Choose which grading fields teachers see when recording attendance.
@@ -310,8 +332,10 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
           </div>
         </div>
       </div>
+      )}
 
       {/* Teacher Availability */}
+      {settingsTab === 'features' && (
       <div className="card" style={{ marginTop: '20px' }}>
         <h3>Teacher Availability</h3>
         <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
@@ -351,7 +375,10 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
         </div>
       </div>
 
+      )}
+
       {/* Scheduling Mode */}
+      {settingsTab === 'features' && (
       <div className="card" style={{ marginTop: '20px' }}>
         <h3>Scheduling Mode</h3>
         <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
@@ -416,8 +443,10 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
         </p>
       </div>
 
+      )}
+
       {/* Fee Tracking Mode */}
-      {(madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false) && (
+      {settingsTab === 'features' && (madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false) && (
         <div className="card" style={{ marginTop: '20px' }}>
           <h3>Fee Calculation Mode</h3>
           <p style={{ fontSize: '13px', color: 'var(--gray)', margin: '0 0 12px' }}>
@@ -517,6 +546,7 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
       )}
 
       {/* Currency Setting */}
+      {settingsTab === 'features' && (
       <div className="card" style={{ marginTop: '20px' }}>
         <h3>Currency</h3>
         <p style={{ fontSize: '13px', color: 'var(--gray)', margin: '0 0 12px' }}>
@@ -616,7 +646,10 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
         </select>
       </div>
 
+      )}
+
       {/* Account Info */}
+      {settingsTab === 'account' && (
       <div className="card" id="settings-account" style={{ marginTop: '20px' }}>
         <h3>Account Information</h3>
         <div style={{ display: 'grid', gap: '12px', maxWidth: '400px' }}>
@@ -634,9 +667,10 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
           </div>
         </div>
       </div>
+      )}
 
       {/* Madrasah Profile */}
-      {madrasahProfile && (
+      {settingsTab === 'account' && madrasahProfile && (
         <div className="card" style={{ marginTop: '20px' }}>
           <h3>Madrasah Profile</h3>
           <div className="admin-profile-grid">
@@ -668,14 +702,12 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
                   .filter(Boolean).join(', ') || 'Not specified'}
               </p>
             </div>
-            <div>
-              <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Trial Ends</label>
-              <p style={{ margin: '4px 0 0 0' }}>
-                {madrasahProfile.trial_ends_at
-                  ? fmtDate(madrasahProfile.trial_ends_at)
-                  : 'N/A'}
-              </p>
-            </div>
+            {madrasahProfile.subscription_status === 'trialing' && madrasahProfile.trial_ends_at && (
+              <div>
+                <label style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase' }}>Trial Ends</label>
+                <p style={{ margin: '4px 0 0 0' }}>{fmtDate(madrasahProfile.trial_ends_at)}</p>
+              </div>
+            )}
           </div>
 
           {/* Usage Stats */}
@@ -702,7 +734,8 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
       )}
 
       {/* Billing & Subscription */}
-      <div className="card" id="settings-billing" style={{ marginTop: '20px' }}>
+      {settingsTab === 'billing' && (
+      <div className="card" id="settings-billing">
         <h3>Billing & Subscription</h3>
         <div style={{ display: 'grid', gap: '16px', maxWidth: '500px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--lighter)', borderRadius: '4px' }}>
@@ -914,6 +947,7 @@ function SettingsSection({ madrasahProfile, setMadrasahProfile, user, fmtDate, i
           </p>
         </div>
       </div>
+      )}
     </>
   );
 }

@@ -242,6 +242,104 @@ router.get('/growth-metrics', authenticateSuperAdmin, async (req, res) => {
   }
 });
 
+// Visitor analytics — proxies Cloudflare Web Analytics GraphQL.
+// Requires CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN env vars.
+router.get('/visitor-analytics', authenticateSuperAdmin, async (req, res) => {
+  const accountTag = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+  if (!accountTag || !token) {
+    return res.status(503).json({ error: 'Cloudflare analytics not configured' });
+  }
+
+  // Default: last 7 days
+  const days = Math.min(parseInt(req.query.days) || 7, 30);
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const until = new Date().toISOString();
+
+  // GraphQL query — daily totals + top countries + top pages + top referrers
+  const query = `
+    query Analytics($accountTag: String!, $filter: ZoneHttpRequestsAdaptiveGroupsFilter_InputObject, $rumFilter: AccountRumPageloadEventsAdaptiveGroupsFilter_InputObject) {
+      viewer {
+        accounts(filter: { accountTag: $accountTag }) {
+          dailyTotals: rumPageloadEventsAdaptiveGroups(
+            filter: $rumFilter
+            limit: 31
+            orderBy: [date_ASC]
+          ) {
+            count
+            sum { visits }
+            dimensions { date }
+          }
+          topPages: rumPageloadEventsAdaptiveGroups(
+            filter: $rumFilter
+            limit: 10
+            orderBy: [count_DESC]
+          ) {
+            count
+            dimensions { metric: requestPath }
+          }
+          topCountries: rumPageloadEventsAdaptiveGroups(
+            filter: $rumFilter
+            limit: 10
+            orderBy: [count_DESC]
+          ) {
+            count
+            dimensions { metric: countryName }
+          }
+          topReferrers: rumPageloadEventsAdaptiveGroups(
+            filter: $rumFilter
+            limit: 10
+            orderBy: [count_DESC]
+          ) {
+            count
+            dimensions { metric: refererHost }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        variables: {
+          accountTag,
+          rumFilter: { date_geq: since.split('T')[0], date_leq: until.split('T')[0] },
+        },
+      }),
+    });
+    const data = await response.json();
+
+    if (data.errors?.length) {
+      console.error('Cloudflare GraphQL errors:', JSON.stringify(data.errors));
+      return res.status(502).json({ error: 'Cloudflare returned errors', details: data.errors });
+    }
+
+    const account = data.data?.viewer?.accounts?.[0] || {};
+    res.json({
+      since,
+      until,
+      dailyTotals: (account.dailyTotals || []).map(r => ({
+        date: r.dimensions.date,
+        pageviews: r.count,
+        visits: r.sum?.visits || 0,
+      })),
+      topPages: (account.topPages || []).map(r => ({ name: r.dimensions.metric, count: r.count })),
+      topCountries: (account.topCountries || []).map(r => ({ name: r.dimensions.metric, count: r.count })),
+      topReferrers: (account.topReferrers || []).map(r => ({ name: r.dimensions.metric || '(direct)', count: r.count })),
+    });
+  } catch (err) {
+    console.error('Cloudflare analytics fetch failed:', err.message);
+    res.status(500).json({ error: 'Failed to fetch visitor analytics' });
+  }
+});
+
 // List all madrasahs (excludes demo by default — pass include_demo=true to see them)
 router.get('/madrasahs', authenticateSuperAdmin, async (req, res) => {
   try {

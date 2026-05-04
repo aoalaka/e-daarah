@@ -57,15 +57,32 @@ export default function VisitorAnalyticsPanel({ data, loading, error, days, onDa
       ) : data ? (
         <>
           {/* Totals */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 12 }}>
             <div style={{ padding: 14, background: '#f8fafc', borderRadius: 8 }}>
               <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.4px' }}>Page Views</div>
               <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>{totals.pageviews.toLocaleString()}</div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Every page load</div>
             </div>
-            <div style={{ padding: 14, background: '#f8fafc', borderRadius: 8 }}>
-              <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.4px' }}>Visits</div>
+            <div
+              style={{ padding: 14, background: '#f8fafc', borderRadius: 8 }}
+              title="A visit is one browsing session. The same person returning later counts as a new visit. Closest in-app proxy for unique visitors."
+            >
+              <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.4px' }}>Visits ≈ Visitors</div>
               <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>{totals.visits.toLocaleString()}</div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>One browsing session</div>
             </div>
+          </div>
+          <div style={{ marginBottom: 18, fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
+            For exact unique-visitor counts, open the{' '}
+            <a
+              href="https://dash.cloudflare.com/?to=/:account/web-analytics"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#0d9488', fontWeight: 500 }}
+            >
+              Cloudflare dashboard →
+            </a>
+            {' '}(top of the page shows Page Views · Visits · Visitors).
           </div>
 
           {totals.pageviews === 0 ? (

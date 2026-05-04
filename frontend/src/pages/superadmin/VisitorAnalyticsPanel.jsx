@@ -73,16 +73,7 @@ export default function VisitorAnalyticsPanel({ data, loading, error, days, onDa
             </div>
           </div>
           <div style={{ marginBottom: 18, fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
-            For exact unique-visitor counts, open the{' '}
-            <a
-              href="https://dash.cloudflare.com/?to=/:account/web-analytics"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#0d9488', fontWeight: 500 }}
-            >
-              Cloudflare dashboard →
-            </a>
-            {' '}(top of the page shows Page Views · Visits · Visitors).
+            <strong>Visits</strong> is the best free proxy for unique visitors — same person returning later counts as a new visit. Cloudflare's free tier doesn't expose true unique-visitor counts.
           </div>
 
           {totals.pageviews === 0 ? (

@@ -256,9 +256,9 @@ router.get('/visitor-analytics', authenticateSuperAdmin, async (req, res) => {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   const until = new Date().toISOString();
 
-  // GraphQL query — daily totals + top countries + top pages + top referrers
+  // GraphQL — daily totals + top pages, countries, referrers, device types, browsers, OS
   const query = `
-    query Analytics($accountTag: String!, $filter: ZoneHttpRequestsAdaptiveGroupsFilter_InputObject, $rumFilter: AccountRumPageloadEventsAdaptiveGroupsFilter_InputObject) {
+    query Analytics($accountTag: String!, $rumFilter: AccountRumPageloadEventsAdaptiveGroupsFilter_InputObject) {
       viewer {
         accounts(filter: { accountTag: $accountTag }) {
           dailyTotals: rumPageloadEventsAdaptiveGroups(
@@ -293,6 +293,30 @@ router.get('/visitor-analytics', authenticateSuperAdmin, async (req, res) => {
           ) {
             count
             dimensions { metric: refererHost }
+          }
+          topDevices: rumPageloadEventsAdaptiveGroups(
+            filter: $rumFilter
+            limit: 10
+            orderBy: [count_DESC]
+          ) {
+            count
+            dimensions { metric: deviceType }
+          }
+          topBrowsers: rumPageloadEventsAdaptiveGroups(
+            filter: $rumFilter
+            limit: 10
+            orderBy: [count_DESC]
+          ) {
+            count
+            dimensions { metric: userAgentBrowser }
+          }
+          topOS: rumPageloadEventsAdaptiveGroups(
+            filter: $rumFilter
+            limit: 10
+            orderBy: [count_DESC]
+          ) {
+            count
+            dimensions { metric: userAgentOS }
           }
         }
       }
@@ -333,6 +357,9 @@ router.get('/visitor-analytics', authenticateSuperAdmin, async (req, res) => {
       topPages: (account.topPages || []).map(r => ({ name: r.dimensions.metric, count: r.count })),
       topCountries: (account.topCountries || []).map(r => ({ name: r.dimensions.metric, count: r.count })),
       topReferrers: (account.topReferrers || []).map(r => ({ name: r.dimensions.metric || '(direct)', count: r.count })),
+      topDevices: (account.topDevices || []).map(r => ({ name: r.dimensions.metric || '(unknown)', count: r.count })),
+      topBrowsers: (account.topBrowsers || []).map(r => ({ name: r.dimensions.metric || '(unknown)', count: r.count })),
+      topOS: (account.topOS || []).map(r => ({ name: r.dimensions.metric || '(unknown)', count: r.count })),
     });
   } catch (err) {
     console.error('Cloudflare analytics fetch failed:', err.message);

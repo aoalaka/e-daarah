@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '../../services/api';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
+import VisitorAnalyticsPanel from './VisitorAnalyticsPanel';
 import './SuperAdmin.css';
 
 // Check if we're on the admin subdomain
@@ -51,7 +52,7 @@ function SuperAdminDashboard() {
 
   // Browser tab title
   useEffect(() => {
-    const labels = { madrasahs: 'Madrasahs', engagement: 'Engagement', revenue: 'Revenue', coupons: 'Coupons', churn: 'Churn Risk', announcements: 'Announcements', 'email-broadcast': 'Email Broadcast', tickets: 'Support Tickets', review: 'Review Queue', security: 'Security' };
+    const labels = { madrasahs: 'Madrasahs', engagement: 'Engagement', revenue: 'Subscriptions', coupons: 'Coupons', churn: 'Churn Risk', announcements: 'Announcements', 'email-broadcast': 'Email Broadcast', tickets: 'Support Tickets', review: 'Review Queue', security: 'Security' };
     document.title = `${labels[activeTab] || 'Admin'} — E-Daarah`;
   }, [activeTab]);
 
@@ -146,14 +147,12 @@ function SuperAdminDashboard() {
     if (activeTab === 'revenue') {
       fetchSmsCredits();
       fetchGrowthMetrics();
-      fetchVisitorAnalytics(visitorAnalyticsDays);
     }
   }, [activeTab]);
 
+  // Visitor analytics — always fetched (panel sits in the Overview area, above tabs)
   useEffect(() => {
-    if (activeTab === 'revenue') {
-      fetchVisitorAnalytics(visitorAnalyticsDays);
-    }
+    fetchVisitorAnalytics(visitorAnalyticsDays);
   }, [visitorAnalyticsDays]);
 
   useEffect(() => {
@@ -753,6 +752,17 @@ function SuperAdminDashboard() {
           </section>
         )}
 
+        {/* Overview — visitor analytics card */}
+        <section style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18, marginBottom: 24 }}>
+          <VisitorAnalyticsPanel
+            data={visitorAnalytics}
+            loading={visitorAnalyticsLoading}
+            error={visitorAnalyticsError}
+            days={visitorAnalyticsDays}
+            onDaysChange={setVisitorAnalyticsDays}
+          />
+        </section>
+
         {/* Tabs */}
         <div className="tabs">
           <button
@@ -771,7 +781,7 @@ function SuperAdminDashboard() {
             className={`tab ${activeTab === 'revenue' ? 'active' : ''}`}
             onClick={() => setActiveTab('revenue')}
           >
-            Revenue
+            Subscriptions
           </button>
           <button
             className={`tab ${activeTab === 'coupons' ? 'active' : ''}`}
@@ -1192,110 +1202,6 @@ function SuperAdminDashboard() {
                     </div>
                   )}
 
-                  {/* ── Visitor Analytics (Cloudflare) ── */}
-                  <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 24, marginTop: 24 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-                      <h3 style={{ fontSize: 14, fontWeight: 600, color: '#111827', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Visitors (e-daarah.com)
-                      </h3>
-                      <select
-                        value={visitorAnalyticsDays}
-                        onChange={(e) => setVisitorAnalyticsDays(parseInt(e.target.value))}
-                        style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 }}
-                      >
-                        <option value={1}>Last 24 hours</option>
-                        <option value={7}>Last 7 days</option>
-                        <option value={14}>Last 14 days</option>
-                        <option value={30}>Last 30 days</option>
-                      </select>
-                    </div>
-
-                    {visitorAnalyticsLoading ? (
-                      <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Loading…</div>
-                    ) : visitorAnalyticsError ? (
-                      <div style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, fontSize: 13, color: '#991b1b' }}>
-                        {visitorAnalyticsError}
-                        {visitorAnalyticsError.includes('not configured') && (
-                          <div style={{ marginTop: 4, fontSize: 12, color: '#7f1d1d' }}>
-                            Set <code>CLOUDFLARE_ACCOUNT_ID</code> and <code>CLOUDFLARE_API_TOKEN</code> on the backend.
-                          </div>
-                        )}
-                      </div>
-                    ) : visitorAnalytics ? (() => {
-                      const totalPageviews = visitorAnalytics.dailyTotals.reduce((s, d) => s + d.pageviews, 0);
-                      const totalVisits = visitorAnalytics.dailyTotals.reduce((s, d) => s + d.visits, 0);
-                      return (
-                        <>
-                          {/* Totals */}
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
-                            <div style={{ padding: 14, background: '#f8fafc', borderRadius: 8 }}>
-                              <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.4px' }}>Page Views</div>
-                              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>{totalPageviews.toLocaleString()}</div>
-                            </div>
-                            <div style={{ padding: 14, background: '#f8fafc', borderRadius: 8 }}>
-                              <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.4px' }}>Visits</div>
-                              <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4 }}>{totalVisits.toLocaleString()}</div>
-                            </div>
-                          </div>
-
-                          {totalPageviews === 0 ? (
-                            <div style={{ padding: 16, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, fontSize: 13, color: '#78350f' }}>
-                              No visits recorded yet. Make sure the Cloudflare beacon script is loaded on your site (check the Network tab for a request to <code>cloudflareinsights.com</code>) and disable any ad-blockers when testing.
-                            </div>
-                          ) : (
-                            <>
-                              {/* Daily pageviews chart */}
-                              {visitorAnalytics.dailyTotals.length > 0 && (
-                                <div style={{ marginBottom: 24 }}>
-                                  <h4 style={{ fontSize: 13, fontWeight: 600, color: '#374151', margin: '0 0 12px' }}>Daily page views</h4>
-                                  <div style={{ width: '100%', height: 220 }}>
-                                    <ResponsiveContainer>
-                                      <BarChart data={visitorAnalytics.dailyTotals.map(d => ({ date: d.date.slice(5), pageviews: d.pageviews, visits: d.visits }))}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                                        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
-                                        <Bar dataKey="pageviews" fill="#0d9488" radius={[6, 6, 0, 0]} />
-                                      </BarChart>
-                                    </ResponsiveContainer>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Top lists grid */}
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-                                {[
-                                  { title: 'Top pages', rows: visitorAnalytics.topPages },
-                                  { title: 'Top countries', rows: visitorAnalytics.topCountries },
-                                  { title: 'Top referrers', rows: visitorAnalytics.topReferrers },
-                                ].map(({ title, rows }) => (
-                                  <div key={title} style={{ padding: 14, border: '1px solid #e5e7eb', borderRadius: 8 }}>
-                                    <h4 style={{ fontSize: 12, fontWeight: 600, color: '#374151', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</h4>
-                                    {rows.length === 0 ? (
-                                      <div style={{ fontSize: 12, color: '#9ca3af' }}>No data</div>
-                                    ) : (
-                                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                        {rows.slice(0, 8).map((r, i) => (
-                                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, gap: 8 }}>
-                                            <span style={{ color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{r.name || '(unknown)'}</span>
-                                            <span style={{ color: '#6b7280', fontWeight: 600, flexShrink: 0 }}>{r.count.toLocaleString()}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </>
-                      );
-                    })() : null}
-
-                    <div style={{ marginTop: 12, fontSize: 11, color: '#9ca3af' }}>
-                      Powered by Cloudflare Web Analytics · privacy-friendly, no cookies
-                    </div>
-                  </div>
                 </div>
 
                 {/* ── SMS Revenue ── */}

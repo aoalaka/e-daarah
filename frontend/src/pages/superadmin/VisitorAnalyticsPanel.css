@@ -1,0 +1,13 @@
+/* Default (mobile/tablet): wrap naturally with min width per card */
+.visitor-lists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+/* Desktop only: force 3 cols × 2 rows so 6 cards lay out cleanly */
+@media (min-width: 1024px) {
+  .visitor-lists-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

@@ -1,4 +1,5 @@
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import './VisitorAnalyticsPanel.css';
 
 /**
  * Visitor analytics panel powered by Cloudflare Web Analytics.
@@ -104,7 +105,7 @@ export default function VisitorAnalyticsPanel({ data, loading, error, days, onDa
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+              <div className="visitor-lists-grid">
                 {lists.map(({ title, rows }) => (
                   <div key={title} style={{ padding: 14, border: '1px solid #e5e7eb', borderRadius: 8 }}>
                     <h4 style={{ fontSize: 12, fontWeight: 600, color: '#374151', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</h4>

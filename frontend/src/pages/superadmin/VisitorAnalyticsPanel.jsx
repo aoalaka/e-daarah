@@ -87,7 +87,12 @@ export default function VisitorAnalyticsPanel({ data, loading, error, days, onDa
                   <h4 style={{ fontSize: 13, fontWeight: 600, color: '#374151', margin: '0 0 12px' }}>Daily page views</h4>
                   <div style={{ width: '100%', height: 220 }}>
                     <ResponsiveContainer>
-                      <BarChart data={data.dailyTotals.map(d => ({ date: d.date.slice(5), pageviews: d.pageviews, visits: d.visits }))}>
+                      <BarChart data={data.dailyTotals.map(d => {
+                        // d.date is "YYYY-MM-DD" — render as "DD MMM" e.g. "05 May"
+                        const [y, m, day] = d.date.split('-');
+                        const monthShort = new Date(`${y}-${m}-01`).toLocaleString('en-US', { month: 'short' });
+                        return { date: `${day} ${monthShort}`, pageviews: d.pageviews, visits: d.visits };
+                      })}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                         <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                         <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />

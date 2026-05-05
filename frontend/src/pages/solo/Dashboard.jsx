@@ -4549,86 +4549,38 @@ function SoloDashboard() {
             </>
           )}
 
-          {/* ═══════ HELP TAB ═══════ */}
-          {activeTab === 'help' && (() => {
-            const toggleHelp = (key) => setHelpExpanded(prev => {
-              const next = new Set(prev);
-              next.has(key) ? next.delete(key) : next.add(key);
-              return next;
-            });
-            const HelpSection = ({ sectionKey, title, items }) => (
-              <div className="card" style={{ marginBottom: '12px' }}>
-                <button onClick={() => toggleHelp(sectionKey)} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 600, textAlign: 'left' }}>
-                  {title}
-                  <ChevronDownIcon width={16} height={16} style={{ transform: helpExpanded.has(sectionKey) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
-                </button>
-                {helpExpanded.has(sectionKey) && (
-                  <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {items.map((item, i) => (
-                      <div key={i}>
-                        <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>{item.title}</div>
-                        <div style={{ fontSize: '13px', color: 'var(--gray)', lineHeight: '1.5' }}>{item.content}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-            return (
-              <>
-                <div className="page-header no-print">
-                  <h2 className="page-title">Help</h2>
+          {/* ═══════ HELP TAB — links to /docs ═══════ */}
+          {activeTab === 'help' && (
+            <>
+              <div className="page-header no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                <h2 className="page-title">Help</h2>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => { localStorage.removeItem('tour_solo_done'); setShowTour(true); }}>Replay tour</button>
+                  <a className="btn btn-primary btn-sm" href="/docs" target="_blank" rel="noopener noreferrer">Open Help & Docs ↗</a>
                 </div>
-
-                <HelpSection sectionKey="getting-started" title="Getting Started" items={[
-                  { title: 'Create a session and semester', content: 'Go to Planner and click "New Session" to create an academic year (e.g. 2025/2026). Then add semesters within that session. Sessions and semesters organise your attendance and exam records by time period.' },
-                  { title: 'Create classes', content: 'Go to Classes and click "New Class". Give it a name (e.g. "Junior Boys", "Grade 3"). Classes group your students and are used for attendance, exams, and reports.' },
-                  { title: 'Add students', content: 'Go to Students and click "New Student". Fill in their details and assign them to a class. Each student can optionally have parent/guardian contact info.' },
-                  { title: 'Set expected fees', content: 'Go to the Fees tab and click "Set Expected Fee". Select students (filter by class), enter the amount and an optional note, then apply. Each student\'s fee progress will be tracked automatically.' },
-                ]} />
-
-                <HelpSection sectionKey="daily-ops" title="Daily Operations" items={[
-                  { title: 'Take attendance', content: 'Go to the Attendance tab, select a class and date, then mark each student as present or absent. You can also grade dressing, behaviour, and punctuality if those features are enabled in Settings. Click "Save All" to record.' },
-                  { title: 'Record exam scores', content: 'Go to Exam Recording, select a class, and click "Record Exam". Choose the exam type and subject, then enter scores for each student. Results are saved and available for review.' },
-                  { title: 'Record a fee payment', content: 'Go to Fees, find the student, and click "Record". Choose the amount, date, payment method, and what the payment is for (e.g. "March", "Week 5", "Instalment 3"). The balance updates automatically.' },
-                  { title: 'Void a payment', content: 'In the Fees tab under "Recent Payments", click "Void" next to a payment to reverse it. The student\'s balance will be recalculated.' },
-                ]} />
-
-                <HelpSection sectionKey="planner" title="Academic Planner" items={[
-                  { title: 'Manage sessions and semesters', content: 'Sessions represent academic years. Semesters are periods within a session (e.g. First Term, Second Term). Go to Planner to create, edit, or delete them. Only one session and one semester can be active at a time.' },
-                  { title: 'Set up holidays', content: 'In the Planner tab under Holidays, add dates when classes don\'t hold. Holidays are excluded from attendance tracking so you won\'t be prompted to mark attendance on those days.' },
-                  { title: 'Schedule overrides', content: 'Use the Overrides section in Planner to mark specific dates as school days or non-school days, overriding the regular weekly schedule. Useful for make-up days or unexpected closures.' },
-                ]} />
-
-                <HelpSection sectionKey="students-classes" title="Students & Classes" items={[
-                  { title: 'Edit or delete a student', content: 'Go to Students, find the student in the list, and click the edit or delete button. You can update their class, contact info, and expected fees.' },
-                  { title: 'Manage classes', content: 'Go to Classes to create, edit, or delete classes. Each class has a name, optional description, and school days schedule.' },
-                ]} />
-
-                {(madrasahProfile?.enable_fee_tracking !== 0 && madrasahProfile?.enable_fee_tracking !== false) && (
-                  <HelpSection sectionKey="fees" title="Fees" items={[
-                    { title: 'Set expected fees (individual or bulk)', content: 'You can set a student\'s expected fee when creating or editing them. For multiple students, use the "Set Expected Fee" button in the Fees tab — filter by class, select students, and apply an amount to all at once.' },
-                    { title: 'Edit or clear a fee', content: 'In the Fees tab, each student row has "Edit" and "Clear" buttons. Edit lets you update the amount and note. Clear removes the expected fee entirely — the student will no longer appear in the Fees tab.' },
-                    { title: 'Payment labels', content: 'When recording a payment, pick a category (Monthly, Weekly, Instalment, Other) then select the specific label. This helps you track which period or purpose each payment covers.' },
-                    { title: 'Track collection progress', content: 'The Fees tab shows summary cards (Total Expected, Collected, Outstanding) and a progress bar for each student. Filter by class to focus on specific groups.' },
-                  ]} />
-                )}
-
-                {(madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false) && (
-                  <HelpSection sectionKey="quran" title="Qur'an Tracker" items={[
-                    { title: 'Record progress', content: 'Go to the Qur\'an Tracker tab, select a class and student. Record their current surah, ayah, and juz. You can add notes about their recitation quality or areas to improve.' },
-                    { title: 'Track over time', content: 'The tracker keeps a history of each student\'s Qur\'an progress. You can see where they started and how far they\'ve come over the semester.' },
-                  ]} />
-                )}
-
-                <HelpSection sectionKey="settings" title="Settings" items={[
-                  { title: 'Update madrasah profile', content: 'Go to Settings to update your madrasah name, contact info, address, and other details.' },
-                  { title: 'Enable or disable features', content: 'In Settings, toggle features like Fee Tracking, Qur\'an Progress, Behaviour Grading, Dressing Grading, and Punctuality Grading on or off based on your needs.' },
-                  { title: 'Change your password', content: 'In Settings, scroll to the Account section to update your password. You\'ll need to enter your current password and the new one (minimum 8 characters with uppercase, lowercase, number, and symbol).' },
-                ]} />
-              </>
-            );
-          })()}
+              </div>
+              <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+                <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 600 }}>Help & Docs</h3>
+                <p style={{ margin: 0, color: 'var(--gray)', fontSize: 14 }}>
+                  Step-by-step guides for solo teachers. Everything you can do, with screenshots and examples.
+                </p>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+                <a href="/docs/getting-started/welcome" target="_blank" rel="noopener noreferrer" className="card" style={{ padding: 16, textDecoration: 'none', color: 'inherit' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Start here</div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>Welcome to E-Daarah</div>
+                </a>
+                <a href="/docs/admins/attendance" target="_blank" rel="noopener noreferrer" className="card" style={{ padding: 16, textDecoration: 'none', color: 'inherit' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Daily</div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>Recording attendance</div>
+                </a>
+                <a href="/docs/help/faq" target="_blank" rel="noopener noreferrer" className="card" style={{ padding: 16, textDecoration: 'none', color: 'inherit' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Help</div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>FAQ</div>
+                </a>
+              </div>
+            </>
+          )}
 
         </main>
       </div>

@@ -100,6 +100,7 @@ function Landing() {
         </Link>
         <nav className="header-nav desktop-nav">
           <Link to="/pricing" className="nav-link">Pricing</Link>
+          <Link to="/docs" className="nav-link">Help & Docs</Link>
           <Link to="/demo" className="nav-link">Demo</Link>
           <Link to="/blog" className="nav-link">Blog</Link>
           <Link to="/register" className="nav-link primary">Get Started</Link>
@@ -120,6 +121,7 @@ function Landing() {
         <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}>
           <nav className="mobile-menu" onClick={(e) => e.stopPropagation()}>
             <Link to="/pricing" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>Pricing</Link>
+            <Link to="/docs" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>Help & Docs</Link>
             <Link to="/demo" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>Demo</Link>
             <Link to="/blog" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>Blog</Link>
             <Link to="/schools" className="mobile-menu-link" onClick={() => setMenuOpen(false)}>Schools</Link>
@@ -561,7 +563,7 @@ function Landing() {
               <h4>Resources</h4>
               <Link to="/blog">Blog</Link>
               <Link to="/schools">Schools</Link>
-              <Link to="/help">Help Center</Link>
+              <Link to="/docs">Help & Docs</Link>
             </div>
             <div className="footer-col">
               <h4>Support</h4>

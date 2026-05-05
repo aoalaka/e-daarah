@@ -4698,83 +4698,38 @@ function TeacherDashboard() {
             </>
           )}
 
-          {/* Help Tab */}
-          {activeTab === 'help' && (() => {
-            const toggleHelp = (key) => setHelpExpanded(prev => {
-              const next = new Set(prev);
-              next.has(key) ? next.delete(key) : next.add(key);
-              return next;
-            });
-            const HelpSection = ({ sectionKey, title, items }) => (
-              <div className="card" style={{ marginBottom: '12px' }}>
-                <button onClick={() => toggleHelp(sectionKey)} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 600, textAlign: 'left' }}>
-                  {title}
-                  <ChevronDownIcon width={16} height={16} style={{ transform: helpExpanded.has(sectionKey) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
-                </button>
-                {helpExpanded.has(sectionKey) && (
-                  <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {items.map((item, i) => (
-                      <div key={i}>
-                        <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>{item.title}</div>
-                        <div style={{ fontSize: '13px', color: 'var(--gray)', lineHeight: '1.5' }}>{item.content}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-            return (
-              <>
-                <div className="page-header no-print">
-                  <h2 className="page-title">Help</h2>
-                  <button className="btn btn-secondary btn-sm" onClick={() => { localStorage.removeItem('tour_teacher_done'); setShowTour(true); }}>Replay Tour</button>
+          {/* Help Tab — links to /docs */}
+          {activeTab === 'help' && (
+            <>
+              <div className="page-header no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                <h2 className="page-title">Help</h2>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => { localStorage.removeItem('tour_teacher_done'); setShowTour(true); }}>Replay tour</button>
+                  <a className="btn btn-primary btn-sm" href="/docs" target="_blank" rel="noopener noreferrer">Open Help & Docs ↗</a>
                 </div>
-
-                <HelpSection sectionKey="getting-started" title="Getting Started" items={[
-                  { title: 'Your dashboard overview', content: 'The Overview tab shows your assigned classes, today\'s schedule, and quick-action buttons to take attendance. It\'s your starting point each day.' },
-                  { title: 'How classes are assigned', content: 'Your admin assigns classes to you. You\'ll see all your assigned classes on the Overview and can mark attendance or record exams for them. If a class is missing, contact your admin.' },
-                  { title: 'Active semester', content: 'Your dashboard automatically uses the active semester set by your admin. You cannot change the semester — all attendance and exam records are filed under the current active semester.' },
-                ]} />
-
-                <HelpSection sectionKey="attendance" title="Attendance" items={[
-                  { title: 'Mark attendance for a class', content: 'Go to Attendance, select your class and the date. You\'ll see a list of students — mark each as Present, Absent, Late, or Excused. Click "Save Attendance" when done.' },
-                  { title: 'Mark dressing, behavior, and punctuality', content: 'After marking presence, you can rate each student\'s dressing, behavior, and punctuality (Excellent, Good, Fair, or Poor) if these are enabled by your admin. These ratings appear in parent and admin reports.' },
-                  { title: 'Absent reasons', content: 'For absent students, select a reason: Sick, Parent Request, School Not Notified, or Other. This helps the admin track absence patterns.' },
-                  { title: 'Edit past attendance', content: 'Select a past date in the Attendance tab to view and edit previously marked records. Changes are saved immediately. You cannot record attendance for future dates.' },
-                  { title: 'View attendance history', content: 'Switch to the "View" sub-tab in Attendance to see a summary of past attendance records for any class and date range.' },
-                ]} />
-
-                <HelpSection sectionKey="exams" title="Exams" items={[
-                  { title: 'Record exam scores', content: 'Go to Exam Recording, select a class, subject, and exam type (e.g. Test, Quiz, Final). Enter each student\'s score out of the maximum marks, then save.' },
-                  { title: 'Mark a student absent for an exam', content: 'If a student was absent for an exam, you can mark them as absent with a reason instead of entering a score.' },
-                  { title: 'Edit or delete exam records', content: 'In Exam Recording, select the same class/subject/exam to view existing records. You can update scores or delete the entire exam record.' },
-                ]} />
-
-                <HelpSection sectionKey="reports" title="Reports" items={[
-                  { title: 'View exam results', content: 'Go to Exam Reports and select a class. You\'ll see exam results sorted by subject and date, with averages and individual student scores.' },
-                  { title: 'Student rankings', content: 'Reports show student rankings within their class based on exam performance. Rankings are tie-aware — students with the same percentage share the same rank.' },
-                  { title: 'Export exam reports', content: 'Use the export button on the reports page to download results as a file for printing or sharing.' },
-                ]} />
-
-                {madrasahProfile?.enable_learning_tracker !== 0 && madrasahProfile?.enable_learning_tracker !== false && (
-                  <HelpSection sectionKey="quran" title="Qur'an Tracker" items={[
-                    { title: 'Update student progress', content: 'Go to Qur\'an Tracker and select a class. For each student, update their current position (Juz, Surah, Ayah). This helps track memorisation or reading progress over time.' },
-                    { title: 'View progress history', content: 'Select a student to see their full Qur\'an progress history, including past positions and dates of each update.' },
-                  ]} />
-                )}
-
-                <HelpSection sectionKey="availability" title="Availability" items={[
-                  { title: 'Mark yourself as unavailable', content: 'Go to the Availability tab and tap on a date to mark yourself as unavailable. You can optionally add a reason (e.g. sick leave, travel). Your admin will see this on their dashboard.' },
-                  { title: 'Cancel an unavailability', content: 'Tap on a date you\'ve already marked as unavailable to revert it back to available.' },
-                ]} />
-
-                <HelpSection sectionKey="settings" title="Settings" items={[
-                  { title: 'Update your password', content: 'Click your profile icon at the bottom of the sidebar, then go to Settings. You can change your password from there.' },
-                  { title: 'Keyboard shortcut', content: 'Press "/" on any page with a search field to quickly focus the search bar.' },
-                ]} />
-              </>
-            );
-          })()}
+              </div>
+              <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+                <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 600 }}>Help & Docs</h3>
+                <p style={{ margin: 0, color: 'var(--gray)', fontSize: 14 }}>
+                  Step-by-step guides for teachers — recording attendance, exams, Qur'an sessions, and courses. Searchable. Open in a new tab to keep your dashboard handy.
+                </p>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+                <a href="/docs/getting-started/welcome" target="_blank" rel="noopener noreferrer" className="card" style={{ padding: 16, textDecoration: 'none', color: 'inherit' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Start here</div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>Welcome to E-Daarah</div>
+                </a>
+                <a href="/docs/admins/attendance" target="_blank" rel="noopener noreferrer" className="card" style={{ padding: 16, textDecoration: 'none', color: 'inherit' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Daily</div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>Recording attendance</div>
+                </a>
+                <a href="/docs/help/faq" target="_blank" rel="noopener noreferrer" className="card" style={{ padding: 16, textDecoration: 'none', color: 'inherit' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gray)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Help</div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>Frequently asked questions</div>
+                </a>
+              </div>
+            </>
+          )}
 
           {/* Settings Tab */}
           {activeTab === 'settings' && (

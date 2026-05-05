@@ -1,63 +1,62 @@
 # Creating your madrasah account
 
-Setting up E-Daarah for a new madrasah takes about **five minutes**. Here's exactly what you'll do.
+Setting up a new E-Daarah account takes about 5 minutes. Here's exactly what to fill in.
 
-## Before you start
+## What you'll need
 
-You'll need:
-
-- An email address you check regularly (admin reminders, password resets, and parent ticket replies all go here)
+- An email you check regularly
 - A name for your madrasah
-- 2–3 minutes to click through the onboarding wizard
+- Your phone number (with country code)
+- Your madrasah's address (street, city, region, country)
 
-You **don't** need:
+> **No credit card needed.** Most institution types start on a 14-day trial of the full feature set. Qur'an-focused institutions get the free plan with no expiry instead.
 
-- A credit card — every new account starts on a 14-day free trial of the Plus plan, no card required
-- Class lists or student data prepared in advance — you can add those later
+## Step 1: Open the registration form
 
-## Step 1: Sign up
+Go to [e-daarah.com](https://www.e-daarah.com) and click **Get Started** in the top nav.
 
-1. Go to [e-daarah.com](https://www.e-daarah.com) and click **Get Started** (top right).
-2. Enter your madrasah name, your name, your email, and a password.
-3. Click **Create account**.
+## Step 2: Fill in the form
 
-You'll land on the **onboarding wizard** straight away.
+The form is one long page. Here's what each field is for:
 
-> **Tip**: Pick a memorable madrasah name — it becomes the URL slug your teachers and parents will see (e.g. `e-daarah.com/example-madrasah/...`).
+**Madrasah name** — what your school is called. The URL slug auto-fills from this; you can edit it below.
 
-## Step 2: Verify your email
+**Your URL** — the slug used in your madrasah's address (e.g. `e-daarah.com/junior-academy/...`). Lowercase letters, numbers, and hyphens only.
 
-While you're filling in the wizard, check your inbox. You should have a verification email from `noreply@e-daarah.com`.
+**Institution type** — pick the closest match. **Qur'an-focused** institutions land on the simpler Solo dashboard for free; the rest get the full Admin dashboard with a 14-day trial.
 
-- Click the **Verify email** button in the email
-- This unlocks SMS sending and removes the verification banner from your dashboard
+**Admin first/last name, email, password** — the first user account, automatically given the admin role. Password must be at least 8 characters.
 
-If you don't see the email after a couple of minutes, check **Spam / Junk**. Still nothing? Click **Resend verification** in the banner at the top of your dashboard.
+**Phone** with country code — required.
 
-## Step 3: Walk through the onboarding wizard
+**Street, city, region, country** — all four are required.
 
-The wizard asks a handful of one-tap questions to set up your madrasah:
+**Agree to terms** — must be ticked to submit.
 
-- Scheduling style (academic semester or cohort-based)
-- Which features to enable (learning tracker, fee tracking, grade tracking, teacher availability)
-- Currency
-- Fee calculation mode (if fees enabled)
+## Step 3: Click "Create Madrasah"
 
-Don't worry if you're not sure — you can change every one of these later in **Settings → Features**.
+You'll see a *"Madrasah registered successfully"* toast and be redirected:
 
-For a deeper walkthrough see [Onboarding wizard walkthrough](/docs/getting-started/onboarding).
+- **Qur'an-focused institutions** → straight to the **Solo** dashboard
+- **All other types** → the **Admin** dashboard, with a 14-day trial banner at the top
 
-## Step 4: Add your first class and a few students
+## Step 4: Verify your email
 
-After the wizard you land on the dashboard. Two things to do next:
+A verification email goes out automatically. Check your inbox for a mail from `noreply@e-daarah.com`.
 
-1. **Classes** → click **+ New Class** and give it a name (e.g. "Junior Boys")
-2. **Students** → click **+ New Student** and add a few
+While unverified, the dashboard shows a yellow banner reading **"Verify your email · Please check your inbox and verify your email address to unlock all features."** with **Resend Email** and dismiss buttons.
 
-Both are quick — just name, gender, and class are required. You can add parent phone numbers and addresses later.
+If you don't see the email after a couple of minutes, click **Resend Email** in the banner. Don't forget to check Spam.
 
 ## What's next?
 
-- **Invite your teachers** — Settings → Account → invite teachers by email
-- **Try the parent portal** — log in as a student you just added, see what parents see
-- **Start recording attendance** — see [Recording attendance](/docs/admins/attendance)
+- [Onboarding wizard walkthrough](/docs/getting-started/onboarding) — the questions you'll answer right after signup
+- [Recording attendance](/docs/admins/attendance)
+
+<!-- docs-meta
+sources:
+  - frontend/src/pages/MadrasahRegistration.jsx
+  - backend/src/routes/auth.routes.js#L78-L180
+  - frontend/src/components/EmailVerificationBanner.jsx
+last_audited: 2026-05-04
+-->

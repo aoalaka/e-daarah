@@ -1,111 +1,122 @@
 # Frequently asked questions
 
-Quick answers to the questions we hear most often. If yours isn't here, open a support ticket from your dashboard.
+Quick answers to common questions. If yours isn't here, open a support ticket from your dashboard.
 
 ## Account & billing
 
 ### Do I need a credit card to sign up?
 
-No. Every new madrasah starts on a 14-day free trial of the Plus plan. No card asked for until you decide to subscribe.
+No. Most institutions start on a 14-day trial of the full feature set. Qur'an-focused institutions get the free plan permanently. No card asked for at signup either way.
 
 ### Can I change plans later?
 
-Yes — Settings → Billing → choose another plan. We auto-cancel your old subscription so you're never charged twice.
+Yes — **Settings → Billing → Choose a Plan**. We auto-cancel your old subscription so you're never charged twice.
 
 ### What happens when my trial ends?
 
-If you haven't subscribed by then, your account moves to the Free tier. Your data is safe — you just lose access to Plus-only features (reports, advanced rankings, etc).
+If you haven't subscribed by then, your access becomes restricted (read-only). Your data is safe — you just need to subscribe to keep recording new attendance, exams, etc.
 
 ### How do I cancel my subscription?
 
-Settings → Billing → **Manage Billing** opens the Stripe customer portal where you can cancel at any time. Your account stays active until the end of the period you've already paid for.
+**Settings → Billing → Manage Billing** opens the Stripe customer portal where you can cancel any time. Your account stays active until the end of the period you've already paid for.
 
 ## Students & classes
 
 ### Can a student be in multiple classes?
 
-Currently no — each student belongs to one class. If a student moves between classes during the year, edit their record and change the class.
+No — each student belongs to one class. If a student moves between classes during the year, edit their record and change the class.
 
 ### How do I move a student to a different class?
 
-Students → click the student → change **Class** → save. Their attendance, exam, and Qur'an history stays attached to them, not the old class.
+**Students → click the student → change Class → Save.** Their attendance, exam, and Qur'an history stays attached to them, not the old class.
 
 ### Can I import students from a spreadsheet?
 
-Not yet — students are added one at a time. Bulk import is on the roadmap.
+Yes. **Students → Bulk Upload** accepts CSV or Excel (`.csv`, `.xlsx`, `.xls`). You can optionally assign all uploaded students to a class.
 
 ## Attendance
 
 ### Why can't I record attendance for today?
 
-A few possible causes:
-- Today is set as a **holiday** in the planner
-- The class has **0 students** assigned to it
-- Your session/semester has ended (or hasn't started)
+Two common causes:
 
-The attendance screen will tell you which of these applies.
+- The class has zero students assigned to it
+- Your active session/semester hasn't been set up yet (or has ended)
+
+The attendance screen shows which condition isn't met.
 
 ### Can I edit attendance from a previous day?
 
-Yes — just pick the date at the top. Editing past records overwrites the original.
+Yes — pick the date at the top of the page, change rows, save. Editing past records overwrites the original.
 
 ## Fees
 
 ### How does fee tracking work?
 
-Two modes — **Manual** (you set each student's expected fee) or **Automatic** (computed from your active period). Pick one in Settings → Features → Fee Calculation Mode.
+Two modes — **Manual** (you set each student's expected fee) or **Automatic** (computed from your active period). Pick one in **Settings → Fee Calculation Mode**.
 
 ### Can parents pay through the app?
 
-Not yet. E-Daarah tracks who has paid and who owes — actual payment still happens through whatever channel you currently use (cash, bank transfer, etc.). You record the payment in the Fees screen.
+Not yet. E-Daarah tracks who has paid and who owes — actual payment still happens through whatever channel you use today (cash, bank transfer, mobile money). You record the payment in the Fees screen.
 
 ## Parents
 
 ### How do parents log in?
 
-They go to your madrasah's URL (e.g. `e-daarah.com/your-madrasah/parent/login`) and enter their phone number. They get a one-time code via SMS to confirm. From then on they're remembered on that device.
+Parents go to your madrasah's parent login URL (e.g. `e-daarah.com/your-madrasah/parent-login`).
 
-### Can two parents share one student?
+- **First time:** click **Register**, enter phone + a **6-digit PIN** they pick, optionally their name. Done.
+- **Returning:** enter phone + PIN.
 
-Yes — a parent's phone number is the key. Whoever has the phone gets access. If both parents need access on different phones, both can log in with the same number.
+There's no SMS code — the PIN is the password.
 
 ### Can a parent see multiple children?
 
-Yes — if multiple students share the same parent phone number, they all show up in the parent's portal as a child selector at the top.
+Yes — students whose parent phone number matches all show up in that parent's portal as a child selector at the top.
 
 ## SMS
 
 ### How much do SMS messages cost?
 
-It depends on how long the message is. A standard message (≤160 characters) is one credit. Each credit costs roughly 5–10c depending on the country. See **SMS → Buy credits** in your dashboard for current pricing.
+It depends on message length. A standard SMS (≤160 characters) is one credit. Each credit costs around 5–10 cents depending on the recipient's country. See **SMS → Buy credits** for current pricing.
 
 ### Why didn't a parent receive my SMS?
 
 Common causes:
-- The parent's phone number on the student record is wrong or missing the country code
-- The parent's network rejected the message (some networks block international SMS by default)
-- The parent has opted out of receiving SMS from you
+- Wrong phone number on the student record (or missing the country code)
+- The parent's network rejected the message (some networks block international SMS)
+- The parent has previously opted out
 
-Check **SMS → History** to see the delivery status.
+Check **SMS → History** to see the delivery status of every message.
+
+## Exporting data
+
+### Can I export my data?
+
+Yes for the lists that have an Export button — currently **Students** and **Reports**. They export as CSV. Other lists are export-on-request — open a support ticket.
 
 ## Technical
 
 ### Does E-Daarah work offline?
 
-Partially — the dashboards cache data so you can read most things offline. Recording attendance and other writes need a connection.
+Partially — dashboards cache data so you can read most things offline. Recording attendance and other writes need a connection.
 
 ### Is my data backed up?
 
-Yes — daily database snapshots, retained for 30 days. If anything goes wrong, contact us.
+Yes — daily database snapshots, retained for 30 days. If anything goes wrong, contact support.
 
 ### Where is my data stored?
 
-In a managed MySQL database hosted by Railway (a US-based cloud platform). Data is encrypted at rest and in transit.
-
-### Can I export my data?
-
-Yes — every list (students, attendance, exams, payments) has a CSV export button. For a full database dump, open a support ticket.
+In a managed MySQL database hosted by Railway (a US-based cloud platform). Encrypted at rest and in transit.
 
 ## Still stuck?
 
 Open a **Support ticket** from your dashboard. We aim to respond within 24 hours.
+
+<!-- docs-meta
+sources:
+  - frontend/src/pages/ParentLogin.jsx
+  - frontend/src/pages/admin/sections/StudentsSection.jsx
+  - backend/src/routes/auth.routes.js#L78-L180
+last_audited: 2026-05-04
+-->

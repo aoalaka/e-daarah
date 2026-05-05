@@ -8,7 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "serve dist -s -l ${PORT:-3000} -n"
+    "start": "serve dist -s -l ${PORT:-3000} -n",
+    "docs-check": "node ../scripts/check-docs-freshness.js",
+    "docs-check-strict": "node ../scripts/check-docs-freshness.js --strict"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

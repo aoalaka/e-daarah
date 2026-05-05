@@ -1,77 +1,66 @@
 # Recording attendance
 
-Attendance is the most-used feature in E-Daarah. Once it's set up well, teachers can record a class in under 30 seconds.
+Attendance is the most-used feature in E-Daarah. Once you've set it up, recording a class takes under 30 seconds.
 
-## Who records attendance?
+> Both teachers (for their assigned classes) and admins use the same screen.
 
-Either teachers (if they're assigned to a class) or admins. Both use the same screen.
+## Step 1: Open the Attendance tab
 
-## How it works
+Click **Attendance** in the side nav.
 
-1. Open the **Attendance** tab in the side nav.
-2. Pick a **class** and a **date** at the top.
-3. You'll see every student in that class as a row. Each row has two big tap buttons:
-   - **✓** = Present
-   - **✗** = Absent
-4. Tap one for each student.
-5. Click **Save Attendance** at the bottom.
+## Step 2: Pick a class and a date
 
-That's it. The row turns green for present, red for absent.
+The two pickers at the top of the page set what you're recording.
 
-## Tap to undo
+## Step 3: Tap ✓ or ✗ for each student
 
-Tapped the wrong button? Just tap the other one. The row toggles instantly. Saves only commit when you click **Save Attendance**.
+Each student appears as a row with two large circle buttons:
 
-## Marking absent — reasons
+- **✓** (green) — Present
+- **✗** (red) — Absent
 
-When you tap **✗**, the row expands and asks **why**:
+Tap one for each student. Tap the other one to change your mind. Rows aren't saved yet — they're held in memory until you hit Save.
 
-- **Sick**
-- **Parent Request** — parent let you know in advance
-- **School Not Notified** — student didn't show up and parents didn't say
-- **Other**
+The bottom of the page shows a running tally: **"X present · Y absent"**.
 
-These reasons appear on the parent portal and on reports, so it's worth picking one even though it's optional.
+## Step 4 (mobile): Continue to details
 
-## Dressing, behaviour, punctuality grades
+If grade tracking is on or any student is marked absent, the **"Save Attendance"** button changes to **"Continue — Add Details"**. Tap it.
 
-If your madrasah has these enabled (Settings → Features → Attendance Features), each present student gets three small dropdowns:
+The details screen lets you fill in:
 
-- **Dressing** — Excellent / Good / Fair / Poor
-- **Behaviour** — same scale
-- **Punctuality** — same scale
+- **Reason** for each absent student. Options: *Sick · Parent Request · School Not Notified · Other*
+- **Dressing / Behaviour / Punctuality** grades (only the ones enabled in **Settings → Features → Attendance Features**). Options: *Excellent · Good · Fair · Poor*
+- **Notes** — free-text per-student note (placeholder: "Optional notes")
 
-Defaults to "Good" — change it only when needed. The grades feed into rankings and reports.
+If grade tracking is off and no one is absent, you can save directly from step 3 — no details screen needed.
 
-## Notes per student
+## Step 5: Save
 
-There's a small notes field on each row. Use it for context that doesn't fit a grade — e.g. "left early — pickup from sister", "phone confiscated — to be returned to parent".
+Click **Save Attendance** at the bottom. The button is disabled until every student is marked present or absent.
 
 ## Editing past attendance
 
-Pick the date you want to edit at the top of the page, change rows, save. The original record is overwritten — no separate "edit mode" needed.
-
-## Bulk actions
-
-In the top-right of the attendance table:
-
-- **Mark all present** — useful when only 1–2 students are absent
-- **Clear all** — removes all marks (you'll need to start over)
-
-## Holidays
-
-If today is a holiday (set in **Planner → Holidays**), the attendance screen shows a **"Today is a holiday"** banner instead of the student rows. No attendance is required.
-
-## What parents see
-
-Parents see attendance as a **percentage** ("attended 18 of 20 classes — 90%") plus a list of absences with the reason. They don't see individual present/absent grades unless you've enabled grade tracking.
+Pick the date you want at the top of the page. Existing records load in. Change rows. Save. The originals are overwritten — no separate "edit mode".
 
 ## Common pitfalls
 
-- **Wrong date** — easy to miss. The date defaults to today; if you record for a previous day, double-check.
-- **Forgot to save** — there's a clear yellow banner at the bottom that says "Unsaved changes" until you hit Save.
-- **Class roster missing a student** — that student isn't assigned to this class. Go to **Students** → edit the student → set Class.
+- **Wrong date** — defaults to today; double-check before saving for a previous day.
+- **Unmarked students** — the Save button stays disabled until every row has ✓ or ✗. The button text shows progress: *"Mark all students (8/12)"*.
+- **Student missing from the list** — they aren't assigned to this class. Open **Students**, edit the student, set their **Class**.
+
+## What parents see
+
+Parents see attendance as a percentage on their report ("attended 18 of 20 classes — 90%") plus the list of absences with the reason. Per-student grades only appear if those features are enabled.
 
 ## What's next?
 
+- [Recording exam results](/docs/admins/exams) *(coming soon)*
 - [FAQ](/docs/help/faq)
+
+<!-- docs-meta
+sources:
+  - frontend/src/pages/teacher/Dashboard.jsx#L2400-L2700
+  - backend/src/routes/teacher.routes.js#L600-L800
+last_audited: 2026-05-05
+-->

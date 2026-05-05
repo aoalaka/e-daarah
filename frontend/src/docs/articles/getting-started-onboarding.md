@@ -1,56 +1,61 @@
 # Onboarding wizard walkthrough
 
-The first time you log into a brand-new madrasah account, E-Daarah shows you the **onboarding wizard** — a sequence of one-tap questions that configures your school. Total time: under 2 minutes.
+The first time an admin logs into a brand-new account, E-Daarah shows the **onboarding wizard** — five short questions that configure your madrasah. Total time: under 2 minutes.
 
-> **Don't worry about getting things wrong** — every answer here can be changed later in **Settings → Features**.
+> **Every answer can be changed later** in **Settings → Features**.
 
-## Question 1: Scheduling style
+## Question 1 — How do you organise your academic year?
 
-You'll see two cards:
+Two cards:
 
-- **Academic** — traditional sessions and semesters. One session is active at a time. Best for weekend schools, weekday after-school programs, and most year-round madrasahs.
-- **Cohort** — multiple parallel cohorts running at once, each with its own start/end dates and students. Best for online madrasahs running rolling intakes (e.g. an "April 2026" cohort and a "June 2026" cohort at the same time).
+- **Academic year with semesters** — one active session at a time (e.g. 2025–26), split into terms or halves. Best for madrasahs with fixed term dates.
+- **Rolling cohorts** — multiple cohorts run in parallel. Students join anytime and are tracked individually from their start date. Best for online or year-round schools.
 
-Pick whichever matches how your school actually operates.
+Pick whichever matches your real-world setup, then **Continue**.
 
-## Question 2: Features
+## Question 2 — Which features do you need?
 
-Toggle each feature on or off. They turn into the side-nav tabs your teachers see.
+Tap each one to toggle it on. All four default to off:
 
-- **Learning tracker** — Qur'an progress + courses with units. Most madrasahs want this on.
-- **Grade tracking** — dressing, behaviour, and punctuality grades next to each attendance entry.
-- **Fee tracking** — schedule fees, record payments, send reminders.
-- **Teacher availability** — teachers tap a calendar to mark days they're unavailable.
+- **Learning Tracker** — Qur'an memorisation + course progress per student. Visible in the parent report.
+- **Grade Tracking** — record behaviour, dress, and punctuality alongside attendance.
+- **Fee Tracking** — manage student payments, balances, and reminders.
+- **Teacher Availability** — teachers mark days they're unavailable in the next 2 weeks.
 
-You can flip any of these later. Disabling them just hides the related tabs.
+Anything you skip just hides the related tab. **Continue**.
 
-## Question 3: Fee calculation mode (if fees enabled)
+## Question 3 — How do you want to calculate fees? *(only if Fee Tracking is on)*
 
-Two options:
+- **Manual** — you set each student's expected fee yourself.
+- **Automatic** — E-Daarah computes fees based on your active session/semester.
 
-- **Manual** — you set each student's expected fee yourself. Simple, predictable.
-- **Automatic** — E-Daarah computes fees per period based on your active session/semester. Optional **proration** for students who join mid-period.
+If you choose Automatic, you'll see a sub-question: **"Should we prorate fees for students who join mid-period?"** with two answers — *Yes, prorate fees* / *No, charge the full period fee*.
 
-If unsure, **start with Manual** — you can switch to Auto later.
+## Question 4 — How should availability link to your Planner? *(only if Teacher Availability is on)*
 
-## Question 4: Teacher availability mode (if availability enabled)
+- **Planner-aware** *(Recommended)* — availability is tied into the planner so admins know who's off when scheduling.
+- **Independent** — availability is informational only; doesn't affect the planner.
 
-- **Planner-aware** (recommended) — availability ties into the planner so admins know who's off when scheduling
-- **Independent** — availability is purely a heads-up signal, no planner integration
+## Question 5 — What currency do you use? *(only if Fee Tracking is on)*
 
-## Question 5: Currency
-
-Pick the currency that matches what your parents pay in. Used everywhere money appears (fees, statements, billing). Currently supports 22 currencies including GBP, USD, NZD, AUD, NGN, ZAR, KES, MYR, IDR, PKR, INR, and more.
+A dropdown with 22 supported currencies (GBP, USD, NZD, AUD, EUR, NGN, ZAR, KES, GHS, EGP, MYR, IDR, PKR, INR, BDT, SAR, AED, QAR, SGD, TRY, CHF, plus more).
 
 ## Done
 
-After the last question, you'll see a "Setup complete" page and land on the dashboard.
+After the last question you'll see a "Setup complete" screen and land on the dashboard. The wizard never returns once finished.
 
-## What if I made a mistake?
+## Made a mistake?
 
-Open **Settings → Features** to flip any toggle. The wizard never reappears once you've completed it — but a super admin can reset it for you if you really need to start fresh.
+Open **Settings → Features** to flip any toggle. **Settings → Scheduling Mode** changes the academic vs cohort answer. **Settings → Fee Calculation Mode** changes fees.
 
 ## What's next?
 
 - [Recording attendance](/docs/admins/attendance)
 - [FAQ](/docs/help/faq)
+
+<!-- docs-meta
+sources:
+  - frontend/src/pages/admin/OnboardingWizard.jsx
+  - backend/src/routes/admin.routes.js#L2495-L2630
+last_audited: 2026-05-04
+-->

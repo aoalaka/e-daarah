@@ -28,3 +28,9 @@ If you're a brand-new admin, start here:
 - [Recording attendance](/docs/admins/attendance)
 
 If something's broken or unclear, check the [FAQ](/docs/help/faq) first. If that doesn't cover it, every dashboard has a **Support** tab where you can open a ticket and our team will respond.
+
+<!-- docs-meta
+sources: []
+last_audited: 2026-05-04
+-->
+

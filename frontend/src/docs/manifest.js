@@ -132,9 +132,19 @@ export const docsManifest = [
   },
 ];
 
+// Strip the docs-meta HTML comment block so it doesn't bleed into the rendered
+// markdown or search hits. The block is metadata for the freshness checker only.
+const stripDocsMeta = (body) => (body || '').replace(/<!--\s*docs-meta[\s\S]*?-->\s*$/m, '').trimEnd();
+
 // Flatten for search and direct lookup
 export const allArticles = docsManifest.flatMap(cat =>
-  cat.articles.map(a => ({ ...a, categoryId: cat.id, categoryTitle: cat.title, path: `/docs/${cat.id}/${a.slug}` }))
+  cat.articles.map(a => ({
+    ...a,
+    body: stripDocsMeta(a.body),
+    categoryId: cat.id,
+    categoryTitle: cat.title,
+    path: `/docs/${cat.id}/${a.slug}`,
+  }))
 );
 
 export function findArticle(categoryId, slug) {

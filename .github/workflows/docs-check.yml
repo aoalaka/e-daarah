@@ -1,0 +1,31 @@
+name: Docs freshness check
+
+# Fails the build when any /docs article's listed source files have been
+# modified since the article's last_audited date. The fix is either to
+# update the article OR to bump the audit date after re-reading sources.
+# See frontend/src/docs/CONTRIBUTING.md for the workflow.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  docs-check:
+    runs-on: ubuntu-latest
+    name: Verify docs match source code
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Need full history so `git log` can find each file's last-commit date
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run docs freshness check
+        run: node scripts/check-docs-freshness.js --strict

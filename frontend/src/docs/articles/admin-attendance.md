@@ -62,5 +62,5 @@ Parents see attendance as a percentage on their report ("attended 18 of 20 class
 sources:
   - frontend/src/pages/teacher/Dashboard.jsx#L2400-L2700
   - backend/src/routes/teacher.routes.js#L600-L800
-last_audited: 2026-05-05
+last_audited: 2026-05-06
 -->

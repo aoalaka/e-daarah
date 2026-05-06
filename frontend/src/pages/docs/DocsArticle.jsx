@@ -70,7 +70,7 @@ export default function DocsArticle() {
           <p style={{ color: '#6b7280', marginBottom: 16 }}>
             We couldn't find the doc you were looking for.
           </p>
-          <Link to="/docs" style={{ color: '#0d9488', fontWeight: 500 }}>← Back to User Guides</Link>
+          <Link to="/docs" style={{ color: '#0d9488', fontWeight: 500 }}>← Back to User Guide</Link>
         </div>
       </DocsLayout>
     );

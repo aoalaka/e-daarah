@@ -4556,11 +4556,11 @@ function SoloDashboard() {
                 <h2 className="page-title">Help</h2>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="btn btn-secondary btn-sm" onClick={() => { localStorage.removeItem('tour_solo_done'); setShowTour(true); }}>Replay tour</button>
-                  <a className="btn btn-primary btn-sm" href="/docs" target="_blank" rel="noopener noreferrer">Open User Guides ↗</a>
+                  <a className="btn btn-primary btn-sm" href="/docs" target="_blank" rel="noopener noreferrer">Open User Guide ↗</a>
                 </div>
               </div>
               <div className="card" style={{ padding: 20, marginBottom: 16 }}>
-                <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 600 }}>User Guides</h3>
+                <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 600 }}>User Guide</h3>
                 <p style={{ margin: 0, color: 'var(--gray)', fontSize: 14 }}>
                   Step-by-step guides for solo teachers. Everything you can do, with screenshots and examples.
                 </p>

@@ -1,5 +1,5 @@
 /* ============================================
-   DOCS — User Guides site layout
+   DOCS — User Guide site layout
    Mobile-first, with sidebar + TOC on desktop
    ============================================ */
 
@@ -35,6 +35,30 @@
 .docs-topbar a.docs-logo img {
   height: 26px;
   width: auto;
+}
+
+.docs-topbar .docs-logo-text {
+  font-weight: 700;
+  font-size: 16px;
+  color: #1a1a1a;
+}
+
+.docs-topbar .docs-logo-divider {
+  color: #cbd5e1;
+  font-weight: 400;
+}
+
+.docs-topbar .docs-logo-section {
+  font-weight: 500;
+  font-size: 15px;
+  color: #475569;
+}
+
+@media (max-width: 600px) {
+  .docs-topbar .docs-logo-divider,
+  .docs-topbar .docs-logo-text {
+    display: none;
+  }
 }
 
 .docs-topbar .docs-mobile-toggle {

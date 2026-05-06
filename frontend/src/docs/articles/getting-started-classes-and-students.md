@@ -41,6 +41,27 @@ For more than ~5 students, the bulk upload is much faster.
 
 Required columns in the spreadsheet: `first_name`, `last_name`, `student_id`, `gender`. Everything else is optional.
 
+## Step 4: Let parents apply via a public link
+
+Don't want to type students in yourself? Share a public enrollment link and let parents fill in the details.
+
+1. Open **Students → Applications** sub-tab.
+2. At the top is a banner: *"Share this link for public enrollment:"* with a URL like `e-daarah.com/your-madrasah/enroll`.
+3. Click the URL to copy it. Send it via WhatsApp, email, or paste it on your school website.
+
+When a parent opens the link, they fill in a public application form with the same fields you'd fill in yourself — student name, gender, parent contact info, address, etc.
+
+### Approving applications
+
+Submitted applications appear in the same **Applications** sub-tab with a count badge on the tab title (e.g. *Applications (3)*).
+
+For each pending application:
+
+- **Approve** — opens a modal where you assign the student to a class, optionally set an expected fee + fee note, then confirm. The student is created and joins your active student list.
+- **Reject** — declines the application. The submission is removed.
+
+Until you approve, applicants don't appear in the main Student List, attendance, or anywhere else.
+
 ## Common pitfalls
 
 - **Student ID rejected** — must be 3 to 10 digits. No letters, no hyphens.
@@ -56,5 +77,5 @@ Required columns in the spreadsheet: `first_name`, `last_name`, `student_id`, `g
 sources:
   - frontend/src/pages/admin/sections/ClassesSection.jsx
   - frontend/src/pages/admin/sections/StudentsSection.jsx
-last_audited: 2026-05-05
+last_audited: 2026-05-06
 -->

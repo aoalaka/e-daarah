@@ -15,57 +15,58 @@ You need at least one class and a few students before you can record attendance.
 
 Repeat for each class. You can edit or delete a class any time.
 
-## Step 2: Add students
+## Step 2: Add students — pick the approach that fits
 
-1. Open **Students**.
-2. Click **+ New Student**.
-3. Fill in the form. Required fields are marked:
+There are three ways to add students. They all end with the same result; pick whichever matches your situation.
+
+### Option A — Add one student at a time *(easiest)*
+
+Best for: a handful of students, or you're trying out E-Daarah.
+
+1. Open **Students** → click **+ New Student**.
+2. Fill in:
    - **First Name** *(required)*
    - **Last Name** *(required)*
    - **Student ID** *(required)* — 3 to 10 digits. Auto-fills with the next available number; you can override.
    - **Gender** *(required)* — Male or Female
    - **Assign to Class** — pick from your existing classes. Optional but recommended.
    - **Enrollment date**, addresses, parent contact info, notes, expected fee — all optional.
-4. Click **Save**.
+3. Click **Save**.
 
 Repeat for each student. The list updates immediately.
 
-## Step 3: Bulk upload from a spreadsheet *(Plus plan only)*
+### Option B — Share a public enrollment link *(zero data entry on your side)*
 
-For more than ~5 students, the bulk upload is much faster.
+Best for: getting parents to fill in their own details, especially at the start of a term.
+
+1. Open **Students → Applications** sub-tab.
+2. The banner reads: *"Share this link for public enrollment:"* — click the URL to copy it (e.g. `e-daarah.com/your-madrasah/enroll`).
+3. Send it via WhatsApp, email, or post it on your school website.
+
+When a parent opens the link, they fill in the application form themselves. Submissions land in the **Applications** sub-tab with a count badge (e.g. *Applications (3)*).
+
+For each pending application, you choose:
+
+- **Approve** — assign a class, optionally set an expected fee + fee note. The student is created and joins your active list.
+- **Reject** — the submission is removed.
+
+Applicants don't appear anywhere else (attendance, fees, etc.) until you approve.
+
+### Option C — Bulk upload from a spreadsheet *(fastest for many students)*
+
+Best for: importing 10+ students at once. **Plus plan only.**
 
 1. **Students → Bulk Upload**.
 2. Pick a `.csv`, `.xlsx`, or `.xls` file.
 3. Optionally pick a class to assign every uploaded student to.
 4. Click **Upload**. Errors (duplicate IDs, missing required columns) are reported per row so you can fix and retry.
 
-Required columns in the spreadsheet: `first_name`, `last_name`, `student_id`, `gender`. Everything else is optional.
-
-## Step 4: Let parents apply via a public link
-
-Don't want to type students in yourself? Share a public enrollment link and let parents fill in the details.
-
-1. Open **Students → Applications** sub-tab.
-2. At the top is a banner: *"Share this link for public enrollment:"* with a URL like `e-daarah.com/your-madrasah/enroll`.
-3. Click the URL to copy it. Send it via WhatsApp, email, or paste it on your school website.
-
-When a parent opens the link, they fill in a public application form with the same fields you'd fill in yourself — student name, gender, parent contact info, address, etc.
-
-### Approving applications
-
-Submitted applications appear in the same **Applications** sub-tab with a count badge on the tab title (e.g. *Applications (3)*).
-
-For each pending application:
-
-- **Approve** — opens a modal where you assign the student to a class, optionally set an expected fee + fee note, then confirm. The student is created and joins your active student list.
-- **Reject** — declines the application. The submission is removed.
-
-Until you approve, applicants don't appear in the main Student List, attendance, or anywhere else.
+Required columns: `first_name`, `last_name`, `student_id`, `gender`. Everything else is optional.
 
 ## Common pitfalls
 
 - **Student ID rejected** — must be 3 to 10 digits. No letters, no hyphens.
-- **Bulk Upload button missing** — that's a Plus plan feature. Free and trial-tier accounts can still add students one at a time.
+- **Bulk Upload button missing** — that's a Plus plan feature. Free and trial-tier accounts can use Option A or B.
 - **Student doesn't appear in attendance** — they aren't assigned to a class. Open the student record and pick a class.
 
 ## What's next?

@@ -17,14 +17,14 @@ function HelpSection({ setShowTour }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-secondary btn-sm" onClick={() => { localStorage.removeItem('tour_admin_done'); setShowTour(true); }}>Replay tour</button>
           <a className="btn btn-primary btn-sm" href="/docs" target="_blank" rel="noopener noreferrer">
-            Open Help & Docs <ArrowTopRightOnSquareIcon width={14} height={14} style={{ marginLeft: 6 }} />
+            Open User Guides <ArrowTopRightOnSquareIcon width={14} height={14} style={{ marginLeft: 6 }} />
           </a>
         </div>
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ padding: 20 }}>
-          <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 600 }}>Help & Docs</h3>
+          <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 600 }}>User Guides</h3>
           <p style={{ margin: 0, color: 'var(--gray)', fontSize: 14 }}>
             Step-by-step guides for everything E-Daarah does. Searchable. Updated continuously. Open the full site in a new tab to keep your dashboard handy.
           </p>

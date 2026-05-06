@@ -1,4 +1,4 @@
-# Maintaining the Help & Docs site
+# Maintaining the User Guides site
 
 The user-facing docs at `/docs` are markdown files under `articles/`. They're rendered through the `DocsArticle` component, listed in `manifest.js`, and kept honest by a freshness checker.
 

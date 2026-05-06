@@ -48,7 +48,7 @@ export default function DocsLayout({ children, currentArticle }) {
       <header className="docs-topbar">
         <Link to="/" className="docs-logo">
           <img src="/e-daarah-blackbg-logo.png" alt="E-Daarah" />
-          <span>Help & Docs</span>
+          <span>User Guides</span>
         </Link>
         <button
           type="button"

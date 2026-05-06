@@ -6,7 +6,7 @@ export default function DocsIndex() {
   return (
     <DocsLayout>
       <div className="docs-index">
-        <h1>Help & Docs</h1>
+        <h1>User Guides</h1>
         <p>Step-by-step guides for everything E-Daarah does. Start with Getting Started, or use the search at the top.</p>
 
         <div className="docs-index-grid">
